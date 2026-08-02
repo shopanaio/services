@@ -3,7 +3,7 @@ import type { ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/typ
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesReplaceDto } from "@src/application/dto/checkoutLinesReplace.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
 
 /**
@@ -26,35 +26,30 @@ export const checkoutLinesReplace = async (
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+  const { checkoutUsecase, logger } = app;
   const dto = createValidated(CheckoutLinesReplaceDto, args.input);
 
   try {
-    const updatedCheckoutId = await checkoutUsecase.replaceCheckoutLines.execute({
+    const checkout = await checkoutUsecase.replaceCheckoutLines.execute({
       checkoutId: dto.checkoutId,
       lines: dto.lines.map((l) => ({
         lineId: l.lineId,
-        purchasableId: l.purchasableId,
+        variantId: l.purchasableId,
         quantity: l.quantity,
       })),
-      apiKey: ctx.apiKey,
+      storefrontAccess: ctx.storefrontAccess,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });
 
-    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
-    if (!checkout) {
-      return null;
-    }
-
     return {
-      checkout: mapCheckoutReadToApi(checkout),
+      checkout: mapCommittedCheckoutToApi(checkout),
       errors: [],
     };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "checkoutLinesReplace domain error");
+    logger.error({ reason, checkoutId: dto.checkoutId }, "checkoutLinesReplace domain error");
     throw await fromDomainError(err);
   }
 };

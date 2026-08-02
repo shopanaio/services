@@ -1,16 +1,39 @@
 import type { CheckoutContext } from "@src/context/index.js";
+import type { CheckoutPipelineJsonObject } from "../pipeline/contracts/index.js";
 
 export type { CheckoutContext };
 
 export type CreateCheckoutInput = {
   currencyCode: string;
-  idempotencyKey: string; // computed from request hash on server
-  salesChannel?: string | null;
+  idempotencyKey: string;
+  channelCode: string;
   externalSource?: string | null;
   externalId?: string | null;
   localeCode?: string | null;
   tags?: CheckoutTagInput[];
+  items: CheckoutLineCreateCommand[];
 } & CheckoutContext;
+
+export type CheckoutLinePurchase =
+  | { type: "ONE_TIME"; sellingPlanId: null }
+  | { type: "SUBSCRIPTION"; sellingPlanId: string };
+
+export type CheckoutLineCommand = {
+  lineId: string;
+  variantId: string;
+  quantity: number;
+  purchase: CheckoutLinePurchase;
+  attributes: CheckoutPipelineJsonObject;
+  tagSlug?: string | null;
+  children?: CheckoutChildLineInput[] | null;
+};
+
+export type CheckoutLineCreateCommand = Omit<
+  CheckoutLineCommand,
+  "lineId" | "children"
+> & {
+  children?: Array<Omit<CheckoutChildLineInput, "lineId">> | null;
+};
 
 export type CheckoutTagInput = {
   slug: string;
@@ -23,32 +46,17 @@ export type CheckoutTagInput = {
  * The purchasableId must be a variant that exists in parent product's groups.
  */
 export type CheckoutChildLineInput = {
+  lineId: string;
   componentItemId: string;
-  purchasableId: string;
+  variantId: string;
   quantity: number;
-  purchasableSnapshot?: {
-    title: string;
-    imageUrl?: string | null;
-    sku?: string | null;
-    data?: Record<string, unknown>;
-  } | null;
+  purchase: CheckoutLinePurchase;
+  attributes: CheckoutPipelineJsonObject;
 };
 
 export type CheckoutLinesAddInput = {
   checkoutId: string;
-  lines: Array<{
-    purchasableId: string;
-    quantity: number;
-    purchasableSnapshot: {
-      title: string;
-      imageUrl?: string | null;
-      sku?: string | null;
-      data?: Record<string, unknown>;
-    } | null;
-    tagSlug?: string | null;
-    /** Child items for this line. If provided, this line becomes a parent. */
-    children?: CheckoutChildLineInput[] | null;
-  }>;
+  lines: CheckoutLineCommand[];
 } & CheckoutContext;
 
 export type CheckoutLinesUpdateInput = {
@@ -72,7 +80,7 @@ export type CheckoutLinesReplaceInput = {
   checkoutId: string;
   lines: Array<{
     lineId: string; // source line id
-    purchasableId: string; // target purchasable id
+    variantId: string;
     quantity?: number; // if not provided, move full quantity from source line
   }>;
 } & CheckoutContext;
@@ -123,21 +131,25 @@ export type CheckoutCurrencyCodeUpdateInput = {
 
 export type CheckoutDeliveryMethodUpdateInput = {
   checkoutId: string;
-  shippingMethodCode: string;
-  provider: string;
   deliveryGroupId: string;
-  data?: Record<string, unknown>;
+  optionHandle: string;
+  customerInput?: CheckoutPipelineJsonObject;
 } & CheckoutContext;
 
 export type CheckoutPaymentMethodUpdateInput = {
   checkoutId: string;
-  paymentMethodCode: string;
-  provider: string;
-  data?: Record<string, unknown>;
+  methodHandle: string;
+  customerInput?: CheckoutPipelineJsonObject;
 } & CheckoutContext;
 
 export type CheckoutDeliveryAddressAddInput = {
   checkoutId: string;
+  addresses: CheckoutDeliveryAddressFields[];
+} & CheckoutContext;
+
+export type CheckoutDeliveryAddressFields = {
+  id: string;
+  checkoutLineIds: string[];
   address1?: string | null;
   address2?: string | null;
   city?: string | null;
@@ -148,48 +160,17 @@ export type CheckoutDeliveryAddressAddInput = {
   firstName?: string | null;
   lastName?: string | null;
   phone?: string | null;
-  data?: any;
-} & CheckoutContext;
-
-export type CheckoutDeliveryGroupAddressUpdateInput = {
-  checkoutId: string;
-  deliveryGroupId: string;
-  address: {
-    id: string;
-    address1?: string | null;
-    address2?: string | null;
-    city?: string | null;
-    countryCode?: string | null;
-    provinceCode?: string | null;
-    postalCode?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    middleName?: string | null;
-    email?: string | null;
-    phone?: string | null;
-    data?: any;
-  };
-} & CheckoutContext;
+  data?: CheckoutPipelineJsonObject | null;
+};
 
 export type CheckoutDeliveryAddressUpdateInput = {
   checkoutId: string;
-  addressId: string;
-  address1?: string | null;
-  address2?: string | null;
-  city?: string | null;
-  countryCode?: string | null;
-  provinceCode?: string | null;
-  postalCode?: string | null;
-  email?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  phone?: string | null;
-  data?: any;
+  updates: Array<{ addressId: string; address: Omit<CheckoutDeliveryAddressFields, "id" | "checkoutLineIds"> }>;
 } & CheckoutContext;
 
 export type CheckoutDeliveryAddressRemoveInput = {
   checkoutId: string;
-  addressId: string;
+  addressIds: string[];
 } & CheckoutContext;
 
 export type CheckoutPromoCodeAddInput = {
@@ -204,17 +185,16 @@ export type CheckoutPromoCodeRemoveInput = {
 
 export type CheckoutDeliveryGroupRecipientUpdateInput = {
   checkoutId: string;
-  deliveryGroupId: string;
-  recipient: {
+  updates: Array<{ deliveryGroupId: string; recipient: {
     firstName?: string | null;
     lastName?: string | null;
     middleName?: string | null;
     email?: string | null;
     phone?: string | null;
-  };
+  } }>;
 } & CheckoutContext;
 
 export type CheckoutDeliveryGroupRecipientRemoveInput = {
   checkoutId: string;
-  deliveryGroupId: string;
+  deliveryGroupIds: string[];
 } & CheckoutContext;

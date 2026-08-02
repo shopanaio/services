@@ -1,84 +1,24 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutPromoCodeAddInput } from "@src/application/checkout/types";
-import type { CheckoutPromoCodeAddedDto } from "@src/domain/checkout/dto";
-import { AppliedDiscountSnapshot } from "@src/domain/checkout/discount";
+import { UseCase } from "./useCase.js";
+import type { CheckoutPromoCodeAddInput } from "../checkout/types.js";
+import { normalizeDiscountCode, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface AddPromoCodeUseCaseDependencies extends UseCaseDependencies {}
-
-export class AddPromoCodeUseCase extends UseCase<
-  CheckoutPromoCodeAddInput,
-  string
-> {
-  constructor(deps: AddPromoCodeUseCaseDependencies) {
-    super(deps);
-  }
-
-  async execute(input: CheckoutPromoCodeAddInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-    this.validateCurrencyCode(state);
-
-    if (state.appliedDiscounts?.some((d) => d.code === businessInput.code)) {
-      // Idempotency: promo code already applied
-      return businessInput.checkoutId;
-    }
-
-    // TODO(checkout-rewrite): pass discount codes to pricing.calculateQuote
-    // and replace this temporary unknown result with the typed quote response.
-    const promo: any = {
-      code: businessInput.code,
-      valid: false,
-    };
-
-    if (!promo.valid) {
-      throw new Error(`Invalid promo code: ${businessInput.code}`);
-    }
-
-    if (!promo.discount) {
-      throw new Error(
-        `No discount data received for promo code: ${promo.code}`
-      );
-    }
-
-    const newAppliedDiscounts: AppliedDiscountSnapshot[] = [
-      ...(state.appliedDiscounts ?? []),
-      {
-        code: businessInput.code,
-        appliedAt: new Date(),
-        type: promo.discount.type,
-        value: promo.discount.value,
-        provider: promo.discount.provider,
+export class AddPromoCodeUseCase extends UseCase<CheckoutPromoCodeAddInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutPromoCodeAddInput) {
+    const { storefrontAccess, store, customer, user, checkoutId } = input;
+    const code = normalizeDiscountCode(input.code);
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "DISCOUNT_CODES_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => {
+        if (!draft.cartIntent.discountCodes.includes(code)) {
+          draft.cartIntent = {
+            ...draft.cartIntent,
+            discountCodes: [...draft.cartIntent.discountCodes, code],
+          };
+        }
       },
-    ];
-
-    const checkoutLines = Object.values(state.linesRecord ?? {});
-    const computed = await this.checkoutService.computeTotals({
-      storeId: context.store.id,
-      checkoutLines,
-      appliedDiscounts: newAppliedDiscounts,
-      currency: state.currencyCode,
-    });
-
-    const dto: CheckoutPromoCodeAddedDto = {
-      data: {
-        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
-        checkoutLinesCost: computed.checkoutLinesCost,
-        checkoutCost: computed.checkoutCost,
-        appliedDiscounts: newAppliedDiscounts,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.applyPromoCodeAdded(dto);
-    console.log("Added promo code:", dto);
-    return businessInput.checkoutId;
+    })).checkout;
   }
 }

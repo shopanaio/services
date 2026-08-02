@@ -6,6 +6,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutTagPayloadDto {
   @Expose()
@@ -21,7 +22,7 @@ export class CheckoutTagPayloadDto {
 
 export class CheckoutTagCreateDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
@@ -32,11 +33,11 @@ export class CheckoutTagCreateDto {
 
 export class CheckoutTagUpdateDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
-  @IsGlobalId({ message: "Invalid tag ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.CheckoutTag, message: "Invalid tag ID format" })
   tagId!: string;
 
   @Expose()
@@ -54,10 +55,10 @@ export class CheckoutTagUpdateDto {
 
 export class CheckoutTagDeleteDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
-  @IsGlobalId({ message: "Invalid tag ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.CheckoutTag, message: "Invalid tag ID format" })
   tagId!: string;
 }

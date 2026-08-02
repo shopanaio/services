@@ -1,55 +1,19 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutPaymentMethodUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutPaymentMethodUpdatedDto } from "@src/domain/checkout/dto";
+import { UseCase } from "./useCase.js";
+import type { CheckoutPaymentMethodUpdateInput } from "../checkout/types.js";
+import { updatePaymentSelection, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export class UpdatePaymentMethodUseCase extends UseCase<
-  CheckoutPaymentMethodUpdateInput,
-  CheckoutPaymentMethodUpdatedDto
-> {
-  async execute(
-    input: CheckoutPaymentMethodUpdateInput
-  ): Promise<CheckoutPaymentMethodUpdatedDto> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    if (!state.payment || state.payment.methods.length === 0) {
-      throw new Error("Checkout payment aggregate missing");
-    }
-
-    const availableMethod = state.payment.methods.find(
-      (method) =>
-        method.code === businessInput.paymentMethodCode &&
-        method.provider === businessInput.provider
-    );
-
-    if (!availableMethod) {
-      throw new Error(
-        `Payment method not available: ${businessInput.provider}:${businessInput.paymentMethodCode}`
-      );
-    }
-
-    const resultDto: CheckoutPaymentMethodUpdatedDto = {
-      data: {
-        paymentMethod: {
-          code: availableMethod.code,
-          provider: availableMethod.provider,
-          flow: availableMethod.flow,
-          metadata: availableMethod.metadata ?? null,
-          customerInput: businessInput.data ?? null,
-        },
-        payableAmount: state.payment.payableAmount,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    // Save payment method and selected payment method to database
-    await this.checkoutWriteRepository.updatePaymentMethod(resultDto);
-
-    return resultDto;
+export class UpdatePaymentMethodUseCase extends UseCase<CheckoutPaymentMethodUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutPaymentMethodUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "PAYMENT_METHOD_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => updatePaymentSelection(draft, {
+        methodHandle: input.methodHandle,
+        customerInput: input.customerInput ?? null,
+      }),
+    })).checkout;
   }
 }

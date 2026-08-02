@@ -74,6 +74,18 @@ type Checkout implements Node @key(fields: "id") {
   """
   id: ID!
 
+  """Optimistic concurrency version of the committed checkout."""
+  version: Int!
+
+  """Revision of the last complete checkout pipeline result."""
+  resultRevision: String!
+
+  """Whether the committed checkout is ready according to validation."""
+  valid: Boolean!
+
+  """Ordered issues emitted by the checkout pipeline."""
+  issues: [CheckoutIssue!]!
+
   """
   When this checkout was first created.
   """
@@ -159,6 +171,10 @@ type CheckoutTag implements Node @key(fields: "id") {
 Input data for creating a new checkout.
 """
 input CheckoutCreateInput {
+  """Client-generated opaque key used to replay this create safely."""
+  idempotencyKey: String!
+  """Canonical sales channel used by pricing and eligibility rules."""
+  channelCode: String!
   """
   Source of sales for the checkout.
   """
@@ -183,6 +199,26 @@ input CheckoutCreateInput {
   Optional tag definitions to initialize for this checkout.
   """
   tags: [CheckoutTagInput!]
+}
+
+enum CheckoutIssueSeverity {
+  WARNING
+  ERROR
+}
+
+enum CheckoutIssueEffect {
+  CONTINUE
+  STOP
+}
+
+type CheckoutIssue {
+  code: String!
+  message: String!
+  severity: CheckoutIssueSeverity!
+  effect: CheckoutIssueEffect!
+  field: [String!]!
+  lineId: ID
+  retryable: Boolean!
 }
 
 type CheckoutFieldError {

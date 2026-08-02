@@ -1,28 +1,16 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutLanguageCodeUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutLanguageCodeUpdatedDto } from "@src/domain/checkout/dto";
+import { UseCase } from "./useCase.js";
+import type { CheckoutLanguageCodeUpdateInput } from "../checkout/types.js";
+import type { CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export class UpdateLanguageCodeUseCase extends UseCase<
-  CheckoutLanguageCodeUpdateInput,
-  string
-> {
-  async execute(input: CheckoutLanguageCodeUpdateInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    const dto: CheckoutLanguageCodeUpdatedDto = {
-      data: {
-        localeCode: businessInput.localeCode,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.updateLanguageCode(dto);
-    return businessInput.checkoutId;
+export class UpdateLanguageCodeUseCase extends UseCase<CheckoutLanguageCodeUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutLanguageCodeUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, localeCode } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "LOCALE_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => { draft.localeCode = localeCode; },
+    })).checkout;
   }
 }

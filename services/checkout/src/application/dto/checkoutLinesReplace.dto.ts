@@ -1,14 +1,15 @@
 import { Expose, Type } from "class-transformer";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 import { IsArray, ValidateNested, IsInt, Min, IsOptional } from "class-validator";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutLineReplaceItemDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid source line ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.CheckoutLine, message: "Invalid source line ID format" })
   lineId!: string;
 
   @Expose()
-  @IsGlobalId({ message: "Invalid target purchasable ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Variant, message: "Invalid target purchasable ID format" })
   purchasableId!: string;
 
   @Expose()
@@ -23,7 +24,7 @@ export class CheckoutLineReplaceItemDto {
  */
 export class CheckoutLinesReplaceDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()

@@ -1,36 +1,17 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutCurrencyCodeUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutCurrencyCodeUpdatedDto } from "@src/domain/checkout/dto";
-import { vo } from "@src/domain/shared/valueObjects";
+import { UseCase } from "./useCase.js";
+import type { CheckoutCurrencyCodeUpdateInput } from "../checkout/types.js";
+import type { CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export class UpdateCurrencyCodeUseCase extends UseCase<
-  CheckoutCurrencyCodeUpdateInput,
-  string
-> {
-  async execute(input: CheckoutCurrencyCodeUpdateInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    // Validate currency code using domain validators
-    try {
-      vo.normalizeCurrencyCode(businessInput.currencyCode);
-    } catch (error) {
-      throw new Error(`Invalid currency code: ${businessInput.currencyCode}`);
-    }
-
-    const dto: CheckoutCurrencyCodeUpdatedDto = {
-      data: {
-        currencyCode: businessInput.currencyCode,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.updateCurrencyCode(dto);
-
-    return businessInput.checkoutId;
+export class UpdateCurrencyCodeUseCase extends UseCase<CheckoutCurrencyCodeUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutCurrencyCodeUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId } = input;
+    const currencyCode = input.currencyCode.trim().toUpperCase();
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "CURRENCY_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => { draft.currencyCode = currencyCode; },
+    })).checkout;
   }
 }

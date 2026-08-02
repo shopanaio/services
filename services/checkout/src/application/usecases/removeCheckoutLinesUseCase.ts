@@ -1,117 +1,16 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutLinesDeleteInput } from "@src/application/checkout/types";
-import type { CheckoutLinesDeletedDto } from "@src/domain/checkout/dto";
-import { Money } from "@shopana/shared-money";
-import { CheckoutLineItemState } from "@src/domain/checkout/types";
+import { UseCase } from "./useCase.js";
+import type { CheckoutLinesDeleteInput } from "../checkout/types.js";
+import { deleteLines, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface DeleteCheckoutLinesUseCaseDependencies
-  extends UseCaseDependencies {}
-
-export class DeleteCheckoutLinesUseCase extends UseCase<
-  CheckoutLinesDeleteInput,
-  string
-> {
-  constructor(deps: DeleteCheckoutLinesUseCaseDependencies) {
-    super(deps);
+export class DeleteCheckoutLinesUseCase extends UseCase<CheckoutLinesDeleteInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutLinesDeleteInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, lineIds } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "LINES_DELETE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => deleteLines(draft, lineIds),
+    })).checkout;
   }
-
-  async execute(input: CheckoutLinesDeleteInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-    this.validateCurrencyCode(state);
-
-    // Validate lines to be deleted
-    for (const id of businessInput.lineIds) {
-      if (!state.linesRecord?.[id]) {
-        throw new Error(`Line ${id} does not exist`);
-      }
-    }
-
-    const existingLines = Object.values(state.linesRecord ?? {});
-    const lineIdsToDelete = new Set(businessInput.lineIds);
-
-    // Cascade delete: if a parent is deleted, also delete its children
-    for (const line of existingLines) {
-      if (line.parentLineId && lineIdsToDelete.has(line.parentLineId)) {
-        lineIdsToDelete.add(line.lineId);
-      }
-    }
-
-    // Remaining lines after deletion
-    const remainingLines = existingLines.filter(
-      (line) => !lineIdsToDelete.has(line.lineId)
-    );
-
-    let checkoutLines: CheckoutLineItemState[] = [];
-    let computed = {
-      checkoutLinesCost: {},
-      checkoutCost: {
-        subtotal: Money.zero(),
-        discountTotal: Money.zero(),
-        taxTotal: Money.zero(),
-        shippingTotal: Money.zero(),
-        grandTotal: Money.zero(),
-        totalQuantity: 0,
-      },
-    };
-
-    // If lines remain - get current data and recalculate
-    if (remainingLines.length > 0) {
-      // TODO(checkout-rewrite): replace this placeholder with quoted lines
-      // from the new typed checkout recalculation pipeline.
-      const offers = new Map<string, any>();
-
-      checkoutLines = remainingLines.map((line) => {
-        const offer = offers.get(line.lineId);
-        if (!offer?.isAvailable) {
-          throw new Error(`Product not found in inventory`);
-        }
-
-        return {
-          ...line,
-          unit: {
-            ...line.unit,
-            price: Money.fromMinor(BigInt(offer.unitPrice)),
-            compareAtPrice:
-              offer.unitCompareAtPrice != null
-                ? Money.fromMinor(BigInt(offer.unitCompareAtPrice))
-                : null,
-            title: offer.purchasableSnapshot?.title ?? line.unit.title,
-            sku: offer.purchasableSnapshot?.sku ?? line.unit.sku,
-            imageUrl: offer.purchasableSnapshot?.imageUrl ?? line.unit.imageUrl,
-            snapshot: offer.purchasableSnapshot?.data ?? line.unit.snapshot,
-          },
-        };
-      });
-
-      computed = await this.checkoutService.computeTotals({
-        storeId: context.store.id,
-        checkoutLines,
-        appliedDiscounts: state.appliedDiscounts,
-        currency: state.currencyCode,
-      });
-    }
-
-    const dto: CheckoutLinesDeletedDto = {
-      data: {
-        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
-        checkoutLinesCost: computed.checkoutLinesCost,
-        checkoutCost: computed.checkoutCost,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.applyCheckoutLines(dto);
-
-    return input.checkoutId;
-  }
-
-  // removed: createDeliveryGroups -> moved to base UseCase
 }

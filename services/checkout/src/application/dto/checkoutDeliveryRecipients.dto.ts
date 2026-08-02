@@ -10,6 +10,7 @@ import {
   IsGlobalId,
   IsGlobalIdArray,
 } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**
  * DTO for single recipient (corresponds to CheckoutRecipientInput)
@@ -41,6 +42,7 @@ export class CheckoutRecipientInputDto {
  */
 export class CheckoutDeliveryRecipientUpdateDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.CheckoutDeliveryGroup,
     message: "Invalid delivery group ID format",
   })
   deliveryGroupId!: string;
@@ -55,6 +57,7 @@ export class CheckoutDeliveryRecipientUpdateDto {
  */
 export class CheckoutDeliveryRecipientsAddDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
@@ -70,6 +73,7 @@ export class CheckoutDeliveryRecipientsAddDto {
  */
 export class CheckoutDeliveryRecipientsUpdateDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
@@ -85,12 +89,14 @@ export class CheckoutDeliveryRecipientsUpdateDto {
  */
 export class CheckoutDeliveryRecipientsRemoveDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
 
   @IsArray({ message: "DeliveryGroupIds must be an array" })
   @IsGlobalIdArray({
+    entityType: GlobalIdEntity.CheckoutDeliveryGroup,
     message: "Each delivery group ID must be a valid Global ID",
   })
   deliveryGroupIds!: string[];

@@ -6,8 +6,8 @@ import {
   checkoutCreate,
   checkoutLinesAdd,
   checkoutLinesUpdate,
-    checkoutLinesDelete,
-    checkoutLinesClear,
+  checkoutLinesDelete,
+  checkoutLinesClear,
   checkoutCustomerIdentityUpdate,
   checkoutCustomerNoteUpdate,
   checkoutLanguageCodeUpdate,
@@ -22,10 +22,6 @@ import {
   checkoutTagCreate,
   checkoutTagUpdate,
   checkoutTagDelete,
-  // CheckoutDeliveryGroup resolvers
-  selectedDeliveryMethod,
-  estimatedCost,
-  deliveryMethods,
   checkoutDeliveryRecipientsAdd,
   checkoutDeliveryRecipientsRemove,
   checkoutDeliveryRecipientsUpdate,
@@ -68,12 +64,7 @@ const checkoutResolvers = {
     checkout,
   },
   Checkout: {
-    // Fields totalQuantity and lines are filled in mapper from full read-model
-  },
-  CheckoutDeliveryGroup: {
-    selectedDeliveryMethod,
-    estimatedCost,
-    deliveryMethods,
+    // All fields are projected from the committed pipeline snapshot.
   },
   CheckoutMutation: {
     checkoutCreate,

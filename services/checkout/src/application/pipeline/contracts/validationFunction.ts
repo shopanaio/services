@@ -34,14 +34,6 @@ export interface CheckoutValidationBindingSource {
   }): Promise<readonly unknown[]>;
 }
 
-export class EmptyCheckoutValidationBindingSource
-  implements CheckoutValidationBindingSource
-{
-  async loadForTarget(): Promise<readonly unknown[]> {
-    return [];
-  }
-}
-
 export interface CheckoutValidationFunctionMoney {
   readonly amountMinor: string;
   readonly currencyCode: string;

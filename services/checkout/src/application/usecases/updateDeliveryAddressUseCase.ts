@@ -1,51 +1,39 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import { UpdateDeliveryGroupAddressUseCase } from "./updateDeliveryGroupAddressUseCase";
-import type { CheckoutDeliveryAddressUpdateInput } from "@src/application/checkout/types";
+import { UseCase } from "./useCase.js";
+import type { CheckoutDeliveryAddressUpdateInput } from "../checkout/types.js";
+import { toPipelineAddress } from "./addDeliveryAddressUseCase.js";
+import { assertUniqueIds, invalidCheckoutMutation, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export class UpdateDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddressUpdateInput, void> {
-  private updateDeliveryGroupAddressUseCase: UpdateDeliveryGroupAddressUseCase;
-
-  constructor(deps: any) {
-    super(deps);
-    this.updateDeliveryGroupAddressUseCase = new UpdateDeliveryGroupAddressUseCase(deps);
-  }
-
-  async execute(input: CheckoutDeliveryAddressUpdateInput): Promise<void> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    // Find delivery group with matching address ID
-    const deliveryGroups = state.deliveryGroups || [];
-    const deliveryGroup = deliveryGroups.find(
-      (g) => g.deliveryAddress && g.deliveryAddress.id === businessInput.addressId
-    );
-
-    if (deliveryGroup) {
-      await this.updateDeliveryGroupAddressUseCase.execute({
-        ...context,
-        checkoutId: businessInput.checkoutId,
-        deliveryGroupId: deliveryGroup.id,
-        address: {
-          id: businessInput.addressId, // Pass existing address ID
-          address1: businessInput.address1,
-          address2: businessInput.address2,
-          city: businessInput.city,
-          countryCode: businessInput.countryCode,
-          provinceCode: businessInput.provinceCode,
-          postalCode: businessInput.postalCode,
-          email: businessInput.email,
-          firstName: businessInput.firstName,
-          lastName: businessInput.lastName,
-          phone: businessInput.phone || null,
-          data: businessInput.data,
-        },
-      });
-    } else {
-      throw new Error(`Delivery address with ID ${businessInput.addressId} not found`);
-    }
+export class UpdateDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddressUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutDeliveryAddressUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, updates } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "DELIVERY_ADDRESS_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => {
+        assertUniqueIds(updates.map(({ addressId }) => addressId), "delivery address");
+        const byId = new Map(updates.map((update) => [update.addressId, update.address]));
+        const found = new Set<string>();
+        draft.cartIntent = {
+          ...draft.cartIntent,
+          destinations: draft.cartIntent.destinations.map((destination) => {
+            const update = byId.get(destination.destinationId);
+            if (!update) return destination;
+            found.add(destination.destinationId);
+            return {
+              ...destination,
+              address: toPipelineAddress({
+                ...update,
+                id: destination.destinationId,
+              }),
+            };
+          }),
+        };
+        for (const { addressId } of updates) {
+          if (!found.has(addressId)) throw invalidCheckoutMutation("CHECKOUT_DELIVERY_ADDRESS_NOT_FOUND", "Checkout delivery address was not found.");
+        }
+      },
+    })).checkout;
   }
 }

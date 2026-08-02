@@ -62,13 +62,12 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
 
       // Set context in async local storage
       setContext({
-        apiKey: claims.storefront.credentialId,
+        storefrontAccess: claims.storefront,
         store: request.store,
         customer: request.customer,
         user: null, // TODO: Add user support if needed
       });
-    } catch (error) {
-      console.error('Failed to fetch context via gRPC:', error);
+    } catch {
       return reply
         .status(401)
         .send({ data: null, errors: [{ message: "Unauthorized" }] });

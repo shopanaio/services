@@ -1,10 +1,11 @@
 import { Expose, Type } from "class-transformer";
 import { IsArray, IsInt, Min, ValidateNested } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutLineUpdateItemDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout line ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.CheckoutLine, message: "Invalid checkout line ID format" })
   lineId!: string;
 
   @Expose()
@@ -15,7 +16,7 @@ export class CheckoutLineUpdateItemDto {
 
 export class CheckoutLinesUpdateDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()

@@ -1,121 +1,16 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutLinesUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutLinesUpdatedDto } from "@src/domain/checkout/dto";
-import { Money } from "@shopana/shared-money";
-import { CheckoutLineItemState } from "@src/domain/checkout/types";
+import { UseCase } from "./useCase.js";
+import type { CheckoutLinesUpdateInput } from "../checkout/types.js";
+import { updateLineQuantities, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface UpdateCheckoutLinesUseCaseDependencies
-  extends UseCaseDependencies {}
-
-export class UpdateCheckoutLinesUseCase extends UseCase<
-  CheckoutLinesUpdateInput,
-  string
-> {
-  constructor(deps: UpdateCheckoutLinesUseCaseDependencies) {
-    super(deps);
-  }
-
-  async execute(input: CheckoutLinesUpdateInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-    this.validateCurrencyCode(state);
-
-    // Updated lines without duplicates
-    const normalized: Record<string, number> = {};
-    for (const u of businessInput.lines) {
-      const line = state.linesRecord?.[u.lineId];
-      if (!line) {
-        throw new Error(`Line ${u.lineId} does not exist`);
-      }
-      // Block direct updates of child lines
-      if (line.parentLineId) {
-        throw new Error(
-          `Cannot update child line ${u.lineId} directly. Update the parent line instead.`
-        );
-      }
-      normalized[u.lineId] = u.quantity;
-    }
-
-    // Determine removed lines (quantity = 0)
-    const removedLineIds = new Set<string>();
-    for (const [lineId, quantity] of Object.entries(normalized)) {
-      if (quantity === 0) {
-        removedLineIds.add(lineId);
-      }
-    }
-
-    // Cascade delete: if a parent is removed, also remove its children
-    const existingLines = Object.values(state.linesRecord ?? {});
-    for (const line of existingLines) {
-      if (line.parentLineId && removedLineIds.has(line.parentLineId)) {
-        removedLineIds.add(line.lineId);
-      }
-    }
-
-    // Create updated lines (excluding removed ones)
-    const updatedLines: CheckoutLineItemState[] = existingLines
-      .filter((line) => !removedLineIds.has(line.lineId))
-      .map((line) => {
-        const newQuantity = normalized[line.lineId];
-        return newQuantity !== undefined
-          ? { ...line, quantity: newQuantity }
-          : line;
-      });
-
-    // TODO(checkout-rewrite): replace this placeholder with quoted lines from
-    // the new typed checkout recalculation pipeline.
-    const offers = new Map<string, any>();
-
-    // Update lines with current product data
-    const checkoutLines: CheckoutLineItemState[] = updatedLines.map((line) => {
-      const offer = offers.get(line.lineId);
-      if (!offer?.isAvailable) {
-        throw new Error(`Product not found in inventory`);
-      }
-
-      return {
-        ...line,
-        unit: {
-          ...line.unit,
-          price: Money.fromMinor(BigInt(offer.unitPrice)),
-          compareAtPrice:
-            offer.unitCompareAtPrice != null
-              ? Money.fromMinor(BigInt(offer.unitCompareAtPrice))
-              : null,
-          title: offer.purchasableSnapshot?.title ?? line.unit.title,
-          sku: offer.purchasableSnapshot?.sku ?? line.unit.sku,
-          imageUrl: offer.purchasableSnapshot?.imageUrl ?? line.unit.imageUrl,
-          snapshot: offer.purchasableSnapshot?.data ?? line.unit.snapshot,
-        },
-      };
-    });
-
-    // Recalculate totals
-    const computed = await this.checkoutService.computeTotals({
-      storeId: context.store.id,
-      checkoutLines,
-      appliedDiscounts: state.appliedDiscounts,
-      currency: state.currencyCode,
-    });
-
-    const dto: CheckoutLinesUpdatedDto = {
-      data: {
-        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
-        checkoutLinesCost: computed.checkoutLinesCost,
-        checkoutCost: computed.checkoutCost,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.applyCheckoutLines(dto);
-
-    return input.checkoutId;
+export class UpdateCheckoutLinesUseCase extends UseCase<CheckoutLinesUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutLinesUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, lines } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "LINES_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => updateLineQuantities(draft, lines),
+    })).checkout;
   }
 }

@@ -6,9 +6,10 @@ import {
   Matches,
 } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutCustomerIdentityUpdateInput {
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @IsOptional()
@@ -16,7 +17,7 @@ export class CheckoutCustomerIdentityUpdateInput {
   email?: string | null;
 
   @IsOptional()
-  @IsGlobalId({ message: "Invalid customer ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Customer, message: "Invalid customer ID format" })
   customerId?: string | null;
 
   @IsOptional()

@@ -6,7 +6,7 @@ import type {
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutCustomerIdentityUpdateInput } from "@src/application/dto/checkoutCustomerIdentityUpdate.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
 // Removed idCodec imports as validation/transformation now happens in DTO
 
@@ -18,7 +18,7 @@ export const checkoutCustomerIdentityUpdate = async (
   args: ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs,
   ctx: GraphQLContext
 ) => {
-  const { checkoutUsecase, checkoutReadRepository, logger } = App.getInstance();
+  const { checkoutUsecase, logger } = App.getInstance();
 
   try {
     const dto = createValidated(
@@ -26,7 +26,7 @@ export const checkoutCustomerIdentityUpdate = async (
       args.input
     );
 
-    const updatedCheckoutId =
+    const checkout =
       await checkoutUsecase.updateCustomerIdentity.execute({
         checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
         email: dto.email,
@@ -36,17 +36,12 @@ export const checkoutCustomerIdentityUpdate = async (
         firstName: dto.firstName,
         lastName: dto.lastName,
         middleName: dto.middleName,
-        apiKey: ctx.apiKey,
+        storefrontAccess: ctx.storefrontAccess,
         store: ctx.store,
         customer: ctx.customer,
         user: ctx.user,
       });
-    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
-    if (!checkout) {
-      return null;
-    }
-
-    return mapCheckoutReadToApi(checkout);
+    return mapCommittedCheckoutToApi(checkout);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     logger.error({ reason }, "customerIdentityUpdate error");

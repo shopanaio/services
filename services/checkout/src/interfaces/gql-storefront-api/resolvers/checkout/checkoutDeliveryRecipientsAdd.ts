@@ -1,54 +1,26 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs,
-  ApiCheckoutMutation,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutDeliveryRecipientsAddDto } from "@src/application/dto/checkoutDeliveryRecipients.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
-/**
- * checkoutDeliveryRecipientsAdd(input: CheckoutDeliveryRecipientsAddInput!): Checkout!
- */
-export const checkoutDeliveryRecipientsAdd = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs,
-  ctx: GraphQLContext
-) => {
-  const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+
+export const checkoutDeliveryRecipientsAdd = async (_parent: ApiCheckoutMutation, args: ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, ctx: GraphQLContext) => {
+  const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutDeliveryRecipientsAddDto, args.input);
-
   try {
-    // Adding recipients to delivery groups
-    for (const recipientInput of dto.recipients) {
-      await checkoutUsecase.updateDeliveryGroupRecipient.execute({
-        checkoutId: dto.checkoutId,
-        deliveryGroupId: recipientInput.deliveryGroupId,
-        recipient: {
-          firstName: recipientInput.recipient.firstName,
-          lastName: recipientInput.recipient.lastName,
-          middleName: recipientInput.recipient.middleName,
-          email: recipientInput.recipient.email,
-          phone: recipientInput.recipient.phone,
-        },
-        apiKey: ctx.apiKey,
-        store: ctx.store,
-        customer: ctx.customer,
-        user: ctx.user,
-      });
-    }
-
-    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
-    if (!checkout) {
-      return null;
-    }
-
-    return mapCheckoutReadToApi(checkout);
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "deliveryRecipientsAdd error");
-    throw await fromDomainError(err);
+    const checkout = await checkoutUsecase.updateDeliveryGroupRecipient.execute({
+      checkoutId: dto.checkoutId,
+      updates: dto.recipients,
+      storefrontAccess: ctx.storefrontAccess,
+      store: ctx.store,
+      customer: ctx.customer,
+      user: ctx.user,
+    });
+    return mapCommittedCheckoutToApi(checkout);
+  } catch (error) {
+    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "deliveryRecipientsAdd error");
+    throw await fromDomainError(error);
   }
 };

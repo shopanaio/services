@@ -2,7 +2,6 @@ import {
   CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,
   EMPTY_CHECKOUT_VALIDATION_BINDING_SET_REVISION,
   CheckoutPipelineStageError,
-  EmptyCheckoutValidationBindingSource,
   checkoutValidationFunctionOutputSchema,
 } from "../index.js";
 
@@ -24,9 +23,6 @@ describe("checkout validation public contracts", () => {
     });
     expect(EMPTY_CHECKOUT_VALIDATION_BINDING_SET_REVISION).toBe(
       "checkout-validation-bindings:empty:v1",
-    );
-    expect(new EmptyCheckoutValidationBindingSource()).toBeInstanceOf(
-      EmptyCheckoutValidationBindingSource,
     );
   });
 

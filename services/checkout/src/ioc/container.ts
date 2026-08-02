@@ -1,16 +1,32 @@
 import { CheckoutUsecase } from "@src/application/checkout/checkoutUsecase";
-import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
-import { dumboPool } from "@src/infrastructure/db/dumbo";
 import { createLogger } from "@src/infrastructure/logger/pino";
-import { CheckoutReadRepository as InfraCheckoutReadRepository } from "@src/infrastructure/readModel/checkoutReadRepository";
-import { CheckoutLineItemsReadRepositoryPort } from "@src/infrastructure/readModel/checkoutLineItemsReadRepository";
-import { CheckoutLineItemsReadRepository } from "@src/application/read/checkoutLineItemsReadRepository";
-import { CheckoutReadRepository as AppCheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
-import { createServiceApi } from "@shopana/shared-service-api";
-import type { ServiceApi } from "@shopana/shared-service-api";
-import { CheckoutService } from "@src/application/services/checkoutService";
 import type { ServiceBroker } from "@shopana/shared-kernel";
-import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
+import {
+  BrokerFunctionExecutor,
+  CommerceFunctionRunner,
+  FunctionRouteResolver,
+  FunctionTargetRegistry,
+} from "@shopana/function-runner";
+import {
+  CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,
+  CheckoutPipeline,
+  CheckoutValidationRunner,
+} from "@src/application/pipeline/index.js";
+import {
+  BrokerCheckoutValidationBindingSource,
+  BrokerCustomersCheckoutEligibilityAdapter,
+  BrokerDeliveryCheckoutAdapter,
+  BrokerPaymentsCheckoutAdapter,
+  BrokerPricingCheckoutAdapter,
+} from "@src/infrastructure/pipeline/index.js";
+import {
+  CheckoutCreateIdempotencyRepository,
+  CheckoutMutationRepository,
+} from "@src/infrastructure/mutations/index.js";
+import {
+  CheckoutMutationCoordinator,
+  CheckoutRecalculationRequestFactory,
+} from "@src/application/mutations/index.js";
 
 export class App {
   private static instance: App | null = null;
@@ -18,27 +34,13 @@ export class App {
   public logger!: ReturnType<typeof createLogger>;
 
   public broker!: ServiceBroker;
-  public serviceApi!: ServiceApi;
-
-  public eventStore!: any;
-  public streamNames!: any;
-  public idempotencyRepository!: IdempotencyRepository;
-  public readModelRepository!: InfraCheckoutReadRepository;
-  public lineItemsReadRepository!: CheckoutLineItemsReadRepository;
-  public checkoutReadRepository!: AppCheckoutReadRepository;
-  public checkoutWriteRepository!: CheckoutWriteRepository;
-  public checkoutService!: CheckoutService;
+  public checkoutMutationRepository!: CheckoutMutationRepository;
+  public checkoutCreateIdempotencyRepository!: CheckoutCreateIdempotencyRepository;
+  public checkoutPipeline!: CheckoutPipeline;
+  public checkoutMutationCoordinator!: CheckoutMutationCoordinator;
   public checkoutUsecase!: CheckoutUsecase;
 
   private constructor() {}
-
-  /**
-   * Set broker instance - should be called once during service startup
-   */
-  public setBroker(broker: ServiceBroker): void {
-    this.broker = broker;
-    this.serviceApi = createServiceApi(this.broker);
-  }
 
   /**
    * Create and initialize App instance with broker
@@ -50,27 +52,40 @@ export class App {
     app.logger = createLogger();
     app.broker = broker;
 
-    // Initialize API clients
-    app.serviceApi = createServiceApi(broker);
-
     // Initialize infrastructure dependencies
-    // Event store removed; using write repository instead
-    app.idempotencyRepository = new IdempotencyRepository(dumboPool.execute);
-    app.readModelRepository = new InfraCheckoutReadRepository();
-    app.lineItemsReadRepository = new CheckoutLineItemsReadRepository(
-      new CheckoutLineItemsReadRepositoryPort()
+    app.checkoutMutationRepository = new CheckoutMutationRepository();
+    app.checkoutCreateIdempotencyRepository =
+      new CheckoutCreateIdempotencyRepository();
+    const functionRunner = new CommerceFunctionRunner(
+      new FunctionTargetRegistry([
+        CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,
+      ]),
+      new FunctionRouteResolver(broker),
+      new BrokerFunctionExecutor(broker),
     );
-    app.checkoutReadRepository = new AppCheckoutReadRepository(
-      app.readModelRepository,
-      app.lineItemsReadRepository
-    );
-    app.checkoutWriteRepository = new CheckoutWriteRepository();
-    app.checkoutService = new CheckoutService();
+    const validationRunner = new CheckoutValidationRunner({
+      functions: functionRunner,
+      bindings: new BrokerCheckoutValidationBindingSource(broker),
+    });
+    app.checkoutPipeline = new CheckoutPipeline({
+      pricing: new BrokerPricingCheckoutAdapter(broker),
+      delivery: new BrokerDeliveryCheckoutAdapter(broker),
+      payments: new BrokerPaymentsCheckoutAdapter(broker),
+      validationRunner,
+    });
+    app.checkoutMutationCoordinator = new CheckoutMutationCoordinator({
+      snapshots: app.checkoutMutationRepository,
+      commits: app.checkoutMutationRepository,
+      requests: new CheckoutRecalculationRequestFactory(
+        new BrokerCustomersCheckoutEligibilityAdapter(broker),
+      ),
+      pipeline: app.checkoutPipeline,
+      idempotency: app.checkoutCreateIdempotencyRepository,
+    });
     app.checkoutUsecase = new CheckoutUsecase({
       logger: app.logger,
-      checkoutService: app.checkoutService,
-      checkoutReadRepository: app.checkoutReadRepository,
-      checkoutWriteRepository: app.checkoutWriteRepository,
+      checkoutMutationSnapshots: app.checkoutMutationRepository,
+      checkoutMutationCoordinator: app.checkoutMutationCoordinator,
     });
 
     this.instance = app;

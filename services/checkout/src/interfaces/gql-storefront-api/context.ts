@@ -11,10 +11,6 @@ export type GraphQLContext = {
    * Use for local diagnostics.
    */
   requestId: string;
-  /**
-   * API key.
-   */
-  apiKey: string;
   storefrontAccess: ContextStorefrontAccess;
   /**
    * Current store. Required for all operations.

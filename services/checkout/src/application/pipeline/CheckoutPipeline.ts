@@ -313,13 +313,17 @@ export class CheckoutPipeline {
     let deadlineObservedAt: number | null = null;
     let firstBlockingStage: CheckoutPipelineStage | null = null;
 
-    const runStage = async <TRequest, TResult>(input: {
-      stage: CheckoutPipelineStage;
+    const runStage = async <
+      TRequest,
+      TResult,
+      TStage extends CheckoutPipelineStage,
+    >(input: {
+      stage: TStage;
       request: TRequest;
       call: (request: TRequest) => Promise<TResult>;
       parseResult: (request: TRequest, value: unknown) => TResult;
       issues: (result: TResult) => CheckoutPipelineIssue[];
-    }): Promise<CheckoutPipelineStageOutcome<TResult>> => {
+    }): Promise<CheckoutPipelineStageOutcome<TResult, TStage>> => {
       if (firstBlockingStage !== null) {
         const at = this.runtime.now();
         return {
@@ -356,7 +360,7 @@ export class CheckoutPipeline {
         const parsed = input.parseResult(input.request, guarded.value);
         const issues = input.issues(parsed);
         const completedAt = this.runtime.now();
-        const outcome: CheckoutPipelineStageOutcome<TResult> = {
+        const outcome: CheckoutPipelineStageOutcome<TResult, TStage> = {
           status: "SUCCESS",
           data: parsed,
           issues,
@@ -381,10 +385,14 @@ export class CheckoutPipeline {
       }
     };
 
-    const buildStageRequest = <TRequest, TResult>(
-      stage: CheckoutPipelineStage,
+    const buildStageRequest = <
+      TRequest,
+      TResult,
+      TStage extends CheckoutPipelineStage,
+    >(
+      stage: TStage,
       builder: () => TRequest,
-    ): { request?: TRequest; failure?: CheckoutPipelineStageOutcome<TResult> } => {
+    ): { request?: TRequest; failure?: CheckoutPipelineStageOutcome<TResult, TStage> } => {
       if (firstBlockingStage !== null) return {};
       const startedAt = this.runtime.now();
       try {
@@ -396,14 +404,15 @@ export class CheckoutPipeline {
         return { failure: this.failedOutcome(stage, failure, startedAt, completedAt) };
       }
     };
-    const noStageRequest = <TRequest, TResult>(): {
+    const noStageRequest = <TRequest, TResult, TStage extends CheckoutPipelineStage>(): {
       request?: TRequest;
-      failure?: CheckoutPipelineStageOutcome<TResult>;
+      failure?: CheckoutPipelineStageOutcome<TResult, TStage>;
     } => ({});
 
     const preliminaryBuild = buildStageRequest<
       CalculatePreliminaryPricingRequest,
-      CalculatePreliminaryPricingResult
+      CalculatePreliminaryPricingResult,
+      "PRICING_PRELIMINARY"
     >("PRICING_PRELIMINARY", () =>
       parseCalculatePreliminaryPricingRequest({
         context: toCheckoutPipelineEligibilityContext(request.context),
@@ -411,7 +420,7 @@ export class CheckoutPipeline {
       }),
     );
     const preliminaryPricing = preliminaryBuild.failure ??
-      await runStage<CalculatePreliminaryPricingRequest, CalculatePreliminaryPricingResult>({
+      await runStage<CalculatePreliminaryPricingRequest, CalculatePreliminaryPricingResult, "PRICING_PRELIMINARY">({
         stage: "PRICING_PRELIMINARY",
         request: preliminaryBuild.request!,
         call: (value) => this.dependencies.pricing.calculatePreliminaryQuote(value),
@@ -420,51 +429,54 @@ export class CheckoutPipeline {
       });
 
     const deliveryBuild = preliminaryPricing.status === "SUCCESS"
-      ? buildStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>("DELIVERY", () => parseCalculateDeliveryOptionsRequest({
+      ? buildStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult, "DELIVERY">("DELIVERY", () => parseCalculateDeliveryOptionsRequest({
           context: toCheckoutPipelineStageContext(request.context),
           preliminary: preliminaryPricing.data,
           destinations: toCheckoutDeliveryDestinations(request.cartIntent.destinations, preliminaryPricing.data),
           selections: request.cartIntent.selectedDeliveryOptions,
         }))
-      : noStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>();
+      : noStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult, "DELIVERY">();
     const delivery = deliveryBuild.failure ?? (deliveryBuild.request === undefined
-      ? this.skipped<CalculateDeliveryOptionsResult>("DELIVERY", firstBlockingStage!, this.runtime.now())
-      : await runStage<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>({
+      ? this.skipped<CalculateDeliveryOptionsResult, "DELIVERY">("DELIVERY", firstBlockingStage!, this.runtime.now())
+      : await runStage<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult, "DELIVERY">({
           stage: "DELIVERY",
           request: deliveryBuild.request,
           call: (value) => this.dependencies.delivery.calculateOptions(value),
           parseResult: parseCalculateDeliveryOptionsResult,
           issues: deliveryIssues,
         }));
+    const preliminaryData = preliminaryPricing.status === "SUCCESS"
+      ? preliminaryPricing.data
+      : null;
 
     const finalBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS"
-      ? buildStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>("PRICING_FINAL", () => parseFinalizePricingQuoteRequest({
+      ? buildStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult, "PRICING_FINAL">("PRICING_FINAL", () => parseFinalizePricingQuoteRequest({
           context: toCheckoutPipelineEligibilityContext(request.context),
           preliminary: preliminaryPricing.data,
           delivery: toCheckoutPricingDeliverySnapshot(delivery.data),
         }))
-      : noStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>();
+      : noStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult, "PRICING_FINAL">();
     const finalPricing = finalBuild.failure ?? (finalBuild.request === undefined
-      ? this.skipped<FinalizePricingQuoteResult>("PRICING_FINAL", firstBlockingStage!, this.runtime.now())
-      : await runStage<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>({
+      ? this.skipped<FinalizePricingQuoteResult, "PRICING_FINAL">("PRICING_FINAL", firstBlockingStage!, this.runtime.now())
+      : await runStage<FinalizePricingQuoteRequest, FinalizePricingQuoteResult, "PRICING_FINAL">({
           stage: "PRICING_FINAL",
           request: finalBuild.request,
           call: (value) => this.dependencies.pricing.finalizeQuote(value),
           parseResult: parseFinalizePricingQuoteResult,
-          issues: (result) => finalPricingIssues(preliminaryPricing.data, result),
+          issues: (result) => finalPricingIssues(preliminaryData!, result),
         }));
 
     const paymentBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS"
-      ? buildStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>("PAYMENT", () => parseGetAvailablePaymentMethodsRequest({
+      ? buildStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">("PAYMENT", () => parseGetAvailablePaymentMethodsRequest({
           context: toCheckoutPipelineEligibilityContext(request.context),
           selection: request.cartIntent.selectedPaymentMethod,
           finalQuote: finalPricing.data,
           delivery: toCheckoutPaymentDeliverySnapshot(delivery.data, preliminaryPricing.data),
         }))
-      : noStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>();
+      : noStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">();
     const payment = paymentBuild.failure ?? (paymentBuild.request === undefined
-      ? this.skipped<GetAvailablePaymentMethodsResult>("PAYMENT", firstBlockingStage!, this.runtime.now())
-      : await runStage<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>({
+      ? this.skipped<GetAvailablePaymentMethodsResult, "PAYMENT">("PAYMENT", firstBlockingStage!, this.runtime.now())
+      : await runStage<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">({
           stage: "PAYMENT",
           request: paymentBuild.request,
           call: (value) => this.dependencies.payments.getAvailableMethods(value),
@@ -473,7 +485,7 @@ export class CheckoutPipeline {
         }));
 
     const validationBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && payment.status === "SUCCESS"
-      ? buildStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult>("VALIDATION", () => parseValidateCheckoutRequest({
+      ? buildStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult, "VALIDATION">("VALIDATION", () => parseValidateCheckoutRequest({
           context: request.context,
           cartIntent: request.cartIntent,
           preliminary: preliminaryPricing.data,
@@ -481,10 +493,10 @@ export class CheckoutPipeline {
           finalQuote: finalPricing.data,
           payment: payment.data,
         }))
-      : noStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult>();
+      : noStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult, "VALIDATION">();
     const validation = validationBuild.failure ?? (validationBuild.request === undefined
-      ? this.skipped<ValidateCheckoutResult>("VALIDATION", firstBlockingStage!, this.runtime.now())
-      : await runStage<ValidateCheckoutRequest, ValidateCheckoutResult>({
+      ? this.skipped<ValidateCheckoutResult, "VALIDATION">("VALIDATION", firstBlockingStage!, this.runtime.now())
+      : await runStage<ValidateCheckoutRequest, ValidateCheckoutResult, "VALIDATION">({
           stage: "VALIDATION",
           request: validationBuild.request,
           call: (value) => this.dependencies.validationRunner.validate(value),
@@ -532,14 +544,14 @@ export class CheckoutPipeline {
     return parseCheckoutRecalculationResult(request, result);
   }
 
-  private failedOutcome<T>(
-    stage: CheckoutPipelineStage,
+  private failedOutcome<T, TStage extends CheckoutPipelineStage>(
+    stage: TStage,
     error: CheckoutPipelineStageError,
     startedAt: number,
     completedAt: number,
     inputRevision?: string,
     resultObservedAt?: number,
-  ): CheckoutPipelineStageOutcome<T> {
+  ): CheckoutPipelineStageOutcome<T, TStage> {
     const failure = { code: error.code, message: error.message, retryable: error.retryable };
     return {
       status: "FAILED",
@@ -557,7 +569,7 @@ export class CheckoutPipeline {
     };
   }
 
-  private skipped<T>(stage: CheckoutPipelineStage, upstreamStage: CheckoutPipelineStage, at: number): CheckoutPipelineStageOutcome<T> {
+  private skipped<T, TStage extends CheckoutPipelineStage>(stage: TStage, upstreamStage: CheckoutPipelineStage, at: number): CheckoutPipelineStageOutcome<T, TStage> {
     return {
       status: "SKIPPED",
       reason: { ...UPSTREAM_REASON, upstreamStage },

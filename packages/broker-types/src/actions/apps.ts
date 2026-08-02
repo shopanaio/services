@@ -136,6 +136,35 @@ export interface ListCapabilityRoutesResult {
   routes: CapabilityRoute[];
 }
 
+export interface ListCommerceFunctionBindingsParams {
+  storeId: string;
+  target: string;
+}
+
+export interface CommerceFunctionBindingSnapshot {
+  functionBindingId: string;
+  storeId: string;
+  target: string;
+  installationId: string;
+  functionKey: string;
+  owner: {
+    service: string;
+    resourceType: string;
+    resourceId: string;
+  };
+  status: "ACTIVE" | "DISABLED";
+  failureMode: "REQUIRED" | "OPTIONAL";
+  configurationSnapshot: unknown;
+  configurationRevision: string;
+  routeRevision: string;
+  precedence: number;
+  activationSequence: number;
+}
+
+export interface ListCommerceFunctionBindingsResult {
+  bindings: CommerceFunctionBindingSnapshot[];
+}
+
 export interface CapabilityTarget {
   aggregate: string;
   aggregateId: string;

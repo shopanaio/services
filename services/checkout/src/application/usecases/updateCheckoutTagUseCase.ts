@@ -1,74 +1,30 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutTagUpdateInput } from "@src/application/checkout/types";
-import type { CheckoutTagUpdatedDto } from "@src/domain/checkout/dto";
+import { UseCase } from "./useCase.js";
+import type { CheckoutTagUpdateInput } from "../checkout/types.js";
+import { invalidCheckoutMutation, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface UpdateCheckoutTagUseCaseDependencies
-  extends UseCaseDependencies {}
-
-export class UpdateCheckoutTagUseCase extends UseCase<
-  CheckoutTagUpdateInput,
-  string
-> {
-  constructor(deps: UpdateCheckoutTagUseCaseDependencies) {
-    super(deps);
-  }
-
-  async execute(input: CheckoutTagUpdateInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    const currentTag = Object.values(state.tagsRecord ?? {}).find(
-      (tag) => tag.id === businessInput.tagId
-    );
-    if (!currentTag) {
-      throw new Error(`Tag ${businessInput.tagId} does not exist`);
-    }
-
-    const nextSlug = businessInput.slug ?? currentTag.slug;
-    const slugOwner = state.tagsRecord?.[nextSlug];
-    if (slugOwner && slugOwner.id !== currentTag.id) {
-      throw new Error(`Tag ${nextSlug} already exists`);
-    }
-
-    if (
-      businessInput.isUnique === true &&
-      currentTag.isUnique === false
-    ) {
-      const linesWithTag = Object.values(state.linesRecord ?? {}).filter(
-        (line) => line.tag?.id === currentTag.id
-      );
-      if (linesWithTag.length > 1) {
-        throw new Error(
-          `Tag ${currentTag.slug} is assigned to multiple lines and cannot be made unique`
+export class UpdateCheckoutTagUseCase extends UseCase<CheckoutTagUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutTagUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, tagId, slug, isUnique } = input;
+    return (await this.checkoutMutationCoordinator.executeWithoutRecalculation({
+      checkoutId,
+      storeId: store.id,
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => {
+        const current = draft.tags.find((tag) => tag.id === tagId);
+        if (!current) throw invalidCheckoutMutation("CHECKOUT_TAG_NOT_FOUND", "Checkout tag was not found.");
+        const nextSlug = slug ?? current.slug;
+        if (draft.tags.some((tag) => tag.id !== tagId && tag.slug === nextSlug)) {
+          throw invalidCheckoutMutation("CHECKOUT_TAG_ALREADY_EXISTS", "A checkout tag with this slug already exists.");
+        }
+        const nextUnique = isUnique ?? current.isUnique;
+        if (nextUnique) {
+          const count = draft.lineTagAssignments.filter((assignment) => assignment.tagId === tagId).length;
+          if (count > 1) throw invalidCheckoutMutation("CHECKOUT_TAG_UNIQUENESS_CONFLICT", "A unique checkout tag cannot be assigned to multiple lines.");
+        }
+        draft.tags = draft.tags.map((tag) =>
+          tag.id === tagId ? { ...tag, slug: nextSlug, isUnique: nextUnique } : tag,
         );
-      }
-    }
-
-    if (
-      businessInput.slug == null &&
-      businessInput.isUnique == null
-    ) {
-      return businessInput.checkoutId;
-    }
-
-    const dto: CheckoutTagUpdatedDto = {
-      data: {
-        tagId: currentTag.id,
-        slug: businessInput.slug,
-        isUnique: businessInput.isUnique,
       },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.updateCheckoutTag(dto);
-
-    return businessInput.checkoutId;
+    })).checkout;
   }
 }

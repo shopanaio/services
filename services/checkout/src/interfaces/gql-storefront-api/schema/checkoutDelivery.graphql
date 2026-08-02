@@ -1,40 +1,21 @@
-"""
-Shipping payment model
-"""
-enum ShippingPaymentModel {
-  """
-  Customer pays merchant, included in grandTotal
-  """
-  MERCHANT_COLLECTED
-  """
-  Customer pays carrier directly, NOT included in grandTotal
-  """
-  CARRIER_DIRECT
-}
-
 enum CheckoutDeliveryMethodType {
-  """
-  Pickup delivery method.
-  """
-  PICKUP
-  """
-  Shipping delivery method.
-  """
+  LOCAL
+  NONE
+  PICK_UP
+  PICKUP_POINT
+  RETAIL
   SHIPPING
 }
 
-"""
-Delivery cost with payment model
-"""
-type DeliveryCost {
-  """
-  Delivery amount
-  """
-  amount: Money!
-  """
-  Shipping payment model
-  """
-  paymentModel: ShippingPaymentModel!
+enum CheckoutSelectionStatus {
+  NONE
+  SELECTED
+  RESET
+}
+
+type CheckoutSelectionResetReason {
+  code: String!
+  message: String!
 }
 
 """
@@ -61,20 +42,9 @@ type CheckoutDeliveryGroup {
   """
   recipient: CheckoutRecipient
 
-  """
-  Delivery methods associated with the delivery group.
-  """
-  deliveryMethods: [CheckoutDeliveryMethod!]!
+  options: [CheckoutDeliveryOption!]!
 
-  """
-  Selected delivery method associated with the delivery group.
-  """
-  selectedDeliveryMethod: CheckoutDeliveryMethod
-
-  """
-  Estimated cost of the delivery group.
-  """
-  estimatedCost: DeliveryCost
+  selection: CheckoutDeliveryOptionSelection!
 }
 
 """
@@ -197,35 +167,26 @@ input CheckoutDeliveryRecipientsRemoveInput {
   deliveryGroupIds: [ID!]!
 }
 
-type CheckoutDeliveryMethod {
-  """
-  Code of the shipping method (e.g., "standard", "express", "courier").
-  """
+type CheckoutDeliveryOption {
+  handle: String!
   code: String!
-
-  """
-  Delivery method type associated with the delivery option.
-  """
+  title: String!
+  description: String
   deliveryMethodType: CheckoutDeliveryMethodType!
-
-  """
-  Provider data associated with the delivery method.
-  """
-  provider: CheckoutDeliveryProvider!
-
-  """
-  Arbitrary customer-provided data for the selected delivery method.
-  Will be stored in checkout_delivery_methods.customer_input.
-  """
-  data: JSON!
-
+  cost: Money!
+  estimatedMinDeliveryAt: DateTime
+  estimatedMaxDeliveryAt: DateTime
+  phoneRequired: Boolean!
+  customerInputContract: JSON
+  publicData: JSON!
+  carrierCode: String
 }
 
-type CheckoutDeliveryProvider {
-  """
-  Code of the provider (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
-  """
-  code: String!
+type CheckoutDeliveryOptionSelection {
+  status: CheckoutSelectionStatus!
+  option: CheckoutDeliveryOption
+  previousOptionHandle: String
+  resetReason: CheckoutSelectionResetReason
 }
 
 """
@@ -241,7 +202,7 @@ input CheckoutDeliveryAddressesAddInput {
   """
   List of delivery addresses to be added.
   """
-  addresses: [CheckoutDeliveryAddressInput!]!
+  addresses: [CheckoutDeliveryDestinationInput!]!
 }
 
 """
@@ -300,25 +261,25 @@ input CheckoutDeliveryMethodUpdateInput {
   checkoutId: ID!
 
   """
-  Code of the delivery method available for this checkout/address.
-  """
-  shippingMethodCode: String!
-
-  """
-  Provider code (e.g., "novaposhta", "ups", "fedex", "dhl", "usps").
-  """
-  provider: String!
-
-  """
   Identifier of the delivery group for which the delivery method is selected.
   """
   deliveryGroupId: ID!
 
+  """Opaque handle returned by the current checkout snapshot."""
+  optionHandle: String!
+
   """
   Arbitrary customer-provided data for the selected delivery method.
-  Will be stored in checkout_delivery_methods.customer_input.
+  It remains private selection intent and is never returned by Storefront API.
   """
-  data: JSON
+  customerInput: JSON
+}
+
+input CheckoutDeliveryDestinationInput {
+  """Checkout lines assigned to this destination."""
+  checkoutLineIds: [ID!]!
+
+  address: CheckoutDeliveryAddressInput!
 }
 
 input CheckoutDeliveryAddressInput {

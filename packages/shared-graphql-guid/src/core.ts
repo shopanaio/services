@@ -141,6 +141,7 @@ export enum GlobalIdEntity {
   BulkUpdateItem = "BulkUpdateItem",
   ProductBulkUpdateJob = "ProductBulkUpdateJob",
   VariantPrice = "VariantPrice",
+  SellingPlan = "SellingPlan",
   // Product components
   ProductComponentConfiguration = "ProductComponentConfiguration",
   ProductComponentGroup = "ProductComponentGroup",

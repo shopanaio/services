@@ -9,7 +9,6 @@ export { CheckoutUsecase } from "../checkout/checkoutUsecase";
 
 // Checkout use cases
 export { CreateCheckoutUseCase } from "./createCheckoutUseCase";
-export { GetCheckoutByIdUseCase } from "./getCheckoutByIdUseCase";
 export { GetCheckoutDtoByIdUseCase } from "./getCheckoutDtoByIdUseCase";
 
 // Lines management use cases
@@ -38,7 +37,6 @@ export { UpdateDeliveryGroupMethodUseCase } from "./updateDeliveryGroupMethodUse
 export { AddDeliveryAddressUseCase } from "./addDeliveryAddressUseCase";
 export { UpdateDeliveryAddressUseCase } from "./updateDeliveryAddressUseCase";
 export { RemoveDeliveryAddressUseCase } from "./removeDeliveryAddressUseCase";
-export { UpdateDeliveryGroupAddressUseCase } from "./updateDeliveryGroupAddressUseCase";
 
 // Types from checkout module
 export type {
@@ -55,7 +53,6 @@ export type {
   CheckoutDeliveryAddressAddInput,
   CheckoutDeliveryAddressUpdateInput,
   CheckoutDeliveryAddressRemoveInput,
-  CheckoutDeliveryGroupAddressUpdateInput,
   CheckoutPromoCodeAddInput,
   CheckoutPromoCodeRemoveInput,
   CheckoutTagCreateInput,

@@ -1,42 +1,37 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutDeliveryGroupRecipientClearedDto } from "@src/domain/checkout/dto";
-import type { CheckoutDeliveryGroupRecipientRemoveInput } from "@src/application/checkout/types";
+import { UseCase } from "./useCase.js";
+import type { CheckoutDeliveryGroupRecipientRemoveInput } from "../checkout/types.js";
+import { assertUniqueIds, destinationIdForGroup, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-/**
- * Removes recipient from a delivery group
- */
-export class RemoveDeliveryGroupRecipientUseCase extends UseCase<
-  CheckoutDeliveryGroupRecipientRemoveInput,
-  string
-> {
-  async execute(input: CheckoutDeliveryGroupRecipientRemoveInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    // Verify delivery group exists
-    const group = state.deliveryGroups?.find(
-      (g) => g.id === businessInput.deliveryGroupId
-    );
-    if (!group) {
-      throw new Error(
-        `Delivery group not found: ${businessInput.deliveryGroupId}`
-      );
-    }
-
-    const dto: CheckoutDeliveryGroupRecipientClearedDto = {
-      data: {
-        deliveryGroupId: businessInput.deliveryGroupId,
+export class RemoveDeliveryGroupRecipientUseCase extends UseCase<CheckoutDeliveryGroupRecipientRemoveInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutDeliveryGroupRecipientRemoveInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, deliveryGroupIds } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "DELIVERY_RECIPIENT_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft, current) => {
+        assertUniqueIds(deliveryGroupIds, "delivery group");
+        const destinationIds = new Set(deliveryGroupIds.map((groupId) => destinationIdForGroup(current, groupId)));
+        draft.cartIntent = {
+          ...draft.cartIntent,
+          destinations: draft.cartIntent.destinations.map((destination) =>
+            destinationIds.has(destination.destinationId)
+              ? {
+                  ...destination,
+                  address: {
+                    ...destination.address,
+                    firstName: null,
+                    middleName: null,
+                    lastName: null,
+                    email: null,
+                    phone: null,
+                  },
+                }
+              : destination,
+          ),
+        };
       },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.clearDeliveryGroupRecipient(dto);
-
-    return businessInput.checkoutId;
+    })).checkout;
   }
 }

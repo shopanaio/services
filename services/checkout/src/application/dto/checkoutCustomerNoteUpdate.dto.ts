@@ -1,8 +1,10 @@
 import { IsString, IsOptional, MinLength, MaxLength } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 export class CheckoutCustomerNoteUpdateInput {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;

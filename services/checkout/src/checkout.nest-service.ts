@@ -20,10 +20,6 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
       return this.app.checkoutUsecase.getCheckoutDtoById.execute(params);
     });
 
-    this.broker.register('getCheckoutById', async (params: any) => {
-      return this.app.checkoutUsecase.getCheckoutById.execute(params);
-    });
-
     this.graphqlServer = await startServer(this.broker as any);
     this.logger.log('Checkout service started');
   }

@@ -1,8 +1,10 @@
 import { Type } from "class-transformer";
 import {
+  ArrayMinSize,
   IsArray,
   IsEmail,
   IsOptional,
+  IsObject,
   IsString,
   Length,
   Matches,
@@ -12,6 +14,8 @@ import {
   IsGlobalId,
   IsGlobalIdArray,
 } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { CheckoutPipelineJsonObject } from "../pipeline/contracts/index.js";
 
 /**
  * DTO for single delivery address (corresponds to CheckoutDeliveryAddressInput)
@@ -64,7 +68,22 @@ export class CheckoutDeliveryAddressInputDto {
   phone?: string | null;
 
   @IsOptional()
-  data?: any; // JSON field
+  @IsObject()
+  data?: CheckoutPipelineJsonObject | null;
+}
+
+export class CheckoutDeliveryDestinationInputDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsGlobalIdArray({
+    entityType: GlobalIdEntity.CheckoutLine,
+    message: "Each checkout line ID must be a CheckoutLine Global ID",
+  })
+  checkoutLineIds!: string[];
+
+  @ValidateNested()
+  @Type(() => CheckoutDeliveryAddressInputDto)
+  address!: CheckoutDeliveryAddressInputDto;
 }
 
 /**
@@ -72,14 +91,15 @@ export class CheckoutDeliveryAddressInputDto {
  */
 export class CheckoutDeliveryAddressesAddDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
 
   @IsArray({ message: "Addresses must be an array" })
   @ValidateNested({ each: true })
-  @Type(() => CheckoutDeliveryAddressInputDto)
-  addresses!: CheckoutDeliveryAddressInputDto[];
+  @Type(() => CheckoutDeliveryDestinationInputDto)
+  addresses!: CheckoutDeliveryDestinationInputDto[];
 }
 
 /**
@@ -87,6 +107,7 @@ export class CheckoutDeliveryAddressesAddDto {
  */
 export class CheckoutDeliveryAddressUpdateDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.CheckoutDeliveryAddress,
     message: "Invalid address ID format",
   })
   addressId!: string;
@@ -101,6 +122,7 @@ export class CheckoutDeliveryAddressUpdateDto {
  */
 export class CheckoutDeliveryAddressesUpdateDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
@@ -116,12 +138,14 @@ export class CheckoutDeliveryAddressesUpdateDto {
  */
 export class CheckoutDeliveryAddressesRemoveDto {
   @IsGlobalId({
+    entityType: GlobalIdEntity.Checkout,
     message: "Invalid checkout ID format",
   })
   checkoutId!: string;
 
   @IsArray({ message: "AddressIds must be an array" })
   @IsGlobalIdArray({
+    entityType: GlobalIdEntity.CheckoutDeliveryAddress,
     message: "Each address ID must be a valid Global ID",
   })
   addressIds!: string[];

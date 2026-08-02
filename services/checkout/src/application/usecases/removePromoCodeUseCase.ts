@@ -1,59 +1,22 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutPromoCodeRemoveInput } from "@src/application/checkout/types";
-import type { CheckoutPromoCodeRemovedDto } from "@src/domain/checkout/dto";
+import { UseCase } from "./useCase.js";
+import type { CheckoutPromoCodeRemoveInput } from "../checkout/types.js";
+import { normalizeDiscountCode, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface RemovePromoCodeUseCaseDependencies
-  extends UseCaseDependencies {}
-
-export class RemovePromoCodeUseCase extends UseCase<
-  CheckoutPromoCodeRemoveInput,
-  string
-> {
-  constructor(deps: RemovePromoCodeUseCaseDependencies) {
-    super(deps);
-  }
-
-  async execute(input: CheckoutPromoCodeRemoveInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    if (!state.appliedDiscounts?.some((disc) => disc.code === businessInput.code)) {
-      // Idempotency: promo code not applied, so nothing to remove
-      return businessInput.checkoutId;
-    }
-
-    const newAppliedDiscounts = (state.appliedDiscounts ?? []).filter(
-      (disc) => disc.code !== businessInput.code,
-    );
-
-    const checkoutLines = Object.values(state.linesRecord ?? {});
-    const computed = await this.checkoutService.computeTotals({
-      storeId: context.store.id,
-      checkoutLines,
-      appliedDiscounts: newAppliedDiscounts,
-      currency: state.currencyCode,
-    });
-
-    const dto: CheckoutPromoCodeRemovedDto = {
-      data: {
-        checkoutLines: this.mapLinesToDtoLines(checkoutLines),
-        checkoutLinesCost: computed.checkoutLinesCost,
-        checkoutCost: computed.checkoutCost,
-        appliedDiscounts: newAppliedDiscounts,
+export class RemovePromoCodeUseCase extends UseCase<CheckoutPromoCodeRemoveInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutPromoCodeRemoveInput) {
+    const { storefrontAccess, store, customer, user, checkoutId } = input;
+    const code = normalizeDiscountCode(input.code);
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "DISCOUNT_CODES_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => {
+        draft.cartIntent = {
+          ...draft.cartIntent,
+          discountCodes: draft.cartIntent.discountCodes.filter((item) => item !== code),
+        };
       },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.applyPromoCodeRemoved(dto);
-
-    return businessInput.checkoutId;
+    })).checkout;
   }
 }

@@ -1,45 +1,31 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiCheckoutMutation,
-  ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckoutMutation, ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPaymentMethodUpdateDto } from "@src/application/dto/checkoutPaymentMethodUpdate.dto";
 import { createValidated } from "@src/utils/validation";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 
 export const checkoutPaymentMethodUpdate = async (
   _parent: ApiCheckoutMutation,
   args: ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs,
-  ctx: GraphQLContext
+  ctx: GraphQLContext,
 ) => {
-  const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+  const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutPaymentMethodUpdateDto, args.input);
-
   try {
-    await checkoutUsecase.updatePaymentMethod.execute({
+    const checkout = await checkoutUsecase.updatePaymentMethod.execute({
       checkoutId: dto.checkoutId,
-      paymentMethodCode: dto.paymentMethodCode,
-      provider: dto.provider,
-      data: dto.data,
-      apiKey: ctx.apiKey,
+      methodHandle: dto.methodHandle,
+      customerInput: dto.customerInput,
+      storefrontAccess: ctx.storefrontAccess,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });
-
-    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
-    if (!checkout) {
-      throw new Error("Checkout not found");
-    }
-
-    console.log("checkout", checkout);
-    return mapCheckoutReadToApi(checkout);
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "checkoutPaymentMethodUpdate error");
-    throw await fromDomainError(err);
+    return mapCommittedCheckoutToApi(checkout);
+  } catch (error) {
+    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "checkoutPaymentMethodUpdate error");
+    throw await fromDomainError(error);
   }
 };

@@ -25,7 +25,6 @@ export type {
   CommerceFunctionRunnerPort,
   CommerceFunctionRunRequest,
 } from "./CheckoutValidationRunner.js";
-export { EmptyCheckoutValidationBindingSource } from "./contracts/validationFunction.js";
 export { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
 export {
   canonicalJson,

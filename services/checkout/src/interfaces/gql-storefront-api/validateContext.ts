@@ -9,7 +9,7 @@ import {
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { createValidated } from "@src/utils/validation";
 
-class ProjectDto {
+class StoreDto {
   @IsString()
   @IsNotEmpty()
   id!: string;
@@ -20,14 +20,13 @@ class GraphQLContextDto {
   @IsNotEmpty()
   requestId!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  apiKey!: string;
-
   @IsDefined()
   @ValidateNested()
-  @Type(() => ProjectDto)
-  project!: ProjectDto;
+  @Type(() => StoreDto)
+  store!: StoreDto;
+
+  @IsDefined()
+  storefrontAccess!: GraphQLContext["storefrontAccess"];
 }
 
 export function validateGraphQLContext(

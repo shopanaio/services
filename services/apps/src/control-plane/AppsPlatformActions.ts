@@ -230,6 +230,47 @@ export class AppsPlatformActions extends BrokerActions {
     };
   }
 
+  @Action("listCommerceFunctionBindings")
+  async listCommerceFunctionBindings(
+    params: Apps.ListCommerceFunctionBindingsParams,
+    context: BrokerCallContext,
+  ): Promise<Apps.ListCommerceFunctionBindingsResult> {
+    if (
+      context.caller.kind !== "action" ||
+      context.app ||
+      !params.storeId?.trim() ||
+      !params.target?.trim()
+    ) {
+      throw new Error("Invalid Commerce Function binding query");
+    }
+    const routes = await this.installations.listActiveStoreCapabilityRoutes(
+      params.storeId,
+      COMMERCE_FUNCTION_CAPABILITY,
+      params.target,
+    );
+    return {
+      bindings: routes.map((route, activationSequence) => ({
+        functionBindingId: route.capabilityRouteId,
+        storeId: params.storeId,
+        target: params.target,
+        installationId: route.installationId,
+        functionKey: route.targetAction,
+        owner: {
+          service: context.caller.service,
+          resourceType: "store",
+          resourceId: params.storeId,
+        },
+        status: "ACTIVE",
+        failureMode: "REQUIRED",
+        configurationSnapshot: null,
+        configurationRevision: route.routeRevision,
+        routeRevision: route.routeRevision,
+        precedence: 0,
+        activationSequence,
+      })),
+    };
+  }
+
   @Action("assignCapability")
   async assignCapability(
     params: Apps.AssignCapabilityParams,

@@ -4,18 +4,19 @@ import {
   IsGlobalId,
   IsGlobalIdArray,
 } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**
  * DTO for checkoutLinesDelete API. Mirrors CheckoutLinesDeleteInput from GraphQL schema.
  */
 export class CheckoutLinesDeleteDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
   @IsArray()
   @ArrayMinSize(1)
-  @IsGlobalIdArray()
+  @IsGlobalIdArray({ entityType: GlobalIdEntity.CheckoutLine })
   lineIds!: string[];
 }

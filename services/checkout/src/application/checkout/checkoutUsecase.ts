@@ -6,7 +6,6 @@ import { AddPromoCodeUseCase } from "@src/application/usecases/addPromoCodeUseCa
 import { ClearCheckoutLinesUseCase } from "@src/application/usecases/clearCheckoutLinesUseCase";
 import { CreateCheckoutUseCase } from "@src/application/usecases/createCheckoutUseCase";
 import { DeleteCheckoutLinesUseCase } from "@src/application/usecases/removeCheckoutLinesUseCase";
-import { GetCheckoutByIdUseCase } from "@src/application/usecases/getCheckoutByIdUseCase";
 import { RemoveDeliveryAddressUseCase } from "@src/application/usecases/removeDeliveryAddressUseCase";
 import { RemovePromoCodeUseCase } from "@src/application/usecases/removePromoCodeUseCase";
 import { UpdateCheckoutLinesUseCase } from "@src/application/usecases/updateCheckoutLinesUseCase";
@@ -14,7 +13,6 @@ import { UpdateCurrencyCodeUseCase } from "@src/application/usecases/updateCurre
 import { UpdateCustomerIdentityUseCase } from "@src/application/usecases/updateCustomerIdentityUseCase";
 import { UpdateCustomerNoteUseCase } from "@src/application/usecases/updateCustomerNoteUseCase";
 import { UpdateDeliveryAddressUseCase } from "@src/application/usecases/updateDeliveryAddressUseCase";
-import { UpdateDeliveryGroupAddressUseCase } from "@src/application/usecases/updateDeliveryGroupAddressUseCase";
 import { UpdateDeliveryGroupMethodUseCase } from "@src/application/usecases/updateDeliveryGroupMethodUseCase";
 import { UpdateLanguageCodeUseCase } from "@src/application/usecases/updateLanguageCodeUseCase";
 import { UpdatePaymentMethodUseCase } from "@src/application/usecases/updatePaymentMethodUseCase";
@@ -24,15 +22,15 @@ import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/r
 import { CreateCheckoutTagUseCase } from "@src/application/usecases/createCheckoutTagUseCase";
 import { UpdateCheckoutTagUseCase } from "@src/application/usecases/updateCheckoutTagUseCase";
 import { DeleteCheckoutTagUseCase } from "@src/application/usecases/deleteCheckoutTagUseCase";
-import { CheckoutService } from "@src/application/services/checkoutService";
-import { CheckoutReadRepository } from "@src/application/read/checkoutReadRepository";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
-import { CheckoutWriteRepository } from "@src/infrastructure/writeModel/checkoutWriteRepository";
+import type {
+  CheckoutMutationCoordinator,
+  CheckoutMutationSnapshotPort,
+} from "@src/application/mutations/index.js";
 
 export class CheckoutUsecase {
   // Checkout use cases
   public readonly createCheckout: CreateCheckoutUseCase;
-  public readonly getCheckoutById: GetCheckoutByIdUseCase;
   public readonly getCheckoutDtoById: GetCheckoutDtoByIdUseCase;
 
   // Lines use cases
@@ -51,7 +49,6 @@ export class CheckoutUsecase {
   public readonly addDeliveryAddress: AddDeliveryAddressUseCase;
   public readonly updateDeliveryAddress: UpdateDeliveryAddressUseCase;
   public readonly removeDeliveryAddress: RemoveDeliveryAddressUseCase;
-  public readonly updateDeliveryGroupAddress: UpdateDeliveryGroupAddressUseCase;
   public readonly updateDeliveryGroupRecipient: UpdateDeliveryGroupRecipientUseCase;
   public readonly removeDeliveryGroupRecipient: RemoveDeliveryGroupRecipientUseCase;
   public readonly replaceCheckoutLines: ReplaceCheckoutLinesUseCase;
@@ -61,15 +58,12 @@ export class CheckoutUsecase {
 
   constructor(deps: {
     logger?: Logger;
-    checkoutService: CheckoutService;
-    checkoutReadRepository: CheckoutReadRepository;
-    checkoutWriteRepository: CheckoutWriteRepository;
+    checkoutMutationSnapshots: CheckoutMutationSnapshotPort;
+    checkoutMutationCoordinator: CheckoutMutationCoordinator;
   }) {
     const baseDeps = {
       logger: deps.logger,
-      checkoutService: deps.checkoutService,
-      checkoutReadRepository: deps.checkoutReadRepository,
-      checkoutWriteRepository: deps.checkoutWriteRepository,
+      checkoutMutationCoordinator: deps.checkoutMutationCoordinator,
     };
 
     // Initialize checkout use cases
@@ -77,15 +71,9 @@ export class CheckoutUsecase {
       ...baseDeps,
     });
 
-    this.getCheckoutById = new GetCheckoutByIdUseCase(
-      {
-        checkoutReadRepository: deps.checkoutReadRepository,
-      },
-      baseDeps
+    this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(
+      deps.checkoutMutationSnapshots,
     );
-
-    // Serialized DTO from event store aggregate
-    this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(baseDeps);
 
     // Initialize lines use cases
     this.addCheckoutLines = new AddCheckoutLinesUseCase(baseDeps);
@@ -112,9 +100,6 @@ export class CheckoutUsecase {
     this.addDeliveryAddress = new AddDeliveryAddressUseCase(baseDeps);
     this.updateDeliveryAddress = new UpdateDeliveryAddressUseCase(baseDeps);
     this.removeDeliveryAddress = new RemoveDeliveryAddressUseCase(baseDeps);
-    this.updateDeliveryGroupAddress = new UpdateDeliveryGroupAddressUseCase(
-      baseDeps
-    );
     this.updateDeliveryGroupRecipient = new UpdateDeliveryGroupRecipientUseCase(
       baseDeps
     );

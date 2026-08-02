@@ -18,48 +18,22 @@ enum PaymentFlow {
   ON_DELIVERY
 }
 
-type CheckoutPaymentProvider {
-  """
-  Code of the provider (e.g., "stripe", "liqpay", "monobank", "paypal").
-  """
-  code: String!
-}
-
 """
 Payment method available/selected for checkout.
 """
 type CheckoutPaymentMethod {
-  """
-  Method code (e.g., "card", "apple_pay", "bank_transfer", "cod").
-  """
+  handle: String!
   code: String!
-
-  """
-  Provider data associated with the payment method.
-  """
-  provider: CheckoutPaymentProvider!
-
-  """
-  Payment flow (ONLINE vs ON_DELIVERY).
-  """
+  title: String!
+  providerCode: String!
   flow: PaymentFlow!
-
-  """
-  Arbitrary customer-provided data for the selected payment method.
-  Will be stored in checkout_payment_methods.customer_input.
-  """
-  data: JSON!
 }
 
-"""
-Constraints for payment method availability.
-"""
-type CheckoutPaymentMethodConstraints {
-  """
-  Limit to specific shipping method codes. If empty, all shipping methods are allowed.
-  Code includes shipping provider code.
-  """
-  shippingMethods: [String!]!
+type CheckoutPaymentMethodSelection {
+  status: CheckoutSelectionStatus!
+  method: CheckoutPaymentMethod
+  previousMethodHandle: String
+  resetReason: CheckoutSelectionResetReason
 }
 
 """
@@ -69,12 +43,9 @@ type CheckoutPayment {
   """
   Available payment methods for this checkout context.
   """
-  paymentMethods: [CheckoutPaymentMethod!]!
+  methods: [CheckoutPaymentMethod!]!
 
-  """
-  Selected payment method, if any.
-  """
-  selectedPaymentMethod: CheckoutPaymentMethod
+  selection: CheckoutPaymentMethodSelection!
 
   """
   Amount payable to the merchant via the selected method.
@@ -92,21 +63,14 @@ input CheckoutPaymentMethodUpdateInput {
   """
   checkoutId: ID!
 
-  """
-  Code of the payment method available for this checkout.
-  """
-  paymentMethodCode: String!
-
-  """
-  Provider code (e.g., "stripe", "liqpay", "monobank", "paypal").
-  """
-  provider: String!
+  """Opaque handle returned by the current checkout snapshot."""
+  methodHandle: String!
 
   """
   Arbitrary customer-provided data for the selected payment method.
-  Will be stored in checkout_payment_methods.customer_input.
+  It remains private selection intent and is never returned by Storefront API.
   """
-  data: JSON
+  customerInput: JSON
 }
 
 extend type Checkout {

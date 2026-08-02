@@ -6,7 +6,7 @@ import {
 import type {
   CommerceFunctionRunnerPort,
 } from "../CheckoutValidationRunner.js";
-import { EmptyCheckoutValidationBindingSource } from "../contracts/index.js";
+import type { CheckoutValidationBindingSource } from "../contracts/index.js";
 import {
   recalculationRequestFixture,
   validationRequestFixture,
@@ -38,10 +38,14 @@ function dependencies(overrides?: {
   };
   const validationRunner = new CheckoutValidationRunner({
     functions,
-    bindings: new EmptyCheckoutValidationBindingSource(),
+    bindings: emptyBindings,
   });
   return { fixture, pricing, delivery, payments, functions, validationRunner };
 }
+
+const emptyBindings: CheckoutValidationBindingSource = {
+  loadForTarget: async () => [],
+};
 
 describe("CheckoutPipeline", () => {
   it("executes the five canonical stages with exact minimized requests", async () => {

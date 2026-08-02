@@ -84,6 +84,52 @@ describe("AppsPlatformActions Commerce Function output boundary", () => {
   });
 });
 
+describe("AppsPlatformActions Commerce Function bindings", () => {
+  it("projects active store routes into ordered binding snapshots", async () => {
+    const listActiveStoreCapabilityRoutes = jest.fn(async (
+      _storeId: string,
+      _capability: string,
+      _operation: string,
+    ) => [route()]);
+    const actions = new AppsPlatformActions(
+      {} as ServiceBroker,
+      {} as AppLifecycleService,
+      { listActiveStoreCapabilityRoutes } as unknown as AppInstallationStore,
+      {} as AppsRuntimeRouter,
+    );
+
+    await expect(actions.listCommerceFunctionBindings({
+      storeId: "store-1",
+      target: "cart.validations.generate.run",
+    }, context("checkout"))).resolves.toEqual({
+      bindings: [{
+        functionBindingId: "route-1",
+        storeId: "store-1",
+        target: "cart.validations.generate.run",
+        installationId: "installation-1",
+        functionKey: "transform",
+        owner: {
+          service: "checkout",
+          resourceType: "store",
+          resourceId: "store-1",
+        },
+        status: "ACTIVE",
+        failureMode: "REQUIRED",
+        configurationSnapshot: null,
+        configurationRevision: "revision-1",
+        routeRevision: "revision-1",
+        precedence: 0,
+        activationSequence: 0,
+      }],
+    });
+    expect(listActiveStoreCapabilityRoutes).toHaveBeenCalledWith(
+      "store-1",
+      COMMERCE_FUNCTION_CAPABILITY,
+      "cart.validations.generate.run",
+    );
+  });
+});
+
 function createActions(output: unknown): AppsPlatformActions {
   const installations = {
     resolveActiveStoreCapabilityRouteForInstallation: async () => route(),
@@ -129,11 +175,11 @@ function params(): Apps.ExecuteCapabilityParams {
   };
 }
 
-function context(): BrokerCallContext {
+function context(service = "pricing"): BrokerCallContext {
   return {
     caller: {
       kind: "action",
-      service: "pricing",
+      service,
     },
   };
 }

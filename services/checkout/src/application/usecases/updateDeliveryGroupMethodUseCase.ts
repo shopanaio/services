@@ -1,57 +1,20 @@
-import { UseCase } from "@src/application/usecases/useCase";
-import type { CheckoutDeliveryGroupMethodUpdatedDto } from "@src/domain/checkout/dto";
-import type { CheckoutDeliveryMethodUpdateInput } from "@src/application/checkout/types";
+import { UseCase } from "./useCase.js";
+import type { CheckoutDeliveryMethodUpdateInput } from "../checkout/types.js";
+import { updateDeliverySelection, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export class UpdateDeliveryGroupMethodUseCase extends UseCase<
-  CheckoutDeliveryMethodUpdateInput,
-  void
-> {
-  async execute(input: CheckoutDeliveryMethodUpdateInput): Promise<void> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    const group = state.deliveryGroups?.find(
-      (g) => g.id === businessInput.deliveryGroupId
-    );
-    if (!group) {
-      throw new Error(
-        `Delivery group not found: ${businessInput.deliveryGroupId}`
-      );
-    }
-
-    const method = group.deliveryMethods.find(
-      (m) =>
-        m.code === businessInput.shippingMethodCode &&
-        m.provider.code === businessInput.provider
-    );
-    if (!method) {
-      throw new Error(
-        `Delivery method not available: ${businessInput.provider}:${businessInput.shippingMethodCode}`
-      );
-    }
-
-    const dto: CheckoutDeliveryGroupMethodUpdatedDto = {
-      data: {
-        deliveryGroupId: businessInput.deliveryGroupId,
-        deliveryMethod: {
-          code: method.code,
-          provider: method.provider.code,
-          deliveryMethodType: method.deliveryMethodType,
-          shippingPaymentModel: method.shippingPaymentModel,
-          customerInput: businessInput.data ?? null,
-          estimatedDeliveryDays: null,
-          shippingCost: null,
-        },
-        shippingTotal: null,
-      },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.updateDeliveryGroupMethod(dto);
+export class UpdateDeliveryGroupMethodUseCase extends UseCase<CheckoutDeliveryMethodUpdateInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutDeliveryMethodUpdateInput) {
+    const { storefrontAccess, store, customer, user, checkoutId } = input;
+    return (await this.checkoutMutationCoordinator.execute({
+      checkoutId,
+      storeId: store.id,
+      change: "DELIVERY_OPTION_UPDATE",
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => updateDeliverySelection(draft, {
+        groupId: input.deliveryGroupId,
+        optionHandle: input.optionHandle,
+        customerInput: input.customerInput ?? null,
+      }),
+    })).checkout;
   }
 }

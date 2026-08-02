@@ -98,10 +98,6 @@ type CheckoutLine implements Node @key(fields: "id") {
   """
   purchasableId: ID!
   """
-  Purchasable snapshot data at the time of adding to checkout.
-  """
-  purchasableSnapshot: JSON!
-  """
   Optional tag assigned to this checkout line.
   """
   tag: CheckoutTag
@@ -163,10 +159,11 @@ input CheckoutChildLineInput {
   """
   purchasableId: ID!
 
-  """
-  Snapshot data for child purchasable.
-  """
-  purchasableSnapshot: PurchasableSnapshotInput
+  """Purchase intent for the child variant."""
+  purchase: CheckoutLinePurchaseInput
+
+  """Checkout-owned attributes passed to the pipeline."""
+  attributes: JSON
 }
 
 """
@@ -181,10 +178,11 @@ input CheckoutLineAddInput {
   ID of the product to add or update.
   """
   purchasableId: ID!
-  """
-  ID of the purchasable snapshot to add or update.
-  """
-  purchasableSnapshot: PurchasableSnapshotInput
+  """Purchase intent for the variant."""
+  purchase: CheckoutLinePurchaseInput
+
+  """Checkout-owned attributes passed to the pipeline."""
+  attributes: JSON
   """
   Optional tag slug to associate with this line.
   """
@@ -367,21 +365,12 @@ type CheckoutLinesClearPayload {
   errors: [CheckoutFieldError!]
 }
 
-input PurchasableSnapshotInput {
-  """
-  SKU of the purchasable snapshot.
-  """
-  sku: String
-  """
-  Title of the purchasable snapshot.
-  """
-  title: String!
-  """
-  Image URL of the purchasable snapshot.
-  """
-  imageUrl: String
-  """
-  JSON data of the purchasable snapshot.
-  """
-  data: JSON
+enum CheckoutLinePurchaseType {
+  ONE_TIME
+  SUBSCRIPTION
+}
+
+input CheckoutLinePurchaseInput {
+  type: CheckoutLinePurchaseType!
+  sellingPlanId: ID
 }

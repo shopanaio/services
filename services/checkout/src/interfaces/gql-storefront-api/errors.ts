@@ -1,4 +1,5 @@
 import type { ValidationError } from 'class-validator';
+import { CheckoutMutationError } from '@src/application/mutations/contracts.js';
 
 /**
  * GraphQL error helpers for consistent error responses.
@@ -21,6 +22,13 @@ export async function fromValidationErrors(errors: ValidationError[]) {
 }
 
 export async function fromDomainError(err: unknown) {
-  const message = typeof err === 'object' && err && 'message' in err ? String((err as any).message) : String(err);
-  return badUserInput('Domain validation failed', { reason: message });
+  const { GraphQLError } = await import('graphql');
+  if (err instanceof CheckoutMutationError) {
+    return new GraphQLError(err.message, {
+      extensions: { code: err.code, retryable: err.retryable },
+    });
+  }
+  return new GraphQLError('Checkout mutation failed.', {
+    extensions: { code: 'INTERNAL_SERVER_ERROR', retryable: true },
+  });
 }

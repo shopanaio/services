@@ -1,60 +1,43 @@
+import { v7 as uuidv7 } from "uuid";
 import { App } from "@src/ioc/container";
-import type {
-  ApiCheckoutMutationCheckoutLinesAddArgs,
-  ApiCheckoutMutation,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckoutMutationCheckoutLinesAddArgs, ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesAddDto } from "@src/application/dto/checkoutLinesAdd.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
+import { purchaseOf } from "./checkoutCreate.js";
 
-/**
- * checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
- */
-export const checkoutLinesAdd = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutLinesAddArgs,
-  ctx: GraphQLContext,
-) => {
-  const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+export const checkoutLinesAdd = async (_parent: ApiCheckoutMutation, args: ApiCheckoutMutationCheckoutLinesAddArgs, ctx: GraphQLContext) => {
+  const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutLinesAddDto, args.input);
-
   try {
-    const lines = dto.lines.map((line) => ({
-      quantity: line.quantity,
-      purchasableId: line.purchasableId, // Already decoded by validator
-      purchasableSnapshot: line.purchasableSnapshot ?? null,
-      tagSlug: line.tagSlug ?? null,
-      children: line.children?.map((child) => ({
-        componentItemId: child.componentItemId,
-        purchasableId: child.purchasableId,
-        quantity: child.quantity,
-        purchasableSnapshot: child.purchasableSnapshot ?? null,
-      })) ?? null,
-    }));
-
-    const updatedCheckoutId = await checkoutUsecase.addCheckoutLines.execute({
-      checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
-      lines,
-      apiKey: ctx.apiKey,
+    const checkout = await checkoutUsecase.addCheckoutLines.execute({
+      checkoutId: dto.checkoutId,
+      lines: dto.lines.map((line) => ({
+        lineId: uuidv7(),
+        variantId: line.purchasableId,
+        quantity: line.quantity,
+        purchase: purchaseOf(line.purchase),
+        attributes: line.attributes ?? {},
+        tagSlug: line.tagSlug ?? null,
+        children: line.children?.map((child) => ({
+          lineId: uuidv7(),
+          componentItemId: child.componentItemId,
+          variantId: child.purchasableId,
+          quantity: child.quantity,
+          purchase: purchaseOf(child.purchase),
+          attributes: child.attributes ?? {},
+        })) ?? null,
+      })),
+      storefrontAccess: ctx.storefrontAccess,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
-    if (!checkout) {
-      return null;
-    }
-
-    return {
-      checkout: mapCheckoutReadToApi(checkout),
-      errors: [],
-    };
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "checkoutLinesAdd domain error");
-    throw await fromDomainError(err);
+    return { checkout: mapCommittedCheckoutToApi(checkout), errors: [] };
+  } catch (error) {
+    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "checkoutLinesAdd failed");
+    throw await fromDomainError(error);
   }
 };

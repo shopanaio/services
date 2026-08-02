@@ -9,33 +9,30 @@ import {
   ValidateNested,
   Matches,
   IsBoolean,
+  IsIn,
+  IsObject,
+  ValidateIf,
+  MaxLength,
 } from "class-validator";
 import { IsISO4217 } from "@src/application/validation/decorators";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { CheckoutPipelineJsonObject } from "../pipeline/contracts/index.js";
 
-export class PurchasableSnapshotInputDto {
-  /** Title of the purchasable snapshot. */
+export class CheckoutLinePurchaseInputDto {
   @Expose()
-  @IsString()
-  @IsNotEmpty()
-  title!: string;
+  @IsIn(["ONE_TIME", "SUBSCRIPTION"])
+  type!: "ONE_TIME" | "SUBSCRIPTION";
 
-  /** Image URL of the purchasable snapshot. */
   @Expose()
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
-
-  /** SKU of the purchasable snapshot. */
-  @Expose()
-  @IsOptional()
-  @IsString()
-  sku?: string;
-
-  /** JSON data of the purchasable snapshot. */
-  @Expose()
-  @IsOptional()
-  data?: Record<string, unknown>;
+  @ValidateIf((value: CheckoutLinePurchaseInputDto) =>
+    value.type === "SUBSCRIPTION" || value.sellingPlanId !== undefined,
+  )
+  @IsGlobalId({
+    entityType: GlobalIdEntity.SellingPlan,
+    message: "sellingPlanId must be a SellingPlan Global ID",
+  })
+  sellingPlanId?: string;
 }
 
 /**
@@ -43,11 +40,17 @@ export class PurchasableSnapshotInputDto {
  */
 export class CheckoutChildLineInputDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid component item ID format" })
+  @IsGlobalId({
+    entityType: GlobalIdEntity.ProductComponentItem,
+    message: "componentItemId must be a ProductComponentItem Global ID",
+  })
   componentItemId!: string;
 
   @Expose()
-  @IsGlobalId({ message: "Invalid purchasable ID format" })
+  @IsGlobalId({
+    entityType: GlobalIdEntity.Variant,
+    message: "purchasableId must be a Variant Global ID",
+  })
   purchasableId!: string;
 
   @Expose()
@@ -58,8 +61,13 @@ export class CheckoutChildLineInputDto {
   @Expose()
   @IsOptional()
   @ValidateNested()
-  @Type(() => PurchasableSnapshotInputDto)
-  purchasableSnapshot?: PurchasableSnapshotInputDto;
+  @Type(() => CheckoutLinePurchaseInputDto)
+  purchase?: CheckoutLinePurchaseInputDto;
+
+  @Expose()
+  @IsOptional()
+  @IsObject()
+  attributes?: CheckoutPipelineJsonObject;
 }
 
 /**
@@ -68,7 +76,10 @@ export class CheckoutChildLineInputDto {
  */
 export class CheckoutLineInputDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid purchasable ID format" })
+  @IsGlobalId({
+    entityType: GlobalIdEntity.Variant,
+    message: "purchasableId must be a Variant Global ID",
+  })
   purchasableId!: string;
 
   @Expose()
@@ -79,9 +90,13 @@ export class CheckoutLineInputDto {
   @Expose()
   @IsOptional()
   @ValidateNested()
-  // AI: Share a snapshot with inventory.
-  @Type(() => PurchasableSnapshotInputDto)
-  purchasableSnapshot?: PurchasableSnapshotInputDto;
+  @Type(() => CheckoutLinePurchaseInputDto)
+  purchase?: CheckoutLinePurchaseInputDto;
+
+  @Expose()
+  @IsOptional()
+  @IsObject()
+  attributes?: CheckoutPipelineJsonObject;
 
   @Expose()
   @IsOptional()
@@ -112,8 +127,17 @@ export class CheckoutTagDto {
 }
 
 export class CreateCheckoutDto {
-  // Matches CheckoutCreateInput from GraphQL schema
-  // idempotency removed: idempotency will be computed by server from request
+  @Expose()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(256)
+  idempotencyKey!: string;
+
+  @Expose()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128)
+  channelCode!: string;
 
   @Expose()
   @IsOptional()

@@ -25,10 +25,3 @@ export { checkoutPaymentMethodUpdate } from "./checkoutPaymentMethodUpdate";
 export { checkoutTagCreate } from "./checkoutTagCreate";
 export { checkoutTagUpdate } from "./checkoutTagUpdate";
 export { checkoutTagDelete } from "./checkoutTagDelete";
-
-// CheckoutDeliveryGroup resolvers
-export {
-  selectedDeliveryMethod,
-  estimatedCost,
-  deliveryMethods
-} from "./checkoutDeliveryGroup";

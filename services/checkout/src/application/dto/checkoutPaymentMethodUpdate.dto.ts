@@ -1,21 +1,18 @@
 import { IsOptional, IsString, MaxLength, MinLength, IsObject } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import type { CheckoutPipelineJsonObject } from "../pipeline/contracts/index.js";
 
 export class CheckoutPaymentMethodUpdateDto {
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
-  @IsString({ message: "Payment method code must be a string" })
-  @MinLength(1, { message: "Payment method code is required" })
-  @MaxLength(100, { message: "Payment method code too long" })
-  paymentMethodCode!: string;
-
-  @IsString({ message: "Provider code must be a string" })
-  @MinLength(1, { message: "Provider code is required" })
-  @MaxLength(100, { message: "Provider code too long" })
-  provider!: string;
+  @IsString({ message: "Method handle must be a string" })
+  @MinLength(1, { message: "Method handle is required" })
+  @MaxLength(256, { message: "Method handle too long" })
+  methodHandle!: string;
 
   @IsOptional()
-  @IsObject({ message: "data must be JSON object" })
-  data?: Record<string, unknown>;
+  @IsObject({ message: "customerInput must be a JSON object" })
+  customerInput?: CheckoutPipelineJsonObject;
 }

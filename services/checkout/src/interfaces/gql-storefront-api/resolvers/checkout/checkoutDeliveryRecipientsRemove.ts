@@ -1,48 +1,26 @@
 import { App } from "@src/ioc/container";
-import type {
-  ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs,
-  ApiCheckoutMutation,
-} from "@src/interfaces/gql-storefront-api/types";
+import type { ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs, ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutDeliveryRecipientsRemoveDto } from "@src/application/dto/checkoutDeliveryRecipients.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
 
-/**
- * checkoutDeliveryRecipientsRemove(input: CheckoutDeliveryRecipientsRemoveInput!): Checkout!
- */
-export const checkoutDeliveryRecipientsRemove = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs,
-  ctx: GraphQLContext
-) => {
-  const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+export const checkoutDeliveryRecipientsRemove = async (_parent: ApiCheckoutMutation, args: ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs, ctx: GraphQLContext) => {
+  const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutDeliveryRecipientsRemoveDto, args.input);
-
   try {
-    // Removing recipients from delivery groups
-    for (const deliveryGroupId of dto.deliveryGroupIds) {
-      await checkoutUsecase.removeDeliveryGroupRecipient.execute({
-        checkoutId: dto.checkoutId,
-        deliveryGroupId: deliveryGroupId,
-        apiKey: ctx.apiKey,
-        store: ctx.store,
-        customer: ctx.customer,
-        user: ctx.user,
-      });
-    }
-
-    const checkout = await checkoutReadRepository.findById(dto.checkoutId);
-    if (!checkout) {
-      return null;
-    }
-
-    return mapCheckoutReadToApi(checkout);
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "deliveryRecipientsRemove error");
-    throw await fromDomainError(err);
+    const checkout = await checkoutUsecase.removeDeliveryGroupRecipient.execute({
+      checkoutId: dto.checkoutId,
+      deliveryGroupIds: dto.deliveryGroupIds,
+      storefrontAccess: ctx.storefrontAccess,
+      store: ctx.store,
+      customer: ctx.customer,
+      user: ctx.user,
+    });
+    return mapCommittedCheckoutToApi(checkout);
+  } catch (error) {
+    logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "deliveryRecipientsRemove error");
+    throw await fromDomainError(error);
   }
 };

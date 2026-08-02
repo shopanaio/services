@@ -1,45 +1,21 @@
-import {
-  UseCase,
-  type UseCaseDependencies,
-} from "@src/application/usecases/useCase";
-import type { CheckoutTagDeleteInput } from "@src/application/checkout/types";
-import type { CheckoutTagDeletedDto } from "@src/domain/checkout/dto";
+import { UseCase } from "./useCase.js";
+import type { CheckoutTagDeleteInput } from "../checkout/types.js";
+import { invalidCheckoutMutation, type CheckoutCommittedSnapshot } from "../mutations/index.js";
 
-export interface DeleteCheckoutTagUseCaseDependencies
-  extends UseCaseDependencies {}
-
-export class DeleteCheckoutTagUseCase extends UseCase<
-  CheckoutTagDeleteInput,
-  string
-> {
-  constructor(deps: DeleteCheckoutTagUseCaseDependencies) {
-    super(deps);
-  }
-
-  async execute(input: CheckoutTagDeleteInput): Promise<string> {
-    const { apiKey, store, customer, user, ...businessInput } = input;
-    const context = { apiKey, store, customer, user };
-
-    const state = await this.getCheckoutState(businessInput.checkoutId);
-    this.assertCheckoutExists(state);
-    this.validateTenantAccess(state, context);
-
-    const currentTag = Object.values(state.tagsRecord ?? {}).find(
-      (tag) => tag.id === businessInput.tagId
-    );
-    if (!currentTag) {
-      throw new Error(`Tag ${businessInput.tagId} does not exist`);
-    }
-
-    const dto: CheckoutTagDeletedDto = {
-      data: {
-        tagId: currentTag.id,
+export class DeleteCheckoutTagUseCase extends UseCase<CheckoutTagDeleteInput, CheckoutCommittedSnapshot> {
+  async execute(input: CheckoutTagDeleteInput) {
+    const { storefrontAccess, store, customer, user, checkoutId, tagId } = input;
+    return (await this.checkoutMutationCoordinator.executeWithoutRecalculation({
+      checkoutId,
+      storeId: store.id,
+      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      apply: (draft) => {
+        if (!draft.tags.some((tag) => tag.id === tagId)) {
+          throw invalidCheckoutMutation("CHECKOUT_TAG_NOT_FOUND", "Checkout tag was not found.");
+        }
+        draft.tags = draft.tags.filter((tag) => tag.id !== tagId);
+        draft.lineTagAssignments = draft.lineTagAssignments.filter((assignment) => assignment.tagId !== tagId);
       },
-      metadata: this.createMetadataDto(businessInput.checkoutId, context),
-    };
-
-    await this.checkoutWriteRepository.deleteCheckoutTag(dto);
-
-    return businessInput.checkoutId;
+    })).checkout;
   }
 }

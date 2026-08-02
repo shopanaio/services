@@ -7,13 +7,14 @@ import {
   MaxLength,
 } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 /**
  * DTO for checkoutPromoCodeAdd API.
  */
 export class CheckoutPromoCodeAddDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()
@@ -34,7 +35,7 @@ export class CheckoutPromoCodeAddDto {
  */
 export class CheckoutPromoCodeRemoveDto {
   @Expose()
-  @IsGlobalId({ message: "Invalid checkout ID format" })
+  @IsGlobalId({ entityType: GlobalIdEntity.Checkout, message: "Invalid checkout ID format" })
   checkoutId!: string;
 
   @Expose()

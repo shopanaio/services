@@ -327,7 +327,7 @@ export function parseValidateCheckoutRequest(
   value: unknown,
 ): ValidateCheckoutRequest {
   assertPayloadSize(value, "checkout validation request");
-  const request = validateCheckoutRequestSchema.parse(value);
+  const request = validateCheckoutRequestSchema.parse(value) as ValidateCheckoutRequest;
   assertProvenance(request.context, request.preliminary);
   assertProvenance(request.context, request.delivery);
   assertProvenance(request.context, request.finalQuote);
@@ -396,7 +396,7 @@ export function parseCalculateDeliveryOptionsResult(
   value: unknown,
 ): CalculateDeliveryOptionsResult {
   assertPayloadSize(value, "delivery options result");
-  const result = calculateDeliveryOptionsResultSchema.parse(value);
+  const result = calculateDeliveryOptionsResultSchema.parse(value) as CalculateDeliveryOptionsResult;
   assertProvenance(request.context, result);
   assertEqual(
     result.basedOnPreliminaryRevision,
@@ -924,7 +924,7 @@ export function parseCheckoutRecalculationResult(
   value: unknown,
 ): CheckoutRecalculationResult {
   assertPayloadSize(value, "checkout recalculation result");
-  const result = checkoutRecalculationResultSchema.parse(value);
+  const result = checkoutRecalculationResultSchema.parse(value) as CheckoutRecalculationResult;
   assertEqual(
     result.executionId,
     request.context.executionId,

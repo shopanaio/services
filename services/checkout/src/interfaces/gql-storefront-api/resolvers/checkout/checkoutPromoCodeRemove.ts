@@ -6,7 +6,7 @@ import type {
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPromoCodeRemoveDto } from "@src/application/dto/checkoutPromoCodes.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
-import { mapCheckoutReadToApi } from "@src/interfaces/gql-storefront-api/mapper/checkout";
+import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
 // Removed idCodec imports as validation/transformation now happens in DTO
 
@@ -19,27 +19,22 @@ export const checkoutPromoCodeRemove = async (
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();
-  const { checkoutUsecase, checkoutReadRepository, logger } = app;
+  const { checkoutUsecase, logger } = app;
   const dto = createValidated(CheckoutPromoCodeRemoveDto, args.input);
 
   try {
-    const updatedCheckoutId = await checkoutUsecase.removePromoCode.execute({
+    const checkout = await checkoutUsecase.removePromoCode.execute({
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       code: dto.code,
-      apiKey: ctx.apiKey,
+      storefrontAccess: ctx.storefrontAccess,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
     });
-    const checkout = await checkoutReadRepository.findById(updatedCheckoutId);
-    if (!checkout) {
-      return null;
-    }
-
-    return mapCheckoutReadToApi(checkout);
+    return mapCommittedCheckoutToApi(checkout);
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
-    logger.error({ reason, input: dto }, "promoCodeRemove error");
+    logger.error({ reason, checkoutId: dto.checkoutId }, "promoCodeRemove error");
     throw await fromDomainError(err);
   }
 };
