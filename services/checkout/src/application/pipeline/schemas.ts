@@ -285,6 +285,15 @@ export const checkoutPipelineEligibilityContextSchema = z
   .strict()
   .superRefine(refineDeadline);
 
+export const paymentsCheckoutEvaluationContextSchema = z
+  .object({
+    ...checkoutPipelineStageContextShape,
+    buyerEligibility: checkoutBuyerEligibilityContextSchema.nullable(),
+    targetCheckoutVersion: checkoutVersionSchema,
+  })
+  .strict()
+  .superRefine(refineDeadline);
+
 export const checkoutPipelineExecutionContextSchema = z
   .object({
     ...checkoutPipelineStageContextShape,
@@ -1244,7 +1253,7 @@ export const checkoutPaymentDeliverySnapshotSchema = z
 
 export const getAvailablePaymentMethodsRequestSchema = z
   .object({
-    context: checkoutPipelineEligibilityContextSchema,
+    context: paymentsCheckoutEvaluationContextSchema,
     selection: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     finalQuote: finalizePricingQuoteResultSchema,
     delivery: checkoutPaymentDeliverySnapshotSchema,
@@ -1255,10 +1264,18 @@ export const getAvailablePaymentMethodsResultSchema = z
   .object({
     ...checkoutPipelineStageProvenanceSchema.shape,
     revision: revisionSchema,
+    discoveryRevision: revisionSchema,
+    customizationRevision: revisionSchema,
     basedOnFinalQuoteRevision: revisionSchema,
     basedOnDeliveryRevision: revisionSchema,
     methods: collection(checkoutPaymentMethodSchema),
     selection: checkoutPaymentMethodSelectionResolutionSchema,
+    issues: collection(z.object({
+      code: identifierSchema,
+      message: z.string().min(1).max(1024),
+      severity: z.enum(["WARNING", "ERROR"]),
+      retryable: z.boolean(),
+    }).strict()),
   })
   .strict();
 

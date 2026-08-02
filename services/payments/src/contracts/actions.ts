@@ -9,6 +9,12 @@ export interface PaymentsLifecyclePort {
   setProviderAccountStatus(
     params: Payments.SetPaymentProviderAccountStatusParams,
   ): Promise<Payments.SetPaymentProviderAccountStatusResult>;
+  configureMethodCustomization(
+    params: Payments.ConfigurePaymentMethodCustomizationParams,
+  ): Promise<Payments.ConfigurePaymentMethodCustomizationResult>;
+  setMethodCustomizationStatus(
+    params: Payments.SetPaymentMethodCustomizationStatusParams,
+  ): Promise<Payments.SetPaymentMethodCustomizationStatusResult>;
   createCollection(
     params: Payments.CreatePaymentCollectionParams,
   ): Promise<Payments.CreatePaymentCollectionResult>;
@@ -71,6 +77,12 @@ export interface PaymentsLifecycleActionsContract {
   setPaymentProviderAccountStatus(
     params: Payments.SetPaymentProviderAccountStatusParams,
   ): Promise<Payments.SetPaymentProviderAccountStatusResult>;
+  configurePaymentMethodCustomization(
+    params: Payments.ConfigurePaymentMethodCustomizationParams,
+  ): Promise<Payments.ConfigurePaymentMethodCustomizationResult>;
+  setPaymentMethodCustomizationStatus(
+    params: Payments.SetPaymentMethodCustomizationStatusParams,
+  ): Promise<Payments.SetPaymentMethodCustomizationStatusResult>;
   createPaymentCollection(
     params: Payments.CreatePaymentCollectionParams,
   ): Promise<Payments.CreatePaymentCollectionResult>;

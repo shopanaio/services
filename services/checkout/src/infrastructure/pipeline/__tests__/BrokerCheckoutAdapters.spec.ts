@@ -56,7 +56,10 @@ describe("checkout broker adapters", () => {
       delivery: toCheckoutPricingDeliverySnapshot(fixture.delivery),
     });
     await payments.getAvailableMethods({
-      context: eligibilityContext,
+      context: {
+        ...eligibilityContext,
+        targetCheckoutVersion: eligibilityContext.expectedCheckoutVersion + 1,
+      },
       selection: fixture.cartIntent.selectedPaymentMethod,
       finalQuote: fixture.finalQuote,
       delivery: toCheckoutPaymentDeliverySnapshot(

@@ -42,6 +42,7 @@ import {
   toCheckoutPipelineStageContext,
   toCheckoutPricingCartIntent,
   toCheckoutPricingDeliverySnapshot,
+  toPaymentsCheckoutEvaluationContext,
 } from "./boundaries.js";
 import { canonicalJsonRevision, canonicalJsonSha256 } from "./canonicalJson.js";
 import { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
@@ -281,6 +282,18 @@ function finalPricingIssues(
   return issues;
 }
 
+function paymentIssues(result: GetAvailablePaymentMethodsResult): CheckoutPipelineIssue[] {
+  return result.issues.map((issue) => ({
+    stage: "PAYMENT",
+    code: issue.code,
+    message: issue.message,
+    severity: issue.severity,
+    effect: issue.severity === "ERROR" ? "STOP" : "CONTINUE",
+    field: ["payment"],
+    retryable: issue.retryable,
+  }));
+}
+
 function validationIssues(result: ValidateCheckoutResult): CheckoutPipelineIssue[] {
   return result.operations.map((operation) => ({
     stage: "VALIDATION",
@@ -468,7 +481,7 @@ export class CheckoutPipeline {
 
     const paymentBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS"
       ? buildStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">("PAYMENT", () => parseGetAvailablePaymentMethodsRequest({
-          context: toCheckoutPipelineEligibilityContext(request.context),
+          context: toPaymentsCheckoutEvaluationContext(request.context),
           selection: request.cartIntent.selectedPaymentMethod,
           finalQuote: finalPricing.data,
           delivery: toCheckoutPaymentDeliverySnapshot(delivery.data, preliminaryPricing.data),
@@ -481,7 +494,7 @@ export class CheckoutPipeline {
           request: paymentBuild.request,
           call: (value) => this.dependencies.payments.getAvailableMethods(value),
           parseResult: parseGetAvailablePaymentMethodsResult,
-          issues: () => [],
+          issues: paymentIssues,
         }));
 
     const validationBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && payment.status === "SUCCESS"

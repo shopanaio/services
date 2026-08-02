@@ -12,11 +12,7 @@ export interface PaymentsCheckoutMethodsPort {
   ): Promise<GetAvailablePaymentMethodsResult>;
 }
 
-/**
- * Provider-side handler surface for PaymentsCheckoutActions.
- * Intentional scaffolding: do not register the broker action before a real
- * implementation can return contract-valid methods.
- */
+/** Provider-side handler surface for the registered Payments checkout action. */
 export interface PaymentsCheckoutActionsContract {
   getCheckoutAvailablePaymentMethods(
     params: GetAvailablePaymentMethodsParams,

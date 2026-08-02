@@ -9,7 +9,6 @@ import type {
  * request-relative result parser for every untrusted broker response.
  */
 export interface PaymentsCheckoutPort {
-  // TODO(checkout-pipeline): implement with the available methods adapter.
   getAvailableMethods(
     request: GetAvailablePaymentMethodsRequest,
   ): Promise<GetAvailablePaymentMethodsResult>;

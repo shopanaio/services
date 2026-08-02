@@ -115,10 +115,13 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
     basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
     revision: "payment-v1",
+    discoveryRevision: "payment-discovery-v1",
+    customizationRevision: "payment-customization-v1",
     basedOnFinalQuoteRevision: finalQuote.revision,
     basedOnDeliveryRevision: delivery.revision,
     methods: [],
     selection: { status: "NONE" },
+    issues: [],
   } as const;
   return {
     context,

@@ -19,6 +19,10 @@ export const PaymentsCheckoutActions = {
 
 /** Capability implemented by installed payment provider Apps. */
 export const PAYMENTS_PROVIDER_CAPABILITY = "payments.provider" as const;
+export const PAYMENT_METHOD_CUSTOMIZATION_FUNCTION_TARGET =
+  "cart.payment-methods.transform.run" as const;
+export const PAYMENT_CUSTOMIZATION_MAX_EXECUTIONS = 25;
+export const PAYMENT_CUSTOMIZATION_MAX_OPERATIONS = 250;
 
 /**
  * Stable operation contracts declared by a payment provider App manifest.
@@ -57,10 +61,12 @@ export interface PaymentProviderAppManifestCapability {
   }>;
 }
 
-/** Platform-owned payment lifecycle actions. */
+/** Platform-owned Payments actions. */
 export const PaymentsActionNames = {
   configureProviderAccount: "configurePaymentProviderAccount",
   setProviderAccountStatus: "setPaymentProviderAccountStatus",
+  configureMethodCustomization: "configurePaymentMethodCustomization",
+  setMethodCustomizationStatus: "setPaymentMethodCustomizationStatus",
   createCollection: "createPaymentCollection",
   getCollection: "getPaymentCollection",
   createSession: "createPaymentSession",
@@ -80,6 +86,10 @@ export const PaymentsActions = {
     `payments.${PaymentsActionNames.configureProviderAccount}`,
   setProviderAccountStatus:
     `payments.${PaymentsActionNames.setProviderAccountStatus}`,
+  configureMethodCustomization:
+    `payments.${PaymentsActionNames.configureMethodCustomization}`,
+  setMethodCustomizationStatus:
+    `payments.${PaymentsActionNames.setMethodCustomizationStatus}`,
   createCollection: `payments.${PaymentsActionNames.createCollection}`,
   getCollection: `payments.${PaymentsActionNames.getCollection}`,
   createSession: `payments.${PaymentsActionNames.createSession}`,
@@ -144,6 +154,13 @@ export interface PaymentsCheckoutMethod {
   metadata: PricingCheckoutJsonObject | null;
 }
 
+export interface PaymentsCheckoutIssue {
+  code: string;
+  message: string;
+  severity: "WARNING" | "ERROR";
+  retryable: boolean;
+}
+
 export type PaymentsCheckoutMethodSelectionResolution =
   | Readonly<{ status: "NONE" }>
   | Readonly<{
@@ -158,8 +175,14 @@ export type PaymentsCheckoutMethodSelectionResolution =
       reason: Readonly<{ code: string; message: string }>;
     }>;
 
+export interface PaymentsCheckoutEvaluationContext
+  extends PricingCheckoutEvaluationContext {
+  /** Potential committed version; always the currently committed version + 1. */
+  targetCheckoutVersion: number;
+}
+
 export interface GetCheckoutAvailablePaymentMethodsParams {
-  context: PricingCheckoutEvaluationContext;
+  context: PaymentsCheckoutEvaluationContext;
   selection: PaymentsCheckoutMethodSelectionIntent | null;
   finalQuote: FinalizeCheckoutPricingQuoteResult;
   /** Minimal, PII-free and provider-data-free delivery eligibility facts. */
@@ -169,10 +192,57 @@ export interface GetCheckoutAvailablePaymentMethodsParams {
 export interface GetCheckoutAvailablePaymentMethodsResult
   extends PricingCheckoutStageProvenance {
   revision: string;
+  discoveryRevision: string;
+  customizationRevision: string;
   basedOnFinalQuoteRevision: string;
   basedOnDeliveryRevision: string;
   methods: readonly PaymentsCheckoutMethod[];
   selection: PaymentsCheckoutMethodSelectionResolution;
+  issues: readonly PaymentsCheckoutIssue[];
+}
+
+export type PaymentMethodCustomizationOperation =
+  | Readonly<{ type: "HIDE"; methodHandle: string; reasonCode: string }>
+  | Readonly<{ type: "MOVE"; methodHandle: string; index: number }>
+  | Readonly<{ type: "RENAME"; methodHandle: string; title: string }>;
+
+export interface PaymentMethodCustomizationFunctionInput {
+  schemaVersion: 1;
+  executionId: string;
+  storeId: string;
+  checkoutId: string;
+  basedOnCheckoutVersion: number;
+  targetCheckoutVersion: number;
+  currencyCode: string;
+  localeCode: string | null;
+  channelCode: string;
+  effectiveAt: string;
+  buyer: Readonly<{
+    customerId: string | null;
+    countryCode: string | null;
+    marketId: string | null;
+    companyId: string | null;
+    segmentIds: readonly string[];
+  }> | null;
+  delivery: Readonly<{
+    countryCodes: readonly string[];
+    selectedCarrierCodes: readonly string[];
+  }>;
+  amount: PricingCheckoutMoney;
+  methods: readonly PaymentsCheckoutMethod[];
+}
+
+export interface PaymentMethodCustomizationFunctionResult {
+  operations: readonly PaymentMethodCustomizationOperation[];
+}
+
+export interface PaymentMethodCustomizationAppManifestCapability {
+  key: "commerce.function";
+  assignmentMode: "store";
+  routingMode: "broadcast";
+  operations: Readonly<{
+    "cart.payment-methods.transform.run": string;
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +286,10 @@ export interface PaymentProviderAccountSnapshot {
   captureMode: PaymentCaptureMode;
   capabilities: PaymentProviderCapabilities;
   configurationRevision: string;
+  supportedCurrencyCodes: readonly string[];
+  supportedCountryCodes: readonly string[];
+  supportedSessionKinds: readonly PaymentSessionKind[];
+  supportedOperations: readonly PaymentProviderOperation[];
   enabledMethodKeys: readonly string[];
   createdAt: string;
   updatedAt: string;
@@ -240,6 +314,7 @@ export interface PaymentMethodBindingSnapshot {
   providerMethodKey: string;
   discoveryRoute: PaymentProviderRouteSnapshot;
   configurationRevision: string;
+  providerDiscoveryRevision: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -569,6 +644,69 @@ export interface SetPaymentProviderAccountStatusParams {
 
 export interface SetPaymentProviderAccountStatusResult {
   account: PaymentProviderAccountSnapshot;
+}
+
+export type PaymentMethodCustomizationStatus = "ACTIVE" | "DISABLED";
+export type PaymentMethodCustomizationFailureMode = "REQUIRED" | "OPTIONAL";
+
+export interface PaymentMethodCustomizationSnapshot {
+  customizationId: string;
+  storeId: string;
+  status: PaymentMethodCustomizationStatus;
+  policyRevision: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentMethodCustomizationBindingSnapshot {
+  functionBindingId: string;
+  storeId: string;
+  customizationId: string;
+  installationId: string;
+  functionKey: string;
+  contractVersion: 1;
+  precedence: number;
+  activationSequence: number;
+  failureMode: PaymentMethodCustomizationFailureMode;
+  configurationSnapshot: PricingCheckoutJsonObject;
+  configurationRevision: string;
+  routeRevision: string;
+  status: PaymentMethodCustomizationStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Desired-state write owned by Payments; Apps only confirms the pinned route. */
+export interface ConfigurePaymentMethodCustomizationParams {
+  storeId: string;
+  customizationId: string;
+  functionBindingId: string;
+  installationId: string;
+  functionKey: string;
+  contractVersion: 1;
+  precedence: number;
+  activationSequence: number;
+  failureMode: PaymentMethodCustomizationFailureMode;
+  configurationSnapshot: PricingCheckoutJsonObject;
+  configurationRevision: string;
+  routeRevision: string;
+  customizationStatus: PaymentMethodCustomizationStatus;
+  bindingStatus: PaymentMethodCustomizationStatus;
+}
+
+export interface ConfigurePaymentMethodCustomizationResult {
+  customization: PaymentMethodCustomizationSnapshot;
+  binding: PaymentMethodCustomizationBindingSnapshot;
+}
+
+export interface SetPaymentMethodCustomizationStatusParams {
+  storeId: string;
+  customizationId: string;
+  status: PaymentMethodCustomizationStatus;
+}
+
+export interface SetPaymentMethodCustomizationStatusResult {
+  customization: PaymentMethodCustomizationSnapshot;
 }
 
 export interface CreatePaymentCollectionParams {

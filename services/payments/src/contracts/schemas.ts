@@ -130,6 +130,8 @@ const paymentProviderCustomerSchema = z
 const idempotencyKeySchema = z.string().trim().min(1).max(255);
 const correlationIdSchema = z.string().trim().min(1).max(255);
 const expectedRevisionSchema = z.number().int().nonnegative();
+const uuidSchema = z.string().uuid();
+const paymentCustomizationStatusSchema = z.enum(["ACTIVE", "DISABLED"]);
 
 /** Parse with these schemas before computing a PaymentIdempotencySnapshot. */
 export const PaymentLifecycleActionSchemas = {
@@ -153,6 +155,31 @@ export const PaymentLifecycleActionSchemas = {
       status: z.enum(["ACTIVE", "INACTIVE"]),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
+    })
+    .strict(),
+  configureMethodCustomization: z
+    .object({
+      storeId: uuidSchema,
+      customizationId: uuidSchema,
+      functionBindingId: uuidSchema,
+      installationId: uuidSchema,
+      functionKey: identifierSchema,
+      contractVersion: z.literal(1),
+      precedence: z.number().int().safe().nonnegative(),
+      activationSequence: z.number().int().safe().nonnegative(),
+      failureMode: z.enum(["REQUIRED", "OPTIONAL"]),
+      configurationSnapshot: jsonObjectSchema,
+      configurationRevision: identifierSchema,
+      routeRevision: identifierSchema,
+      customizationStatus: paymentCustomizationStatusSchema,
+      bindingStatus: paymentCustomizationStatusSchema,
+    })
+    .strict(),
+  setMethodCustomizationStatus: z
+    .object({
+      storeId: uuidSchema,
+      customizationId: uuidSchema,
+      status: paymentCustomizationStatusSchema,
     })
     .strict(),
   createCollection: z

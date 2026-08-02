@@ -67,8 +67,11 @@ function pipeline(input?: { preliminaryFailure?: boolean }) {
   const payments = {
     getAvailableMethods: jest.fn(async (request: any) => ({
       ...provenance(validation.payment, request.context),
+      discoveryRevision: "payment-discovery-v1",
+      customizationRevision: "payment-customization-v1",
       basedOnFinalQuoteRevision: request.finalQuote.revision,
       basedOnDeliveryRevision: request.delivery.revision,
+      issues: [],
     })),
   };
   const validationRunner = new CheckoutValidationRunner({

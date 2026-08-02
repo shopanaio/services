@@ -90,6 +90,15 @@ export function toCheckoutPipelineEligibilityContext(
   };
 }
 
+export function toPaymentsCheckoutEvaluationContext(
+  context: CheckoutPipelineExecutionContext,
+): GetAvailablePaymentMethodsRequest["context"] {
+  return {
+    ...toCheckoutPipelineEligibilityContext(context),
+    targetCheckoutVersion: context.expectedCheckoutVersion + 1,
+  };
+}
+
 export function toCheckoutPricingCartIntent(
   cartIntent: CheckoutRecalculationRequest["cartIntent"],
 ): CheckoutPricingCartIntent {
@@ -304,6 +313,11 @@ export function parseGetAvailablePaymentMethodsRequest(
 ): GetAvailablePaymentMethodsRequest {
   assertPayloadSize(value, "payment methods request");
   const request = getAvailablePaymentMethodsRequestSchema.parse(value);
+  assertEqual(
+    request.context.targetCheckoutVersion,
+    request.context.expectedCheckoutVersion + 1,
+    "Payment target checkout version must follow the committed base version",
+  );
   assertProvenance(request.context, request.finalQuote);
   assertProvenance(request.context, request.delivery);
   assertEqual(
@@ -1011,7 +1025,10 @@ function assertSuccessfulStages(
   }
   const payment = parseGetAvailablePaymentMethodsResult(
     {
-      context: eligibilityContext,
+      context: {
+        ...eligibilityContext,
+        targetCheckoutVersion: eligibilityContext.expectedCheckoutVersion + 1,
+      },
       selection: request.cartIntent.selectedPaymentMethod,
       finalQuote,
       delivery: toCheckoutPaymentDeliverySnapshot(delivery, preliminary),

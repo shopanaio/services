@@ -1,4 +1,5 @@
 import type { Apps, PaymentEvents, Payments } from "@shopana/broker-types";
+import type { CommerceFunctionBindingRef } from "@shopana/function-runner";
 import type { PaymentProviderCompletionContext } from "./actions.js";
 
 export interface PaymentsProviderAppsPort {
@@ -56,6 +57,10 @@ export interface PaymentProviderAccountsPort {
     storeId: string,
     providerAccountId: string,
   ): Promise<Payments.PaymentProviderAccountSnapshot | null>;
+  getByInstallation(
+    storeId: string,
+    installationId: string,
+  ): Promise<Payments.PaymentProviderAccountSnapshot | null>;
   save(
     account: Payments.PaymentProviderAccountSnapshot,
     expectedConfigurationRevision: string | null,
@@ -71,27 +76,58 @@ export interface PaymentProviderAccountsPort {
   >;
 }
 
+export interface PaymentFunctionRoutesPort {
+  resolveRoute(input: Readonly<{
+    storeId: string;
+    installationId: string;
+    functionKey: string;
+  }>): Promise<Apps.CapabilityRoute | null>;
+}
+
+export interface PaymentCustomizationBindingsPort {
+  listActive(storeId: string): Promise<Readonly<{
+    policyRevision: string;
+    bindingSetRevision: string;
+    bindings: readonly CommerceFunctionBindingRef[];
+  }>>;
+  listForCustomization(input: Readonly<{
+    storeId: string;
+    customizationId: string;
+  }>): Promise<readonly Payments.PaymentMethodCustomizationBindingSnapshot[]>;
+  configure(input: Payments.ConfigurePaymentMethodCustomizationParams & Readonly<{
+    policyRevision: string;
+  }>): Promise<Payments.ConfigurePaymentMethodCustomizationResult>;
+  setStatus(input: Payments.SetPaymentMethodCustomizationStatusParams): Promise<Payments.PaymentMethodCustomizationSnapshot | null>;
+}
+
 export interface PaymentMethodBindingCandidate {
   method: Payments.PaymentsCheckoutMethod;
   binding: Payments.PaymentMethodBindingSnapshot;
 }
 
 export interface PaymentMethodBindingsPort {
-  replaceCheckoutSnapshot(input: Readonly<{
+  resolveCommittedSelection(input: Readonly<{
     storeId: string;
     checkoutId: string;
     checkoutVersion: number;
-    finalQuoteRevision: string;
-    paymentMethodsRevision: string;
-    methods: readonly PaymentMethodBindingCandidate[];
-    expiresAt: string;
-  }>): Promise<void>;
-  resolve(input: Readonly<{
+    methodHandle: string;
+    effectiveAt: string;
+  }>): Promise<Payments.PaymentMethodBindingSnapshot | null>;
+  stageCheckoutSnapshot(input: Readonly<{
     storeId: string;
     checkoutId: string;
-    methodHandle: string;
-    paymentMethodsRevision: string;
-  }>): Promise<Payments.PaymentMethodBindingSnapshot | null>;
+    basedOnCheckoutVersion: number;
+    targetCheckoutVersion: number;
+    finalQuoteRevision: string;
+    deliveryRevision: string;
+    discoveryRevision: string;
+    customizationRevision: string;
+    paymentRevision: string;
+    result: Payments.GetCheckoutAvailablePaymentMethodsResult;
+    methods: readonly PaymentMethodBindingCandidate[];
+    executions: readonly Readonly<{ kind: "PROVIDER" | "FUNCTION"; ownerId: string; status: string; classification: string | null; revision: string | null; audit: Record<string, unknown> }>[];
+    retainUntil: string;
+  }>): Promise<Readonly<{ result: Payments.GetCheckoutAvailablePaymentMethodsResult; reused: boolean }>>;
 }
 
 export interface CreatePaymentSessionRecord {
