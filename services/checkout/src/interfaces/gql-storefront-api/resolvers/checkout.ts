@@ -26,6 +26,7 @@ import {
   checkoutDeliveryRecipientsRemove,
   checkoutDeliveryRecipientsUpdate,
   checkoutLinesReplace,
+  placeOrder,
 } from "./checkout/index";
 import {
   requireStorefrontPermission,
@@ -48,17 +49,7 @@ const checkoutResolvers = {
     },
   },
   Mutation: {
-    checkoutMutation: (
-      _parent: unknown,
-      _args: unknown,
-      context: GraphQLContext,
-    ) => {
-      requireStorefrontPermission(
-        context.storefrontAccess,
-        STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
-      );
-      return {};
-    },
+    checkoutMutation: () => ({}),
   },
   CheckoutQuery: {
     checkout,
@@ -67,30 +58,70 @@ const checkoutResolvers = {
     // All fields are projected from the committed pipeline snapshot.
   },
   CheckoutMutation: {
-    checkoutCreate,
-    checkoutLinesAdd,
-    checkoutLinesUpdate,
-    checkoutLinesDelete,
-    checkoutLinesClear,
-    checkoutLinesReplace,
-    checkoutCustomerIdentityUpdate,
-    checkoutCustomerNoteUpdate,
-    checkoutLanguageCodeUpdate,
-    checkoutCurrencyCodeUpdate,
-    checkoutDeliveryAddressesAdd,
-    checkoutDeliveryAddressesRemove,
-    checkoutPromoCodeAdd,
-    checkoutPromoCodeRemove,
-    checkoutTagCreate,
-    checkoutTagUpdate,
-    checkoutTagDelete,
-    checkoutDeliveryAddressesUpdate,
-    checkoutPaymentMethodUpdate,
-    checkoutDeliveryMethodUpdate,
-    checkoutDeliveryRecipientsAdd,
-    checkoutDeliveryRecipientsUpdate,
-    checkoutDeliveryRecipientsRemove,
+    checkoutCreate: withCheckoutWrite(checkoutCreate),
+    checkoutLinesAdd: withCheckoutWrite(checkoutLinesAdd),
+    checkoutLinesUpdate: withCheckoutWrite(checkoutLinesUpdate),
+    checkoutLinesDelete: withCheckoutWrite(checkoutLinesDelete),
+    checkoutLinesClear: withCheckoutWrite(checkoutLinesClear),
+    checkoutLinesReplace: withCheckoutWrite(checkoutLinesReplace),
+    checkoutCustomerIdentityUpdate: withCheckoutWrite(
+      checkoutCustomerIdentityUpdate,
+    ),
+    checkoutCustomerNoteUpdate: withCheckoutWrite(checkoutCustomerNoteUpdate),
+    checkoutLanguageCodeUpdate: withCheckoutWrite(checkoutLanguageCodeUpdate),
+    checkoutCurrencyCodeUpdate: withCheckoutWrite(checkoutCurrencyCodeUpdate),
+    checkoutDeliveryAddressesAdd: withCheckoutWrite(
+      checkoutDeliveryAddressesAdd,
+    ),
+    checkoutDeliveryAddressesRemove: withCheckoutWrite(
+      checkoutDeliveryAddressesRemove,
+    ),
+    checkoutPromoCodeAdd: withCheckoutWrite(checkoutPromoCodeAdd),
+    checkoutPromoCodeRemove: withCheckoutWrite(checkoutPromoCodeRemove),
+    checkoutTagCreate: withCheckoutWrite(checkoutTagCreate),
+    checkoutTagUpdate: withCheckoutWrite(checkoutTagUpdate),
+    checkoutTagDelete: withCheckoutWrite(checkoutTagDelete),
+    checkoutDeliveryAddressesUpdate: withCheckoutWrite(
+      checkoutDeliveryAddressesUpdate,
+    ),
+    checkoutPaymentMethodUpdate: withCheckoutWrite(checkoutPaymentMethodUpdate),
+    checkoutDeliveryMethodUpdate: withCheckoutWrite(
+      checkoutDeliveryMethodUpdate,
+    ),
+    checkoutDeliveryRecipientsAdd: withCheckoutWrite(
+      checkoutDeliveryRecipientsAdd,
+    ),
+    checkoutDeliveryRecipientsUpdate: withCheckoutWrite(
+      checkoutDeliveryRecipientsUpdate,
+    ),
+    checkoutDeliveryRecipientsRemove: withCheckoutWrite(
+      checkoutDeliveryRecipientsRemove,
+    ),
+    placeOrder: withPermission(STOREFRONT_PERMISSIONS.ORDER_WRITE, placeOrder),
   },
 } as any;
+
+function withCheckoutWrite<TParent, TArgs, TResult>(
+  resolver: CheckoutMutationResolver<TParent, TArgs, TResult>,
+): CheckoutMutationResolver<TParent, TArgs, TResult> {
+  return withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_WRITE, resolver);
+}
+
+type CheckoutMutationResolver<TParent, TArgs, TResult> = (
+  parent: TParent,
+  args: TArgs,
+  context: GraphQLContext,
+  ...rest: unknown[]
+) => TResult;
+
+function withPermission<TParent, TArgs, TResult>(
+  permission: Parameters<typeof requireStorefrontPermission>[1],
+  resolver: CheckoutMutationResolver<TParent, TArgs, TResult>,
+): CheckoutMutationResolver<TParent, TArgs, TResult> {
+  return (parent, args, context, ...rest) => {
+    requireStorefrontPermission(context.storefrontAccess, permission);
+    return resolver(parent, args, context, ...rest);
+  };
+}
 
 export default checkoutResolvers;

@@ -1,0 +1,5 @@
+{
+  "appCode": "test-fedex",
+  "entryPoint": "src/index.ts",
+  "outFile": "dist/index.js"
+}

@@ -6,7 +6,7 @@ import {
   ValidateNested,
   ArrayMinSize,
 } from 'class-validator';
-import { OrderLineInputDto } from '@src/application/dto/createOrder.dto';
+import { OrderLineInputDto } from '@src/application/dto/orderLineInput.dto';
 
 /**
  * DTO for orderLinesAdd API. Mirrors OrderLinesAddInput from GraphQL schema.

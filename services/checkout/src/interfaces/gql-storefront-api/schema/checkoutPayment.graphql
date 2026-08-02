@@ -87,4 +87,88 @@ extend type CheckoutMutation {
   checkoutPaymentMethodUpdate(
     input: CheckoutPaymentMethodUpdateInput!
   ): Checkout!
+
+  """
+  Places a committed checkout through the durable order placement workflow.
+  Repeating the same request with the same idempotency key returns the same result.
+  """
+  placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
+}
+
+"""Input used to place one immutable checkout snapshot."""
+input PlaceOrderInput {
+  """Checkout identifier."""
+  checkoutId: ID!
+
+  """Optimistic concurrency version returned by Checkout.version."""
+  expectedCheckoutVersion: Int!
+
+  """Pipeline revision returned by Checkout.resultRevision."""
+  expectedResultRevision: String!
+
+  """Client-generated opaque key used to replay placement safely."""
+  idempotencyKey: String!
+
+  """HTTPS URL to which an online payment provider may return the customer."""
+  returnUrl: String
+}
+
+enum PlaceOrderStatus {
+  PAYMENT_NOT_REQUIRED
+  REQUIRES_ACTION
+  REQUIRES_CONFIRMATION
+  PAYMENT_PENDING
+  AUTHORIZED
+  PAID
+  PAYMENT_FAILED
+}
+
+enum PlaceOrderCustomerActionType {
+  REDIRECT
+  INSTRUCTIONS
+}
+
+enum PlaceOrderPaymentFailureCategory {
+  DECLINED
+  FRAUD_SUSPECTED
+  INVALID_REQUEST
+  NOT_SUPPORTED
+  CONFIGURATION
+  AUTHENTICATION
+  PROVIDER_UNAVAILABLE
+  TIMEOUT
+  RATE_LIMITED
+  CONFLICT
+  UNKNOWN
+}
+
+"""Customer interaction required to continue payment."""
+type PlaceOrderCustomerAction {
+  type: PlaceOrderCustomerActionType!
+  url: String
+  title: String
+  instructions: String
+  expiresAt: DateTime
+  data: JSON
+}
+
+"""Normalized terminal or retryable payment failure."""
+type PlaceOrderPaymentFailure {
+  category: PlaceOrderPaymentFailureCategory!
+  code: String!
+  message: String!
+  retryable: Boolean!
+  providerCode: String
+}
+
+"""Result of the durable place-order workflow."""
+type PlaceOrderPayload {
+  placementId: ID!
+  orderId: ID!
+  status: PlaceOrderStatus!
+  paymentCollectionId: ID
+  paymentSessionId: ID
+  paymentOperationId: ID
+  customerAction: PlaceOrderCustomerAction
+  paymentFailure: PlaceOrderPaymentFailure
 }

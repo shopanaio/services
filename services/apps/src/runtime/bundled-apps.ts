@@ -2,6 +2,8 @@ import helloWorld from "@shopana/app-hello-world";
 import onlineStore from "@shopana/app-online-store";
 import headless from "@shopana/app-headless";
 import smtp from "@shopana/app-smtp";
+import testFedex from "@shopana/app-test-fedex";
+import testStripe from "@shopana/app-test-stripe";
 import type { HostedAppDefinition } from "@shopana/app-runtime";
 
 export const bundledApps = [
@@ -20,5 +22,13 @@ export const bundledApps = [
   {
     definition: smtp,
     moduleUrl: import.meta.resolve("@shopana/app-smtp"),
+  },
+  {
+    definition: testFedex,
+    moduleUrl: import.meta.resolve("@shopana/app-test-fedex"),
+  },
+  {
+    definition: testStripe,
+    moduleUrl: import.meta.resolve("@shopana/app-test-stripe"),
   },
 ] satisfies readonly HostedAppDefinition[];

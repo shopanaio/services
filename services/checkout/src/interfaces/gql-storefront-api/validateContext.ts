@@ -20,6 +20,10 @@ class GraphQLContextDto {
   @IsNotEmpty()
   requestId!: string;
 
+  @IsString()
+  @IsNotEmpty()
+  organizationId!: string;
+
   @IsDefined()
   @ValidateNested()
   @Type(() => StoreDto)

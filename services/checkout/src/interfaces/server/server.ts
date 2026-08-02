@@ -115,6 +115,7 @@ export async function startServer(broker: ServiceBroker) {
         // Simplified context - only essential fields
         const ctx = {
           requestId: request.id as string,
+          organizationId: request.organizationId,
           store: request.store,
           user: null,
           customer: request.customer,

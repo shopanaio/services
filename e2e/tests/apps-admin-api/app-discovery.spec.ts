@@ -73,6 +73,55 @@ const bundledApps = [
     ],
     graphql: { admin: false, storefront: false },
   },
+  {
+    code: 'test-fedex',
+    version: '1.0.0',
+    displayName: 'FedEx Test',
+    description: 'Deterministic FedEx-inspired carrier simulator for checkout E2E tests.',
+    icon: { url: '/app-icons/test-fedex.svg', alt: 'FedEx Test' },
+    permissions: [],
+    capabilities: [
+      {
+        key: 'delivery.carrier-service',
+        assignmentMode: 'STORE',
+        operations: [
+          {
+            name: 'validateCarrierServiceConfiguration',
+            action: 'validateCarrierServiceConfiguration',
+          },
+          { name: 'quoteRates', action: 'quoteRates' },
+          { name: 'resolveCustomerInput', action: 'resolveCustomerInput' },
+        ],
+      },
+    ],
+    graphql: { admin: false, storefront: false },
+  },
+  {
+    code: 'test-stripe',
+    version: '1.0.0',
+    displayName: 'Stripe Test',
+    description: 'Deterministic Stripe-inspired payment simulator for checkout E2E tests.',
+    icon: { url: '/app-icons/test-stripe.svg', alt: 'Stripe Test' },
+    permissions: [],
+    capabilities: [
+      {
+        key: 'payments.provider',
+        assignmentMode: 'STORE',
+        operations: [
+          { name: 'validateConfiguration', action: 'validateConfiguration' },
+          { name: 'getMethods', action: 'getMethods' },
+          { name: 'createPayment', action: 'createPayment' },
+          { name: 'confirmPayment', action: 'confirmPayment' },
+          { name: 'cancel', action: 'cancel' },
+          { name: 'capture', action: 'capture' },
+          { name: 'void', action: 'void' },
+          { name: 'refund', action: 'refund' },
+          { name: 'reconcile', action: 'reconcile' },
+        ],
+      },
+    ],
+    graphql: { admin: false, storefront: false },
+  },
 ] as const;
 
 async function getAvailableApps(
@@ -195,7 +244,13 @@ test.describe('Apps Admin API - bundled App discovery', () => {
     const definitions = await getAvailableApps(api);
     const byCode = new Map(definitions.map((definition) => [definition.code, definition]));
 
-    for (const code of ['hello-world', 'shopana-headless', 'shopana-smtp']) {
+    for (const code of [
+      'hello-world',
+      'shopana-headless',
+      'shopana-smtp',
+      'test-fedex',
+      'test-stripe',
+    ]) {
       expect(byCode.get(code)).toMatchObject({
         runtimeStatus: 'READY',
         runtimeHealth: {

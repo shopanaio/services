@@ -56,6 +56,12 @@ services:
         required: true
         allow_private_network: true
         allow_insecure_smtp: true
+      test-fedex:
+        enabled: true
+        required: true
+      test-stripe:
+        enabled: true
+        required: true
 
   checkout:
     ports:

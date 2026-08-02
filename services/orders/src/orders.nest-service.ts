@@ -19,12 +19,8 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.app = App.create(this.broker as any);
 
-    this.broker.register('createOrder', async (params: any) => {
-      return this.app.orderUsecase.createOrder.execute(params);
-    });
-
     this.broker.register('createOrderFromCheckoutPlacement', async (params: any) => {
-      return this.app.orderUsecase.createOrder.executeFromCheckoutPlacement(params);
+      return this.app.orderUsecase.createOrder.execute(params);
     });
 
     this.broker.register('generateOrderId', async () => ({ id: uuidv7() }));

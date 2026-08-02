@@ -2,10 +2,8 @@ import {
   UseCase,
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
-import type { CreateOrderInput } from "@src/application/order/types";
 import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
-import type { CheckoutApiClient } from "@shopana/shared-service-api";
 import {
   OrderEventsContractVersion,
   type OrderCreated,
@@ -24,8 +22,8 @@ import {
   type OrderCreateProjectionContextData,
 } from "@src/application/usecases/orderCreateProjectionContext";
 
-/** Checkout aggregate type as returned by the checkout API client. */
-type Checkout = Awaited<ReturnType<CheckoutApiClient['getById']>>;
+/** Checkout aggregate reconstructed from the immutable placement snapshot. */
+type Checkout = ReturnType<typeof deserializeCheckout>;
 
 /**
  * Converts a Money value from checkout-sdk to shared-money Money.
@@ -68,29 +66,15 @@ interface OrderCreationIdentity {
   requireOrderIdMatch: boolean;
 }
 
-export class CreateOrderUseCase extends UseCase<CreateOrderInput, string> {
+export class CreateOrderUseCase extends UseCase<
+  CreateOrderFromCheckoutPlacementInput,
+  string
+> {
   constructor(deps: CreateOrderUseCaseDependencies) {
     super(deps);
   }
 
-  async execute(input: CreateOrderInput): Promise<string> {
-    const checkout = await this.checkoutApi.getById(
-      input.checkoutId,
-      input.store.id,
-    );
-    return runOrderCreateProjectionContext(async () => {
-      return this.executeWithProjectionContext(checkout, {
-        orderId: uuidv7(),
-        storeId: input.store.id,
-        credentialId: input.apiKey,
-        userId: input.user?.id ?? null,
-        idempotencyKey: checkout.idempotencyKey ?? input.checkoutId,
-        requireOrderIdMatch: false,
-      });
-    });
-  }
-
-  async executeFromCheckoutPlacement(
+  async execute(
     input: CreateOrderFromCheckoutPlacementInput,
   ): Promise<string> {
     const checkout = deserializeCheckout(input.checkout);

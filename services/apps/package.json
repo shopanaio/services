@@ -22,6 +22,8 @@
     "@shopana/app-runtime": "workspace:*",
     "@shopana/app-sdk": "workspace:*",
     "@shopana/app-smtp": "workspace:*",
+    "@shopana/app-test-fedex": "workspace:*",
+    "@shopana/app-test-stripe": "workspace:*",
     "@shopana/broker-types": "workspace:*",
     "@shopana/drizzle-query": "*",
     "@shopana/shared-context": "*",

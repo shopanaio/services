@@ -10,6 +10,7 @@ import { setContext } from "@src/context/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
+    organizationId: string;
     store: CoreStore;
     customer: CoreCustomer | null;
     storefrontAccess: ContextStorefrontAccess;
@@ -54,6 +55,7 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
       const raw = request.headers[STOREFRONT_CONTEXT_HEADER];
       if (typeof raw !== "string") throw new Error("missing context");
       const claims = verifier.verify(raw);
+      request.organizationId = claims.organizationId;
       request.store = toCoreStore(claims.store);
       request.storefrontAccess = claims.storefront;
       request.customer = claims.customer

@@ -1,0 +1,5 @@
+{
+  "appCode": "test-stripe",
+  "entryPoint": "src/index.ts",
+  "outFile": "dist/index.js"
+}

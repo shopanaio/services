@@ -1,5 +1,6 @@
 // Query resolvers
 export { checkout } from "./checkoutQuery";
+export { placeOrder } from "./placeOrder";
 
 // Mutation resolvers
 export { checkoutCreate } from "./checkoutCreate";

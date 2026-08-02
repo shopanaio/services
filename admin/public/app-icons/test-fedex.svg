@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">FedEx Test</title>
+  <rect width="64" height="64" rx="14" fill="#4d148c"/>
+  <path d="M12 22h25v20H12z" fill="#fff"/>
+  <path d="M37 28h8l7 7v7H37z" fill="#ff6600"/>
+  <circle cx="22" cy="44" r="5" fill="#ff6600"/>
+  <circle cx="44" cy="44" r="5" fill="#fff"/>
+</svg>

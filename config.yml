@@ -68,6 +68,12 @@ services:
         # Development-only Mailpit allowances; omit or set false in production.
         allow_private_network: true
         allow_insecure_smtp: true
+      test-fedex:
+        enabled: true
+        required: true
+      test-stripe:
+        enabled: true
+        required: true
 
   checkout:
     ports:

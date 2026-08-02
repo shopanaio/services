@@ -22,7 +22,6 @@ export { CloseOrderUseCase } from "./orderClose";
 export { GetUserOrdersUseCase } from "./orderGetByCustomerId";
 
 // Types from order module
-export type { CreateOrderInput } from "@src/application/order/types";
 
 // Use case input/output types
 export type {
@@ -55,4 +54,3 @@ export type {
 } from "./orderGetByCustomerId";
 
 // DTOs
-export { CreateOrderDto } from "@src/application/dto/createOrder.dto";

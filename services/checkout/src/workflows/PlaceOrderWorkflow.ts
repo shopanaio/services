@@ -229,16 +229,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
 
   @WorkflowStep()
   private async claim(input: PlaceOrderWorkflowInput): Promise<PlaceOrderClaim> {
-    const requestHash = canonicalJsonSha256({
-      organizationId: input.organizationId,
-      storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      expectedCheckoutVersion: input.expectedCheckoutVersion,
-      expectedResultRevision: input.expectedResultRevision,
-      credentialId: input.credentialId,
-      userId: input.userId,
-      returnUrl: input.returnUrl,
-    });
+    const requestHash = placeOrderRequestHash(input);
     const checkout = await this.checkouts.load({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
@@ -611,6 +602,21 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   private abandonPlacement(placementId: string): Promise<void> {
     return this.placements.abandon(placementId);
   }
+}
+
+export function placeOrderRequestHash(
+  input: PlaceOrderWorkflowInput,
+): string {
+  return canonicalJsonSha256({
+    organizationId: input.organizationId,
+    storeId: input.storeId,
+    checkoutId: input.checkoutId,
+    expectedCheckoutVersion: input.expectedCheckoutVersion,
+    expectedResultRevision: input.expectedResultRevision,
+    credentialId: input.credentialId,
+    userId: input.userId,
+    returnUrl: input.returnUrl,
+  });
 }
 
 function validatePlaceOrderInput(input: PlaceOrderWorkflowInput): void {

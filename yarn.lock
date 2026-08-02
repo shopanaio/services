@@ -7246,6 +7246,28 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/app-test-fedex@workspace:*, @shopana/app-test-fedex@workspace:apps/test-fedex":
+  version: 0.0.0-use.local
+  resolution: "@shopana/app-test-fedex@workspace:apps/test-fedex"
+  dependencies:
+    "@shopana/app-sdk": "workspace:*"
+    "@shopana/broker-types": "workspace:*"
+    "@types/node": "npm:^22.7.4"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
+"@shopana/app-test-stripe@workspace:*, @shopana/app-test-stripe@workspace:apps/test-stripe":
+  version: 0.0.0-use.local
+  resolution: "@shopana/app-test-stripe@workspace:apps/test-stripe"
+  dependencies:
+    "@shopana/app-sdk": "workspace:*"
+    "@shopana/broker-types": "workspace:*"
+    "@types/node": "npm:^22.7.4"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/apps-service@npm:0.0.1, @shopana/apps-service@workspace:services/apps":
   version: 0.0.0-use.local
   resolution: "@shopana/apps-service@workspace:services/apps"
@@ -7262,6 +7284,8 @@ __metadata:
     "@shopana/app-runtime": "workspace:*"
     "@shopana/app-sdk": "workspace:*"
     "@shopana/app-smtp": "workspace:*"
+    "@shopana/app-test-fedex": "workspace:*"
+    "@shopana/app-test-stripe": "workspace:*"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/drizzle-query": "npm:*"

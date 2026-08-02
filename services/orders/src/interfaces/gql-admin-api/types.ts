@@ -1260,6 +1260,22 @@ export type ApiOrdersOutput = {
   meta: ApiCollectionMeta;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum ApiPriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum ApiPriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 export type ApiPurchasable = {
   /** Unique identifier of the purchasable entity. */
   id: Scalars['ID']['output'];
@@ -1420,6 +1436,8 @@ export type ApiResolversTypes = {
   OrderStatus: ApiOrderStatus;
   OrdersInput: ApiOrdersInput;
   OrdersOutput: ResolverTypeWrapper<Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversTypes['Order']> }>;
+  PriceAdjustmentOperation: ApiPriceAdjustmentOperation;
+  PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
   Purchasable: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Purchasable']>;
   PurchasableSnapshot: ResolverTypeWrapper<ApiPurchasableSnapshot>;
   Query: ResolverTypeWrapper<{}>;

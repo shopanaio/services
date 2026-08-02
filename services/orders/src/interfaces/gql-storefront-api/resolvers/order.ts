@@ -2,8 +2,6 @@
 import {
   // Query resolvers
   order,
-  // Mutation resolvers
-  orderCreate,
   // Field resolvers
   userOrders,
 } from "./order/index";
@@ -27,19 +25,6 @@ const orderResolvers = {
       return {};
     },
   },
-  Mutation: {
-    orderMutation: (
-      _parent: unknown,
-      _args: unknown,
-      context: GraphQLContext,
-    ) => {
-      requireStorefrontPermission(
-        context.storefrontAccess,
-        STOREFRONT_PERMISSIONS.ORDER_WRITE,
-      );
-      return {};
-    },
-  },
   OrderQuery: {
     order,
   },
@@ -48,9 +33,6 @@ const orderResolvers = {
   },
   User: {
     orders: userOrders,
-  },
-  OrderMutation: {
-    orderCreate,
   },
 } as any;
 

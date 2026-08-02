@@ -7,7 +7,6 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
-export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: { input: string; output: string; }
@@ -431,11 +430,6 @@ export enum ApiCountryCode {
   /** Zimbabwe */
   Zw = 'ZW'
 }
-
-export type ApiCreateOrderInput = {
-  /** ID of the checkout. */
-  checkoutId: Scalars['ID']['input'];
-};
 
 /** Currency codes according to ISO 4217 */
 export enum ApiCurrencyCode {
@@ -1061,11 +1055,6 @@ export type ApiMoney = {
   currencyCode: ApiCurrencyCode;
 };
 
-export type ApiMutation = {
-  __typename?: 'Mutation';
-  orderMutation: ApiOrderMutation;
-};
-
 export type ApiNode = {
   id: Scalars['ID']['output'];
 };
@@ -1132,21 +1121,27 @@ export type ApiOrderLineCost = {
   unitPrice: ApiMoney;
 };
 
-export type ApiOrderMutation = {
-  __typename?: 'OrderMutation';
-  orderCreate: ApiOrder;
-};
-
-
-export type ApiOrderMutationOrderCreateArgs = {
-  input: ApiCreateOrderInput;
-};
-
 export enum ApiOrderStatus {
   Active = 'ACTIVE',
   Cancelled = 'CANCELLED',
   Closed = 'CLOSED',
   Draft = 'DRAFT'
+}
+
+/** Direction in which a price adjustment changes the base price. */
+export enum ApiPriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum ApiPriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
 }
 
 export type ApiUser = {
@@ -1246,7 +1241,6 @@ export type ApiResolversTypes = {
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   CountryCode: ApiCountryCode;
-  CreateOrderInput: ApiCreateOrderInput;
   CurrencyCode: ApiCurrencyCode;
   Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -1258,14 +1252,14 @@ export type ApiResolversTypes = {
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: ApiLocaleCode;
   Money: ResolverTypeWrapper<ApiMoney>;
-  Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
   Order: ResolverTypeWrapper<ApiOrder>;
   OrderCost: ResolverTypeWrapper<ApiOrderCost>;
   OrderLine: ResolverTypeWrapper<ApiOrderLine>;
   OrderLineCost: ResolverTypeWrapper<ApiOrderLineCost>;
-  OrderMutation: ResolverTypeWrapper<ApiOrderMutation>;
   OrderStatus: ApiOrderStatus;
+  PriceAdjustmentOperation: ApiPriceAdjustmentOperation;
+  PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   User: ResolverTypeWrapper<ApiUser>;
   WeightUnit: ApiWeightUnit;
@@ -1275,7 +1269,6 @@ export type ApiResolversTypes = {
 export type ApiResolversParentTypes = {
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
-  CreateOrderInput: ApiCreateOrderInput;
   Cursor: Scalars['Cursor']['output'];
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
@@ -1284,13 +1277,11 @@ export type ApiResolversParentTypes = {
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
   Money: ApiMoney;
-  Mutation: {};
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
   Order: ApiOrder;
   OrderCost: ApiOrderCost;
   OrderLine: ApiOrderLine;
   OrderLineCost: ApiOrderLineCost;
-  OrderMutation: ApiOrderMutation;
   String: Scalars['String']['output'];
   User: ApiUser;
 };
@@ -1323,10 +1314,6 @@ export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends A
   amount: Resolver<ApiResolversTypes['Decimal'], ParentType, ContextType>;
   currencyCode: Resolver<ApiResolversTypes['CurrencyCode'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
-  orderMutation: Resolver<ApiResolversTypes['OrderMutation'], ParentType, ContextType>;
 };
 
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
@@ -1373,11 +1360,6 @@ export type ApiOrderLineCostResolvers<ContextType = GraphQLContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderMutation'] = ApiResolversParentTypes['OrderMutation']> = {
-  orderCreate: Resolver<ApiResolversTypes['Order'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCreateArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   orders: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
@@ -1392,13 +1374,11 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   Email: GraphQLScalarType;
   JSON: GraphQLScalarType;
   Money: ApiMoneyResolvers<ContextType>;
-  Mutation: ApiMutationResolvers<ContextType>;
   Node: ApiNodeResolvers<ContextType>;
   Order: ApiOrderResolvers<ContextType>;
   OrderCost: ApiOrderCostResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
   OrderLineCost: ApiOrderLineCostResolvers<ContextType>;
-  OrderMutation: ApiOrderMutationResolvers<ContextType>;
   User: ApiUserResolvers<ContextType>;
 };
 

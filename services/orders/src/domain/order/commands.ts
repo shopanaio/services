@@ -11,6 +11,7 @@ export type OrderCommandMetadata = DefaultCommandMetadata & {
   contractVersion: number;
   storeId: string;
   userId?: string;
+  idempotencyKey?: string;
   now: Date;
 };
 

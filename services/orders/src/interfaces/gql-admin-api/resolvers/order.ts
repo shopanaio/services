@@ -4,7 +4,6 @@ import {
   order,
   orders,
   // Mutation resolvers
-  orderCreate,
   orderAdminNoteUpdate,
   orderCommentAdd,
   orderCancel,
@@ -26,7 +25,6 @@ const orderResolvers = {
     // Fields totalQuantity and lines are filled in mapper from full read-model
   },
   OrderMutation: {
-    orderCreate,
     orderAdminNoteUpdate,
     orderCommentAdd,
     orderCancel,
