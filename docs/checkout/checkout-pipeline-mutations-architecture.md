@@ -23,7 +23,7 @@ is canonical state and is committed together with its ordered issues.
 
 ## Stored state
 
-`platform.checkout_current_snapshots` is the single current source for both the
+`checkout.checkout_current_snapshots` is the single current source for both the
 next mutation draft and public reads. Its JSON snapshot contains the complete
 checkout-owned draft and the parsed pipeline result. Root checkout columns keep
 the CAS version and frequently queried canonical totals/revisions. The old line,

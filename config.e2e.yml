@@ -69,6 +69,7 @@ services:
       metrics: 13031
     db:
       <<: *db_default
+      schema: checkout
 
   catalog:
     ports:
@@ -138,6 +139,7 @@ services:
       metrics: 13032
     db:
       <<: *db_default
+      schema: orders
 
   project:
     ports:
@@ -162,9 +164,15 @@ services:
         - /.well-known/oauth-authorization-server/auth/applications/:applicationId
     super_admin_domains: "shopana.io"
 
-  delivery: {}
+  delivery:
+    db:
+      <<: *db_default
+      schema: delivery
 
-  payments: {}
+  payments:
+    db:
+      <<: *db_default
+      schema: payments
 
   pricing:
     ports:

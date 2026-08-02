@@ -1,6 +1,6 @@
 -- Up Migration
 
-CREATE TABLE "platform"."checkout_current_snapshots" (
+CREATE TABLE "checkout"."checkout_current_snapshots" (
   "checkout_id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
   "checkout_version" integer NOT NULL,
@@ -10,12 +10,12 @@ CREATE TABLE "platform"."checkout_current_snapshots" (
   CONSTRAINT "checkout_current_snapshots_version_positive_check" CHECK ("checkout_version" > 0),
   CONSTRAINT "checkout_current_snapshots_checkout_owner_fk"
     FOREIGN KEY ("store_id", "checkout_id")
-    REFERENCES "platform"."checkouts"("store_id", "id") ON DELETE CASCADE,
+    REFERENCES "checkout"."checkouts"("store_id", "id") ON DELETE CASCADE,
   CONSTRAINT "checkout_current_snapshots_store_checkout_version_unique"
     UNIQUE ("store_id", "checkout_id", "checkout_version")
 );
 
-CREATE TABLE "platform"."checkout_create_idempotency" (
+CREATE TABLE "checkout"."checkout_create_idempotency" (
   "store_id" uuid NOT NULL,
   "connection_id" uuid NOT NULL,
   "operation" text NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE "platform"."checkout_create_idempotency" (
     CHECK ("status" IN ('IN_PROGRESS', 'RETRYABLE_FAILED', 'FINAL_FAILED', 'COMMITTED')),
   CONSTRAINT "checkout_create_idempotency_committed_checkout_owner_fk"
     FOREIGN KEY ("store_id", "committed_checkout_id")
-    REFERENCES "platform"."checkouts"("store_id", "id") ON DELETE RESTRICT,
+    REFERENCES "checkout"."checkouts"("store_id", "id") ON DELETE RESTRICT,
   CONSTRAINT "checkout_create_idempotency_commit_shape_check" CHECK (
     ("status" = 'COMMITTED' AND "committed_checkout_id" IS NOT NULL AND "committed_checkout_version" = 1)
     OR

@@ -217,8 +217,8 @@ export class CreateOrderUseCase extends UseCase<
       "STREAM_DOES_NOT_EXIST"
     );
 
-    // NOTE: PII has been persisted into platform.orders_pii_records and
-    // platform.order_delivery_addresses. Only references (deliveryAddressId)
+    // NOTE: PII has been persisted into orders.orders_pii_records and
+    // orders.order_delivery_addresses. Only references (deliveryAddressId)
     // are kept in event payloads for safe, GDPR-compliant event sourcing.
     return id;
   }

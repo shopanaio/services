@@ -25,7 +25,7 @@ export class OrderNumberRepository implements OrderNumberPort {
   ): Promise<number> {
     const executor = options?.executor ?? this.execute;
     const query = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_number_counters")
       .insert({
         store_id: storeId,

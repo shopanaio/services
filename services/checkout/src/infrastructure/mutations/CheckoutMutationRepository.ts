@@ -22,7 +22,7 @@ export class CheckoutMutationRepository
     storeId: string;
   }): Promise<CheckoutCommittedSnapshot | null> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_current_snapshots")
       .select("snapshot")
       .where({ checkout_id: input.checkoutId, store_id: input.storeId })
@@ -45,13 +45,13 @@ export class CheckoutMutationRepository
     const projection = canonicalProjection(input.result);
     const sql = knex.raw(
       `WITH locked_reservation AS MATERIALIZED (
-         SELECT checkout_id FROM platform.checkout_create_idempotency
+         SELECT checkout_id FROM checkout.checkout_create_idempotency
           WHERE store_id = ? AND connection_id = ? AND operation = ?
             AND idempotency_key = ? AND request_hash = ? AND status = 'IN_PROGRESS'
             AND lease_token = ? AND lease_expires_at > CURRENT_TIMESTAMP
             FOR UPDATE
        ), inserted_checkout AS (
-         INSERT INTO platform.checkouts (
+         INSERT INTO checkout.checkouts (
            id, store_id, version, channel_code, external_source, external_id,
            customer_note, locale_code, currency_code, subtotal, shipping_total,
            discount_total, tax_total, grand_total, status, result_revision,
@@ -61,12 +61,12 @@ export class CheckoutMutationRepository
          ON CONFLICT (id) DO NOTHING
          RETURNING id
        ), inserted_snapshot AS (
-         INSERT INTO platform.checkout_current_snapshots
+         INSERT INTO checkout.checkout_current_snapshots
            (checkout_id, store_id, checkout_version, snapshot, created_at, updated_at)
          SELECT ?, ?, 1, ?::jsonb, ?, ? FROM inserted_checkout
          RETURNING checkout_id
        ), committed_idempotency AS (
-         UPDATE platform.checkout_create_idempotency
+         UPDATE checkout.checkout_create_idempotency
             SET status = 'COMMITTED', committed_checkout_id = ?,
                 committed_checkout_version = 1, public_failure = NULL,
                 lease_expires_at = NULL, updated_at = ?
@@ -142,7 +142,7 @@ export class CheckoutMutationRepository
     const projection = canonicalProjection(input.result);
     const sql = knex.raw(
       `WITH updated_checkout AS (
-         UPDATE platform.checkouts
+         UPDATE checkout.checkouts
             SET version = ?, channel_code = ?, external_source = ?, external_id = ?,
                 customer_note = ?, locale_code = ?, currency_code = ?, subtotal = ?,
                 shipping_total = ?, discount_total = ?, tax_total = ?, grand_total = ?,
@@ -150,17 +150,17 @@ export class CheckoutMutationRepository
                 updated_at = ?
           WHERE id = ? AND store_id = ? AND version = ?
             AND NOT EXISTS (
-              SELECT 1 FROM platform.checkout_placements
+              SELECT 1 FROM checkout.checkout_placements
                WHERE store_id = ? AND checkout_id = ?
                  AND status IN ('IN_PROGRESS', 'PLACED')
             )
             AND EXISTS (
-              SELECT 1 FROM platform.checkout_current_snapshots
+              SELECT 1 FROM checkout.checkout_current_snapshots
                WHERE checkout_id = ? AND store_id = ? AND checkout_version = ?
             )
          RETURNING id
        ), updated_snapshot AS (
-         UPDATE platform.checkout_current_snapshots
+         UPDATE checkout.checkout_current_snapshots
             SET checkout_version = ?, snapshot = ?::jsonb, updated_at = ?
           WHERE checkout_id = ? AND store_id = ?
             AND checkout_version = ? AND EXISTS (SELECT 1 FROM updated_checkout)

@@ -24,7 +24,7 @@ export class IdempotencyRepository {
     idempotencyKey: string
   ): Promise<{ id: string } | null> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("idempotency")
       .select("response")
       .where({
@@ -49,7 +49,7 @@ export class IdempotencyRepository {
   }): Promise<void> {
     const ttl = input.ttlSeconds ?? 24 * 60 * 60;
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("idempotency")
       .insert({
         store_id: input.storeId,
@@ -66,7 +66,7 @@ export class IdempotencyRepository {
 
   async cleanupExpired(): Promise<number> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("idempotency")
       .delete()
       .whereRaw("expires_at <= NOW()")

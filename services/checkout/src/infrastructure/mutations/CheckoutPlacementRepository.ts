@@ -40,12 +40,12 @@ export class CheckoutPlacementRepository {
     requestHash: string;
   }): Promise<CheckoutPlacementRecord> {
     const insert = knex.raw(
-      `INSERT INTO platform.checkout_placements (
+      `INSERT INTO checkout.checkout_placements (
          store_id, checkout_id, checkout_version, result_revision,
          idempotency_key, request_hash
        )
        SELECT ?, ?, ?, ?, ?, ?
-       FROM platform.checkouts
+       FROM checkout.checkouts
        WHERE store_id = ? AND id = ? AND version = ? AND result_revision = ?
        ON CONFLICT DO NOTHING
        RETURNING *`,
@@ -97,7 +97,7 @@ export class CheckoutPlacementRepository {
     result: TResult,
   ): Promise<CheckoutPlacementRecord<TResult>> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .update({
         status: "PLACED",
@@ -119,7 +119,7 @@ export class CheckoutPlacementRepository {
 
   async abandon(placementId: string): Promise<void> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .delete()
       .where({ id: placementId, status: "IN_PROGRESS" })
@@ -140,7 +140,7 @@ export class CheckoutPlacementRepository {
     result: TResult,
   ): Promise<CheckoutPlacementRecord<TResult>> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .update({
         result: knex.raw("?::jsonb", [JSON.stringify(result)]),
@@ -163,7 +163,7 @@ export class CheckoutPlacementRepository {
     placementId: string,
   ): Promise<CheckoutPlacementRecord<TResult> | null> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .select("*")
       .where({ id: placementId })
@@ -180,7 +180,7 @@ export class CheckoutPlacementRepository {
     checkoutId: string,
   ): Promise<CheckoutPlacementRecord | null> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .select("*")
       .where({ store_id: storeId, checkout_id: checkoutId })
@@ -197,7 +197,7 @@ export class CheckoutPlacementRepository {
     idempotencyKey: string,
   ): Promise<CheckoutPlacementRecord | null> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_placements")
       .select("*")
       .where({ store_id: storeId, idempotency_key: idempotencyKey })

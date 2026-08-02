@@ -1,7 +1,7 @@
 -- Up Migration
-CREATE SCHEMA IF NOT EXISTS "platform";
+CREATE SCHEMA IF NOT EXISTS "checkout";
 
-CREATE TABLE "platform"."checkouts" (
+CREATE TABLE "checkout"."checkouts" (
   "id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
   "version" integer NOT NULL,
@@ -36,4 +36,4 @@ CREATE TABLE "platform"."checkouts" (
 );
 
 CREATE INDEX "checkouts_store_updated_at_idx"
-  ON "platform"."checkouts" ("store_id", "updated_at" DESC);
+  ON "checkout"."checkouts" ("store_id", "updated_at" DESC);

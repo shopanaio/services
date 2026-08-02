@@ -56,7 +56,7 @@ export class OrdersPiiRepository {
    */
   async upsertOrderContacts(input: OrderContactPII): Promise<void> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("orders_pii_records")
       .insert({
         store_id: input.storeId,
@@ -110,7 +110,7 @@ export class OrdersPiiRepository {
     }));
 
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_delivery_addresses")
       .insert(rows)
       .toString();
@@ -137,7 +137,7 @@ export class OrdersPiiRepository {
     }));
 
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_recipients")
       .insert(rows)
       .toString();

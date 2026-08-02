@@ -57,7 +57,7 @@ export const orderCreateProjection =
 
       // Insert order head
       const insertOrderSql = knex
-        .withSchema("platform")
+        .withSchema("orders")
         .table("orders")
         .insert({
           id: orderId,
@@ -130,7 +130,7 @@ export const orderCreateProjection =
         });
 
         const insertItemsSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_items")
           .insert(itemRows)
           .toString();
@@ -140,7 +140,7 @@ export const orderCreateProjection =
       // Insert delivery addresses and recipients first
       if (projectionContext?.deliveryAddresses.length) {
         const addressesSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_delivery_addresses")
           .insert(
             projectionContext.deliveryAddresses.map((address) => ({
@@ -162,7 +162,7 @@ export const orderCreateProjection =
 
       if (projectionContext?.recipients.length) {
         const recipientsSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_recipients")
           .insert(
             projectionContext.recipients.map((recipient) => ({
@@ -186,7 +186,7 @@ export const orderCreateProjection =
       if (projectionContext?.deliveryMethods.length) {
         const methodsInsert = projectionContext.deliveryMethods.map((method) =>
           knex
-            .withSchema("platform")
+            .withSchema("orders")
             .table("order_delivery_methods")
             .insert({
               code: method.code,
@@ -247,7 +247,7 @@ export const orderCreateProjection =
 
         const groupsInsert = groupRows.map((r) =>
           knex
-            .withSchema("platform")
+            .withSchema("orders")
             .table("order_delivery_groups")
             .insert({
               id: r.id,
@@ -269,7 +269,7 @@ export const orderCreateProjection =
       // Insert payment methods
       if (projectionContext?.paymentMethods.length) {
         const paymentMethodsSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_payment_methods")
           .insert(
             projectionContext.paymentMethods.map((method) => ({
@@ -294,7 +294,7 @@ export const orderCreateProjection =
       if (projectionContext?.selectedPaymentMethod) {
         const { selectedPaymentMethod } = projectionContext;
         const selectedPaymentSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_selected_payment_methods")
           .insert({
             order_id: orderId,
@@ -324,7 +324,7 @@ export const orderCreateProjection =
         }));
 
         const insertDiscountsSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("order_applied_discounts")
           .insert(discountRows)
           .toString();
@@ -334,7 +334,7 @@ export const orderCreateProjection =
       if (projectionContext?.contact) {
         const { contact } = projectionContext;
         const contactSql = knex
-          .withSchema("platform")
+          .withSchema("orders")
           .table("orders_pii_records")
           .insert({
             store_id: contact.storeId,

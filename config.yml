@@ -81,6 +81,7 @@ services:
       metrics: 3031
     db:
       <<: *db_default
+      schema: checkout
 
   catalog:
     ports:
@@ -151,6 +152,7 @@ services:
       metrics: 3032
     db:
       <<: *db_default
+      schema: orders
 
   project:
     ports:
@@ -177,9 +179,15 @@ services:
     # Email domains that automatically get super_admin role (comma-separated)
     super_admin_domains: "shopana.io"
 
-  delivery: {}
+  delivery:
+    db:
+      <<: *db_default
+      schema: delivery
 
-  payments: {}
+  payments:
+    db:
+      <<: *db_default
+      schema: payments
 
   pricing:
     ports:

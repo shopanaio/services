@@ -39,7 +39,7 @@ export class CheckoutCreateIdempotencyRepository
     const now = this.now();
     const leaseToken = this.createLeaseToken();
     const insert = knex.raw(
-      `INSERT INTO platform.checkout_create_idempotency (
+      `INSERT INTO checkout.checkout_create_idempotency (
          store_id, connection_id, operation, idempotency_key, request_hash,
          checkout_id, initiating_credential_id, reserved_ids, status,
          lease_token, lease_expires_at, created_at, updated_at
@@ -105,7 +105,7 @@ export class CheckoutCreateIdempotencyRepository
     final: boolean;
   }): Promise<void> {
     const query = knex
-      .withSchema("platform")
+      .withSchema("checkout")
       .table("checkout_create_idempotency")
       .where({
         store_id: input.reservation.identity.storeId,
@@ -132,8 +132,8 @@ export class CheckoutCreateIdempotencyRepository
               i.reserved_ids, i.status, i.lease_token, i.lease_expires_at,
               i.public_failure,
               s.snapshot
-         FROM platform.checkout_create_idempotency i
-         LEFT JOIN platform.checkout_current_snapshots s
+         FROM checkout.checkout_create_idempotency i
+         LEFT JOIN checkout.checkout_current_snapshots s
            ON s.checkout_id = i.committed_checkout_id AND s.store_id = i.store_id
         WHERE i.store_id = ? AND i.connection_id = ? AND i.operation = ?
           AND i.idempotency_key = ?`,
@@ -154,7 +154,7 @@ export class CheckoutCreateIdempotencyRepository
     now: Date,
   ): Promise<CheckoutCreateIdempotencyReservation | null> {
     const query = knex.raw(
-      `UPDATE platform.checkout_create_idempotency
+      `UPDATE checkout.checkout_create_idempotency
           SET status = 'IN_PROGRESS', lease_token = ?,
               lease_expires_at = CURRENT_TIMESTAMP + (? * INTERVAL '1 millisecond'),
               public_failure = NULL, updated_at = ?

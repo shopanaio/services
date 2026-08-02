@@ -35,7 +35,7 @@ export const orderIdempotencyProjection =
       };
 
       const q = knex
-        .withSchema("platform")
+        .withSchema("orders")
         .table("idempotency")
         .insert({
           store_id: event.metadata.storeId,

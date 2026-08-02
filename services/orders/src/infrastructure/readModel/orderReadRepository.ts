@@ -25,7 +25,7 @@ export class OrderReadRepository implements OrderReadPort {
 
   async findById(id: string): Promise<OrderReadPortRow | null> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .from("orders as o")
       .leftJoin("orders_pii_records as pii", "pii.order_id", "o.id")
       .select(
@@ -70,7 +70,7 @@ export class OrderReadRepository implements OrderReadPort {
     if (addressIds.length === 0) return [];
 
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_delivery_addresses")
       .select(
         "id",
@@ -97,7 +97,7 @@ export class OrderReadRepository implements OrderReadPort {
     if (recipientIds.length === 0) return [];
 
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_recipients")
       .select(
         "id",
@@ -120,7 +120,7 @@ export class OrderReadRepository implements OrderReadPort {
 
   async findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_applied_discounts")
       .select(
         "order_id",
@@ -153,7 +153,7 @@ export class OrderReadRepository implements OrderReadPort {
 
   async findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_delivery_groups")
       .select(
         "id",
@@ -194,7 +194,7 @@ export class OrderReadRepository implements OrderReadPort {
     if (deliveryGroupIds.length === 0) return [];
 
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_delivery_methods")
       .select(
         "code",
@@ -215,7 +215,7 @@ export class OrderReadRepository implements OrderReadPort {
 
   async findPaymentMethods(orderId: string): Promise<OrderPaymentMethodRow[]> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_payment_methods")
       .select(
         "order_id",
@@ -237,7 +237,7 @@ export class OrderReadRepository implements OrderReadPort {
     orderId: string
   ): Promise<OrderSelectedPaymentMethodRow | null> {
     const q = knex
-      .withSchema("platform")
+      .withSchema("orders")
       .table("order_selected_payment_methods")
       .select("order_id", "store_id", "code", "provider")
       .where({ order_id: orderId })

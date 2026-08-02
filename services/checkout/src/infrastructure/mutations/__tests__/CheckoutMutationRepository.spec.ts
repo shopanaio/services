@@ -21,7 +21,7 @@ describe("CheckoutMutationRepository", () => {
     })).resolves.toEqual({ checkoutId: "checkout-1", version: 7 });
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
-    expect(sql).toContain('from "platform"."checkout_current_snapshots"');
+    expect(sql).toContain('from "checkout"."checkout_current_snapshots"');
     expect(sql).toContain('"checkout_id" = \'checkout-1\'');
     expect(sql).toContain('"store_id" = \'store-1\'');
   });
@@ -64,7 +64,7 @@ describe("CheckoutMutationRepository", () => {
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain("WITH updated_checkout AS");
-    expect(sql).toContain("platform.checkout_current_snapshots");
+    expect(sql).toContain("checkout.checkout_current_snapshots");
     expect(sql).toContain("version = 7");
     expect(sql).toContain("checkout_version = 7");
     expect(sql).toContain("EXISTS");

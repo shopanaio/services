@@ -1,5 +1,5 @@
 -- Up Migration
-CREATE TABLE "platform"."checkout_placements" (
+CREATE TABLE "checkout"."checkout_placements" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "checkout_id" uuid NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE "platform"."checkout_placements" (
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "checkout_placements_checkout_fk"
     FOREIGN KEY ("store_id", "checkout_id", "checkout_version")
-    REFERENCES "platform"."checkouts" ("store_id", "id", "version")
+    REFERENCES "checkout"."checkouts" ("store_id", "id", "version")
     ON DELETE RESTRICT,
   CONSTRAINT "checkout_placements_checkout_unique"
     UNIQUE ("store_id", "checkout_id"),
@@ -37,4 +37,4 @@ CREATE TABLE "platform"."checkout_placements" (
 );
 
 CREATE INDEX "checkout_placements_status_idx"
-  ON "platform"."checkout_placements" ("status", "updated_at");
+  ON "checkout"."checkout_placements" ("status", "updated_at");
