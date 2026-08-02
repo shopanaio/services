@@ -15,6 +15,8 @@ import { Loader } from "../loaders/Loader.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { ServiceQueryResolver } from "../resolvers/service/index.js";
 import { resolveCheckoutMerchandiseParamsSchema } from "./resolveCheckoutMerchandise.schema.js";
+import { resolveCheckoutDeliveryFactsParamsSchema } from "./resolveCheckoutDeliveryFacts.schema.js";
+import { CheckoutDeliveryFactsService } from "../checkout-pipeline/CheckoutDeliveryFactsService.js";
 import {
   CheckoutMerchandiseError,
   CheckoutMerchandiseInfrastructureError,
@@ -191,6 +193,21 @@ export class CatalogBrokerActions extends BrokerActions {
         "Checkout merchandise resolution failed",
       );
       return toCheckoutMerchandiseFailure(error);
+    }
+  }
+
+  @Action(CatalogCheckoutActionNames.resolveDeliveryFacts)
+  @ZodSchema(resolveCheckoutDeliveryFactsParamsSchema)
+  async resolveCheckoutDeliveryFacts(
+    params: Catalog.ResolveCheckoutDeliveryFactsParams,
+  ): Promise<Catalog.ResolveCheckoutDeliveryFactsResult> {
+    try {
+      const store = await this.getStoreContext(params.storeId);
+      if (!store) return { ok: false, code: "CATALOG_STORE_NOT_FOUND", message: `Store with id "${params.storeId}" not found`, retryable: false };
+      return await runWithContext(this.createServiceContext(store), () => new CheckoutDeliveryFactsService(this.kernel.db).resolve(params));
+    } catch (error) {
+      this.logger.error({ err: error, storeId: params.storeId }, "Catalog checkout delivery facts failed");
+      return { ok: false, code: "CHECKOUT_DELIVERY_FACTS_RESOLUTION_FAILED", message: "Catalog delivery facts could not be resolved.", retryable: true };
     }
   }
 

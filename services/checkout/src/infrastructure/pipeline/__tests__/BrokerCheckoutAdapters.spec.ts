@@ -7,9 +7,9 @@ import {
 import type { ServiceBroker } from "@shopana/shared-kernel";
 import {
   toCheckoutDeliveryDestinations,
+  toCheckoutDeliveryContext,
   toCheckoutPaymentDeliverySnapshot,
   toCheckoutPipelineEligibilityContext,
-  toCheckoutPipelineStageContext,
   toCheckoutPricingCartIntent,
   toCheckoutPricingDeliverySnapshot,
 } from "../../../application/pipeline/boundaries.js";
@@ -42,13 +42,14 @@ describe("checkout broker adapters", () => {
       cartIntent: toCheckoutPricingCartIntent(fixture.cartIntent),
     });
     await delivery.calculateOptions({
-      context: toCheckoutPipelineStageContext(fixture.context),
+      context: toCheckoutDeliveryContext(fixture.context),
       preliminary: fixture.preliminary,
       destinations: toCheckoutDeliveryDestinations(
         fixture.cartIntent.destinations,
         fixture.preliminary,
       ),
       selections: fixture.cartIntent.selectedDeliveryOptions,
+      cartAttributes: fixture.cartIntent.attributes,
     });
     await pricing.finalizeQuote({
       context: eligibilityContext,

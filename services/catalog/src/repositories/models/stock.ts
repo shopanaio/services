@@ -22,6 +22,13 @@ export const warehouses = catalogSchema.table(
     code: varchar("code", { length: 32 }).notNull(),
     name: text("name").notNull(),
     isDefault: boolean("is_default").notNull().default(false),
+    countryCode: varchar("country_code", { length: 2 }),
+    provinceCode: varchar("province_code", { length: 128 }),
+    provinceName: text("province_name"),
+    city: text("city"),
+    postalCode: varchar("postal_code", { length: 64 }),
+    addressLine1: text("address_line_1"),
+    addressLine2: text("address_line_2"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -35,6 +42,7 @@ export const warehouses = catalogSchema.table(
     uniqueIndex("idx_warehouses_default_unique")
       .on(table.storeId)
       .where(sql`is_default = true`),
+    check("warehouses_country_code_check", sql`${table.countryCode} IS NULL OR ${table.countryCode} ~ '^[A-Z]{2}$'`),
   ]
 );
 

@@ -9,7 +9,6 @@ import type {
  * request-relative result parser for every untrusted broker response.
  */
 export interface DeliveryCheckoutPort {
-  // TODO(checkout-pipeline): implement with the delivery options adapter.
   calculateOptions(
     request: CalculateDeliveryOptionsRequest,
   ): Promise<CalculateDeliveryOptionsResult>;

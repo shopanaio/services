@@ -40,6 +40,7 @@ import {
   toCheckoutPaymentDeliverySnapshot,
   toCheckoutPipelineEligibilityContext,
   toCheckoutPipelineStageContext,
+  toCheckoutDeliveryContext,
   toCheckoutPricingCartIntent,
   toCheckoutPricingDeliverySnapshot,
   toPaymentsCheckoutEvaluationContext,
@@ -443,10 +444,11 @@ export class CheckoutPipeline {
 
     const deliveryBuild = preliminaryPricing.status === "SUCCESS"
       ? buildStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult, "DELIVERY">("DELIVERY", () => parseCalculateDeliveryOptionsRequest({
-          context: toCheckoutPipelineStageContext(request.context),
+          context: toCheckoutDeliveryContext(request.context),
           preliminary: preliminaryPricing.data,
           destinations: toCheckoutDeliveryDestinations(request.cartIntent.destinations, preliminaryPricing.data),
           selections: request.cartIntent.selectedDeliveryOptions,
+          cartAttributes: request.cartIntent.attributes,
         }))
       : noStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult, "DELIVERY">();
     const delivery = deliveryBuild.failure ?? (deliveryBuild.request === undefined

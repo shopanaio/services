@@ -11,10 +11,13 @@ export interface DeliveryProviderAppsPort {
   listRoutes(
     params: Apps.ListDeliveryProviderRoutesParams,
   ): Promise<readonly Delivery.DeliveryProviderRouteSnapshot[]>;
-  resolveRoute(
-    input: Apps.ListDeliveryProviderRoutesParams &
-      Readonly<{ installationId: string }>,
-  ): Promise<Delivery.DeliveryProviderRouteSnapshot | null>;
+  resolveRoute<T extends Apps.ListDeliveryProviderRoutesParams>(
+    input: T & Readonly<{ installationId: string }>,
+  ): Promise<
+    | (Delivery.DeliveryProviderRouteSnapshot &
+        Readonly<Pick<T, "capability" | "operation">>)
+    | null
+  >;
   resolvePinnedRoute(input: Readonly<{
     storeId: string;
     pinned: Delivery.DeliveryProviderRouteSnapshot;
@@ -36,13 +39,11 @@ export interface DeliveryProviderAppsPort {
       }>
   >;
   validateCarrierServiceConfiguration(
-    route: Extract<
-      Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
       Readonly<{
         capability: "delivery.carrier-service";
         operation: "validateCarrierServiceConfiguration";
-      }>
-    >,
+      }>,
     request: Delivery.DeliveryProviderConfigurationValidationRequest<
       "delivery.carrier-service"
     >,
@@ -50,13 +51,11 @@ export interface DeliveryProviderAppsPort {
     Delivery.DeliveryProviderConfigurationValidationResult<"delivery.carrier-service">
   >;
   validateShipmentConfiguration(
-    route: Extract<
-      Delivery.DeliveryProviderRouteSnapshot,
+    route: Delivery.DeliveryProviderRouteSnapshot &
       Readonly<{
         capability: "delivery.shipment-provider";
         operation: "validateShipmentConfiguration";
-      }>
-    >,
+      }>,
     request: Delivery.DeliveryProviderConfigurationValidationRequest<
       "delivery.shipment-provider"
     >,
@@ -71,6 +70,22 @@ export interface DeliveryProviderAppsPort {
       }>,
     request: Delivery.DeliveryCarrierServiceRateRequest,
   ): Promise<Delivery.DeliveryCarrierServiceRateResult>;
+  resolveCustomerInput(
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.carrier-service";
+        operation: "resolveCustomerInput";
+      }>,
+    request: Delivery.DeliveryProviderResolveCustomerInputRequest,
+  ): Promise<Delivery.DeliveryProviderResolveCustomerInputResult>;
+  searchCustomerInputOptions(
+    route: Delivery.DeliveryProviderRouteSnapshot &
+      Readonly<{
+        capability: "delivery.carrier-service";
+        operation: "searchCustomerInputOptions";
+      }>,
+    request: Delivery.DeliveryProviderSearchCustomerInputOptionsRequest,
+  ): Promise<Delivery.DeliveryProviderSearchCustomerInputOptionsResult>;
   createShipment(
     route: Delivery.DeliveryProviderRouteSnapshot &
       Readonly<{
@@ -374,17 +389,18 @@ export interface DeliveryCustomerInputResolutionPort {
 
 /** Persistence boundary for expiring checkout quote handles. */
 export interface DeliveryOptionBindingsPort {
-  replaceCheckoutSnapshot(input: Readonly<{
+  stageCheckoutSnapshot(input: Readonly<{
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
+    basedOnCheckoutVersion: number;
+    targetCheckoutVersion: number;
     preliminaryRevision: string;
     deliveryRevision: string;
     options: readonly DeliveryOptionBindingCandidate[];
     /** Storage retention boundary; each binding still enforces its own expiresAt. */
     retainUntil: string;
   }>): Promise<
-    | Readonly<{ status: "REPLACED" }>
+    | Readonly<{ status: "STAGED" }>
     | Readonly<{
         status: "STALE_CHECKOUT_VERSION";
         currentCheckoutVersion: number;
@@ -397,9 +413,9 @@ export interface DeliveryOptionBindingsPort {
   resolve(input: Readonly<{
     storeId: string;
     checkoutId: string;
+    checkoutVersion: number;
     groupId: string;
     optionHandle: string;
-    deliveryRevision: string;
     effectiveAt: string;
   }>): Promise<DeliveryOptionBindingResolution>;
 

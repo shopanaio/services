@@ -4,6 +4,18 @@ import type {
 } from "./pricing.js";
 import type { DeliveryCheckoutMethodType } from "./delivery.js";
 
+export const DeliveryConfigurationActionNames = {
+  saveInactiveProfile: "saveInactiveDeliveryProfile",
+  activateProfileSet: "activateDeliveryProfileSet",
+  configureCustomization: "configureDeliveryCustomization",
+} as const;
+
+export const DeliveryConfigurationActions = {
+  saveInactiveProfile: `delivery.${DeliveryConfigurationActionNames.saveInactiveProfile}`,
+  activateProfileSet: `delivery.${DeliveryConfigurationActionNames.activateProfileSet}`,
+  configureCustomization: `delivery.${DeliveryConfigurationActionNames.configureCustomization}`,
+} as const;
+
 /** Merchant-owned configuration deciding which delivery methods are eligible. */
 export type DeliveryProfileStatus = "ACTIVE" | "INACTIVE";
 
@@ -243,4 +255,55 @@ export interface DeliveryEligibilitySnapshot {
   zoneRevision: number;
   methodDefinitions: readonly DeliveryMethodDefinitionSnapshot[];
   failurePolicy: DeliveryRateFailurePolicy;
+}
+
+export interface DeliveryProfileAssignmentMembershipInput {
+  profileId: string;
+  assignmentSetId: string;
+  assignmentRevision: string;
+  membershipType: "VARIANT" | "SELLING_PLAN_GROUP";
+  resourceId: string;
+  sequence: number;
+}
+
+export interface SaveInactiveDeliveryProfileParams {
+  profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
+  expectedProfileRevision: number | null;
+}
+
+export type SaveInactiveDeliveryProfileResult =
+  | Readonly<{ status: "SAVED"; profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }> }>
+  | Readonly<{ status: "PROFILE_REVISION_CONFLICT"; current: DeliveryProfileSnapshot }>;
+
+export interface ActivateDeliveryProfileSetParams {
+  profileSet: DeliveryProfileSetSnapshot;
+  expectedProfileSetRevision: string | null;
+  memberships: readonly DeliveryProfileAssignmentMembershipInput[];
+}
+
+export type ActivateDeliveryProfileSetResult =
+  | Readonly<{ status: "SAVED"; profileSet: DeliveryProfileSetSnapshot }>
+  | Readonly<{ status: "PROFILE_SET_REVISION_CONFLICT"; current: DeliveryProfileSetSnapshot }>;
+
+export interface ConfigureDeliveryCustomizationParams {
+  storeId: string;
+  customizationId: string;
+  customizationStatus: "ACTIVE" | "DISABLED";
+  policyRevision: string;
+  configurationRevision: string;
+  functionBindingId: string;
+  installationId: string;
+  functionKey: string;
+  configurationSnapshot: PricingCheckoutJsonObject;
+  bindingConfigurationRevision: string;
+  routeRevision: string;
+  precedence: number;
+  activationSequence: number;
+  failureMode: "REQUIRED" | "OPTIONAL";
+  bindingStatus: "ACTIVE" | "DISABLED";
+}
+
+export interface ConfigureDeliveryCustomizationResult {
+  customizationId: string;
+  functionBindingId: string;
 }

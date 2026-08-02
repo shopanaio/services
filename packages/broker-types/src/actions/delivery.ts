@@ -12,6 +12,10 @@ import type {
 
 export type * from "./delivery-configuration.js";
 export {
+  DeliveryConfigurationActionNames,
+  DeliveryConfigurationActions,
+} from "./delivery-configuration.js";
+export {
   DELIVERY_CUSTOMIZATION_MAX_EXECUTIONS,
   DELIVERY_CUSTOMIZATION_MAX_OPERATIONS,
   DELIVERY_CUSTOMIZATION_FUNCTION_TARGET,
@@ -21,12 +25,39 @@ export type * from "./delivery-fulfillment.js";
 
 export const DeliveryCheckoutActionNames = {
   calculateOptions: "calculateCheckoutDeliveryOptions",
+  searchOptionChoices: "searchDeliveryOptionChoices",
 } as const;
 
 export const DeliveryCheckoutActions = {
   calculateOptions:
     `delivery.${DeliveryCheckoutActionNames.calculateOptions}`,
+  searchOptionChoices:
+    `delivery.${DeliveryCheckoutActionNames.searchOptionChoices}`,
 } as const;
+
+export interface SearchDeliveryOptionChoicesParams {
+  storeId: string;
+  checkoutId: string;
+  checkoutVersion: number;
+  groupId: string;
+  optionHandle: string;
+  query: string;
+  cursor: string | null;
+  limit: number;
+  correlationId: string;
+  deadlineAt: string;
+  effectiveAt: string;
+}
+
+export interface SearchDeliveryOptionChoicesResult {
+  options: readonly Readonly<{
+    value: PricingCheckoutJsonObject;
+    label: string;
+    publicData: PricingCheckoutJsonObject;
+  }>[];
+  nextCursor: string | null;
+  revision: string;
+}
 
 /** Real-time checkout rate calculation, independent from fulfillment ownership. */
 export const DELIVERY_CARRIER_SERVICE_CAPABILITY =
@@ -41,13 +72,15 @@ export type DeliveryProviderCapability =
   | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
 
 /** Version of the platform-to-provider delivery protocol. */
-export const DELIVERY_PROVIDER_PROTOCOL_VERSION = 1 as const;
+export const DELIVERY_PROVIDER_PROTOCOL_VERSION = 2 as const;
 
 /** Stable operation contracts declared by every delivery provider App. */
 export const DeliveryProviderOperations = {
   validateCarrierServiceConfiguration: "validateCarrierServiceConfiguration",
   validateShipmentConfiguration: "validateShipmentConfiguration",
   quoteRates: "quoteRates",
+  resolveCustomerInput: "resolveCustomerInput",
+  searchCustomerInputOptions: "searchCustomerInputOptions",
   createShipment: "createShipment",
   cancelShipment: "cancelShipment",
   getShipment: "getShipment",
@@ -59,7 +92,9 @@ export type DeliveryProviderOperation =
 
 export type DeliveryCarrierServiceOperation =
   | "validateCarrierServiceConfiguration"
-  | "quoteRates";
+  | "quoteRates"
+  | "resolveCustomerInput"
+  | "searchCustomerInputOptions";
 
 export type DeliveryShipmentProviderOperation =
   | "validateShipmentConfiguration"
@@ -77,6 +112,8 @@ export type DeliveryProviderAppManifestCapability =
       operations: Readonly<{
         validateCarrierServiceConfiguration: string;
         quoteRates: string;
+        resolveCustomerInput: string;
+        searchCustomerInputOptions?: string;
       }>;
     }>
   | Readonly<{
@@ -133,11 +170,20 @@ export interface DeliveryCheckoutEvaluationContext {
   requestedAt: string;
   checkoutId: string;
   expectedCheckoutVersion: number;
+  targetCheckoutVersion: number;
   storeId: string;
   currencyCode: string;
   localeCode: string | null;
   channelCode: string;
   effectiveAt: string;
+  buyerEligibility: Readonly<{
+    customerId: string | null;
+    countryCode: string | null;
+    marketId: string | null;
+    companyId: string | null;
+    segmentIds: readonly string[];
+    segmentMembershipRevision: string | null;
+  }> | null;
 }
 
 /** Delivery receives contact/address PII only for carrier option resolution. */
@@ -305,6 +351,7 @@ export interface CalculateCheckoutDeliveryOptionsParams {
   preliminary: CalculateCheckoutPreliminaryQuoteResult;
   destinations: readonly DeliveryCheckoutDestinationIntent[];
   selections: readonly DeliveryCheckoutOptionSelectionIntent[];
+  cartAttributes: PricingCheckoutJsonObject;
 }
 
 export interface CalculateCheckoutDeliveryOptionsResult
@@ -374,6 +421,9 @@ export interface DeliveryProviderAccountSnapshotBase {
   providerCode: string;
   displayName: string;
   mode: DeliveryProviderMode;
+  supportedCountryCodes: readonly string[];
+  supportedCurrencyCodes: readonly string[];
+  supportedOperations: readonly DeliveryProviderOperation[];
   /** Platform-owned optimistic concurrency revision. */
   revision: number;
   createdAt: string;
@@ -441,7 +491,8 @@ export type DeliveryProviderRouteSnapshot =
 export interface DeliveryOptionBindingSnapshotBase {
   optionHandle: string;
   checkoutId: string;
-  checkoutVersion: number;
+  basedOnCheckoutVersion: number;
+  targetCheckoutVersion: number;
   groupId: string;
   profileId: string;
   methodDefinitionId: string;
@@ -664,7 +715,8 @@ export interface DeliveryCarrierServiceRateRequest {
   effectiveAt: string;
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
+  basedOnCheckoutVersion: number;
+  targetCheckoutVersion: number;
   groupId: string;
   ratePlanRevision: string;
   eligibilityRevision: string;
@@ -687,12 +739,61 @@ export interface DeliveryCarrierServiceRate {
   estimatedMinDeliveryAt: string | null;
   estimatedMaxDeliveryAt: string | null;
   phoneRequired: boolean;
-  metafields: readonly Readonly<{
-    namespace: string;
-    key: string;
-    type: string;
-    value: string;
+  customerInputContract: DeliveryProviderCustomerInputContract | null;
+  publicData: PricingCheckoutJsonObject;
+}
+
+export interface DeliveryProviderResolveCustomerInputRequest {
+  protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
+  correlationId: string;
+  deadlineAt: string;
+  effectiveAt: string;
+  storeId: string;
+  providerAccountId: string;
+  serviceCode: string;
+  customerInputContractHash: string;
+  value: PricingCheckoutJsonObject | null;
+}
+
+export type DeliveryProviderResolveCustomerInputResult =
+  | Readonly<{
+      status: "VALID";
+      normalized: PricingCheckoutJsonObject | null;
+      valueHash: string;
+      semanticRevision: string;
+      publicData: PricingCheckoutJsonObject;
+    }>
+  | Readonly<{
+      status: "INVALID";
+      issues: readonly Readonly<{
+        path: string;
+        code: string;
+        message: string;
+      }>[];
+    }>;
+
+export interface DeliveryProviderSearchCustomerInputOptionsRequest {
+  protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
+  correlationId: string;
+  deadlineAt: string;
+  effectiveAt: string;
+  storeId: string;
+  providerAccountId: string;
+  serviceCode: string;
+  customerInputContractHash: string;
+  query: string;
+  cursor: string | null;
+  limit: number;
+}
+
+export interface DeliveryProviderSearchCustomerInputOptionsResult {
+  options: readonly Readonly<{
+    value: PricingCheckoutJsonObject;
+    label: string;
+    publicData: PricingCheckoutJsonObject;
   }>[];
+  nextCursor: string | null;
+  revision: string;
 }
 
 export interface DeliveryCarrierServiceRateResult {
@@ -1183,6 +1284,12 @@ export interface DeliveryCarrierServiceAppContract {
   quoteRates(
     request: DeliveryCarrierServiceRateRequest,
   ): Promise<DeliveryCarrierServiceRateResult>;
+  resolveCustomerInput(
+    request: DeliveryProviderResolveCustomerInputRequest,
+  ): Promise<DeliveryProviderResolveCustomerInputResult>;
+  searchCustomerInputOptions?(
+    request: DeliveryProviderSearchCustomerInputOptionsRequest,
+  ): Promise<DeliveryProviderSearchCustomerInputOptionsResult>;
 }
 
 export interface DeliveryShipmentProviderAppContract {

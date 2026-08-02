@@ -28,7 +28,7 @@ export interface DeliveryRateCachePort {
   get(input: Readonly<{
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
+    basedOnCheckoutVersion: number;
     quoteRequestId: string;
     carrierServiceAccountId: string;
     routeRevision: string;
@@ -50,7 +50,7 @@ export interface DeliveryRateCachePort {
   put(input: Readonly<{
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
+    basedOnCheckoutVersion: number;
     quoteRequestId: string;
     carrierServiceAccountId: string;
     routeRevision: string;

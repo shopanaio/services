@@ -294,6 +294,15 @@ export const paymentsCheckoutEvaluationContextSchema = z
   .strict()
   .superRefine(refineDeadline);
 
+export const deliveryCheckoutEvaluationContextSchema = z
+  .object({
+    ...checkoutPipelineStageContextShape,
+    buyerEligibility: checkoutBuyerEligibilityContextSchema.nullable(),
+    targetCheckoutVersion: checkoutVersionSchema,
+  })
+  .strict()
+  .superRefine(refineDeadline);
+
 export const checkoutPipelineExecutionContextSchema = z
   .object({
     ...checkoutPipelineStageContextShape,
@@ -871,10 +880,11 @@ export const checkoutOrphanedDeliverySelectionResetSchema = z
 
 export const calculateDeliveryOptionsRequestSchema = z
   .object({
-    context: checkoutPipelineStageContextSchema,
+    context: deliveryCheckoutEvaluationContextSchema,
     preliminary: calculatePreliminaryPricingResultSchema,
     destinations: collection(checkoutDeliveryDestinationIntentSchema),
     selections: collection(checkoutDeliveryOptionSelectionIntentSchema),
+    cartAttributes: checkoutPipelineJsonObjectSchema,
   })
   .strict();
 
@@ -934,7 +944,7 @@ export const calculateDeliveryOptionsResultSchema = z
           executionPolicyRevision: revisionSchema,
           route: z
             .object({
-              protocolVersion: z.literal(1),
+              protocolVersion: z.literal(2),
               capability: z.literal("delivery.carrier-service"),
               capabilityRouteId: identifierSchema,
               installationId: identifierSchema,
@@ -980,7 +990,7 @@ export const calculateDeliveryOptionsResultSchema = z
               message: z.string().min(1),
               retryable: z.boolean(),
               acceptedByProvider: z.boolean(),
-              carrierCode: identifierSchema.nullable(),
+              providerCode: identifierSchema.nullable(),
             })
             .strict()
             .nullable(),

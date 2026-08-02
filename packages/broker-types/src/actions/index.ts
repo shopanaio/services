@@ -132,6 +132,8 @@ export {
   DeliveryActions,
   DeliveryCheckoutActionNames,
   DeliveryCheckoutActions,
+  DeliveryConfigurationActionNames,
+  DeliveryConfigurationActions,
   DeliveryProviderOperations,
   DeliveryProviderCapabilityTransitions,
   DeliveryShipmentTransitions,

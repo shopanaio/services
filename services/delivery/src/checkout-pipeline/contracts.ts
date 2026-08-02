@@ -1,4 +1,4 @@
-import type { Delivery } from "@shopana/broker-types";
+import type { Catalog, Delivery } from "@shopana/broker-types";
 
 export type CalculateDeliveryOptionsParams =
   Delivery.CalculateCheckoutDeliveryOptionsParams;
@@ -48,11 +48,13 @@ export interface DeliveryCheckoutPlanningPort {
   ): Promise<DeliveryCheckoutRatePlan>;
 }
 
-/**
- * Provider-side handler surface for DeliveryCheckoutActions.
- * Intentional scaffolding: do not register the broker action before a real
- * implementation can return contract-valid options.
- */
+export interface DeliveryCheckoutFactsPort {
+  resolve(
+    params: Catalog.ResolveCheckoutDeliveryFactsParams,
+  ): Promise<Catalog.ResolveCheckoutDeliveryFactsResult>;
+}
+
+/** Provider-side handler surface for DeliveryCheckoutActions. */
 export interface DeliveryCheckoutActionsContract {
   calculateCheckoutDeliveryOptions(
     params: CalculateDeliveryOptionsParams,

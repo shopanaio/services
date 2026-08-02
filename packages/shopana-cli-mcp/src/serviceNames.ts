@@ -36,6 +36,7 @@ export const MIGRATION_SERVICE_NAMES = [
   "apps",
   "catalog",
   "customers",
+  "delivery",
   "events",
   "iam",
   "listing",

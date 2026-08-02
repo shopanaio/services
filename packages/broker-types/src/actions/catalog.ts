@@ -30,11 +30,79 @@ export const CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH = 8;
 
 export const CatalogCheckoutActionNames = {
   resolveMerchandise: "resolveCheckoutMerchandise",
+  resolveDeliveryFacts: "resolveCheckoutDeliveryFacts",
 } as const;
 
 export const CatalogCheckoutActions = {
   resolveMerchandise: `catalog.${CatalogCheckoutActionNames.resolveMerchandise}`,
+  resolveDeliveryFacts: `catalog.${CatalogCheckoutActionNames.resolveDeliveryFacts}`,
 } as const;
+
+export interface CheckoutFulfillmentLocationAddress {
+  countryCode: string;
+  provinceCode: string | null;
+  provinceName: string | null;
+  city: string;
+  postalCode: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+}
+
+export interface ResolveCheckoutDeliveryFactsParams {
+  storeId: string;
+  effectiveAt: string;
+  lines: readonly Readonly<{
+    lineId: string;
+    variantId: string;
+    quantity: number;
+  }>[];
+}
+
+export type ResolveCheckoutDeliveryLineResult =
+  | Readonly<{
+      status: "RESOLVED";
+      lineId: string;
+      variantId: string;
+      physicalRevision: string;
+      weightGrams: number | null;
+      dimensionsMm: Readonly<{
+        width: number;
+        height: number;
+        length: number;
+      }> | null;
+      customs: Readonly<{
+        harmonizedSystemCode: string | null;
+        countryOfOriginCode: string;
+        description: string;
+      }> | null;
+      fulfillmentLocations: readonly Readonly<{
+        locationId: string;
+        locationRevision: string;
+        availableQuantity: number | null;
+        address: CheckoutFulfillmentLocationAddress;
+      }>[];
+    }>
+  | Readonly<{
+      status: "REJECTED";
+      lineId: string;
+      variantId: string;
+      code: string;
+      message: string;
+      retryable: boolean;
+    }>;
+
+export type ResolveCheckoutDeliveryFactsResult =
+  | Readonly<{
+      ok: true;
+      revision: string;
+      lines: readonly ResolveCheckoutDeliveryLineResult[];
+    }>
+  | Readonly<{
+      ok: false;
+      code: string;
+      message: string;
+      retryable: boolean;
+    }>;
 
 /**
  * One cart line to resolve. `variantId` is intentionally explicit: checkout

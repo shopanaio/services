@@ -67,7 +67,7 @@ export const DeliveryCustomizationFunctionResultSchema = z
   .superRefine((value, context) => {
     const targets = value.operations.map(
       (operation) =>
-        `${operation.type}:${operation.groupId}:${operation.optionHandle}`,
+        `${operation.groupId}:${operation.optionHandle}`,
     );
     if (new Set(targets).size !== targets.length) {
       context.addIssue({

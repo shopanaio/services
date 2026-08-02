@@ -99,6 +99,15 @@ export function toPaymentsCheckoutEvaluationContext(
   };
 }
 
+export function toCheckoutDeliveryContext(
+  context: CheckoutPipelineExecutionContext,
+): CalculateDeliveryOptionsRequest["context"] {
+  return {
+    ...toCheckoutPipelineEligibilityContext(context),
+    targetCheckoutVersion: context.expectedCheckoutVersion + 1,
+  };
+}
+
 export function toCheckoutPricingCartIntent(
   cartIntent: CheckoutRecalculationRequest["cartIntent"],
 ): CheckoutPricingCartIntent {
@@ -281,6 +290,11 @@ export function parseCalculateDeliveryOptionsRequest(
 ): CalculateDeliveryOptionsRequest {
   assertPayloadSize(value, "delivery options request");
   const request = calculateDeliveryOptionsRequestSchema.parse(value);
+  assertEqual(
+    request.context.targetCheckoutVersion,
+    request.context.expectedCheckoutVersion + 1,
+    "Delivery target checkout version must follow the committed base version",
+  );
   assertProvenance(request.context, request.preliminary);
   assertPreliminaryCurrencies(request.preliminary, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(request.preliminary);
@@ -983,7 +997,7 @@ function assertSuccessfulStages(
   if (result.preliminaryPricing.status !== "SUCCESS") {
     return;
   }
-  const stageContext = toCheckoutPipelineStageContext(request.context);
+  const deliveryContext = toCheckoutDeliveryContext(request.context);
   const eligibilityContext = toCheckoutPipelineEligibilityContext(
     request.context,
   );
@@ -999,13 +1013,14 @@ function assertSuccessfulStages(
   }
   const delivery = parseCalculateDeliveryOptionsResult(
     {
-      context: stageContext,
+      context: deliveryContext,
       preliminary,
       destinations: toCheckoutDeliveryDestinations(
         request.cartIntent.destinations,
         preliminary,
       ),
       selections: request.cartIntent.selectedDeliveryOptions,
+      cartAttributes: request.cartIntent.attributes,
     },
     result.delivery.data,
   );

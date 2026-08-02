@@ -28,6 +28,10 @@ import type {
   DeliveryProviderReconcileShipmentRequest,
   DeliveryProviderReconcileShipmentResult,
   DeliveryProviderShipmentOperationResult,
+  DeliveryProviderResolveCustomerInputRequest,
+  DeliveryProviderResolveCustomerInputResult,
+  DeliveryProviderSearchCustomerInputOptionsRequest,
+  DeliveryProviderSearchCustomerInputOptionsResult,
 } from "./delivery.js";
 
 export type AppInstallationStatus =
@@ -282,6 +286,16 @@ export interface DeliveryProviderOperationContractMap {
     input: DeliveryCarrierServiceRateRequest;
     output: DeliveryCarrierServiceRateResult;
   };
+  resolveCustomerInput: {
+    capability: "delivery.carrier-service";
+    input: DeliveryProviderResolveCustomerInputRequest;
+    output: DeliveryProviderResolveCustomerInputResult;
+  };
+  searchCustomerInputOptions: {
+    capability: "delivery.carrier-service";
+    input: DeliveryProviderSearchCustomerInputOptionsRequest;
+    output: DeliveryProviderSearchCustomerInputOptionsResult;
+  };
   createShipment: {
     capability: "delivery.shipment-provider";
     input: DeliveryProviderCreateShipmentRequest;
@@ -323,7 +337,9 @@ export type ListDeliveryProviderRoutesParams =
       capability: "delivery.carrier-service";
       operation:
         | "validateCarrierServiceConfiguration"
-        | "quoteRates";
+        | "quoteRates"
+        | "resolveCustomerInput"
+        | "searchCustomerInputOptions";
     }>
   | Readonly<{
       storeId: string;

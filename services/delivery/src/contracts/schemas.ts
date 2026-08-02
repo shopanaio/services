@@ -371,6 +371,8 @@ const providerOperationSchema = z.enum([
   DeliveryProviderOperations.validateCarrierServiceConfiguration,
   DeliveryProviderOperations.validateShipmentConfiguration,
   DeliveryProviderOperations.quoteRates,
+  DeliveryProviderOperations.resolveCustomerInput,
+  DeliveryProviderOperations.searchCustomerInputOptions,
   DeliveryProviderOperations.createShipment,
   DeliveryProviderOperations.cancelShipment,
   DeliveryProviderOperations.getShipment,
@@ -393,6 +395,8 @@ export const DeliveryCarrierServiceRouteSnapshotSchema = z
     operation: z.enum([
       "validateCarrierServiceConfiguration",
       "quoteRates",
+      "resolveCustomerInput",
+      "searchCustomerInputOptions",
     ]),
   })
   .strict();
@@ -422,7 +426,8 @@ export const DeliveryProviderRouteSnapshotSchema = z.discriminatedUnion(
 const deliveryOptionBindingBaseShape = {
   optionHandle: identifierSchema,
   checkoutId: identifierSchema,
-  checkoutVersion: nonNegativeIntegerSchema,
+  basedOnCheckoutVersion: nonNegativeIntegerSchema,
+  targetCheckoutVersion: positiveIntegerSchema,
   groupId: identifierSchema,
   profileId: identifierSchema,
   methodDefinitionId: identifierSchema,
@@ -465,6 +470,9 @@ export const DeliveryOptionBindingSnapshotSchema = z.discriminatedUnion(
       .strict(),
   ],
 ).superRefine((value, context) => {
+  if (value.targetCheckoutVersion !== value.basedOnCheckoutVersion + 1) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["targetCheckoutVersion"], message: "Binding target checkout version must follow its base version" });
+  }
   if (
     value.source === "CARRIER_SERVICE" &&
     value.customerInputContract !== null &&
@@ -554,10 +562,12 @@ export const DeliveryProviderConfigurationValidationResultSchema =
     const rateOperations = new Set([
       "validateCarrierServiceConfiguration",
       "quoteRates",
+      "resolveCustomerInput",
+      "searchCustomerInputOptions",
     ]);
     const required =
       value.capability === "delivery.carrier-service"
-        ? (["validateCarrierServiceConfiguration", "quoteRates"] as const)
+        ? (["validateCarrierServiceConfiguration", "quoteRates", "resolveCustomerInput"] as const)
         : (["validateShipmentConfiguration", "createShipment"] as const);
     for (const operation of required) {
       if (!supported.has(operation)) {
@@ -626,7 +636,8 @@ export const DeliveryCarrierServiceRateRequestSchema = z
     effectiveAt: timestampSchema,
     storeId: identifierSchema,
     checkoutId: identifierSchema,
-    checkoutVersion: nonNegativeIntegerSchema,
+    basedOnCheckoutVersion: nonNegativeIntegerSchema,
+    targetCheckoutVersion: positiveIntegerSchema,
     groupId: identifierSchema,
     ratePlanRevision: revisionSchema,
     eligibilityRevision: revisionSchema,
@@ -643,6 +654,9 @@ export const DeliveryCarrierServiceRateRequestSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.targetCheckoutVersion !== value.basedOnCheckoutVersion + 1) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["targetCheckoutVersion"], message: "Target checkout version must follow the base version" });
+    }
     if (Date.parse(value.deadlineAt) <= Date.parse(value.effectiveAt)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -688,18 +702,8 @@ export const DeliveryCarrierServiceRateSchema = z
     estimatedMinDeliveryAt: nullableTimestampSchema,
     estimatedMaxDeliveryAt: nullableTimestampSchema,
     phoneRequired: z.boolean(),
-    metafields: z
-      .array(
-        z
-          .object({
-            namespace: codeSchema,
-            key: codeSchema,
-            type: codeSchema,
-            value: z.string().max(65_536),
-          })
-          .strict(),
-      )
-      .max(250),
+    customerInputContract: DeliveryProviderCustomerInputContractSchema.nullable(),
+    publicData: jsonObjectSchema,
   })
   .strict()
   .superRefine((value, context) => {
@@ -715,13 +719,59 @@ export const DeliveryCarrierServiceRateSchema = z
         message: "Delivery estimate window is inverted",
       });
     }
-    addUniqueValueIssue(
-      value.metafields.map(({ namespace, key }) => `${namespace}:${key}`),
-      context,
-      ["metafields"],
-      "Carrier rate metafield namespace/key pairs must be unique",
-    );
   });
+
+export const DeliveryProviderResolveCustomerInputRequestSchema = z
+  .object({
+    protocolVersion: z.literal(DELIVERY_PROVIDER_PROTOCOL_VERSION),
+    correlationId: correlationIdSchema,
+    deadlineAt: timestampSchema,
+    effectiveAt: timestampSchema,
+    storeId: identifierSchema,
+    providerAccountId: identifierSchema,
+    serviceCode: codeSchema,
+    customerInputContractHash: revisionSchema,
+    value: jsonObjectSchema.nullable(),
+  })
+  .strict();
+
+export const DeliveryProviderResolveCustomerInputResultSchema = z.discriminatedUnion(
+  "status",
+  [
+    z.object({
+      status: z.literal("VALID"),
+      normalized: jsonObjectSchema.nullable(),
+      valueHash: revisionSchema,
+      semanticRevision: revisionSchema,
+      publicData: jsonObjectSchema,
+    }).strict(),
+    z.object({
+      status: z.literal("INVALID"),
+      issues: z.array(z.object({
+        path: z.string().max(512),
+        code: codeSchema,
+        message: z.string().trim().min(1).max(2_000),
+      }).strict()).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+    }).strict(),
+  ],
+);
+
+export const DeliveryProviderSearchCustomerInputOptionsRequestSchema =
+  DeliveryProviderResolveCustomerInputRequestSchema.omit({ value: true }).extend({
+    query: z.string().trim().max(255),
+    cursor: z.string().trim().min(1).max(512).nullable(),
+    limit: positiveIntegerSchema.max(100),
+  }).strict();
+
+export const DeliveryProviderSearchCustomerInputOptionsResultSchema = z.object({
+  options: z.array(z.object({
+    value: jsonObjectSchema,
+    label: z.string().trim().min(1).max(255),
+    publicData: jsonObjectSchema,
+  }).strict()).max(100),
+  nextCursor: z.string().trim().min(1).max(512).nullable(),
+  revision: revisionSchema,
+}).strict();
 
 export const DeliveryCarrierServiceRateResultSchema = z
   .object({
@@ -1611,6 +1661,20 @@ export function parseDeliveryCarrierServiceRateExchange(
   assertDeliveryContractPayloadSize(result, "Delivery carrier rate result");
   return DeliveryCarrierServiceRateExchangeSchema.parse({ request, result })
     .result as Delivery.DeliveryCarrierServiceRateResult;
+}
+
+export function parseDeliveryProviderResolveCustomerInputResult(
+  value: unknown,
+): Delivery.DeliveryProviderResolveCustomerInputResult {
+  assertDeliveryContractPayloadSize(value, "Delivery provider customer input result");
+  return DeliveryProviderResolveCustomerInputResultSchema.parse(value) as Delivery.DeliveryProviderResolveCustomerInputResult;
+}
+
+export function parseDeliveryProviderSearchCustomerInputOptionsResult(
+  value: unknown,
+): Delivery.DeliveryProviderSearchCustomerInputOptionsResult {
+  assertDeliveryContractPayloadSize(value, "Delivery provider customer input options result");
+  return DeliveryProviderSearchCustomerInputOptionsResultSchema.parse(value) as Delivery.DeliveryProviderSearchCustomerInputOptionsResult;
 }
 
 export function parseDeliveryProviderShipmentOperationResult(

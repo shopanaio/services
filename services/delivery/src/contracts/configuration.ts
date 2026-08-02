@@ -36,6 +36,7 @@ export interface DeliveryProfilesPort {
   replaceActiveProfileSet(input: Readonly<{
     profileSet: Delivery.DeliveryProfileSetSnapshot;
     expectedProfileSetRevision: string | null;
+    memberships: readonly Delivery.DeliveryProfileAssignmentMembershipInput[];
   }>): Promise<
     | Readonly<{
         status: "SAVED";

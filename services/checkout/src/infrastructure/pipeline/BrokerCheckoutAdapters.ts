@@ -178,19 +178,20 @@ function isCustomersEligibilityResult(
   if (!value || typeof value !== "object") return false;
   const result = value as Record<string, unknown>;
   if (result.ok === true) {
+    if (!Array.isArray(result.segmentIds)) return false;
+    const segmentIds = result.segmentIds;
     return (
       typeof result.storeId === "string" &&
       typeof result.customerId === "string" &&
       typeof result.effectiveAt === "string" &&
-      Array.isArray(result.segmentIds) &&
-      result.segmentIds.length <= 500 &&
-      result.segmentIds.every(
+      segmentIds.length <= 500 &&
+      segmentIds.every(
         (id) => typeof id === "string" && id.trim().length > 0,
       ) &&
-      new Set(result.segmentIds).size === result.segmentIds.length &&
-      result.segmentIds.every(
+      new Set(segmentIds).size === segmentIds.length &&
+      segmentIds.every(
         (id, index) =>
-          index === 0 || result.segmentIds[index - 1] <= id,
+          index === 0 || segmentIds[index - 1] <= id,
       ) &&
       typeof result.segmentMembershipRevision === "string" &&
       result.segmentMembershipRevision.length > 0
