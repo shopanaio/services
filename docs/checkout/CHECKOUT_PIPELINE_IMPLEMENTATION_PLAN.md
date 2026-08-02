@@ -12,6 +12,8 @@ The stage is responsible for:
 - applying store-scoped payment method Commerce Functions;
 - preserving an existing shopper selection or explicitly resetting it;
 - persisting opaque method handles and their provider bindings;
+- staging bindings for the potential committed checkout version without making
+  bindings from a failed CAS attempt current;
 - returning a deterministic, revisioned result to Checkout.
 
 The target flow is:
@@ -92,6 +94,10 @@ The repository already contains the main type-level boundaries:
 - `PaymentProviderAppContract`;
 - the Apps `executeCapability`, `listCapabilityRoutes`, and
   `listCommerceFunctionBindings` actions.
+
+The existence of `apps.listCommerceFunctionBindings` is baseline context only;
+the target Payments implementation does not use it as a business activation
+source.
 
 The existing implementation is scaffolding:
 
@@ -177,6 +183,29 @@ The same business input and the same dependency revisions must produce the
 same observable snapshot. Concurrent identical executions must converge on a
 single persisted snapshot and stable handles.
 
+### 4.6 Payment bindings distinguish base and target checkout versions
+
+Checkout recalculation reads the currently committed aggregate version `V` and
+prepares a snapshot that may be committed as `V + 1`. Payments must therefore
+use two explicit versions:
+
+```text
+basedOnCheckoutVersion = V
+targetCheckoutVersion = V + 1
+```
+
+The versions have different meanings:
+
+- source selection lookup uses the currently committed base version `V`;
+- newly discovered method bindings are staged for target version `V + 1`;
+- Checkout CAS failure leaves only an expiring staged snapshot for `V + 1`;
+- payment lifecycle lookup uses the checkout version that was actually
+  committed, which must equal the binding target version;
+- bindings from previous committed versions remain immutable until TTL cleanup.
+
+Payments does not read the Checkout database and does not participate in a
+distributed transaction with Checkout.
+
 ## 5. End-to-End Discovery Algorithm
 
 The application service must execute the following steps in order.
@@ -190,6 +219,7 @@ Required checks:
 
 - `checkoutId`, `storeId`, execution and correlation IDs are non-empty;
 - `expectedCheckoutVersion` is non-negative;
+- `targetCheckoutVersion === expectedCheckoutVersion + 1`;
 - `deadlineAt` has not expired;
 - final quote provenance matches the checkout context;
 - delivery provenance matches the checkout context;
@@ -346,13 +376,14 @@ Handle requirements:
 - stable for an idempotently reused snapshot;
 - changed when its provider binding becomes stale.
 
-Recommended persistence identity:
+Separate semantic handle identity from version-scoped binding identity.
+
+The semantic identity used to decide whether an existing handle may be reused
+is:
 
 ```text
 storeId
 + checkoutId
-+ checkoutVersion
-+ finalQuoteRevision
 + providerAccountId
 + providerMethodKey
 + configurationRevision
@@ -360,8 +391,31 @@ storeId
 + providerDiscoveryRevision
 ```
 
-On a uniqueness conflict, the repository returns the already allocated handle
-instead of generating a second one.
+The staged binding identity additionally includes:
+
+```text
+storeId
++ checkoutId
++ basedOnCheckoutVersion
++ targetCheckoutVersion
++ finalQuoteRevision
++ methodHandle
+```
+
+When a base-version binding has the exact same semantic identity, Payments
+reuses its opaque handle in the target snapshot. Otherwise it allocates a new
+`pmh_<uuidv7>` handle. This preserves a valid shopper selection across ordinary
+recalculations while still changing the handle when provider configuration,
+route or discovered method semantics become stale.
+
+On a target-snapshot uniqueness conflict, the repository returns the already
+staged binding only when its complete canonical payload matches; otherwise it
+reports a persistence conflict.
+
+Handle allocation is idempotent within the staged target snapshot. Reusing the
+same opaque handle in another version is not rebinding: each binding row remains
+version-scoped and immutable, and lifecycle resolution always supplies the
+committed checkout version.
 
 ### Step 10: Compute the discovery revision
 
@@ -457,6 +511,11 @@ Failure behavior:
 
 Selection resolution happens only after customization.
 
+Before applying the rules below, Payments resolves the input handle only from
+the currently committed base version `expectedCheckoutVersion`. It then checks
+that the same handle and immutable provider binding are present in the newly
+calculated post-customization candidate set for `targetCheckoutVersion`.
+
 Rules:
 
 - no input selection produces `NONE`;
@@ -504,17 +563,82 @@ The final payment methods hash includes:
 Within one Payments database transaction:
 
 1. Insert or reuse the discovery snapshot.
-2. Replace the checkout method binding snapshot.
+2. Stage the complete checkout method binding snapshot for
+   `targetCheckoutVersion`.
 3. Persist normalized public method projections.
 4. Persist provider/function execution audit metadata.
 5. Set the expiry time.
 6. Return the canonical persisted result.
 
 No broker or provider call may occur inside the database transaction.
+Staging never deletes bindings for earlier committed versions. A conflicting
+revision for the same `(store, checkout, target version)` is rejected rather
+than overwritten.
 
-## 6. Commerce Function Contract
+## 6. Checkout Version Contract
 
-### 6.1 Manifest capability
+Extend the canonical payment request contract with a Payments-specific context:
+
+```ts
+interface PaymentsCheckoutEvaluationContext
+  extends PricingCheckoutEvaluationContext {
+  targetCheckoutVersion: number;
+}
+
+interface GetCheckoutAvailablePaymentMethodsParams {
+  context: PaymentsCheckoutEvaluationContext;
+  selection: PaymentsCheckoutMethodSelectionIntent | null;
+  finalQuote: FinalizeCheckoutPricingQuoteResult;
+  delivery: PaymentsCheckoutDeliverySnapshot;
+}
+```
+
+Contract invariants:
+
+- create uses `expectedCheckoutVersion = 0` and `targetCheckoutVersion = 1`;
+- update uses `targetCheckoutVersion = expectedCheckoutVersion + 1`;
+- final quote and delivery provenance remain based on the base version;
+- returned payment provenance remains based on the base version because it
+  describes the recalculation input;
+- persisted bindings additionally carry the target version because they are
+  intended for the potential committed snapshot.
+
+Do not add `targetCheckoutVersion` to the common Pricing context: quote
+snapshots describe an attempt based on `V`, while executable selection bindings
+need the additional `V + 1` identity.
+
+Replace the ambiguous binding write/read port with staged operations:
+
+```ts
+interface PaymentMethodBindingsPort {
+  resolveCommittedSelection(input: {
+    storeId: string;
+    checkoutId: string;
+    checkoutVersion: number; // committed base V
+    methodHandle: string;
+    effectiveAt: string;
+  }): Promise<PaymentMethodBindingSnapshot | null>;
+
+  stageCheckoutSnapshot(input: {
+    storeId: string;
+    checkoutId: string;
+    basedOnCheckoutVersion: number;
+    targetCheckoutVersion: number;
+    finalQuoteRevision: string;
+    deliveryRevision: string;
+    paymentRevision: string;
+    methods: readonly PaymentMethodBindingSnapshot[];
+    retainUntil: string;
+  }): Promise<StagedPaymentMethodSnapshot>;
+}
+```
+
+`stageCheckoutSnapshot` inserts or reuses one immutable complete target
+snapshot. It never replaces a previous committed version.
+
+## 7. Commerce Function Contract
+
+### 7.1 Manifest capability
 
 ```ts
 interface PaymentMethodCustomizationAppManifestCapability {
@@ -527,7 +651,7 @@ interface PaymentMethodCustomizationAppManifestCapability {
 }
 ```
 
-### 6.2 Function input
+### 7.2 Function input
 
 The input should contain only eligibility and presentation facts:
 
@@ -537,7 +661,8 @@ interface PaymentMethodCustomizationFunctionInput {
   executionId: string;
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
+  basedOnCheckoutVersion: number;
+  targetCheckoutVersion: number;
   currencyCode: string;
   localeCode: string | null;
   channelCode: string;
@@ -561,7 +686,7 @@ interface PaymentMethodCustomizationFunctionInput {
 The function must not receive email, phone, full address, provider route data
 or provider account IDs.
 
-### 6.3 Function result
+### 7.3 Function result
 
 ```ts
 interface PaymentMethodCustomizationFunctionResult {
@@ -569,7 +694,7 @@ interface PaymentMethodCustomizationFunctionResult {
 }
 ```
 
-### 6.4 Audit snapshot
+### 7.4 Audit snapshot
 
 Persist for each execution:
 
@@ -583,40 +708,40 @@ Persist for each execution:
 - stable failure classification;
 - no raw stack traces or sensitive configuration.
 
-## 7. Apps Service Changes
+## 8. Apps Service Changes
 
-### 7.1 Provider routing
+### 8.1 Provider and function routing
 
 The current Apps capability boundary already supports provider routing.
 Payments needs an adapter that maps:
 
 - `apps.listCapabilityRoutes` to typed payment route snapshots;
-- `apps.executeCapability` to typed provider operations.
+- `apps.executeCapability` to typed provider operations;
+- `apps.listCapabilityRoutes` to exact Commerce Function route confirmation for
+  Payments-owned bindings.
 
 No payment-provider-specific action should be added to Apps.
 
-### 7.2 Commerce Function binding persistence
+### 8.2 Apps is not the business binding source
 
-`apps.listCommerceFunctionBindings` currently supplies placeholder values for
-several fields. To support Payments and other domains consistently, Apps must
-persist and return:
+Payments, like Pricing and Delivery, owns Commerce Function business
+activation. Apps owns installation lifecycle, capability routes and execution,
+but does not decide that a payment customization is active.
 
-- failure mode;
-- configuration snapshot;
-- configuration revision;
-- precedence;
-- activation sequence;
-- active/disabled status.
+Therefore:
 
-Required work:
+- do not use `apps.listCommerceFunctionBindings` as the Payments business
+  source;
+- an active App route alone never creates or activates a payment
+  customization;
+- Payments loads active owners/bindings from its own database;
+- `apps.listCapabilityRoutes` confirms the exact pinned installation/function
+  route at execution planning time;
+- route revision mismatch is a function failure and never silently rewrites a
+  Payments binding;
+- `apps.executeCapability` remains the only execution boundary.
 
-1. Extend capability assignment persistence.
-2. Add strict validation for configuration snapshots.
-3. Preserve deterministic activation order.
-4. Return the persisted values from `listCommerceFunctionBindings`.
-5. Ensure only the owning platform service can use a binding for its target.
-
-### 7.3 Trusted invocation context
+### 8.3 Trusted invocation context
 
 Apps must continue to create trusted context for App execution:
 
@@ -626,9 +751,9 @@ Apps must continue to create trusted context for App execution:
 - asynchronous provider callbacks must originate through Apps and carry the
   installation/App/tenant identity created by broker infrastructure.
 
-## 8. Payments Data Model
+## 9. Payments Data Model
 
-### 8.1 Migration domains
+### 9.1 Migration domains
 
 Suggested migration structure:
 
@@ -639,6 +764,9 @@ services/payments/migrations/domains/
     0001_foundation__types.sql
   0100_provider_accounts/
     0100_provider_accounts__accounts.sql
+  0150_customizations/
+    0150_customizations__owners.sql
+    0151_customizations__bindings.sql
   0200_checkout_discovery/
     0200_checkout_discovery__snapshots.sql
     0201_checkout_discovery__methods.sql
@@ -646,7 +774,47 @@ services/payments/migrations/domains/
     0203_checkout_discovery__executions.sql
 ```
 
-### 8.2 Provider account invariants
+### 9.2 Payment customization owners and bindings
+
+Add Payments-owned business activation persistence:
+
+```text
+payments.payment_customizations
+  id uuid primary key
+  store_id uuid not null
+  status ACTIVE | DISABLED
+  policy_revision text not null
+  created_at / updated_at timestamptz
+
+payments.payment_customization_bindings
+  id uuid primary key
+  store_id uuid not null
+  customization_id uuid not null
+  installation_id uuid not null
+  function_key text not null
+  contract_version integer not null
+  precedence integer not null
+  activation_sequence bigint not null
+  failure_mode REQUIRED | OPTIONAL
+  configuration_snapshot jsonb not null
+  configuration_revision text not null
+  route_revision text not null
+  status ACTIVE | DISABLED
+  created_at / updated_at timestamptz
+```
+
+Invariants:
+
+- every binding belongs to exactly one Payments customization owner;
+- all uniqueness and reads are store-scoped;
+- installation identity and route revision are snapshots, not cross-service
+  foreign keys;
+- activation validates target, configuration and current Apps route;
+- execution re-confirms the pinned route without mutating the binding;
+- deterministic order is
+  `(precedence, activationSequence, functionBindingId)`.
+
+### 9.3 Provider account invariants
 
 - one account per store and Apps installation for v1;
 - account tenant identity is immutable;
@@ -655,7 +823,7 @@ services/payments/migrations/domains/
 - only `ACTIVE` accounts participate in discovery;
 - uninstall or suspension makes the route unavailable immediately.
 
-### 8.3 Snapshot invariants
+### 9.4 Snapshot and binding invariants
 
 - snapshot is immutable after completion;
 - one final result per canonical business input;
@@ -663,17 +831,28 @@ services/payments/migrations/domains/
 - expired snapshots cannot start a payment session;
 - snapshot revisions and stored payload must agree;
 - every returned method has exactly one stored binding;
+- each binding stores both `based_on_checkout_version` and
+  `target_checkout_version`;
+- `target_checkout_version = based_on_checkout_version + 1`;
+- uniqueness includes
+  `(store_id, checkout_id, target_checkout_version, method_handle)`;
+- the snapshot table has one immutable row per
+  `(store_id, checkout_id, target_checkout_version)` and stores the complete
+  payment revision/digest;
+- staging another payment revision for an existing target snapshot is a
+  conflict;
+- source selection lookup is scoped to the committed base version;
 - hidden methods may remain in internal discovery audit data but not in the
   final binding set usable by Checkout.
 
-### 8.4 Transaction behavior
+### 9.5 Transaction behavior
 
 Repositories use the project transaction manager and never bypass the active
 transaction connection.
 
 All tenant-qualified uniqueness constraints include `store_id`.
 
-## 9. Application Components
+## 10. Application Components
 
 Suggested Payments components:
 
@@ -693,6 +872,7 @@ src/
     PaymentMethodCustomizationRunner.ts
     PaymentMethodCustomizationPolicy.ts
     PaymentMethodCustomizationContracts.ts
+    PaymentCustomizationBindingRepository.ts
   application/
     provider-accounts/
       ConfigurePaymentProviderAccountService.ts
@@ -700,7 +880,7 @@ src/
   infrastructure/
     apps/
       BrokerPaymentsProviderAppsAdapter.ts
-      BrokerPaymentCustomizationBindingSource.ts
+      BrokerPaymentFunctionRouteResolver.ts
     db/
       schema/
       repositories/
@@ -714,7 +894,7 @@ src/
 Exact names may follow the final Payments module conventions, but the
 application/domain/infrastructure separation should remain explicit.
 
-## 10. Broker Action Boundary
+## 11. Broker Action Boundary
 
 Register the action only when the complete implementation can return a valid
 result:
@@ -745,9 +925,9 @@ Suggested error classes:
 
 Each error declares whether retry is safe.
 
-## 11. Failure Semantics
+## 12. Failure Semantics
 
-### 11.1 Business-empty result
+### 12.1 Business-empty result
 
 Return a successful empty method list when:
 
@@ -759,7 +939,7 @@ Return a successful empty method list when:
 Checkout validation will turn a positive-total empty list into
 `PAYMENT_METHODS_UNAVAILABLE`.
 
-### 11.2 Partial provider degradation
+### 12.2 Partial provider degradation
 
 If at least one provider returns a valid result:
 
@@ -768,7 +948,7 @@ If at least one provider returns a valid result:
 - append warning issues;
 - include the execution classifications in the revision.
 
-### 11.3 Total provider outage
+### 12.3 Total provider outage
 
 If eligible providers exist but none returns a usable response because of
 timeouts, route failures or transient provider errors:
@@ -778,25 +958,27 @@ timeouts, route failures or transient provider errors:
 - do not misrepresent the outage as a business-empty result;
 - do not persist an empty successful snapshot.
 
-### 11.4 Configuration errors
+### 12.4 Configuration errors
 
 An invalid provider configuration disables only that provider account. If
 other providers succeed, the stage may still succeed with warnings.
 
-### 11.5 Function failures
+### 12.5 Function failures
 
 - optional failure: continue with previous methods and emit a warning;
 - required failure: fail the stage;
 - invalid output follows the binding failure mode;
 - the output of a failed function is never partially applied.
 
-## 12. Checkout Service Changes
+## 13. Checkout Service Changes
 
 Update Checkout to consume the extended payment result.
 
 Required changes:
 
 - parse new discovery/customization revisions;
+- construct `targetCheckoutVersion = expectedCheckoutVersion + 1` and pass it
+  in the Payments-specific evaluation context;
 - validate that the final revision is based on the supplied quote and delivery
   revisions;
 - map payment issues into `CheckoutPipelineIssue` with stage `PAYMENT`;
@@ -808,9 +990,9 @@ Required changes:
 
 No direct Checkout-to-Apps dependency should be introduced.
 
-## 13. Security and Privacy Requirements
+## 14. Security and Privacy Requirements
 
-### 13.1 PII minimization
+### 14.1 PII minimization
 
 Provider discovery may receive:
 
@@ -821,7 +1003,7 @@ Provider discovery may receive:
 
 It must not receive buyer contact data or full delivery addresses.
 
-### 13.2 Logging
+### 14.2 Logging
 
 Do not log:
 
@@ -835,7 +1017,7 @@ Do not log:
 Logs may contain stable IDs, revisions, execution status, duration and error
 classification.
 
-### 13.3 Output safety
+### 14.3 Output safety
 
 Provider metadata must pass a Payments-owned projection policy before it is
 included in Storefront output.
@@ -849,13 +1031,13 @@ Recommended policy fields:
 - prohibition of credential-like keys;
 - no HTML unless explicitly sanitized by a dedicated policy.
 
-### 13.4 Tenant isolation
+### 14.4 Tenant isolation
 
 Every repository lookup, method resolution and Apps call is scoped by
 `storeId`. A handle from another store or checkout is treated as unavailable,
 not resolved globally.
 
-## 14. Observability
+## 15. Observability
 
 Record metrics for:
 
@@ -881,13 +1063,14 @@ Trace fields:
 
 Do not use high-cardinality raw error messages as metric labels.
 
-## 15. Work Packages
+## 16. Work Packages
 
 ### WP-01: Shared contract foundation
 
 Deliverables:
 
 - payment customization target and types;
+- Payments-specific base/target checkout version contract;
 - extended payment result and issue types;
 - strict Zod schemas;
 - canonical revision payload definitions;
@@ -899,19 +1082,19 @@ Completion criteria:
 - no Checkout-private types are imported by Payments;
 - provider and Commerce Function execution kinds are distinct.
 
-### WP-02: Apps binding and routing support
+### WP-02: Apps route confirmation support
 
 Deliverables:
 
 - typed payment provider route adapter support;
-- persisted Commerce Function failure mode/configuration/ordering;
-- deterministic binding list results;
+- exact Commerce Function route confirmation for Payments-owned bindings;
 - trusted execution-context validation.
 
 Completion criteria:
 
 - Payments can resolve one exact provider installation;
-- Payments can enumerate payment customization bindings;
+- Payments can confirm one exact function route without treating Apps routes as
+  business activation;
 - Apps secrets are not exposed.
 
 ### WP-03: Payments foundation and persistence
@@ -921,13 +1104,16 @@ Deliverables:
 - migration domains;
 - Drizzle schema and database wiring;
 - transaction-aware repositories;
-- provider account, snapshot and binding persistence;
+- provider account and Payments-owned customization persistence;
+- staged target-version discovery and method binding persistence;
 - idempotent handle allocation.
 
 Completion criteria:
 
 - concurrent identical snapshots converge;
 - handles cannot be rebound;
+- CAS base/target versions cannot be confused;
+- an Apps route without a Payments binding is never executed;
 - expired bindings are rejected.
 
 ### WP-04: Provider account configuration
@@ -966,7 +1152,7 @@ Completion criteria:
 Deliverables:
 
 - function input builder;
-- binding source;
+- Payments-owned binding repository and exact Apps route resolver;
 - Commerce Function runner integration;
 - HIDE/MOVE/RENAME policy;
 - customization revision and audit executions.
@@ -974,6 +1160,7 @@ Deliverables:
 Completion criteria:
 
 - functions cannot fabricate executable methods;
+- active Apps routes without active Payments bindings do not execute;
 - optional and required failures behave differently;
 - output is deterministic.
 
@@ -985,12 +1172,15 @@ Deliverables:
 - stable reset codes;
 - final revision computation;
 - atomic snapshot and binding persistence;
+- base-version selection lookup and target-version staging;
 - expiry policy.
 
 Completion criteria:
 
 - Payments never changes shopper input;
-- every returned method resolves to exactly one persisted binding.
+- every returned method resolves to exactly one persisted binding;
+- a binding staged by a failed Checkout CAS is not usable as a committed
+  selection.
 
 ### WP-08: Broker and NestJS wiring
 
@@ -1039,11 +1229,12 @@ Per project instructions, `build`, `test`, and `tsc` are not run merely for
 verification. Development commands must use the project `shopana-cli` MCP
 tools when execution is required.
 
-## 16. Test Scenario Matrix
+## 17. Test Scenario Matrix
 
 ### Contract scenarios
 
 - reject mismatched checkout/quote/delivery provenance;
+- reject `targetCheckoutVersion !== expectedCheckoutVersion + 1`;
 - reject cross-currency amounts;
 - reject duplicate provider method keys;
 - reject oversized or non-JSON metadata;
@@ -1075,7 +1266,9 @@ tools when execution is required.
 - unknown handle is rejected;
 - function attempts to add a method;
 - function attempts to hide every method when policy forbids it;
-- two identical runs produce the same customization revision.
+- two identical runs produce the same customization revision;
+- installed/active App route without a Payments-owned binding is not executed;
+- pinned route revision mismatch follows REQUIRED/OPTIONAL failure mode.
 
 ### Selection scenarios
 
@@ -1095,7 +1288,12 @@ tools when execution is required.
 - stale configuration revision cannot resolve;
 - expired snapshot cannot resolve;
 - cross-store handle lookup fails;
-- transaction rollback leaves no partial snapshot.
+- transaction rollback leaves no partial snapshot;
+- create stages bindings for `0 -> 1`;
+- update stages bindings for `V -> V + 1`;
+- selection lookup reads only the committed base version;
+- conflicting payment revisions for one target version are rejected;
+- Checkout CAS conflict leaves only an expiring staged target snapshot.
 
 ### Checkout integration scenarios
 
@@ -1107,7 +1305,7 @@ tools when execution is required.
 - total provider outage fails PAYMENT and skips validation;
 - Storefront never receives `customerInput` or provider binding data.
 
-## 17. Definition of Done
+## 18. Definition of Done
 
 The Payments checkout stage is complete when all of the following are true:
 
@@ -1116,24 +1314,26 @@ The Payments checkout stage is complete when all of the following are true:
 3. Payments obtains methods through Apps, not through direct provider SDKs.
 4. Returned methods use platform-owned opaque handles.
 5. Every usable handle has an immutable persisted provider binding.
-6. Provider and function outputs are strictly validated.
-7. Commerce Functions can only hide, move or rename methods.
-8. Shopper selection is preserved or explicitly reset.
-9. Revisions are deterministic and tied to all relevant dependencies.
-10. Partial provider degradation and total provider outage are distinguishable.
-11. Checkout receives payment issues and validates the final result.
-12. No provider credentials or prohibited PII cross service boundaries.
-13. `PaymentsModule` registers real implementations rather than scaffolding.
-14. Verification artifacts cover the scenario matrix.
+6. Every binding explicitly distinguishes base and target checkout versions.
+7. Provider and function outputs are strictly validated.
+8. Payments, not Apps, owns payment customization activation and bindings.
+9. Commerce Functions can only hide, move or rename methods.
+10. Shopper selection is preserved or explicitly reset.
+11. Revisions are deterministic and tied to all relevant dependencies.
+12. Partial provider degradation and total provider outage are distinguishable.
+13. Checkout receives payment issues and validates the final result.
+14. No provider credentials or prohibited PII cross service boundaries.
+15. `PaymentsModule` registers real implementations rather than scaffolding.
+16. Verification artifacts cover the scenario matrix.
 
-## 18. Recommended Implementation Order
+## 19. Recommended Implementation Order
 
 Implement in this dependency order:
 
 ```text
 WP-01 Shared contracts
-  -> WP-02 Apps routing/bindings
-  -> WP-03 Payments persistence
+  -> WP-02 Apps route confirmation
+  -> WP-03 Payments persistence and business bindings
   -> WP-04 Provider account configuration
   -> WP-05 Provider discovery
   -> WP-06 Commerce Functions
@@ -1147,15 +1347,15 @@ The first usable vertical slice is complete after WP-05, WP-07, WP-08 and
 WP-09 with Commerce Functions temporarily absent. The production-ready target
 includes WP-06 and the full failure/audit behavior.
 
-## 19. Follow-up Milestone: Payment Lifecycle
+## 20. Follow-up Milestone: Payment Lifecycle
 
 After this plan is complete, checkout completion can safely consume a selected
 binding:
 
 ```text
 selected methodHandle
-  -> resolve current, unexpired binding
-  -> validate checkout version and final quote revision
+  -> resolve the unexpired binding by committed target checkout version
+  -> validate based-on version, target version and final quote revision
   -> create PaymentCollection
   -> create PaymentSession
   -> invoke pinned Apps createPayment route
