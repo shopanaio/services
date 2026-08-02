@@ -5,6 +5,7 @@ import type {
   CalculatePreliminaryPricingResult,
   CheckoutPipelineExecutionContext,
   CheckoutPipelineEligibilityContext,
+  CheckoutPipelineStage,
   CheckoutPipelineStageContext,
   CheckoutPipelineStageProvenance,
   CheckoutDeliveryOptionSelectionIntent,
@@ -949,15 +950,15 @@ export function parseCheckoutRecalculationResult(
     request.context.correlationId,
     "Execution trace correlationId does not match request",
   );
+  assertEqual(
+    result.trace.deadlineAt,
+    request.context.deadlineAt,
+    "Execution trace deadline does not match request",
+  );
   assertTrace(result);
   assertOutcomeSequence(result);
   assertAggregateIssues(result);
   assertSuccessfulStages(request, result);
-  if (Date.parse(result.trace.completedAt) > Date.parse(request.context.deadlineAt)) {
-    throw new CheckoutPipelineBoundaryError(
-      "Pipeline result completed after the request deadline",
-    );
-  }
   return result;
 }
 
@@ -1034,28 +1035,38 @@ function assertSuccessfulStages(
 
 function assertOutcomeSequence(result: CheckoutRecalculationResult): void {
   const outcomes = [
-    result.preliminaryPricing,
-    result.delivery,
-    result.finalPricing,
-    result.payment,
-    result.validation,
+    ["PRICING_PRELIMINARY", result.preliminaryPricing],
+    ["DELIVERY", result.delivery],
+    ["PRICING_FINAL", result.finalPricing],
+    ["PAYMENT", result.payment],
+    ["VALIDATION", result.validation],
   ] as const;
-  let blocked = false;
-  for (const outcome of outcomes) {
-    if (blocked && outcome.status !== "SKIPPED") {
+  let blockingStage: CheckoutPipelineStage | null = null;
+  for (const [stage, outcome] of outcomes) {
+    if (blockingStage !== null && outcome.status !== "SKIPPED") {
       throw new CheckoutPipelineBoundaryError(
         "A data-dependent stage ran after the pipeline was stopped",
       );
     }
-    if (outcome.status === "SKIPPED" && !blocked) {
-      blocked = true;
+    if (outcome.status === "SKIPPED") {
+      if (
+        blockingStage === null ||
+        outcome.reason.code !== "CHECKOUT_PIPELINE_UPSTREAM_BLOCKED" ||
+        outcome.reason.message !==
+          "Checkout stage was skipped because an upstream stage blocked execution." ||
+        outcome.reason.upstreamStage !== blockingStage
+      ) {
+        throw new CheckoutPipelineBoundaryError(
+          "Skipped checkout stage has a non-canonical upstream reason",
+        );
+      }
       continue;
     }
     if (
       outcome.status === "FAILED" ||
       outcome.issues.some(({ effect }) => effect === "STOP")
     ) {
-      blocked = true;
+      blockingStage = stage;
     }
   }
 }
@@ -1612,7 +1623,81 @@ function assertTrace(result: CheckoutRecalculationResult): void {
         `Execution trace stage ${stage} overlaps its predecessor`,
       );
     }
+    if (
+      actual?.resultObservedAt !== undefined &&
+      Date.parse(actual.resultObservedAt) > Date.parse(result.trace.deadlineAt)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Execution trace for ${stage} accepted a result after the deadline`,
+      );
+    }
+    if (
+      outcome.status === "SUCCESS" &&
+      (actual?.resultObservedAt === undefined ||
+        actual.inputRevision === undefined ||
+        actual.outputRevision === undefined)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Successful execution trace for ${stage} lacks settlement or revisions`,
+      );
+    }
+    if (
+      outcome.status === "FAILED" &&
+      outcome.failure.code !== "CHECKOUT_PIPELINE_DEADLINE_EXCEEDED" &&
+      actual?.inputRevision !== undefined &&
+      actual.resultObservedAt === undefined
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Failed execution trace for ${stage} lacks its observed settlement`,
+      );
+    }
+    if (
+      outcome.status === "SKIPPED" &&
+      (actual?.resultObservedAt !== undefined ||
+        actual?.inputRevision !== undefined ||
+        actual?.outputRevision !== undefined)
+    ) {
+      throw new CheckoutPipelineBoundaryError(
+        `Skipped execution trace for ${stage} contains port artifacts`,
+      );
+    }
   });
+
+  const deadlineFailures = expected.filter(
+    ([, outcome]) =>
+      outcome.status === "FAILED" &&
+      outcome.failure.code === "CHECKOUT_PIPELINE_DEADLINE_EXCEEDED",
+  );
+  if (!result.trace.deadlineExceeded) {
+    if (result.trace.deadlineObservedAt !== null || deadlineFailures.length !== 0) {
+      throw new CheckoutPipelineBoundaryError(
+        "Execution trace reports inconsistent deadline state",
+      );
+    }
+    return;
+  }
+  if (
+    result.trace.deadlineObservedAt === null ||
+    Date.parse(result.trace.deadlineObservedAt) < Date.parse(result.trace.deadlineAt) ||
+    deadlineFailures.length !== 1
+  ) {
+    throw new CheckoutPipelineBoundaryError(
+      "Execution trace deadline failure is invalid",
+    );
+  }
+  const deadlineStageIndex = expected.findIndex(
+    ([, outcome]) =>
+      outcome.status === "FAILED" &&
+      outcome.failure.code === "CHECKOUT_PIPELINE_DEADLINE_EXCEEDED",
+  );
+  if (
+    deadlineStageIndex < 0 ||
+    expected.slice(deadlineStageIndex + 1).some(([, outcome]) => outcome.status !== "SKIPPED")
+  ) {
+    throw new CheckoutPipelineBoundaryError(
+      "Stages after the deadline failure must be skipped",
+    );
+  }
 }
 
 function assertProvenance(

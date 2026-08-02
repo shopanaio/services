@@ -124,14 +124,6 @@ export class CommerceFunctionRunner {
       ),
     });
 
-    if (requiredFailure) {
-      throw new CommerceFunctionExecutionError(
-        `Required implementation "${requiredFailure.trace.implementationId}" failed`,
-        trace,
-        requiredFailure.errorClass,
-      );
-    }
-
     const outputs = outcomes.flatMap<
       FunctionImplementationOutput<TOutput>
     >((outcome) =>
@@ -147,9 +139,19 @@ export class CommerceFunctionRunner {
           ]
         : [],
     );
+    const frozenOutputs = Object.freeze(outputs);
+    if (requiredFailure) {
+      throw new CommerceFunctionExecutionError<TOutput>(
+        `Required implementation "${requiredFailure.trace.implementationId}" failed`,
+        trace,
+        requiredFailure.errorClass,
+        frozenOutputs,
+      );
+    }
+
     return Object.freeze({
       target: plan.target,
-      outputs: Object.freeze(outputs),
+      outputs: frozenOutputs,
       trace,
     });
   }

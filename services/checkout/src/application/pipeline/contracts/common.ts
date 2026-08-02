@@ -95,6 +95,8 @@ export type CheckoutPipelineStageTrace<
   startedAt: string;
   completedAt: string;
   durationMs: number;
+  /** Time at which the guarded port promise settled, when it was accepted. */
+  resultObservedAt?: string;
   inputRevision?: string;
   outputRevision?: string;
 }>;
@@ -104,6 +106,9 @@ export type CheckoutPipelineExecutionTrace = Readonly<{
   correlationId: string;
   startedAt: string;
   completedAt: string;
+  deadlineAt: string;
+  deadlineExceeded: boolean;
+  deadlineObservedAt: string | null;
   stages: readonly CheckoutPipelineStageTrace[];
 }>;
 

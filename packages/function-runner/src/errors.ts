@@ -1,5 +1,6 @@
 import type {
   CommerceFunctionExecutionTrace,
+  FunctionImplementationOutput,
   FunctionErrorClass,
 } from "./contracts.js";
 
@@ -22,13 +23,14 @@ export class FunctionEnvelopeError extends Error {
   }
 }
 
-export class CommerceFunctionExecutionError extends Error {
+export class CommerceFunctionExecutionError<TOutput = unknown> extends Error {
   readonly code = "COMMERCE_FUNCTION_EXECUTION_FAILED";
 
   constructor(
     message: string,
     readonly trace: CommerceFunctionExecutionTrace,
     readonly errorClass: FunctionErrorClass,
+    readonly outputs: readonly FunctionImplementationOutput<TOutput>[],
   ) {
     super(message);
     this.name = "CommerceFunctionExecutionError";

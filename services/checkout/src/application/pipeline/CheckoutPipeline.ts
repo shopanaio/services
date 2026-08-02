@@ -1,8 +1,12 @@
 import type {
-  CalculateDeliveryOptionsResult,
   CalculateDeliveryOptionsRequest,
+  CalculateDeliveryOptionsResult,
   CalculatePreliminaryPricingRequest,
   CalculatePreliminaryPricingResult,
+  CheckoutPipelineIssue,
+  CheckoutPipelineStage,
+  CheckoutPipelineStageOutcome,
+  CheckoutPipelineStageTrace,
   CheckoutRecalculationRequest,
   CheckoutRecalculationResult,
   FinalizePricingQuoteRequest,
@@ -13,71 +17,561 @@ import type {
   ValidateCheckoutResult,
 } from "./contracts/index.js";
 import type {
-  CheckoutValidationPort,
   DeliveryCheckoutPort,
   PaymentsCheckoutPort,
   PricingCheckoutPort,
 } from "./ports/index.js";
+import { CheckoutValidationRunner } from "./CheckoutValidationRunner.js";
+import {
+  CheckoutPipelineBoundaryError,
+  parseCalculateDeliveryOptionsRequest,
+  parseCalculateDeliveryOptionsResult,
+  parseCalculatePreliminaryPricingRequest,
+  parseCalculatePreliminaryPricingResult,
+  parseCheckoutRecalculationRequest,
+  parseCheckoutRecalculationResult,
+  parseFinalizePricingQuoteRequest,
+  parseFinalizePricingQuoteResult,
+  parseGetAvailablePaymentMethodsRequest,
+  parseGetAvailablePaymentMethodsResult,
+  parseValidateCheckoutRequest,
+  parseValidateCheckoutResult,
+  toCheckoutDeliveryDestinations,
+  toCheckoutPaymentDeliverySnapshot,
+  toCheckoutPipelineEligibilityContext,
+  toCheckoutPipelineStageContext,
+  toCheckoutPricingCartIntent,
+  toCheckoutPricingDeliverySnapshot,
+} from "./boundaries.js";
+import { canonicalJsonRevision, canonicalJsonSha256 } from "./canonicalJson.js";
+import { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
 
 export interface CheckoutPipelinePorts {
   readonly pricing: PricingCheckoutPort;
   readonly delivery: DeliveryCheckoutPort;
   readonly payments: PaymentsCheckoutPort;
-  readonly validation: CheckoutValidationPort;
 }
 
-export interface CheckoutPipeline {
-  recalculate(
-    request: CheckoutRecalculationRequest,
-  ): Promise<CheckoutRecalculationResult>;
+export interface CheckoutPipelineRuntime {
+  now(): number;
+  schedule(callback: () => void, delayMs: number): unknown;
+  cancel(handle: unknown): void;
 }
 
-/**
- * Typed orchestration boundary for every checkout change that can affect
- * merchandise, availability, money, delivery, payment or validation.
- *
- * Pricing owns merchandise resolution, cart transforms, availability snapshots,
- * discounts and monetary arithmetic. Checkout only sequences domain stages and
- * returns a version-bound snapshot that its caller must apply with compare-and-
- * swap on checkout version.
- */
-export abstract class BaseCheckoutPipeline implements CheckoutPipeline {
-  protected constructor(protected readonly ports: CheckoutPipelinePorts) {}
+const defaultRuntime: CheckoutPipelineRuntime = {
+  now: Date.now,
+  schedule: (callback, delayMs) => setTimeout(callback, Math.max(0, delayMs)),
+  cancel: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+};
 
-  // TODO(checkout-pipeline): implement deterministic orchestration, deadline
-  // enforcement, short-circuit rules, issue aggregation and execution trace.
-  abstract recalculate(
-    request: CheckoutRecalculationRequest,
-  ): Promise<CheckoutRecalculationResult>;
+const stageFailureDefaults: Record<CheckoutPipelineStage, readonly [string, string]> = {
+  PRICING_PRELIMINARY: ["CHECKOUT_PRELIMINARY_PRICING_FAILED", "Checkout preliminary pricing could not be calculated."],
+  DELIVERY: ["CHECKOUT_DELIVERY_FAILED", "Checkout delivery options could not be calculated."],
+  PRICING_FINAL: ["CHECKOUT_FINAL_PRICING_FAILED", "Checkout final pricing could not be calculated."],
+  PAYMENT: ["CHECKOUT_PAYMENT_FAILED", "Checkout payment methods could not be calculated."],
+  VALIDATION: ["CHECKOUT_VALIDATION_FAILED", "Checkout validation could not be completed."],
+};
 
-  // TODO(checkout-pipeline): ask Pricing to resolve canonical merchandise,
-  // availability, cart transforms, line discounts and preliminary totals.
-  protected abstract calculatePreliminaryPricing(
-    request: CalculatePreliminaryPricingRequest,
-  ): Promise<CalculatePreliminaryPricingResult>;
+const UPSTREAM_REASON = {
+  code: "CHECKOUT_PIPELINE_UPSTREAM_BLOCKED",
+  message: "Checkout stage was skipped because an upstream stage blocked execution.",
+} as const;
 
-  // TODO(checkout-pipeline): calculate carrier/provider options from canonical
-  // transformed physical lines. Build destinations with the exported
-  // toCheckoutDeliveryDestinations helper; source cart line IDs are invalid.
-  protected abstract calculateDelivery(
-    request: CalculateDeliveryOptionsRequest,
-  ): Promise<CalculateDeliveryOptionsResult>;
+interface GuardAccepted<T> {
+  readonly accepted: true;
+  readonly value?: T;
+  readonly error?: unknown;
+  readonly resultObservedAt: number;
+}
 
-  // TODO(checkout-pipeline): finalize delivery discounts and payable total after
-  // Delivery returns selected option costs. V1 emits explicit zero tax totals.
-  protected abstract finalizePricing(
-    request: FinalizePricingQuoteRequest,
-  ): Promise<FinalizePricingQuoteResult>;
+interface GuardTimeout {
+  readonly accepted: false;
+  readonly deadlineObservedAt: number;
+}
 
-  // TODO(checkout-pipeline): resolve payment methods only from the final quote
-  // so payment customization observes the final payable amount.
-  protected abstract calculatePayments(
-    request: GetAvailablePaymentMethodsRequest,
-  ): Promise<GetAvailablePaymentMethodsResult>;
+type GuardResult<T> = GuardAccepted<T> | GuardTimeout;
 
-  // TODO(checkout-pipeline): validate the complete immutable snapshot including
-  // cart intent and every successful upstream stage.
-  protected abstract validateCheckout(
-    request: ValidateCheckoutRequest,
-  ): Promise<ValidateCheckoutResult>;
+function deadlineError(): CheckoutPipelineStageError {
+  return new CheckoutPipelineStageError({
+    code: "CHECKOUT_PIPELINE_DEADLINE_EXCEEDED",
+    message: "Checkout recalculation exceeded its deadline.",
+    retryable: true,
+  });
+}
+
+export function runWithCheckoutDeadline<T>(
+  runtime: CheckoutPipelineRuntime,
+  deadlineAt: number,
+  thunk: () => Promise<T>,
+): Promise<GuardResult<T>> {
+  const beforeCall = runtime.now();
+  if (beforeCall >= deadlineAt) {
+    return Promise.resolve({ accepted: false, deadlineObservedAt: beforeCall });
+  }
+  let promise: Promise<T>;
+  try {
+    promise = thunk();
+  } catch (error) {
+    const resultObservedAt = runtime.now();
+    return Promise.resolve(
+      resultObservedAt <= deadlineAt
+        ? { accepted: true, error, resultObservedAt }
+        : { accepted: false, deadlineObservedAt: resultObservedAt },
+    );
+  }
+  return new Promise((resolve) => {
+    let state: "PENDING" | "SETTLED" | "TIMED_OUT" = "PENDING";
+    let handle: unknown;
+    let handleActive = false;
+    const cancel = (): void => {
+      if (handleActive) {
+        handleActive = false;
+        runtime.cancel(handle);
+      }
+    };
+    const settle = (value: T | undefined, error: unknown, rejected: boolean): void => {
+      const observedAt = runtime.now();
+      if (state !== "PENDING") return;
+      cancel();
+      if (observedAt <= deadlineAt) {
+        state = "SETTLED";
+        resolve(rejected
+          ? { accepted: true, error, resultObservedAt: observedAt }
+          : { accepted: true, value, resultObservedAt: observedAt });
+      } else {
+        state = "TIMED_OUT";
+        resolve({ accepted: false, deadlineObservedAt: observedAt });
+      }
+    };
+    try {
+      promise.then(
+        (value) => settle(value, undefined, false),
+        (error) => settle(undefined, error, true),
+      );
+    } catch (error) {
+      const observedAt = runtime.now();
+      state = observedAt <= deadlineAt ? "SETTLED" : "TIMED_OUT";
+      resolve(
+        observedAt <= deadlineAt
+          ? { accepted: true, error, resultObservedAt: observedAt }
+          : { accepted: false, deadlineObservedAt: observedAt },
+      );
+      return;
+    }
+    const scheduleCheck = (): void => {
+      let callbackDuringSchedule = false;
+      let scheduleReturned = false;
+      const newHandle = runtime.schedule(() => {
+        if (!scheduleReturned) {
+          callbackDuringSchedule = true;
+          return;
+        }
+        if (state !== "PENDING") return;
+        handleActive = false;
+        const observedAt = runtime.now();
+        if (observedAt <= deadlineAt) {
+          scheduleCheck();
+          return;
+        }
+        state = "TIMED_OUT";
+        resolve({ accepted: false, deadlineObservedAt: observedAt });
+      }, Math.max(0, deadlineAt - runtime.now() + 1));
+      scheduleReturned = true;
+      if (callbackDuringSchedule) {
+        throw new TypeError("CheckoutPipelineRuntime.schedule must not invoke synchronously");
+      }
+      handle = newHandle;
+      handleActive = state === "PENDING";
+    };
+    try {
+      scheduleCheck();
+    } catch (error) {
+      if (state === "PENDING") {
+        const observedAt = runtime.now();
+        state = observedAt <= deadlineAt ? "SETTLED" : "TIMED_OUT";
+        resolve(
+          observedAt <= deadlineAt
+            ? { accepted: true, error, resultObservedAt: observedAt }
+            : { accepted: false, deadlineObservedAt: observedAt },
+        );
+      }
+    }
+  });
+}
+
+function failureIssue(stage: CheckoutPipelineStage, failure: { code: string; message: string; retryable: boolean }): CheckoutPipelineIssue {
+  return { stage, ...failure, severity: "ERROR", effect: "STOP", field: [] };
+}
+
+function hasStop(outcome: { status: string; issues: readonly CheckoutPipelineIssue[] }): boolean {
+  return outcome.status === "FAILED" || outcome.issues.some(({ effect }) => effect === "STOP");
+}
+
+function iso(value: number): string {
+  return new Date(value).toISOString();
+}
+
+function sanitizeFailure(stage: CheckoutPipelineStage, error: unknown): CheckoutPipelineStageError {
+  if (error instanceof CheckoutPipelineStageError) return error;
+  if (error instanceof CheckoutPipelineBoundaryError || (error instanceof Error && error.name === "ZodError")) {
+    return new CheckoutPipelineStageError({
+      code: "CHECKOUT_PIPELINE_BOUNDARY_VIOLATION",
+      message: "Checkout pipeline received an invalid boundary payload.",
+      retryable: false,
+      cause: error,
+    });
+  }
+  const [code, message] = stageFailureDefaults[stage];
+  return new CheckoutPipelineStageError({ code, message, retryable: false, cause: error });
+}
+
+function preliminaryIssues(result: CalculatePreliminaryPricingResult): CheckoutPipelineIssue[] {
+  const issues: CheckoutPipelineIssue[] = [];
+  result.discountCodeResolutions.forEach((resolution, index) => {
+    if (resolution.status === "REJECTED") {
+      issues.push({
+        stage: "PRICING_PRELIMINARY",
+        code: `DISCOUNT_CODE_REJECTED_${resolution.reason}`,
+        message: resolution.message,
+        severity: "WARNING",
+        effect: "CONTINUE",
+        field: ["cartIntent", "discountCodes", String(index)],
+        retryable: resolution.retryable,
+      });
+    }
+  });
+  return issues;
+}
+
+function deliveryIssues(result: CalculateDeliveryOptionsResult): CheckoutPipelineIssue[] {
+  return result.issues.map((issue) => ({
+    stage: "DELIVERY",
+    code: issue.code,
+    message: issue.message,
+    severity: issue.severity,
+    effect: "CONTINUE",
+    field: issue.carrierServiceAccountId !== null
+      ? ["delivery", "groups", issue.groupId ?? "unassigned", "carrierServices", issue.carrierServiceAccountId]
+      : issue.groupId !== null
+        ? ["delivery", "groups", issue.groupId]
+        : [],
+    retryable: issue.retryable,
+  }));
+}
+
+function finalPricingIssues(
+  preliminary: CalculatePreliminaryPricingResult,
+  finalQuote: FinalizePricingQuoteResult,
+): CheckoutPipelineIssue[] {
+  const preliminaryByCode = new Map(preliminary.discountCodeResolutions.map((resolution) => [resolution.normalizedCode, resolution]));
+  const issues: CheckoutPipelineIssue[] = [];
+  finalQuote.discountCodeResolutions.forEach((resolution, index) => {
+    if (resolution.status === "REJECTED" && preliminaryByCode.get(resolution.normalizedCode)?.status === "PENDING") {
+      issues.push({
+        stage: "PRICING_FINAL",
+        code: `DISCOUNT_CODE_REJECTED_${resolution.reason}`,
+        message: resolution.message,
+        severity: "WARNING",
+        effect: "CONTINUE",
+        field: ["cartIntent", "discountCodes", String(index)],
+        retryable: resolution.retryable,
+      });
+    }
+  });
+  return issues;
+}
+
+function validationIssues(result: ValidateCheckoutResult): CheckoutPipelineIssue[] {
+  return result.operations.map((operation) => ({
+    stage: "VALIDATION",
+    code: operation.code,
+    message: operation.message,
+    severity: operation.severity,
+    effect: operation.severity === "ERROR" ? "STOP" : "CONTINUE",
+    field: operation.field,
+    ...(operation.lineId === null ? {} : { lineId: operation.lineId }),
+    retryable: false,
+  }));
+}
+
+export class CheckoutPipeline {
+  private readonly runtime: CheckoutPipelineRuntime;
+
+  constructor(
+    private readonly dependencies: CheckoutPipelinePorts & {
+      readonly validationRunner: CheckoutValidationRunner;
+      readonly runtime?: CheckoutPipelineRuntime;
+    },
+  ) {
+    this.runtime = dependencies.runtime ?? defaultRuntime;
+  }
+
+  async recalculate(rawRequest: CheckoutRecalculationRequest): Promise<CheckoutRecalculationResult> {
+    const request = parseCheckoutRecalculationRequest(rawRequest);
+    const deadlineAt = Date.parse(request.context.deadlineAt);
+    const executionStarted = this.runtime.now();
+    let deadlineObservedAt: number | null = null;
+    let firstBlockingStage: CheckoutPipelineStage | null = null;
+
+    const runStage = async <TRequest, TResult>(input: {
+      stage: CheckoutPipelineStage;
+      request: TRequest;
+      call: (request: TRequest) => Promise<TResult>;
+      parseResult: (request: TRequest, value: unknown) => TResult;
+      issues: (result: TResult) => CheckoutPipelineIssue[];
+    }): Promise<CheckoutPipelineStageOutcome<TResult>> => {
+      if (firstBlockingStage !== null) {
+        const at = this.runtime.now();
+        return {
+          status: "SKIPPED",
+          reason: { ...UPSTREAM_REASON, upstreamStage: firstBlockingStage },
+          issues: [],
+          trace: { stage: input.stage, status: "SKIPPED", startedAt: iso(at), completedAt: iso(at), durationMs: 0 },
+        };
+      }
+      const startedAt = this.runtime.now();
+      let inputRevision: string;
+      try {
+        inputRevision = canonicalJsonRevision(input.request);
+      } catch (error) {
+        const failure = sanitizeFailure(input.stage, error);
+        const completedAt = this.runtime.now();
+        firstBlockingStage = input.stage;
+        return this.failedOutcome(input.stage, failure, startedAt, completedAt);
+      }
+      const guarded = await runWithCheckoutDeadline(this.runtime, deadlineAt, () => input.call(input.request));
+      if (!guarded.accepted) {
+        deadlineObservedAt ??= guarded.deadlineObservedAt;
+        const completedAt = this.runtime.now();
+        firstBlockingStage = input.stage;
+        return this.failedOutcome(input.stage, deadlineError(), startedAt, completedAt, inputRevision);
+      }
+      if (guarded.error !== undefined) {
+        const failure = sanitizeFailure(input.stage, guarded.error);
+        const completedAt = this.runtime.now();
+        firstBlockingStage = input.stage;
+        return this.failedOutcome(input.stage, failure, startedAt, completedAt, inputRevision, guarded.resultObservedAt);
+      }
+      try {
+        const parsed = input.parseResult(input.request, guarded.value);
+        const issues = input.issues(parsed);
+        const completedAt = this.runtime.now();
+        const outcome: CheckoutPipelineStageOutcome<TResult> = {
+          status: "SUCCESS",
+          data: parsed,
+          issues,
+          trace: {
+            stage: input.stage,
+            status: "SUCCESS",
+            startedAt: iso(startedAt),
+            completedAt: iso(completedAt),
+            durationMs: Math.max(0, completedAt - startedAt),
+            resultObservedAt: iso(guarded.resultObservedAt),
+            inputRevision,
+            outputRevision: canonicalJsonRevision(parsed),
+          },
+        };
+        if (hasStop(outcome)) firstBlockingStage = input.stage;
+        return outcome;
+      } catch (error) {
+        const failure = sanitizeFailure(input.stage, error);
+        const completedAt = this.runtime.now();
+        firstBlockingStage = input.stage;
+        return this.failedOutcome(input.stage, failure, startedAt, completedAt, inputRevision, guarded.resultObservedAt);
+      }
+    };
+
+    const buildStageRequest = <TRequest, TResult>(
+      stage: CheckoutPipelineStage,
+      builder: () => TRequest,
+    ): { request?: TRequest; failure?: CheckoutPipelineStageOutcome<TResult> } => {
+      if (firstBlockingStage !== null) return {};
+      const startedAt = this.runtime.now();
+      try {
+        return { request: builder() };
+      } catch (error) {
+        const failure = sanitizeFailure(stage, error);
+        const completedAt = this.runtime.now();
+        firstBlockingStage = stage;
+        return { failure: this.failedOutcome(stage, failure, startedAt, completedAt) };
+      }
+    };
+    const noStageRequest = <TRequest, TResult>(): {
+      request?: TRequest;
+      failure?: CheckoutPipelineStageOutcome<TResult>;
+    } => ({});
+
+    const preliminaryBuild = buildStageRequest<
+      CalculatePreliminaryPricingRequest,
+      CalculatePreliminaryPricingResult
+    >("PRICING_PRELIMINARY", () =>
+      parseCalculatePreliminaryPricingRequest({
+        context: toCheckoutPipelineEligibilityContext(request.context),
+        cartIntent: toCheckoutPricingCartIntent(request.cartIntent),
+      }),
+    );
+    const preliminaryPricing = preliminaryBuild.failure ??
+      await runStage<CalculatePreliminaryPricingRequest, CalculatePreliminaryPricingResult>({
+        stage: "PRICING_PRELIMINARY",
+        request: preliminaryBuild.request!,
+        call: (value) => this.dependencies.pricing.calculatePreliminaryQuote(value),
+        parseResult: parseCalculatePreliminaryPricingResult,
+        issues: preliminaryIssues,
+      });
+
+    const deliveryBuild = preliminaryPricing.status === "SUCCESS"
+      ? buildStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>("DELIVERY", () => parseCalculateDeliveryOptionsRequest({
+          context: toCheckoutPipelineStageContext(request.context),
+          preliminary: preliminaryPricing.data,
+          destinations: toCheckoutDeliveryDestinations(request.cartIntent.destinations, preliminaryPricing.data),
+          selections: request.cartIntent.selectedDeliveryOptions,
+        }))
+      : noStageRequest<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>();
+    const delivery = deliveryBuild.failure ?? (deliveryBuild.request === undefined
+      ? this.skipped<CalculateDeliveryOptionsResult>("DELIVERY", firstBlockingStage!, this.runtime.now())
+      : await runStage<CalculateDeliveryOptionsRequest, CalculateDeliveryOptionsResult>({
+          stage: "DELIVERY",
+          request: deliveryBuild.request,
+          call: (value) => this.dependencies.delivery.calculateOptions(value),
+          parseResult: parseCalculateDeliveryOptionsResult,
+          issues: deliveryIssues,
+        }));
+
+    const finalBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS"
+      ? buildStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>("PRICING_FINAL", () => parseFinalizePricingQuoteRequest({
+          context: toCheckoutPipelineEligibilityContext(request.context),
+          preliminary: preliminaryPricing.data,
+          delivery: toCheckoutPricingDeliverySnapshot(delivery.data),
+        }))
+      : noStageRequest<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>();
+    const finalPricing = finalBuild.failure ?? (finalBuild.request === undefined
+      ? this.skipped<FinalizePricingQuoteResult>("PRICING_FINAL", firstBlockingStage!, this.runtime.now())
+      : await runStage<FinalizePricingQuoteRequest, FinalizePricingQuoteResult>({
+          stage: "PRICING_FINAL",
+          request: finalBuild.request,
+          call: (value) => this.dependencies.pricing.finalizeQuote(value),
+          parseResult: parseFinalizePricingQuoteResult,
+          issues: (result) => finalPricingIssues(preliminaryPricing.data, result),
+        }));
+
+    const paymentBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS"
+      ? buildStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>("PAYMENT", () => parseGetAvailablePaymentMethodsRequest({
+          context: toCheckoutPipelineEligibilityContext(request.context),
+          selection: request.cartIntent.selectedPaymentMethod,
+          finalQuote: finalPricing.data,
+          delivery: toCheckoutPaymentDeliverySnapshot(delivery.data, preliminaryPricing.data),
+        }))
+      : noStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>();
+    const payment = paymentBuild.failure ?? (paymentBuild.request === undefined
+      ? this.skipped<GetAvailablePaymentMethodsResult>("PAYMENT", firstBlockingStage!, this.runtime.now())
+      : await runStage<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult>({
+          stage: "PAYMENT",
+          request: paymentBuild.request,
+          call: (value) => this.dependencies.payments.getAvailableMethods(value),
+          parseResult: parseGetAvailablePaymentMethodsResult,
+          issues: () => [],
+        }));
+
+    const validationBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && payment.status === "SUCCESS"
+      ? buildStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult>("VALIDATION", () => parseValidateCheckoutRequest({
+          context: request.context,
+          cartIntent: request.cartIntent,
+          preliminary: preliminaryPricing.data,
+          delivery: delivery.data,
+          finalQuote: finalPricing.data,
+          payment: payment.data,
+        }))
+      : noStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult>();
+    const validation = validationBuild.failure ?? (validationBuild.request === undefined
+      ? this.skipped<ValidateCheckoutResult>("VALIDATION", firstBlockingStage!, this.runtime.now())
+      : await runStage<ValidateCheckoutRequest, ValidateCheckoutResult>({
+          stage: "VALIDATION",
+          request: validationBuild.request,
+          call: (value) => this.dependencies.validationRunner.validate(value),
+          parseResult: parseValidateCheckoutResult,
+          issues: validationIssues,
+        }));
+
+    const stages = [preliminaryPricing, delivery, finalPricing, payment, validation] as const;
+    const issues = stages.flatMap((stage) => stage.issues);
+    const executionCompleted = this.runtime.now();
+    const resultRevisionPayload = {
+      schemaVersion: 1,
+      checkoutId: request.context.checkoutId,
+      basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
+      change: request.change,
+      stages: stages.map((outcome, index) => {
+        const stage = (["PRICING_PRELIMINARY", "DELIVERY", "PRICING_FINAL", "PAYMENT", "VALIDATION"] as const)[index]!;
+        if (outcome.status === "SUCCESS") return { stage, status: outcome.status, revision: outcome.data.revision, issues: outcome.issues };
+        if (outcome.status === "FAILED") return { stage, status: outcome.status, failure: outcome.failure, issues: outcome.issues };
+        return { stage, status: outcome.status, reason: outcome.reason, issues: outcome.issues };
+      }),
+    };
+    const result: CheckoutRecalculationResult = {
+      executionId: request.context.executionId,
+      checkoutId: request.context.checkoutId,
+      basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
+      resultRevision: `checkout-pipeline-result:v1:sha256:${canonicalJsonSha256(resultRevisionPayload)}`,
+      preliminaryPricing,
+      delivery,
+      finalPricing,
+      payment,
+      validation,
+      issues,
+      trace: {
+        executionId: request.context.executionId,
+        correlationId: request.context.correlationId,
+        startedAt: iso(executionStarted),
+        completedAt: iso(executionCompleted),
+        deadlineAt: request.context.deadlineAt,
+        deadlineExceeded: deadlineObservedAt !== null,
+        deadlineObservedAt: deadlineObservedAt === null ? null : iso(deadlineObservedAt),
+        stages: stages.map(({ trace }) => trace),
+      },
+    };
+    return parseCheckoutRecalculationResult(request, result);
+  }
+
+  private failedOutcome<T>(
+    stage: CheckoutPipelineStage,
+    error: CheckoutPipelineStageError,
+    startedAt: number,
+    completedAt: number,
+    inputRevision?: string,
+    resultObservedAt?: number,
+  ): CheckoutPipelineStageOutcome<T> {
+    const failure = { code: error.code, message: error.message, retryable: error.retryable };
+    return {
+      status: "FAILED",
+      failure,
+      issues: [failureIssue(stage, failure)],
+      trace: {
+        stage,
+        status: "FAILED",
+        startedAt: iso(startedAt),
+        completedAt: iso(completedAt),
+        durationMs: Math.max(0, completedAt - startedAt),
+        ...(resultObservedAt === undefined ? {} : { resultObservedAt: iso(resultObservedAt) }),
+        ...(inputRevision === undefined ? {} : { inputRevision }),
+      },
+    };
+  }
+
+  private skipped<T>(stage: CheckoutPipelineStage, upstreamStage: CheckoutPipelineStage, at: number): CheckoutPipelineStageOutcome<T> {
+    return {
+      status: "SKIPPED",
+      reason: { ...UPSTREAM_REASON, upstreamStage },
+      issues: [],
+      trace: { stage, status: "SKIPPED", startedAt: iso(at), completedAt: iso(at), durationMs: 0 },
+    };
+  }
+}
+
+export function createCheckoutPipeline(
+  dependencies: CheckoutPipelinePorts & {
+    readonly validationRunner: CheckoutValidationRunner;
+    readonly runtime?: CheckoutPipelineRuntime;
+  },
+): CheckoutPipeline {
+  return new CheckoutPipeline(dependencies);
 }

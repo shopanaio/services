@@ -343,8 +343,8 @@ describe("CommerceFunctionRunner", () => {
     expect(optionalResult.trace.status).toBe("PARTIAL");
     expect(optionalResult.outputs).toHaveLength(1);
 
-    await expect(
-      runner.run(
+    try {
+      await runner.run(
         request([
           {
             ...failedBinding,
@@ -352,8 +352,16 @@ describe("CommerceFunctionRunner", () => {
           },
           successfulBinding,
         ]),
-      ),
-    ).rejects.toBeInstanceOf(CommerceFunctionExecutionError);
+      );
+      throw new Error("Expected required implementation failure");
+    } catch (error) {
+      expect(error).toBeInstanceOf(CommerceFunctionExecutionError);
+      expect(
+        (error as CommerceFunctionExecutionError).outputs.map(
+          ({ implementationId }) => implementationId,
+        ),
+      ).toEqual(["app:binding-b"]);
+    }
   });
 
   it("classifies a discovery timeout as DEADLINE_EXCEEDED", async () => {

@@ -226,6 +226,7 @@ export const checkoutPipelineStageTraceSchema = z
     startedAt: timestampSchema,
     completedAt: timestampSchema,
     durationMs: nonNegativeIntegerSchema,
+    resultObservedAt: timestampSchema.optional(),
     inputRevision: revisionSchema.optional(),
     outputRevision: revisionSchema.optional(),
   })
@@ -237,6 +238,9 @@ export const checkoutPipelineExecutionTraceSchema = z
     correlationId: identifierSchema,
     startedAt: timestampSchema,
     completedAt: timestampSchema,
+    deadlineAt: timestampSchema,
+    deadlineExceeded: z.boolean(),
+    deadlineObservedAt: timestampSchema.nullable(),
     stages: collection(checkoutPipelineStageTraceSchema),
   })
   .strict();
@@ -1265,6 +1269,34 @@ export const checkoutValidationOperationSchema = z
     severity: z.enum(["WARNING", "ERROR"]),
     field: collection(z.string().min(1).max(256)),
     lineId: identifierSchema.nullable(),
+    source: z.discriminatedUnion("type", [
+      z
+        .object({
+          type: z.literal("NATIVE"),
+          rule: z.enum([
+            "CART_EMPTY",
+            "LINE_UNAVAILABLE",
+            "LINE_QUANTITY_EXCEEDED",
+            "DELIVERY_ADDRESS_REQUIRED",
+            "DELIVERY_OPTIONS_UNAVAILABLE",
+            "DELIVERY_OPTION_REQUIRED",
+            "DELIVERY_OPTION_INVALID",
+            "DELIVERY_OPTION_ORPHANED",
+            "PAYMENT_METHODS_UNAVAILABLE",
+            "PAYMENT_METHOD_REQUIRED",
+            "PAYMENT_METHOD_INVALID",
+          ]),
+        })
+        .strict(),
+      z
+        .object({
+          type: z.literal("FUNCTION"),
+          target: z.literal("cart.validations.generate.run"),
+          implementationId: identifierSchema,
+          functionBindingId: identifierSchema,
+        })
+        .strict(),
+    ]),
   })
   .strict();
 
@@ -1285,6 +1317,7 @@ export const validateCheckoutResultSchema = z
     revision: revisionSchema,
     basedOnFinalQuoteRevision: revisionSchema,
     basedOnPaymentRevision: revisionSchema,
+    bindingSetRevision: revisionSchema,
     valid: z.boolean(),
     operations: collection(checkoutValidationOperationSchema),
   })
