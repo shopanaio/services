@@ -68,6 +68,7 @@ export {
   CustomersCheckoutActions,
 } from "./customers.js";
 export type {
+  CustomerCheckoutIneligibilityReason,
   ResolveCheckoutBuyerEligibilityParams,
   ResolveCheckoutBuyerEligibilityResult,
 } from "./customers.js";

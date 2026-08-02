@@ -77,10 +77,21 @@ memberships. Tags support simple merchant labels. Segments support both manual
 membership and dynamic rule/query definitions in the Shopify style. These are
 separate concepts and are not collapsed into one array column.
 
-Group and segment `revision` fields are aggregate concurrency state: definition
-updates and manual membership changes increment them. A segment's optional
-`color` is presentation metadata owned by the merchant and validated as
-`#RRGGBB` when present.
+Group and segment `revision` fields are aggregate concurrency state: accepted
+definition, state and membership commands increment them. Segment
+`definition_revision` is independent: only changes to `type`, `query` or the
+structural JSON `definition` increment it. Name, description, color, status and
+membership-only changes leave it unchanged. A segment's optional `color` is
+presentation metadata owned by the merchant and validated as `#RRGGBB` when
+present.
+
+Each RULE `customer_segment_membership` stores the current segment
+`definition_revision` in `evaluated_definition_revision`; non-RULE memberships
+must store `NULL`. Checkout reads only active, non-deleted segments and treats a
+RULE membership as current when both revisions are equal. It evaluates time
+against the caller-provided `effectiveAt`: `evaluated_at` is inclusive and
+`expires_at` is exclusive. The checkout index begins with
+`(store_id, customer_id, expires_at, segment_id)`.
 
 ### Moderation
 
@@ -136,3 +147,7 @@ turning a destructive operation into a single unaudited flag update.
   manual membership changes.
 - Customer segment revision is non-negative and covers definition and manual
   membership changes.
+- Customer segment definition revision is non-negative and changes only with
+  the dynamic definition.
+- RULE memberships have a non-negative evaluated definition revision equal to
+  the definition used for materialization; other membership sources have none.

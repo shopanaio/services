@@ -136,7 +136,10 @@ export class BrokerCustomersCheckoutEligibilityAdapter
   ): Promise<CheckoutBuyerEligibilitySnapshot> {
     let result: Customers.ResolveCheckoutBuyerEligibilityResult;
     try {
-      result = await this.broker.call(
+      result = await this.broker.call<
+        Customers.ResolveCheckoutBuyerEligibilityResult,
+        Customers.ResolveCheckoutBuyerEligibilityParams
+      >(
         CustomersCheckoutActions.resolveBuyerEligibility,
         input,
       );
@@ -147,6 +150,9 @@ export class BrokerCustomersCheckoutEligibilityAdapter
         true,
         { cause },
       );
+    }
+    if (!isCustomersEligibilityResult(result)) {
+      throw invalidCustomersEligibilityResponse();
     }
     if (!result.ok) {
       throw new CheckoutMutationError(
@@ -160,14 +166,67 @@ export class BrokerCustomersCheckoutEligibilityAdapter
       result.customerId !== input.customerId ||
       result.effectiveAt !== input.effectiveAt
     ) {
-      throw new CheckoutMutationError(
-        "BUYER_ELIGIBILITY_RESPONSE_INVALID",
-        "Buyer eligibility response did not match the checkout request.",
-        true,
-      );
+      throw invalidCustomersEligibilityResponse();
     }
     return result;
   }
+}
+
+function isCustomersEligibilityResult(
+  value: unknown,
+): value is Customers.ResolveCheckoutBuyerEligibilityResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  if (result.ok === true) {
+    return (
+      typeof result.storeId === "string" &&
+      typeof result.customerId === "string" &&
+      typeof result.effectiveAt === "string" &&
+      Array.isArray(result.segmentIds) &&
+      result.segmentIds.length <= 500 &&
+      result.segmentIds.every(
+        (id) => typeof id === "string" && id.trim().length > 0,
+      ) &&
+      new Set(result.segmentIds).size === result.segmentIds.length &&
+      result.segmentIds.every(
+        (id, index) =>
+          index === 0 || result.segmentIds[index - 1] <= id,
+      ) &&
+      typeof result.segmentMembershipRevision === "string" &&
+      result.segmentMembershipRevision.length > 0
+    );
+  }
+  if (
+    result.ok !== false ||
+    typeof result.message !== "string" ||
+    result.message.length === 0
+  ) {
+    return false;
+  }
+  if (result.code === "BUYER_ELIGIBILITY_RESOLUTION_FAILED") {
+    return result.retryable === true;
+  }
+  if (
+    result.code === "CUSTOMER_NOT_FOUND" ||
+    result.code === "BUYER_ELIGIBILITY_LIMIT_EXCEEDED"
+  ) {
+    return result.retryable === false;
+  }
+  return (
+    result.code === "CUSTOMER_NOT_ELIGIBLE" &&
+    result.retryable === false &&
+    ["DISABLED", "BLOCKED", "MERGED", "REDACTED"].includes(
+      String(result.reason)
+    )
+  );
+}
+
+function invalidCustomersEligibilityResponse(): CheckoutMutationError {
+  return new CheckoutMutationError(
+    "BUYER_ELIGIBILITY_RESPONSE_INVALID",
+    "Buyer eligibility response did not match the checkout request.",
+    true,
+  );
 }
 
 function stageFailure(

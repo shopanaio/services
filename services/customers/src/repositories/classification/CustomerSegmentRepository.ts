@@ -259,6 +259,7 @@ export class CustomerSegmentRepository extends BaseRepository {
         definition: data.definition ?? {},
         createdById: data.createdById ?? null,
         revision: 0,
+        definitionRevision: 0,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -270,7 +271,8 @@ export class CustomerSegmentRepository extends BaseRepository {
   async update(
     id: string,
     patch: CustomerSegmentPatch,
-    expectedRevision?: number
+    expectedRevision?: number,
+    definitionChanged = false
   ): Promise<CustomerSegment | null> {
     const conditions = [
       eq(customerSegment.storeId, this.storeId),
@@ -286,6 +288,11 @@ export class CustomerSegmentRepository extends BaseRepository {
         ...patch,
         ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
         revision: sql`${customerSegment.revision} + 1`,
+        ...(definitionChanged
+          ? {
+              definitionRevision: sql`${customerSegment.definitionRevision} + 1`,
+            }
+          : {}),
         updatedAt: new Date().toISOString(),
       })
       .where(and(...conditions))
@@ -298,9 +305,15 @@ export class CustomerSegmentRepository extends BaseRepository {
     id: string,
     patch: CustomerSegmentPatch,
     memberships: CustomerSegmentMembershipRelationsPatch | undefined,
-    expectedRevision?: number
+    expectedRevision?: number,
+    definitionChanged = false
   ): Promise<CustomerSegmentUpdateResult | null> {
-    const segment = await this.update(id, patch, expectedRevision);
+    const segment = await this.update(
+      id,
+      patch,
+      expectedRevision,
+      definitionChanged
+    );
     if (!segment) return null;
     if (!memberships) {
       return { segment, affectedCustomerIds: [] };
@@ -339,6 +352,7 @@ export class CustomerSegmentRepository extends BaseRepository {
             segmentId: id,
             source: "MANUAL" as const,
             evaluatedAt: now,
+            evaluatedDefinitionRevision: null,
             expiresAt: null,
           }))
         );
@@ -367,6 +381,7 @@ export class CustomerSegmentRepository extends BaseRepository {
           segmentId: id,
           source: "MANUAL" as const,
           evaluatedAt: now,
+          evaluatedDefinitionRevision: null,
           expiresAt: input.expiresAt ?? null,
         }))
       );
@@ -436,7 +451,7 @@ export class CustomerSegmentRepository extends BaseRepository {
     expectedRevision?: number,
     source: CustomerSegmentMembership["source"] = "MANUAL"
   ): Promise<SegmentMembershipMutationResult | null> {
-    const segment = await this.bumpRevision(segmentId, expectedRevision);
+    const segment = await this.bumpRevision(segmentId, expectedRevision, source);
     if (!segment) return null;
     const uniqueIds = [...new Set(customerIds)];
     if (uniqueIds.length === 0) return { segment, memberships: [] };
@@ -458,7 +473,13 @@ export class CustomerSegmentRepository extends BaseRepository {
     const updated = existing.length > 0
       ? await this.connection
         .update(customerSegmentMembership)
-        .set({ source, evaluatedAt, expiresAt: null })
+        .set({
+          source,
+          evaluatedAt,
+          evaluatedDefinitionRevision:
+            source === "RULE" ? segment.definitionRevision : null,
+          expiresAt: null,
+        })
         .where(
           and(
             eq(customerSegmentMembership.storeId, this.storeId),
@@ -483,6 +504,8 @@ export class CustomerSegmentRepository extends BaseRepository {
             segmentId,
             source,
             evaluatedAt,
+            evaluatedDefinitionRevision:
+              source === "RULE" ? segment.definitionRevision : null,
             expiresAt: null,
           }))
         )
@@ -547,6 +570,7 @@ export class CustomerSegmentRepository extends BaseRepository {
           segmentId,
           source: "MANUAL" as const,
           evaluatedAt,
+          evaluatedDefinitionRevision: null,
           expiresAt: null,
         }))
       )
@@ -594,6 +618,7 @@ export class CustomerSegmentRepository extends BaseRepository {
             segmentId,
             source: "MANUAL" as const,
             evaluatedAt,
+            evaluatedDefinitionRevision: null,
             expiresAt: null,
           }))
         )
@@ -690,12 +715,13 @@ export class CustomerSegmentRepository extends BaseRepository {
 
   private async bumpRevision(
     segmentId: string,
-    expectedRevision?: number
+    expectedRevision?: number,
+    source: CustomerSegmentMembership["source"] = "MANUAL"
   ): Promise<CustomerSegment | null> {
     const conditions = [
       eq(customerSegment.storeId, this.storeId),
       eq(customerSegment.id, segmentId),
-      eq(customerSegment.type, "MANUAL"),
+      eq(customerSegment.type, source === "RULE" ? "DYNAMIC" : "MANUAL"),
       isNull(customerSegment.deletedAt),
     ];
     if (expectedRevision !== undefined) {

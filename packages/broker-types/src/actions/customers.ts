@@ -14,6 +14,12 @@ export interface ResolveCheckoutBuyerEligibilityParams {
   effectiveAt: string;
 }
 
+export type CustomerCheckoutIneligibilityReason =
+  | "DISABLED"
+  | "BLOCKED"
+  | "MERGED"
+  | "REDACTED";
+
 export type ResolveCheckoutBuyerEligibilityResult =
   | Readonly<{
       ok: true;
@@ -26,7 +32,26 @@ export type ResolveCheckoutBuyerEligibilityResult =
     }>
   | Readonly<{
       ok: false;
-      code: "CUSTOMER_NOT_FOUND" | "BUYER_ELIGIBILITY_RESOLUTION_FAILED";
+      code: "CUSTOMER_NOT_FOUND";
       message: string;
-      retryable: boolean;
+      retryable: false;
+    }>
+  | Readonly<{
+      ok: false;
+      code: "CUSTOMER_NOT_ELIGIBLE";
+      reason: CustomerCheckoutIneligibilityReason;
+      message: string;
+      retryable: false;
+    }>
+  | Readonly<{
+      ok: false;
+      code: "BUYER_ELIGIBILITY_LIMIT_EXCEEDED";
+      message: string;
+      retryable: false;
+    }>
+  | Readonly<{
+      ok: false;
+      code: "BUYER_ELIGIBILITY_RESOLUTION_FAILED";
+      message: string;
+      retryable: true;
     }>;

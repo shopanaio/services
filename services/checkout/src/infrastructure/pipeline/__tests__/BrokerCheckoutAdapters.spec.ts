@@ -98,4 +98,59 @@ describe("checkout broker adapters", () => {
       input,
     );
   });
+
+  it.each([
+    ["CUSTOMER_NOT_FOUND", undefined],
+    ["CUSTOMER_NOT_ELIGIBLE", "BLOCKED"],
+    ["BUYER_ELIGIBILITY_LIMIT_EXCEEDED", undefined],
+  ] as const)("passes through non-retryable Customers failure %s", async (code, reason) => {
+    const call = jest.fn(async () => ({
+      ok: false as const,
+      code,
+      ...(reason ? { reason } : {}),
+      message: "Customer eligibility failed.",
+      retryable: false as const,
+    }));
+    const adapter = new BrokerCustomersCheckoutEligibilityAdapter(
+      { call } as unknown as ServiceBroker,
+    );
+
+    await expect(
+      adapter.resolve({
+        storeId: "store-1",
+        customerId: "customer-1",
+        effectiveAt: "2026-08-02T10:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code, retryable: false });
+  });
+
+  it("maps broker throws and rejects malformed declared failures", async () => {
+    const input = {
+      storeId: "store-1",
+      customerId: "customer-1",
+      effectiveAt: "2026-08-02T10:00:00.000Z",
+    };
+    const thrown = new BrokerCustomersCheckoutEligibilityAdapter({
+      call: jest.fn(async () => {
+        throw new Error("transport failed");
+      }),
+    } as unknown as ServiceBroker);
+    await expect(thrown.resolve(input)).rejects.toMatchObject({
+      code: "BUYER_ELIGIBILITY_RESOLUTION_FAILED",
+      retryable: true,
+    });
+
+    const malformed = new BrokerCustomersCheckoutEligibilityAdapter({
+      call: jest.fn(async () => ({
+        ok: false,
+        code: "CUSTOMER_NOT_FOUND",
+        message: "Not found",
+        retryable: true,
+      })),
+    } as unknown as ServiceBroker);
+    await expect(malformed.resolve(input)).rejects.toMatchObject({
+      code: "BUYER_ELIGIBILITY_RESPONSE_INVALID",
+      retryable: true,
+    });
+  });
 });

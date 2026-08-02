@@ -18,6 +18,25 @@ Orders остается источником истины для заказов,
 Все данные привязаны к магазину: каждая таблица содержит `store_id`, а
 репозитории обязаны получать Store из доверенного контекста запроса.
 
+### Checkout eligibility
+
+Customers публикует read-only broker action
+`customers.resolveCheckoutBuyerEligibility`. Он разрешает только существующего
+Customer из доверенного Store context, применяет lifecycle policy и возвращает
+неизменяемый snapshot активных сегментов на переданный `effectiveAt`.
+
+Checkout разрешен только для lifecycle `ACTIVE`. Удаленный Customer и Customer
+другого Store не раскрываются, а `DISABLED`, `BLOCKED`, `MERGED` и `REDACTED`
+возвращаются как non-retryable business failures без внутренних причин, merge
+target или PII. Customers не создает и не изменяет профиль через этот action и
+не выполняет dynamic rules синхронно.
+
+Membership действует при `evaluated_at <= effectiveAt` и отсутствующем
+`expires_at` либо `expires_at > effectiveAt`. RULE membership дополнительно
+должен быть вычислен по текущему `definition_revision` сегмента. Segment IDs
+уникальны, отсортированы, ограничены 500 значениями и сопровождаются стабильной
+SHA-256 revision исходных membership rows.
+
 ## Сущности
 
 ### Профиль покупателя
@@ -132,8 +151,11 @@ Orders остается источником истины для заказов,
 - UUID-идентификаторы генерируются PostgreSQL-функцией `uuidv7()`.
 - Revision группы изменяется при обновлении определения, состояния и ручного
   состава участников.
-- Revision сегмента изменяется при обновлении определения и ручного состава
-  участников.
+- Aggregate revision сегмента изменяется при принятом обновлении определения,
+  состояния или состава участников. Отдельный `definition_revision` изменяется
+  только при изменении type, query или структурного JSON definition.
+- RULE membership хранит `evaluated_definition_revision`; остальные источники
+  обязаны хранить `NULL`.
 
 ## Контракт обновления Admin
 

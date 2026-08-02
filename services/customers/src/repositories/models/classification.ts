@@ -188,6 +188,7 @@ export const customerSegment = customersSchema.table(
     definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
     createdById: text("created_by_id"),
     revision: integer("revision").notNull().default(0),
+    definitionRevision: integer("definition_revision").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -212,6 +213,10 @@ export const customerSegment = customersSchema.table(
     check(
       "customer_segment_revision_nonnegative_check",
       sql`${table.revision} >= 0`
+    ),
+    check(
+      "customer_segment_definition_revision_nonnegative_check",
+      sql`${table.definitionRevision} >= 0`
     ),
     uniqueIndex("customer_segment_store_name_unique")
       .on(table.storeId, sql`lower(${table.name})`)
@@ -240,6 +245,7 @@ export const customerSegmentMembership = customersSchema.table(
     })
       .notNull()
       .defaultNow(),
+    evaluatedDefinitionRevision: integer("evaluated_definition_revision"),
     expiresAt: timestamp("expires_at", {
       withTimezone: true,
       mode: "string",
@@ -254,6 +260,15 @@ export const customerSegmentMembership = customersSchema.table(
       "customer_segment_membership_expiry_check",
       sql`${table.expiresAt} IS NULL OR ${table.expiresAt} > ${table.evaluatedAt}`
     ),
+    check(
+      "customer_segment_membership_definition_revision_check",
+      sql`(${table.source} = 'RULE' AND ${table.evaluatedDefinitionRevision} IS NOT NULL)
+        OR (${table.source} <> 'RULE' AND ${table.evaluatedDefinitionRevision} IS NULL)`
+    ),
+    check(
+      "customer_segment_membership_definition_revision_nonnegative_check",
+      sql`${table.evaluatedDefinitionRevision} IS NULL OR ${table.evaluatedDefinitionRevision} >= 0`
+    ),
     index("customer_segment_membership_store_segment_idx").on(
       table.storeId,
       table.segmentId,
@@ -263,6 +278,12 @@ export const customerSegmentMembership = customersSchema.table(
     index("customer_segment_membership_expiry_idx")
       .on(table.expiresAt)
       .where(sql`${table.expiresAt} IS NOT NULL`),
+    index("customer_segment_membership_store_customer_expiry_idx").on(
+      table.storeId,
+      table.customerId,
+      table.expiresAt,
+      table.segmentId
+    ),
   ]
 );
 

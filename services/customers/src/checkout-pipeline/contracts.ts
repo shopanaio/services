@@ -11,7 +11,6 @@ export interface CustomersCheckoutEligibilityPort {
   ): Promise<ResolveBuyerEligibilityResult>;
 }
 
-/** Intentional scaffolding; registration belongs with the real resolver. */
 export interface CustomersCheckoutActionsContract {
   resolveCheckoutBuyerEligibility(
     params: ResolveBuyerEligibilityParams,

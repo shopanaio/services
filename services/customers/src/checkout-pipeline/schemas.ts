@@ -13,8 +13,14 @@ export const resolveBuyerEligibilityParamsSchema: z.ZodType<Customers.ResolveChe
     })
     .strict();
 
+export function parseResolveBuyerEligibilityParams(
+  value: unknown,
+): Customers.ResolveCheckoutBuyerEligibilityParams {
+  return resolveBuyerEligibilityParamsSchema.parse(value);
+}
+
 export const resolveBuyerEligibilityResultSchema: z.ZodType<Customers.ResolveCheckoutBuyerEligibilityResult> =
-  z.discriminatedUnion("ok", [
+  z.union([
     z
       .object({
         ok: z.literal(true),
@@ -31,22 +37,49 @@ export const resolveBuyerEligibilityResultSchema: z.ZodType<Customers.ResolveChe
                 message: "Customer segment IDs must be unique",
               });
             }
+            if (
+              segmentIds.some(
+                (segmentId, index) =>
+                  index > 0 &&
+                  segmentIds[index - 1] > segmentId,
+              )
+            ) {
+              context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Customer segment IDs must be sorted",
+              });
+            }
           }),
         segmentMembershipRevision: identifierSchema,
       })
       .strict(),
+    failureSchema("CUSTOMER_NOT_FOUND", false),
     z
       .object({
         ok: z.literal(false),
-        code: z.enum([
-          "CUSTOMER_NOT_FOUND",
-          "BUYER_ELIGIBILITY_RESOLUTION_FAILED",
-        ]),
+        code: z.literal("CUSTOMER_NOT_ELIGIBLE"),
+        reason: z.enum(["DISABLED", "BLOCKED", "MERGED", "REDACTED"]),
         message: z.string().trim().min(1),
-        retryable: z.boolean(),
+        retryable: z.literal(false),
       })
       .strict(),
+    failureSchema("BUYER_ELIGIBILITY_LIMIT_EXCEEDED", false),
+    failureSchema("BUYER_ELIGIBILITY_RESOLUTION_FAILED", true),
   ]);
+
+function failureSchema<TCode extends string, TRetryable extends boolean>(
+  code: TCode,
+  retryable: TRetryable,
+) {
+  return z
+    .object({
+      ok: z.literal(false),
+      code: z.literal(code),
+      message: z.string().trim().min(1),
+      retryable: z.literal(retryable),
+    })
+    .strict();
+}
 
 export function parseResolveBuyerEligibilityResult(
   params: Customers.ResolveCheckoutBuyerEligibilityParams,

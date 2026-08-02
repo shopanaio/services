@@ -5,6 +5,7 @@ import { CustomerGroupRepository } from "./classification/CustomerGroupRepositor
 import { CustomerSegmentRepository } from "./classification/CustomerSegmentRepository.js";
 import { CustomerTagRepository } from "./classification/CustomerTagRepository.js";
 import { CustomerConsentRepository } from "./consent/CustomerConsentRepository.js";
+import { CustomerCheckoutEligibilityRepository } from "./checkout/CustomerCheckoutEligibilityRepository.js";
 import { CustomerRepository } from "./customer/CustomerRepository.js";
 import { CustomerExternalReferenceRepository } from "./integration/CustomerExternalReferenceRepository.js";
 import { CustomerLifecycleRepository } from "./lifecycle/CustomerLifecycleRepository.js";
@@ -32,6 +33,7 @@ export class Repository {
   public readonly lifecycle: CustomerLifecycleRepository;
   public readonly externalReference: CustomerExternalReferenceRepository;
   public readonly storefrontAuth: StorefrontAuthConfigurationRepository;
+  public readonly checkoutEligibility: CustomerCheckoutEligibilityRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -51,6 +53,7 @@ export class Repository {
     lifecycle: CustomerLifecycleRepository,
     externalReference: CustomerExternalReferenceRepository,
     storefrontAuth: StorefrontAuthConfigurationRepository,
+    checkoutEligibility: CustomerCheckoutEligibilityRepository,
     txManager: TransactionManager<Database>
   ) {
     this.customer = customer;
@@ -65,6 +68,7 @@ export class Repository {
     this.lifecycle = lifecycle;
     this.externalReference = externalReference;
     this.storefrontAuth = storefrontAuth;
+    this.checkoutEligibility = checkoutEligibility;
     this.txManager = txManager;
   }
 
@@ -83,6 +87,7 @@ export class Repository {
       new CustomerLifecycleRepository(config.db, txManager),
       new CustomerExternalReferenceRepository(config.db, txManager),
       new StorefrontAuthConfigurationRepository(config.db, txManager),
+      new CustomerCheckoutEligibilityRepository(config.db, txManager),
       txManager
     );
   }

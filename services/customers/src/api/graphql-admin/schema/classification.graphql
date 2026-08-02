@@ -23,7 +23,7 @@ type CustomerGroup implements Node {
   description: String
   isDefault: Boolean!
   isActive: Boolean!
-  """Aggregate revision incremented by definition and membership changes."""
+  """Aggregate revision incremented by definition, state and membership changes."""
   revision: Int!
   customersCount: Int!
   createdAt: DateTime!
@@ -132,7 +132,7 @@ type CustomerSegment implements Node {
   query: String
   definition: JSON!
   createdById: String
-  """Aggregate revision incremented by definition and membership changes."""
+  """Aggregate revision incremented by definition, state and membership changes."""
   revision: Int!
   customersCount: Int!
   createdAt: DateTime!

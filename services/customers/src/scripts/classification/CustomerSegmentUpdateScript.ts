@@ -212,12 +212,16 @@ export class CustomerSegmentUpdateScript extends BaseScript<
       };
     }
 
+    const patch = segmentPatch(params.operations);
+    const definitionChanged = hasDefinitionChanged(current, patch);
+
     try {
       const result = await this.repository.segment.updateWithMemberships(
         params.id,
-        segmentPatch(params.operations),
+        patch,
         memberships ? membershipPatch(memberships) : undefined,
-        params.expectedRevision
+        params.expectedRevision,
+        definitionChanged
       );
       if (!result) return revisionConflict();
       this.logger.info(
@@ -348,6 +352,37 @@ function segmentPatch(
     Object.assign(patch, { status: state.status });
   }
   return patch;
+}
+
+function hasDefinitionChanged(
+  current: CustomerSegment,
+  patch: CustomerSegmentPatch
+): boolean {
+  const nextType = patch.type ?? current.type;
+  const nextQuery = hasOwn(patch, "query") ? patch.query ?? null : current.query;
+  const nextDefinition = hasOwn(patch, "definition")
+    ? patch.definition ?? {}
+    : current.definition;
+
+  return (
+    nextType !== current.type ||
+    nextQuery !== current.query ||
+    canonicalJson(nextDefinition) !== canonicalJson(current.definition)
+  );
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value) ?? "null";
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  const object = value as Record<string, unknown>;
+  return `{${Object.keys(object)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key])}`)
+    .join(",")}}`;
 }
 
 function membershipPatch(
