@@ -57,7 +57,9 @@ export class PaymentLifecycleRepository {
       }
 
       const now = new Date().toISOString();
-      const [idRow] = await this.connection.select({ id: sql<string>`uuidv7()` });
+      const [idRow] = await this.connection.execute<{ id: string }>(
+        sql`SELECT uuidv7() AS id`,
+      );
       const collection: Payments.PaymentCollectionSnapshot = {
         paymentCollectionId: idRow!.id,
         organizationId: params.organizationId,
@@ -167,10 +169,10 @@ export class PaymentLifecycleRepository {
         .from(paymentSession)
         .where(eq(paymentSession.paymentCollectionId, collection.paymentCollectionId))
         .orderBy(asc(paymentSession.attemptSequence));
-      const [ids] = await this.connection.select({
-        sessionId: sql<string>`uuidv7()`,
-        operationId: sql<string>`uuidv7()`,
-      });
+      const [ids] = await this.connection.execute<{
+        sessionId: string;
+        operationId: string;
+      }>(sql`SELECT uuidv7() AS "sessionId", uuidv7() AS "operationId"`);
       const operationType: Payments.PaymentOperationType = params.kind === "SALE" ? "SALE" : "AUTHORIZE";
       const idempotency: Payments.PaymentIdempotencySnapshot = {
         scope: `payment-session:${ids!.sessionId}:initial`,

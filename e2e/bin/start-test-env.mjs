@@ -326,9 +326,7 @@ async function main() {
   const adminSupergraph = join(tmpDir, "supergraph-admin.graphql");
   const storefrontSupergraph = join(tmpDir, "supergraph-storefront.graphql");
 
-  if (!existsSync(join(federationDir, "schema"))) {
-    runStep("yarn", ["shopana", "schema", "export"]);
-  }
+  runStep("yarn", ["shopana", "schema", "export"]);
 
   runStep("yarn", ["mesh-compose", "-c", "mesh-admin.config.ts", "-o", adminSupergraph], {
     cwd: federationDir,

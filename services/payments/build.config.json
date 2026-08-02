@@ -1,3 +1,10 @@
 {
-  "entryPoint": "src/payments.module.ts"
+  "entryPoint": "src/payments.module.ts",
+  "migrations": { "path": "dist/migrations", "type": "node-pg-migrate" },
+  "assets": [
+    {
+      "include": "migrations/**/*",
+      "outDir": "dist/migrations"
+    }
+  ]
 }

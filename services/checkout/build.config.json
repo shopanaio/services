@@ -1,5 +1,6 @@
 {
   "entryPoint": "src/checkout.module.ts",
+  "migrations": { "path": "dist/migrations", "type": "node-pg-migrate" },
   "graphql": {
     "storefront": [
       "src/interfaces/gql-storefront-api/schema/**/*.graphql",
@@ -14,6 +15,10 @@
     {
       "include": "../../packages/shared-references/graphql/**/*.graphql",
       "outDir": "dist/schema"
+    },
+    {
+      "include": "migrations/**/*",
+      "outDir": "dist/migrations"
     }
   ]
 }

@@ -1,32 +1,4 @@
-DROP TABLE "platform"."checkout_selected_payment_methods";
-DROP TABLE "platform"."checkout_payment_methods";
-DROP TABLE "platform"."checkout_delivery_methods";
-DROP TABLE "platform"."checkout_delivery_groups";
-DROP TABLE "platform"."checkout_delivery_addresses";
-DROP TABLE "platform"."checkout_recipients";
-DROP TABLE "platform"."checkout_applied_discounts";
-DROP TABLE "platform"."checkout_line_items";
-DROP TABLE "platform"."checkout_tags";
-DROP TABLE "platform"."checkout_customer_identities";
-
-ALTER TABLE "platform"."checkouts"
-  DROP COLUMN "api_key_id",
-  DROP COLUMN "admin_id",
-  DROP COLUMN "sales_channel",
-  ADD COLUMN "version" integer NOT NULL,
-  ADD COLUMN "channel_code" text NOT NULL,
-  ADD COLUMN "result_revision" text NOT NULL,
-  ADD COLUMN "checkout_valid" boolean NOT NULL,
-  ADD COLUMN "pipeline_issues" jsonb NOT NULL;
-
-ALTER TABLE "platform"."checkouts"
-  ADD CONSTRAINT "checkouts_version_positive_check" CHECK ("version" > 0),
-  ADD CONSTRAINT "checkouts_channel_code_not_blank_check"
-    CHECK (char_length(btrim("channel_code")) BETWEEN 1 AND 128),
-  ADD CONSTRAINT "checkouts_result_revision_not_blank_check"
-    CHECK (char_length(btrim("result_revision")) > 0),
-  ADD CONSTRAINT "checkouts_store_id_id_unique" UNIQUE ("store_id", "id"),
-  ADD CONSTRAINT "checkouts_store_id_id_version_unique" UNIQUE ("store_id", "id", "version");
+-- Up Migration
 
 CREATE TABLE "platform"."checkout_current_snapshots" (
   "checkout_id" uuid PRIMARY KEY,
