@@ -46,6 +46,124 @@ describe("ordered line discount application", () => {
       candidateId: "candidate-a",
     });
   });
+
+  it("applies PRODUCT amounts before ORDER amounts and emits canonical priority order", () => {
+    const product = owner("product", 10, "PRODUCT", "AMOUNT_OFF_PRODUCTS");
+    const order = owner("order", 20, "ORDER", "AMOUNT_OFF_ORDER");
+    const result = applyLineDiscountCandidates({
+      context: context(),
+      roots: [line()],
+      snapshot: {
+        ...snapshot(),
+        amountOff: [
+          {
+            discountId: "product",
+            allocationMethod: "ACROSS",
+            valueType: "PERCENTAGE",
+            percentageBps: 5_000,
+            amountMinor: null,
+            maximumDiscountMinor: null,
+          },
+          {
+            discountId: "order",
+            allocationMethod: "ACROSS",
+            valueType: "FIXED_AMOUNT",
+            percentageBps: null,
+            amountMinor: 30n,
+            maximumDiscountMinor: null,
+          },
+        ],
+        combinations: [
+          { discountId: "product", combinesWithClass: "ORDER" },
+          { discountId: "order", combinesWithClass: "PRODUCT" },
+        ],
+      } as unknown as DiscountEvaluationSnapshot,
+      candidates: [nativeCandidate(order), nativeCandidate(product)],
+      codeResolutions: [],
+    });
+
+    expect(result.applications.map((application) => ({
+      discountId: application.discountId,
+      amount: application.amount.amountMinor,
+    }))).toEqual([
+      { discountId: "order", amount: "30" },
+      { discountId: "product", amount: "50" },
+    ]);
+    expect(result.lines[0]?.total.amountMinor).toBe("20");
+  });
+
+  it("applies a fixed EACH function adjustment independently per line", () => {
+    const discountOwner = owner("function", 20);
+    const candidate = functionCandidate(
+      discountOwner,
+      "fixed-each",
+      ["first", "second"],
+      "EACH",
+      "100",
+    );
+    const result = applyLineDiscountCandidates({
+      context: context(),
+      roots: [line("first", 100n), line("second", 1_000n)],
+      snapshot: snapshot(),
+      candidates: [candidate],
+      codeResolutions: [],
+    });
+
+    expect(result.applications[0]?.allocations).toEqual([
+      {
+        targetType: "LINE",
+        lineId: "first",
+        quantity: null,
+        amount: { amountMinor: "100", currencyCode: "USD" },
+      },
+      {
+        targetType: "LINE",
+        lineId: "second",
+        quantity: null,
+        amount: { amountMinor: "100", currencyCode: "USD" },
+      },
+    ]);
+  });
+
+  it("applies a maximum cap to the sum of EACH function adjustments", () => {
+    const discountOwner = owner("function", 20);
+    const candidate = functionCandidate(
+      discountOwner,
+      "capped-fixed-each",
+      ["first", "second"],
+      "EACH",
+      "100",
+    );
+    if (candidate.source.kind !== "FUNCTION") {
+      throw new Error("Expected a function discount candidate");
+    }
+    candidate.source.candidate.maximumDiscount = {
+      amountMinor: "150",
+      currencyCode: "USD",
+    };
+    const result = applyLineDiscountCandidates({
+      context: context(),
+      roots: [line("first", 100n), line("second", 1_000n)],
+      snapshot: snapshot(),
+      candidates: [candidate],
+      codeResolutions: [],
+    });
+
+    expect(result.applications[0]?.allocations).toEqual([
+      {
+        targetType: "LINE",
+        lineId: "first",
+        quantity: null,
+        amount: { amountMinor: "75", currencyCode: "USD" },
+      },
+      {
+        targetType: "LINE",
+        lineId: "second",
+        quantity: null,
+        amount: { amountMinor: "75", currencyCode: "USD" },
+      },
+    ]);
+  });
 });
 
 function nativeCandidate(discountOwner: DiscountOwner): LineDiscountCandidate {
@@ -63,6 +181,9 @@ function nativeCandidate(discountOwner: DiscountOwner): LineDiscountCandidate {
 function functionCandidate(
   discountOwner: DiscountOwner,
   candidateId: string,
+  lineIds: string[] = ["line"],
+  allocationMethod: "EACH" | "ACROSS" = "ACROSS",
+  fixedAmountMinor = "10",
 ): LineDiscountCandidate {
   return {
     candidateId,
@@ -77,12 +198,12 @@ function functionCandidate(
         candidateId,
         discountClass: "PRODUCT",
         title: candidateId,
-        targets: { type: "LINES", lineIds: ["line"] },
+        targets: { type: "LINES", lineIds },
         value: {
           type: "FIXED_AMOUNT",
-          amount: { amountMinor: "10", currencyCode: "USD" },
+          amount: { amountMinor: fixedAmountMinor, currencyCode: "USD" },
         },
-        allocationMethod: "ACROSS",
+        allocationMethod,
         maximumDiscount: null,
       },
       binding: { functionBindingId: "binding" } as never,
@@ -96,24 +217,32 @@ function functionCandidate(
   };
 }
 
-function owner(id: string, priority: number): DiscountOwner {
+function owner(
+  id: string,
+  priority: number,
+  discountClass: "PRODUCT" | "ORDER" = "PRODUCT",
+  kind: "AMOUNT_OFF_PRODUCTS" | "AMOUNT_OFF_ORDER" = "AMOUNT_OFF_PRODUCTS",
+): DiscountOwner {
   return {
     id,
     revision: 1,
     priority,
     method: "AUTOMATIC",
-    discountClass: "PRODUCT",
-    kind: "AMOUNT_OFF_PRODUCTS",
+    discountClass,
+    kind,
     usageLimit: null,
     appliesOncePerCustomer: false,
     metadata: null,
   } as DiscountOwner;
 }
 
-function line(): Pricing.PricingCheckoutQuotedLine {
-  const amount = { amountMinor: "100", currencyCode: "USD" };
+function line(
+  lineId = "line",
+  amountMinor: bigint = 100n,
+): Pricing.PricingCheckoutQuotedLine {
+  const amount = { amountMinor: amountMinor.toString(), currencyCode: "USD" };
   return {
-    lineId: "line",
+    lineId,
     contributesToTotals: true,
     quantity: 1,
     subtotal: amount,

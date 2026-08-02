@@ -118,6 +118,13 @@ export {
   PricingCheckoutActions,
 } from "./pricing.js";
 
+// Checkout completion actions
+export * as Checkout from "./checkout.js";
+export {
+  CheckoutCompletionActionNames,
+  CheckoutCompletionActions,
+} from "./checkout.js";
+
 // Delivery service checkout actions
 export * as Delivery from "./delivery.js";
 export {

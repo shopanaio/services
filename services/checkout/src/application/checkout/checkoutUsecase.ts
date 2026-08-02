@@ -23,6 +23,7 @@ import { CreateCheckoutTagUseCase } from "@src/application/usecases/createChecko
 import { UpdateCheckoutTagUseCase } from "@src/application/usecases/updateCheckoutTagUseCase";
 import { DeleteCheckoutTagUseCase } from "@src/application/usecases/deleteCheckoutTagUseCase";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
+import { GetCheckoutCompletionUseCase } from "@src/application/usecases/getCheckoutCompletionUseCase";
 import type {
   CheckoutMutationCoordinator,
   CheckoutMutationSnapshotPort,
@@ -32,6 +33,7 @@ export class CheckoutUsecase {
   // Checkout use cases
   public readonly createCheckout: CreateCheckoutUseCase;
   public readonly getCheckoutDtoById: GetCheckoutDtoByIdUseCase;
+  public readonly getCheckoutCompletion: GetCheckoutCompletionUseCase;
 
   // Lines use cases
   public readonly addCheckoutLines: AddCheckoutLinesUseCase;
@@ -72,6 +74,9 @@ export class CheckoutUsecase {
     });
 
     this.getCheckoutDtoById = new GetCheckoutDtoByIdUseCase(
+      deps.checkoutMutationSnapshots,
+    );
+    this.getCheckoutCompletion = new GetCheckoutCompletionUseCase(
       deps.checkoutMutationSnapshots,
     );
 

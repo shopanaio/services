@@ -46,7 +46,7 @@ export const reserveCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.Reserve
   expiresAt: z.string().datetime({ offset: true }),
   requirements: z.array(usageRequirement),
 }).strict() as never;
-export const commitCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.CommitCheckoutDiscountUsageParams> = z.object({ storeId: id, checkoutId: id, quoteId: id, quoteRevision: revision, orderId: id, idempotencyKey: id, reservationIds: z.array(id).min(1).max(500) }).strict();
+export const commitCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.CommitCheckoutDiscountUsageParams> = z.object({ storeId: id, checkoutId: id, quoteId: id, quoteRevision: revision, orderId: id, idempotencyKey: id, reservationIds: z.array(id).max(500) }).strict();
 export const releaseCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.ReleaseCheckoutDiscountUsageParams> = z.object({ storeId: id, reservationIds: z.array(id).min(1).max(500) }).strict();
 export const expireCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.ExpireCheckoutDiscountUsageParams> = z.object({ storeId: id, effectiveAt: z.string().datetime({ offset: true }), limit: z.number().int().min(1).max(500).optional() }).strict();
 export const reverseCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.ReverseCheckoutDiscountUsageParams> = z.object({ storeId: id, redemptionIds: z.array(id).min(1).max(500), reason: z.string().trim().min(1).max(1000) }).strict();

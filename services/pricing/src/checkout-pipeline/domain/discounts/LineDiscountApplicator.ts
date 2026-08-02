@@ -124,23 +124,43 @@ function allocateFunctionCandidate(
     .filter((row) => row.capacity > 0n);
   const total = values.reduce((sum, row) => sum + row.capacity, 0n);
   if (total === 0n) return [];
+
+  if (candidate.allocationMethod === "EACH") {
+    const allocations = values.map((row) => ({
+      lineId: row.lineId,
+      amount: min(
+        row.capacity,
+        candidate.value.type === "PERCENTAGE"
+          ? row.capacity * BigInt(candidate.value.percentageBps) / 10_000n
+          : BigInt(candidate.value.amount.amountMinor) * BigInt(row.quantity),
+      ),
+      quantity: null,
+    }));
+    const uncappedAmount = allocations.reduce(
+      (sum, allocation) => sum + allocation.amount,
+      0n,
+    );
+    const cappedAmount = candidate.maximumDiscount === null
+      ? uncappedAmount
+      : min(
+          uncappedAmount,
+          BigInt(candidate.maximumDiscount.amountMinor),
+        );
+    if (cappedAmount === uncappedAmount) {
+      return allocations.filter((allocation) => allocation.amount > 0n);
+    }
+    return allocateProportionally(
+      cappedAmount,
+      allocations.map((allocation) => ({
+        lineId: allocation.lineId,
+        capacity: allocation.amount,
+      })),
+    );
+  }
+
   let desired = candidate.value.type === "PERCENTAGE"
     ? total * BigInt(candidate.value.percentageBps) / 10_000n
     : BigInt(candidate.value.amount.amountMinor);
-  if (
-    candidate.allocationMethod === "EACH" &&
-    candidate.value.type === "FIXED_AMOUNT"
-  ) {
-    const amountMinor = BigInt(candidate.value.amount.amountMinor);
-    desired = values.reduce(
-      (sum, row) =>
-        sum + min(
-          row.capacity,
-          amountMinor * BigInt(row.quantity),
-        ),
-      0n,
-    );
-  }
   if (candidate.maximumDiscount !== null) {
     desired = min(desired, BigInt(candidate.maximumDiscount.amountMinor));
   }

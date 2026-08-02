@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectBroker, ServiceBroker } from '@shopana/shared-kernel';
+import { CheckoutCompletionActionNames } from '@shopana/broker-types';
 import { FastifyInstance } from 'fastify';
 import 'reflect-metadata';
 import { App } from './ioc/container';
@@ -18,6 +19,10 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
 
     this.broker.register('getById', async (params: any) => {
       return this.app.checkoutUsecase.getCheckoutDtoById.execute(params);
+    });
+
+    this.broker.register(CheckoutCompletionActionNames.get, async (params: any) => {
+      return this.app.checkoutUsecase.getCheckoutCompletion.execute(params);
     });
 
     this.graphqlServer = await startServer(this.broker as any);

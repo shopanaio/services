@@ -150,10 +150,42 @@ export function discountEligibility(owner: Owner, code: DiscountEvaluationSnapsh
   if (owner.appliesOncePerCustomer) { const customerId = context.buyerEligibility?.customerId; if (!customerId) return "BUYER_NOT_ELIGIBLE"; const hasReservation = s.reservations.some((row) => row.discountId === owner.id && row.customerId === customerId && (row.status === "COMMITTED" || row.status === "ACTIVE" && Date.parse(row.expiresAt) > Date.parse(context.effectiveAt))); const hasRedemption = s.redemptions.some((row) => row.discountId === owner.id && row.customerId === customerId && row.status === "COMMITTED"); if (hasReservation || hasRedemption) return "USAGE_LIMIT_REACHED"; }
   const min = s.minimums.find((row) => row.discountId === owner.id); const contributing = lines.filter((line) => line.contributesToTotals); if (min?.requirementType === "SUBTOTAL" && contributing.reduce((sum, line) => sum + BigInt(line.subtotal.amountMinor), 0n) < min.subtotalMinor!) return "MINIMUM_REQUIREMENT_NOT_MET"; if (min?.requirementType === "QUANTITY" && contributing.reduce((sum, line) => sum + line.quantity, 0) < min.quantity!) return "MINIMUM_REQUIREMENT_NOT_MET"; return null;
 }
-function eligibleLines(owner: Owner, lines: Pricing.PricingCheckoutQuotedLine[], s: DiscountEvaluationSnapshot, role: "QUALIFIER" | "BENEFIT" = "QUALIFIER") { const selection = s.selections.find((row) => row.discountId === owner.id && row.role === role); if (!selection || selection.targetType === "ALL_PRODUCTS") return lines.filter((line) => line.contributesToTotals); const ids = new Set(s.targets.filter((row) => row.discountId === owner.id && row.role === role && row.referenceStatus === "VALID").map((row) => row.targetId)); return lines.filter((line) => line.contributesToTotals && (selection.targetType === "PRODUCTS" ? ids.has(line.merchandise.targeting.productId) : selection.targetType === "VARIANTS" ? ids.has(line.merchandise.variantId) : line.merchandise.targeting.categoryIds.some((id) => ids.has(id)))); }
+function eligibleLines(
+  owner: Owner,
+  lines: Pricing.PricingCheckoutQuotedLine[],
+  snapshot: DiscountEvaluationSnapshot,
+  role: "QUALIFIER" | "BENEFIT",
+) {
+  const contributing = lines.filter((line) => line.contributesToTotals);
+  const selection = snapshot.selections.find(
+    (row) => row.discountId === owner.id && row.role === role,
+  );
+  if (!selection) {
+    return owner.kind === "AMOUNT_OFF_ORDER" ? contributing : [];
+  }
+  if (selection.targetType === "ALL_PRODUCTS") return contributing;
+
+  const ids = new Set(
+    snapshot.targets
+      .filter(
+        (row) =>
+          row.discountId === owner.id &&
+          row.role === role &&
+          row.referenceStatus === "VALID",
+      )
+      .map((row) => row.targetId),
+  );
+  return contributing.filter((line) =>
+    selection.targetType === "PRODUCTS"
+      ? ids.has(line.merchandise.targeting.productId)
+      : selection.targetType === "VARIANTS"
+        ? ids.has(line.merchandise.variantId)
+        : line.merchandise.targeting.categoryIds.some((id) => ids.has(id))
+  );
+}
 function amountOff(owner: Owner, lines: Pricing.PricingCheckoutQuotedLine[], remaining: Map<string, bigint>, s: DiscountEvaluationSnapshot): Allocation[] {
   const rule = s.amountOff.find((row) => row.discountId === owner.id); if (!rule) return [];
-  const eligible = eligibleLines(owner, lines, s).filter((line) => remaining.get(line.lineId)! > 0n); if (!eligible.length) return [];
+  const eligible = eligibleLines(owner, lines, s, "BENEFIT").filter((line) => remaining.get(line.lineId)! > 0n); if (!eligible.length) return [];
   const total = eligible.reduce((sum, line) => sum + remaining.get(line.lineId)!, 0n);
   if (rule.allocationMethod === "EACH") {
     const raw = eligible.map((line) => ({ lineId: line.lineId, amount: min(remaining.get(line.lineId)!, rule.valueType === "PERCENTAGE" ? remaining.get(line.lineId)! * BigInt(rule.percentageBps!) / 10_000n : BigInt(line.quantity) * rule.amountMinor!), quantity: null }));

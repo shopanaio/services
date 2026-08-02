@@ -22,6 +22,7 @@
     "build:watch": "tsc -p tsconfig.json --watch --preserveWatchOutput"
   },
   "dependencies": {
+    "@shopana/broker-types": "workspace:*",
     "@shopana/checkout-sdk": "*",
     "@shopana/shared-money": "*"
   },

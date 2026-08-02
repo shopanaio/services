@@ -805,11 +805,22 @@ resolver также загружает SHIPPING owner submitted code: после
 
 ### Combinations
 
-Applications рассматриваются в order:
+Line discount candidates применяются фазами, чтобы `ORDER` всегда видел
+remaining subtotal после `PRODUCT` allocations:
 
 ```text
-priority DESC, discountId ASC, candidateId ASC
+PRODUCT, затем ORDER
+внутри фазы: priority DESC, discountId ASC, candidateId ASC
 ```
+
+После расчёта applications сериализуются в каноническом Checkout order:
+
+```text
+priority DESC, discountId ASC, applicationId ASC
+```
+
+`SHIPPING` вычисляется отдельно на final Pricing stage и проверяет combinations
+со всеми уже принятыми preliminary applications.
 
 Новая application принимается только если compatibility симметрична: новый
 owner разрешает class каждой уже принятой application и каждая уже принятая
@@ -958,10 +969,16 @@ Quote creation и Checkout CAS не являются distributed transaction. Or
 Pricing snapshot допустим и не становится current checkout state. Cleanup
 policy проектируется отдельно после появления terminal checkout/order lifecycle.
 
-## Discount Usage Completion Follow-up
+## Discount Usage Completion
 
 Эта часть не блокирует отображение/редактирование checkout, но обязательна до
 production order creation с limited discounts.
+
+Реализованная completion boundary отдаёт Orders exact final quote identity,
+`resultRevision` и `usageRequirements`. Orders сверяет её с checkout DTO,
+резервирует limited usage перед append order event, выполняет commit после
+append и release при ошибке до persistence. Повторный create восстанавливает
+незавершённый commit через order idempotency record.
 
 ### Reserve
 
@@ -983,12 +1000,13 @@ production order creation с limited discounts.
 - Order commit atomically переводит reservations в COMMITTED, обновляет
   counters и создаёт redemption + allocations;
 - failure/cancel release уменьшает reserved counters;
-- expiration выполняется идемпотентным scheduler/workflow;
+- expiration доступен как отдельная идемпотентная operation;
 - reversal создаёт accounting transition, не удаляет redemption;
 - все operations проверяют quote/application/configuration revisions.
 
-Нужны отдельные broker action contracts и Orders workflow integration; не
-добавлять эту логику в `finalizeCheckoutPricingQuote`.
+Операции доступны через отдельные broker contracts и не входят в
+`finalizeCheckoutPricingQuote`. Expiration и reversal остаются отдельными
+accounting transitions для вызывающих lifecycle flows.
 
 ## Error Model
 
@@ -1307,13 +1325,24 @@ Tests добавляются как артефакты реализации. И�
 
 ### Checkout
 
-Checkout contract/pipeline changes не планируются. Допустимы только:
+Checkout quote pipeline остаётся неизменным. Completion integration добавляет:
 
+- read-only broker action с exact quote/result identity и usage requirements;
+- сопоставление completion snapshot с legacy Orders DTO через
+  `resultRevision`;
 - shared canonical fixtures/contract tests;
 - E2E setup/data;
 - исправление доказанного mismatch между already-canonical boundary и provider
   implementation. Нельзя ослаблять Checkout validation, чтобы принять неверный
   Pricing result.
+
+### Orders
+
+- Pricing usage port и broker adapter;
+- reserve до append `order.created`, commit после append, release compensation;
+- pricing identity в immutable order checkout snapshot для retry recovery;
+- idempotent replay завершает commit по исходной quote без чтения изменённого
+  checkout.
 
 ## Definition of Done
 

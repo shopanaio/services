@@ -410,7 +410,7 @@ export interface ReserveCheckoutDiscountUsageResult {
 }
 
 export interface CommitCheckoutDiscountUsageParams { storeId: string; checkoutId: string; quoteId: string; quoteRevision: string; orderId: string; idempotencyKey: string; reservationIds: readonly string[]; }
-export interface CommitCheckoutDiscountUsageResult { redemptions: readonly Readonly<{ reservationId: string; redemptionId: string }>[]; }
+export interface CommitCheckoutDiscountUsageResult { redemptions: readonly Readonly<{ reservationId: string | null; redemptionId: string }>[]; }
 export interface ReleaseCheckoutDiscountUsageParams { storeId: string; reservationIds: readonly string[]; }
 export interface ReleaseCheckoutDiscountUsageResult { releasedReservationIds: readonly string[]; }
 export interface ExpireCheckoutDiscountUsageParams { storeId: string; effectiveAt: string; limit?: number; }

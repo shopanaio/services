@@ -58,6 +58,35 @@ describe("ordered shipping discount application", () => {
       },
     ]);
   });
+
+  it("applies free shipping only to groups within the configured price limit", () => {
+    const freeShipping = candidate(
+      owner("free-shipping", 10),
+      "free-shipping",
+      "NATIVE",
+    );
+    freeShipping.maximumShippingPrice = {
+      amountMinor: "50",
+      currencyCode: "USD",
+    };
+
+    const result = applyShippingDiscountCandidates({
+      context: context(),
+      preliminary: preliminary(),
+      delivery: delivery(50n, 51n),
+      snapshot: snapshot(),
+      candidates: [freeShipping],
+      codeResolutions: [],
+    });
+
+    expect(result.applications[0]?.allocations).toEqual([
+      {
+        targetType: "DELIVERY_GROUP",
+        groupId: "group-a",
+        amount: { amountMinor: "50", currencyCode: "USD" },
+      },
+    ]);
+  });
 });
 
 function candidate(

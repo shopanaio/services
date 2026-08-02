@@ -8174,6 +8174,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/shared-service-api@workspace:packages/shared-service-api"
   dependencies:
+    "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/checkout-sdk": "npm:*"
     "@shopana/shared-money": "npm:*"
