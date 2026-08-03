@@ -1071,11 +1071,6 @@ export enum ApiLocaleCode {
   Zu = 'zu'
 }
 
-export type ApiMutation = {
-  __typename?: 'Mutation';
-  orderMutation: ApiOrderMutation;
-};
-
 export type ApiNode = {
   id: Scalars['ID']['output'];
 };
@@ -1106,35 +1101,6 @@ export type ApiOrder = {
 };
 
 export type ApiOrderActor = ApiApiKey | ApiUser;
-
-export type ApiOrderAdminNoteUpdateInput = {
-  note: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCancelInput = {
-  comment: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-  reason: ApiOrderCancelReason;
-};
-
-export enum ApiOrderCancelReason {
-  Customer = 'CUSTOMER',
-  Fraud = 'FRAUD',
-  Inventory = 'INVENTORY',
-  Other = 'OTHER',
-  Staff = 'STAFF'
-}
-
-export type ApiOrderCloseInput = {
-  comment: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCommentAddInput = {
-  comment: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
-};
 
 export type ApiOrderCustomerIdentity = {
   __typename?: 'OrderCustomerIdentity';
@@ -1194,34 +1160,6 @@ export type ApiOrderLine = {
   unitComparePrice: Scalars['Int']['output'];
   unitPrice: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
-};
-
-export type ApiOrderMutation = {
-  __typename?: 'OrderMutation';
-  orderAdminNoteUpdate: Scalars['Boolean']['output'];
-  orderCancel: Scalars['Boolean']['output'];
-  orderClose: Scalars['Boolean']['output'];
-  orderCommentAdd: Scalars['Boolean']['output'];
-};
-
-
-export type ApiOrderMutationOrderAdminNoteUpdateArgs = {
-  input: ApiOrderAdminNoteUpdateInput;
-};
-
-
-export type ApiOrderMutationOrderCancelArgs = {
-  input: ApiOrderCancelInput;
-};
-
-
-export type ApiOrderMutationOrderCloseArgs = {
-  input: ApiOrderCloseInput;
-};
-
-
-export type ApiOrderMutationOrderCommentAddArgs = {
-  input: ApiOrderCommentAddInput;
 };
 
 export type ApiOrderQuery = {
@@ -1416,22 +1354,15 @@ export type ApiResolversTypes = {
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   Label: ResolverTypeWrapper<ApiLabel>;
   LocaleCode: ApiLocaleCode;
-  Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
   Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']> }>;
   OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['OrderActor']>;
-  OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
-  OrderCancelInput: ApiOrderCancelInput;
-  OrderCancelReason: ApiOrderCancelReason;
-  OrderCloseInput: ApiOrderCloseInput;
-  OrderCommentAddInput: ApiOrderCommentAddInput;
   OrderCustomerIdentity: ResolverTypeWrapper<ApiOrderCustomerIdentity>;
   OrderCustomerStatistic: ResolverTypeWrapper<ApiOrderCustomerStatistic>;
   OrderDeliveryAddress: ResolverTypeWrapper<ApiOrderDeliveryAddress>;
   OrderEvent: ResolverTypeWrapper<Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversTypes['OrderActor'] }>;
   OrderEventType: ApiOrderEventType;
   OrderLine: ResolverTypeWrapper<ApiOrderLine>;
-  OrderMutation: ResolverTypeWrapper<ApiOrderMutation>;
   OrderQuery: ResolverTypeWrapper<Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversTypes['Order']>, orders: ApiResolversTypes['OrdersOutput'] }>;
   OrderStatus: ApiOrderStatus;
   OrdersInput: ApiOrdersInput;
@@ -1462,20 +1393,14 @@ export type ApiResolversParentTypes = {
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
   Label: ApiLabel;
-  Mutation: {};
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
   Order: Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversParentTypes['OrderActor'], events: Array<ApiResolversParentTypes['OrderEvent']> };
   OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>['OrderActor'];
-  OrderAdminNoteUpdateInput: ApiOrderAdminNoteUpdateInput;
-  OrderCancelInput: ApiOrderCancelInput;
-  OrderCloseInput: ApiOrderCloseInput;
-  OrderCommentAddInput: ApiOrderCommentAddInput;
   OrderCustomerIdentity: ApiOrderCustomerIdentity;
   OrderCustomerStatistic: ApiOrderCustomerStatistic;
   OrderDeliveryAddress: ApiOrderDeliveryAddress;
   OrderEvent: Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversParentTypes['OrderActor'] };
   OrderLine: ApiOrderLine;
-  OrderMutation: ApiOrderMutation;
   OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
   OrdersInput: ApiOrdersInput;
   OrdersOutput: Omit<ApiOrdersOutput, 'data'> & { data: Array<ApiResolversParentTypes['Order']> };
@@ -1526,10 +1451,6 @@ export interface ApiJsonScalarConfig extends GraphQLScalarTypeConfig<ApiResolver
 export type ApiLabelResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Label'] = ApiResolversParentTypes['Label']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
-  orderMutation: Resolver<ApiResolversTypes['OrderMutation'], ParentType, ContextType>;
 };
 
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
@@ -1622,14 +1543,6 @@ export type ApiOrderLineResolvers<ContextType = GraphQLContext, ParentType exten
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiOrderMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderMutation'] = ApiResolversParentTypes['OrderMutation']> = {
-  orderAdminNoteUpdate: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderAdminNoteUpdateArgs, 'input'>>;
-  orderCancel: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCancelArgs, 'input'>>;
-  orderClose: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCloseArgs, 'input'>>;
-  orderCommentAdd: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType, RequireFields<ApiOrderMutationOrderCommentAddArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiOrderQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderQuery'] = ApiResolversParentTypes['OrderQuery']> = {
   order: Resolver<Maybe<ApiResolversTypes['Order']>, ParentType, ContextType, RequireFields<ApiOrderQueryOrderArgs, 'id'>>;
   orders: Resolver<ApiResolversTypes['OrdersOutput'], ParentType, ContextType, ApiOrderQueryOrdersArgs>;
@@ -1682,7 +1595,6 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   Email: GraphQLScalarType;
   JSON: GraphQLScalarType;
   Label: ApiLabelResolvers<ContextType>;
-  Mutation: ApiMutationResolvers<ContextType>;
   Node: ApiNodeResolvers<ContextType>;
   Order: ApiOrderResolvers<ContextType>;
   OrderActor: ApiOrderActorResolvers<ContextType>;
@@ -1691,7 +1603,6 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   OrderDeliveryAddress: ApiOrderDeliveryAddressResolvers<ContextType>;
   OrderEvent: ApiOrderEventResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
-  OrderMutation: ApiOrderMutationResolvers<ContextType>;
   OrderQuery: ApiOrderQueryResolvers<ContextType>;
   OrdersOutput: ApiOrdersOutputResolvers<ContextType>;
   Purchasable: ApiPurchasableResolvers<ContextType>;

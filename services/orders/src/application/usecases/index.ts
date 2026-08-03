@@ -13,10 +13,6 @@ export { GetOrderByIdUseCase } from "./orderGetById";
 
 // Admin API use cases
 export { GetOrdersUseCase } from "./orderGetMany";
-export { UpdateOrderAdminNoteUseCase } from "./orderAdminNoteUpdate";
-export { AddOrderCommentUseCase } from "./orderCommentAdd";
-export { CancelOrderUseCase } from "./orderCancel";
-export { CloseOrderUseCase } from "./orderClose";
 
 // Storefront API use cases
 export { GetUserOrdersUseCase } from "./orderGetByCustomerId";
@@ -32,22 +28,6 @@ export type {
   GetOrdersUseCaseInput,
   GetOrdersOutput
 } from "./orderGetMany";
-export type {
-  UpdateOrderAdminNoteInput,
-  UpdateOrderAdminNoteUseCaseInput
-} from "./orderAdminNoteUpdate";
-export type {
-  AddOrderCommentInput,
-  AddOrderCommentUseCaseInput
-} from "./orderCommentAdd";
-export type {
-  CancelOrderInput,
-  CancelOrderUseCaseInput
-} from "./orderCancel";
-export type {
-  CloseOrderInput,
-  CloseOrderUseCaseInput
-} from "./orderClose";
 export type {
   GetUserOrdersInput,
   GetUserOrdersUseCaseInput

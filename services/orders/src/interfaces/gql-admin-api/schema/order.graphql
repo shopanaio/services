@@ -5,14 +5,6 @@ enum OrderStatus {
   CANCELLED
 }
 
-enum OrderCancelReason {
-  CUSTOMER
-  FRAUD
-  INVENTORY
-  STAFF
-  OTHER
-}
-
 enum OrderEventType {
   ORDER_CREATED
 }
@@ -100,27 +92,6 @@ type OrderEvent {
   createdAt: DateTime!
 }
 
-input OrderAdminNoteUpdateInput {
-  orderId: ID!
-  note: String!
-}
-
-input OrderCommentAddInput {
-  orderId: ID!
-  comment: String!
-}
-
-input OrderCancelInput {
-  orderId: ID!
-  comment: String
-  reason: OrderCancelReason!
-}
-
-input OrderCloseInput {
-  orderId: ID!
-  comment: String
-}
-
 input OrdersInput {
   where: JSON
   order: String
@@ -138,17 +109,6 @@ type OrderQuery {
   order(id: ID!): Order
 }
 
-type OrderMutation {
-  orderAdminNoteUpdate(input: OrderAdminNoteUpdateInput!): Boolean!
-  orderCommentAdd(input: OrderCommentAddInput!): Boolean!
-  orderCancel(input: OrderCancelInput!): Boolean!
-  orderClose(input: OrderCloseInput!): Boolean!
-}
-
 extend type Query {
   orderQuery: OrderQuery!
-}
-
-extend type Mutation {
-  orderMutation: OrderMutation!
 }
