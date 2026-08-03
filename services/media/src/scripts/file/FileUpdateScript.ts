@@ -80,6 +80,23 @@ export class FileUpdateScript extends BaseScript<
       updateData.meta = params.meta;
     }
     if (params.mediaType !== undefined) {
+      if (
+        params.mediaType === "EXTERNAL_VIDEO" &&
+        existingFile.provider !== "YOUTUBE" &&
+        existingFile.provider !== "VIMEO"
+      ) {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message:
+                "External video media type requires a YouTube or Vimeo provider",
+              field: ["mediaType"],
+              code: "INVALID_MEDIA_TYPE",
+            },
+          ],
+        };
+      }
       updateData.mediaType = params.mediaType;
     }
     if (params.previewFileId !== undefined) {
