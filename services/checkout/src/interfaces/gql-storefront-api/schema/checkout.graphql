@@ -37,7 +37,7 @@ type CheckoutCustomerIdentity {
   """
   Customer associated with the checkout.
   """
-  customer: User
+  customer: Customer
 
   """
   Customer email address associated with the checkout.

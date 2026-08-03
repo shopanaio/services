@@ -138,7 +138,7 @@ export type ApiCheckoutCustomerIdentity = {
   /** Country code of the customer. */
   countryCode: Maybe<ApiCountryCode>;
   /** Customer associated with the checkout. */
-  customer: Maybe<ApiUser>;
+  customer: Maybe<ApiCustomer>;
   /** Customer email address associated with the checkout. */
   email: Maybe<Scalars['Email']['output']>;
   /** First name of the customer. */
@@ -1561,6 +1561,12 @@ export enum ApiCurrencyCode {
   Zwl = 'ZWL'
 }
 
+/** A canonical storefront customer owned by the Customers subgraph. */
+export type ApiCustomer = {
+  __typename?: 'Customer';
+  id: Scalars['ID']['output'];
+};
+
 /** Dimension (length) measurement units */
 export enum ApiDimensionUnit {
   /** Centimeter */
@@ -2163,11 +2169,6 @@ export type ApiQueryCheckoutArgs = {
   id: Scalars['ID']['input'];
 };
 
-export type ApiUser = {
-  __typename?: 'User';
-  id: Scalars['ID']['output'];
-};
-
 /** Weight measurement units */
 export enum ApiWeightUnit {
   /** Gram */
@@ -2326,6 +2327,7 @@ export type ApiResolversTypes = {
   ChildPriceType: ApiChildPriceType;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
+  Customer: ResolverTypeWrapper<ApiCustomer>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   DimensionUnit: ApiDimensionUnit;
@@ -2351,7 +2353,6 @@ export type ApiResolversTypes = {
   PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
   Query: ResolverTypeWrapper<{}>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  User: ResolverTypeWrapper<ApiUser>;
   WeightUnit: ApiWeightUnit;
 };
 
@@ -2419,6 +2420,7 @@ export type ApiResolversParentTypes = {
   CheckoutTagDeleteInput: ApiCheckoutTagDeleteInput;
   CheckoutTagInput: ApiCheckoutTagInput;
   CheckoutTagUpdateInput: ApiCheckoutTagUpdateInput;
+  Customer: ApiCustomer;
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
   Email: Scalars['Email']['output'];
@@ -2435,7 +2437,6 @@ export type ApiResolversParentTypes = {
   PlaceOrderPaymentFailure: ApiPlaceOrderPaymentFailure;
   Query: {};
   String: Scalars['String']['output'];
-  User: ApiUser;
 };
 
 export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['BigInt'], any> {
@@ -2480,7 +2481,7 @@ export type ApiCheckoutCreatePayloadResolvers<ContextType = GraphQLContext, Pare
 
 export type ApiCheckoutCustomerIdentityResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutCustomerIdentity'] = ApiResolversParentTypes['CheckoutCustomerIdentity']> = {
   countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
-  customer: Resolver<Maybe<ApiResolversTypes['User']>, ParentType, ContextType>;
+  customer: Resolver<Maybe<ApiResolversTypes['Customer']>, ParentType, ContextType>;
   email: Resolver<Maybe<ApiResolversTypes['Email']>, ParentType, ContextType>;
   firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
@@ -2681,6 +2682,11 @@ export type ApiCheckoutTagResolvers<ContextType = GraphQLContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ApiCustomerResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Customer'] = ApiResolversParentTypes['Customer']> = {
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export interface ApiDateTimeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
@@ -2770,11 +2776,6 @@ export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends A
   checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType, RequireFields<ApiQueryCheckoutArgs, 'id'>>;
 };
 
-export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiResolvers<ContextType = GraphQLContext> = {
   BigInt: GraphQLScalarType;
   Checkout: ApiCheckoutResolvers<ContextType>;
@@ -2803,6 +2804,7 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutRecipient: ApiCheckoutRecipientResolvers<ContextType>;
   CheckoutSelectionResetReason: ApiCheckoutSelectionResetReasonResolvers<ContextType>;
   CheckoutTag: ApiCheckoutTagResolvers<ContextType>;
+  Customer: ApiCustomerResolvers<ContextType>;
   DateTime: GraphQLScalarType;
   Decimal: GraphQLScalarType;
   Email: GraphQLScalarType;
@@ -2814,5 +2816,4 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   PlaceOrderPayload: ApiPlaceOrderPayloadResolvers<ContextType>;
   PlaceOrderPaymentFailure: ApiPlaceOrderPaymentFailureResolvers<ContextType>;
   Query: ApiQueryResolvers<ContextType>;
-  User: ApiUserResolvers<ContextType>;
 };

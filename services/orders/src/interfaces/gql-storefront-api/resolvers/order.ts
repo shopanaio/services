@@ -3,7 +3,7 @@ import {
   // Query resolvers
   order,
   // Field resolvers
-  userOrders,
+  customerOrders,
 } from "./order/index";
 import {
   requireStorefrontPermission,
@@ -31,8 +31,8 @@ const orderResolvers = {
   Order: {
     // Fields totalQuantity and lines are filled in mapper from full read-model
   },
-  User: {
-    orders: userOrders,
+  Customer: {
+    orders: customerOrders,
   },
 } as any;
 

@@ -757,6 +757,13 @@ export enum ApiCurrencyCode {
   Zwl = 'ZWL'
 }
 
+export type ApiCustomer = {
+  __typename?: 'Customer';
+  id: Scalars['ID']['output'];
+  /** List of the customer's orders. */
+  orders: Array<ApiOrder>;
+};
+
 /** Dimension (length) measurement units */
 export enum ApiDimensionUnit {
   /** Centimeter */
@@ -1144,13 +1151,6 @@ export enum ApiPriceAdjustmentValueType {
   Percentage = 'PERCENTAGE'
 }
 
-export type ApiUser = {
-  __typename?: 'User';
-  id: Scalars['ID']['output'];
-  /** List of the user's orders. */
-  orders: Array<ApiOrder>;
-};
-
 /** Weight measurement units */
 export enum ApiWeightUnit {
   /** Gram */
@@ -1243,6 +1243,7 @@ export type ApiResolversTypes = {
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
   Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
+  Customer: ResolverTypeWrapper<ApiCustomer>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   DimensionUnit: ApiDimensionUnit;
@@ -1261,7 +1262,6 @@ export type ApiResolversTypes = {
   PriceAdjustmentOperation: ApiPriceAdjustmentOperation;
   PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
-  User: ResolverTypeWrapper<ApiUser>;
   WeightUnit: ApiWeightUnit;
 };
 
@@ -1270,6 +1270,7 @@ export type ApiResolversParentTypes = {
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
   Cursor: Scalars['Cursor']['output'];
+  Customer: ApiCustomer;
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
   Email: Scalars['Email']['output'];
@@ -1283,7 +1284,6 @@ export type ApiResolversParentTypes = {
   OrderLine: ApiOrderLine;
   OrderLineCost: ApiOrderLineCost;
   String: Scalars['String']['output'];
-  User: ApiUser;
 };
 
 export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['BigInt'], any> {
@@ -1293,6 +1293,12 @@ export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolv
 export interface ApiCursorScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Cursor'], any> {
   name: 'Cursor';
 }
+
+export type ApiCustomerResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Customer'] = ApiResolversParentTypes['Customer']> = {
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  orders: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export interface ApiDateTimeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -1360,15 +1366,10 @@ export type ApiOrderLineCostResolvers<ContextType = GraphQLContext, ParentType e
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
-  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  orders: Resolver<Array<ApiResolversTypes['Order']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiResolvers<ContextType = GraphQLContext> = {
   BigInt: GraphQLScalarType;
   Cursor: GraphQLScalarType;
+  Customer: ApiCustomerResolvers<ContextType>;
   DateTime: GraphQLScalarType;
   Decimal: GraphQLScalarType;
   Email: GraphQLScalarType;
@@ -1379,6 +1380,4 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   OrderCost: ApiOrderCostResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
   OrderLineCost: ApiOrderLineCostResolvers<ContextType>;
-  User: ApiUserResolvers<ContextType>;
 };
-

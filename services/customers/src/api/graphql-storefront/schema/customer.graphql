@@ -1,4 +1,8 @@
-"""The customer associated with the authenticated storefront session."""
+"""
+The canonical storefront customer entity owned by the Customers service.
+
+Other storefront subgraphs reference and extend this entity by its global ID.
+"""
 type Customer @key(fields: "id") {
   """Globally unique customer ID."""
   id: ID!

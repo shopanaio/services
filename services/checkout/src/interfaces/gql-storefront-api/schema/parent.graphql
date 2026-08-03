@@ -21,6 +21,7 @@ type Money {
   currencyCode: CurrencyCode! @shareable
 }
 
-type User @key(fields: "id", resolvable: false) {
+"""A canonical storefront customer owned by the Customers subgraph."""
+type Customer @key(fields: "id", resolvable: false) {
   id: ID!
 }

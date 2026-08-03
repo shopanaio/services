@@ -2,4 +2,4 @@
 export { order } from "./orderQuery";
 
 // Field resolvers
-export { userOrders } from "./userOrders";
+export { customerOrders } from "./customerOrders";

@@ -114,10 +114,10 @@ type OrderLine @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-extend type User @key(fields: "id") {
+extend type Customer @key(fields: "id") {
   id: ID! @external
   """
-  List of the user's orders.
+  List of the customer's orders.
   """
   orders: [Order!]!
 }

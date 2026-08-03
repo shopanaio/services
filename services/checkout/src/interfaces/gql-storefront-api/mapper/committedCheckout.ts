@@ -244,7 +244,13 @@ export function mapCommittedCheckoutToApi(
         ? buyer.countryCode as ApiCountryCode
         : null,
       customer: buyer?.customerId
-        ? { id: encodeGlobalIdByType(buyer.customerId, GlobalIdEntity.Customer) }
+        ? {
+            __typename: "Customer" as const,
+            id: encodeGlobalIdByType(
+              buyer.customerId,
+              GlobalIdEntity.Customer,
+            ),
+          }
         : null,
       email: buyer?.email ?? null,
       phone: buyer?.phone ?? null,
