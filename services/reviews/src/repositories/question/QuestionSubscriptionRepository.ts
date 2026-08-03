@@ -43,6 +43,20 @@ export type QuestionSubscriptionPatch = Partial<
 
 export class QuestionSubscriptionRepository extends BaseRepository {
   @ReadOnly()
+  async findByCustomer(
+    questionId: string,
+    customerId: string,
+    channel?: QuestionSubscription["channel"]
+  ): Promise<QuestionSubscription | null> {
+    const rows = await this.connection.select().from(questionSubscription).where(and(
+      eq(questionSubscription.storeId, this.storeId),
+      eq(questionSubscription.questionId, questionId),
+      eq(questionSubscription.subscriberCustomerId, customerId),
+      ...(channel ? [eq(questionSubscription.channel, channel)] : [])
+    )).limit(1);
+    return rows[0] ?? null;
+  }
+  @ReadOnly()
   async findById(id: string): Promise<QuestionSubscription | null> {
     const rows = await this.connection
       .select()

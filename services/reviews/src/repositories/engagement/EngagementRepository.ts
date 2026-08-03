@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   decodeContentReportGlobalId,
@@ -14,7 +14,12 @@ import {
 } from "../global-id-where-mappers.js";
 import {
   contentReport,
+  contentMetrics,
   contentVote,
+  contentItem,
+  questionAnswer,
+  reviewMedia,
+  reviewReply,
   type ContentReport,
   type ContentVote,
   type NewContentReport,
@@ -69,6 +74,26 @@ export type ContentReportPatch = Partial<
 >;
 
 export class EngagementRepository extends BaseRepository {
+  @ReadOnly()
+  async findVoteByViewer(contentId: string, voterKey: string): Promise<ContentVote | null> {
+    const rows = await this.connection.select().from(contentVote).where(and(
+      eq(contentVote.storeId, this.storeId),
+      eq(contentVote.contentId, contentId),
+      eq(contentVote.voterKey, voterKey)
+    )).limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async findActiveReportByViewer(contentId: string, reporterKey: string): Promise<ContentReport | null> {
+    const rows = await this.connection.select().from(contentReport).where(and(
+      eq(contentReport.storeId, this.storeId),
+      eq(contentReport.contentId, contentId),
+      eq(contentReport.reporterKey, reporterKey),
+      or(eq(contentReport.status, "OPEN"), eq(contentReport.status, "UNDER_REVIEW"))
+    )).limit(1);
+    return rows[0] ?? null;
+  }
   @ReadOnly()
   async findVoteById(id: string): Promise<ContentVote | null> {
     const rows = await this.connection
@@ -263,5 +288,105 @@ export class EngagementRepository extends BaseRepository {
     const value = rows[0];
     if (!value) throw new Error("Failed to upsert content vote");
     return value;
+  }
+
+  @Transactional()
+  async deleteVote(contentId: string, voterKey: string): Promise<ContentVote | null> {
+    const rows = await this.connection.delete(contentVote).where(and(
+      eq(contentVote.storeId, this.storeId),
+      eq(contentVote.contentId, contentId),
+      eq(contentVote.voterKey, voterKey)
+    )).returning();
+    return rows[0] ?? null;
+  }
+
+  @Transactional()
+  async refreshContentMetrics(contentId: string): Promise<void> {
+    await this.connection.execute(sql`
+      INSERT INTO ${contentMetrics} (
+        content_id, store_id, like_count, dislike_count,
+        report_count, open_report_count, media_count, child_count,
+        official_child_count, accepted_child_count, last_child_at, updated_at
+      )
+      SELECT
+        ${contentId}, ${this.storeId},
+        (SELECT count(*)::int FROM ${contentVote}
+          WHERE ${contentVote.storeId} = ${this.storeId}
+            AND ${contentVote.contentId} = ${contentId}
+            AND ${contentVote.type} = 'LIKE'),
+        (SELECT count(*)::int FROM ${contentVote}
+          WHERE ${contentVote.storeId} = ${this.storeId}
+            AND ${contentVote.contentId} = ${contentId}
+            AND ${contentVote.type} = 'DISLIKE'),
+        (SELECT count(*)::int FROM ${contentReport}
+          WHERE ${contentReport.storeId} = ${this.storeId}
+            AND ${contentReport.contentId} = ${contentId}),
+        (SELECT count(*)::int FROM ${contentReport}
+          WHERE ${contentReport.storeId} = ${this.storeId}
+            AND ${contentReport.contentId} = ${contentId}
+            AND ${contentReport.status} IN ('OPEN', 'UNDER_REVIEW')),
+        (SELECT count(*)::int FROM ${reviewMedia}
+          WHERE ${reviewMedia.storeId} = ${this.storeId}
+            AND ${reviewMedia.reviewId} = ${contentId}
+            AND ${reviewMedia.status} = 'PUBLISHED'),
+        (SELECT count(*)::int FROM (
+          SELECT child.id FROM ${reviewReply} child
+          INNER JOIN ${contentItem} child_content ON child_content.id = child.id
+          WHERE child.store_id = ${this.storeId}
+            AND child.review_id = ${contentId}
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.deleted_at IS NULL
+          UNION ALL
+          SELECT child.id FROM ${questionAnswer} child
+          INNER JOIN ${contentItem} child_content ON child_content.id = child.id
+          WHERE child.store_id = ${this.storeId}
+            AND child.question_id = ${contentId}
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.deleted_at IS NULL
+        ) children),
+        (SELECT count(*)::int FROM ${reviewReply} child
+          INNER JOIN ${contentItem} child_content ON child_content.id = child.id
+          WHERE child.store_id = ${this.storeId}
+            AND child.review_id = ${contentId}
+            AND child.is_official = true
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.deleted_at IS NULL)
+          +
+        (SELECT count(*)::int FROM ${questionAnswer} child
+          INNER JOIN ${contentItem} child_content ON child_content.id = child.id
+          WHERE child.store_id = ${this.storeId}
+            AND child.question_id = ${contentId}
+            AND child.is_official = true
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.deleted_at IS NULL),
+        (SELECT count(*)::int FROM ${questionAnswer} child
+          INNER JOIN ${contentItem} child_content ON child_content.id = child.id
+          WHERE child.store_id = ${this.storeId}
+            AND child.question_id = ${contentId}
+            AND child.is_accepted = true
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.deleted_at IS NULL),
+        (SELECT max(child_content.created_at) FROM ${contentItem} child_content
+          WHERE child_content.store_id = ${this.storeId}
+            AND child_content.deleted_at IS NULL
+            AND child_content.status = 'PUBLISHED'
+            AND child_content.id IN (
+              SELECT child.id FROM ${reviewReply} child WHERE child.review_id = ${contentId}
+              UNION ALL
+              SELECT child.id FROM ${questionAnswer} child WHERE child.question_id = ${contentId}
+            )),
+        now()
+      ON CONFLICT (${contentMetrics.contentId}) DO UPDATE SET
+        like_count = EXCLUDED.like_count,
+        dislike_count = EXCLUDED.dislike_count,
+        report_count = EXCLUDED.report_count,
+        open_report_count = EXCLUDED.open_report_count,
+        media_count = EXCLUDED.media_count,
+        child_count = EXCLUDED.child_count,
+        official_child_count = EXCLUDED.official_child_count,
+        accepted_child_count = EXCLUDED.accepted_child_count,
+        last_child_at = EXCLUDED.last_child_at,
+        updated_at = EXCLUDED.updated_at
+    `);
   }
 }

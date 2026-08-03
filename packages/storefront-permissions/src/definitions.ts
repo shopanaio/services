@@ -94,6 +94,24 @@ export const StorefrontPermissionDefinitions = {
       "Create an order from a buyer-owned checkout.",
     risk: "HIGH",
   },
+  REVIEWS_READ: {
+    handle: "storefront.reviews.read",
+    resource: "reviews",
+    action: "read",
+    label: "Read reviews",
+    description:
+      "View published product reviews, questions, answers, summaries, and buyer-owned review requests.",
+    risk: "LOW",
+  },
+  REVIEWS_WRITE: {
+    handle: "storefront.reviews.write",
+    resource: "reviews",
+    action: "write",
+    label: "Write reviews",
+    description:
+      "Submit and manage buyer reviews, questions, answers, votes, reports, and subscriptions.",
+    risk: "HIGH",
+  },
 } as const satisfies Record<string, StorefrontPermissionDefinitionInput>;
 
 type StorefrontPermissionDefinitionName =
@@ -121,6 +139,8 @@ export const STOREFRONT_PERMISSIONS = Object.freeze({
   CUSTOMER_WRITE: StorefrontPermissionDefinitions.CUSTOMER_WRITE.handle,
   ORDER_READ: StorefrontPermissionDefinitions.ORDER_READ.handle,
   ORDER_WRITE: StorefrontPermissionDefinitions.ORDER_WRITE.handle,
+  REVIEWS_READ: StorefrontPermissionDefinitions.REVIEWS_READ.handle,
+  REVIEWS_WRITE: StorefrontPermissionDefinitions.REVIEWS_WRITE.handle,
 });
 
 export const STOREFRONT_PERMISSION_VALUES = Object.freeze(

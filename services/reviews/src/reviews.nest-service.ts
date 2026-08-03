@@ -16,6 +16,7 @@ import {
 import { getServiceConfig } from "@shopana/shared-service-config";
 import type { FastifyInstance } from "fastify";
 import { startServer } from "./api/graphql-admin/server.js";
+import { startStorefrontServer } from "./api/graphql-storefront/server.js";
 import { Kernel } from "./kernel/Kernel.js";
 
 const { service } = getServiceConfig("reviews");
@@ -25,6 +26,7 @@ export class ReviewsNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ReviewsNestService.name);
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
+  private storefrontGraphqlServer: FastifyInstance | null = null;
 
   constructor(
     @InjectBroker("reviews") private readonly broker: ServiceBroker,
@@ -41,7 +43,10 @@ export class ReviewsNestService implements OnModuleInit, OnModuleDestroy {
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
     });
-    this.logger.debug("GraphQL server started");
+    this.storefrontGraphqlServer = await startStorefrontServer({
+      port: service.ports?.storefront_graphql ?? 0,
+    });
+    this.logger.debug("GraphQL servers started");
 
     this.logger.log("Reviews service started");
   }
@@ -49,6 +54,9 @@ export class ReviewsNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     if (this.graphqlServer) {
       await this.graphqlServer.close();
+    }
+    if (this.storefrontGraphqlServer) {
+      await this.storefrontGraphqlServer.close();
     }
 
     if (this.kernel) {

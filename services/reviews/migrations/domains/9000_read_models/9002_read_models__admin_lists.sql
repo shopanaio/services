@@ -60,13 +60,17 @@ SELECT
   content.created_at,
   content.updated_at,
   content.deleted_at,
+  COALESCE(metrics.like_count, 0)::integer AS like_count,
   reply.review_id,
   reply.is_official,
   reply.sort_index
 FROM "reviews"."content_item" content
 INNER JOIN "reviews"."review_reply" reply
-  ON reply.store_id = content.store_id
- AND reply.id = content.id;
+ ON reply.store_id = content.store_id
+ AND reply.id = content.id
+LEFT JOIN "reviews"."content_metrics" metrics
+  ON metrics.store_id = content.store_id
+ AND metrics.content_id = content.id;
 
 CREATE VIEW "reviews"."product_question_list_view" AS
 SELECT
@@ -93,7 +97,8 @@ SELECT
   COALESCE(metrics.child_count, 0)::integer AS answer_count,
   COALESCE(metrics.official_child_count, 0)::integer AS official_answer_count,
   COALESCE(metrics.accepted_child_count, 0)::integer AS accepted_answer_count,
-  COALESCE(metrics.report_count, 0)::integer AS report_count
+  COALESCE(metrics.report_count, 0)::integer AS report_count,
+  COALESCE(metrics.like_count, 0)::integer AS like_count
 FROM "reviews"."content_item" content
 INNER JOIN "reviews"."product_question" question
   ON question.store_id = content.store_id
@@ -115,11 +120,15 @@ SELECT
   content.created_at,
   content.updated_at,
   content.deleted_at,
+  COALESCE(metrics.like_count, 0)::integer AS like_count,
   answer.question_id,
   answer.is_official,
   answer.is_accepted,
   answer.sort_index
 FROM "reviews"."content_item" content
 INNER JOIN "reviews"."question_answer" answer
-  ON answer.store_id = content.store_id
- AND answer.id = content.id;
+ ON answer.store_id = content.store_id
+ AND answer.id = content.id
+LEFT JOIN "reviews"."content_metrics" metrics
+  ON metrics.store_id = content.store_id
+ AND metrics.content_id = content.id;

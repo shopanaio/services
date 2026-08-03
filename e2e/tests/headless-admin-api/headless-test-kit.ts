@@ -77,6 +77,8 @@ export const DEFAULT_PERMISSIONS = [
   'storefront.checkout.write',
   'storefront.inventory.read',
   'storefront.order.write',
+  'storefront.reviews.read',
+  'storefront.reviews.write',
 ] as const;
 
 export const STOREFRONT_ACCESS_QUERY = 'query HeadlessAccess { headlessStorefrontAccess }';

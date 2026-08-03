@@ -11,6 +11,7 @@ declare module "fastify" {
     store?: ContextStore;
     storefrontAccess?: ContextStorefrontAccess;
     customer: ContextCustomer | null;
+    storefrontVisitorId?: string;
   }
 }
 
@@ -43,6 +44,7 @@ export function buildStorefrontContextMiddleware(
       request.store = claims.store;
       request.storefrontAccess = claims.storefront;
       request.customer = claims.customer;
+      request.storefrontVisitorId = claims.visitorId;
     } catch {
       return reply.status(401).send({
         data: null,

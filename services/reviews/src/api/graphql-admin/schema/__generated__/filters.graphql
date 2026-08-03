@@ -259,6 +259,8 @@ input ReviewReplyWhereInput {
   updatedAt: DateTimeFilter
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+  """Filter by likeCount"""
+  likeCount: StringFilter
   """Filter by reviewId"""
   reviewId: IDFilter
   """Filter by isOfficial"""
@@ -285,6 +287,8 @@ enum ReviewReplyOrderField {
   updatedAt
   """Sort by deletedAt"""
   deletedAt
+  """Sort by likeCount"""
+  likeCount
   """Sort by reviewId"""
   reviewId
   """Sort by isOfficial"""
@@ -351,6 +355,8 @@ input ProductQuestionWhereInput {
   acceptedAnswerCount: IntFilter
   """Filter by reportCount"""
   reportCount: IntFilter
+  """Filter by likeCount"""
+  likeCount: StringFilter
 }
 
 """Fields available for sorting ProductQuestion"""
@@ -391,6 +397,8 @@ enum ProductQuestionOrderField {
   acceptedAnswerCount
   """Sort by reportCount"""
   reportCount
+  """Sort by likeCount"""
+  likeCount
 }
 
 """Ordering configuration for ProductQuestion"""
@@ -431,6 +439,8 @@ input ProductQuestionAnswerWhereInput {
   updatedAt: DateTimeFilter
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+  """Filter by likeCount"""
+  likeCount: StringFilter
   """Filter by questionId"""
   questionId: IDFilter
   """Filter by isOfficial"""
@@ -459,6 +469,8 @@ enum ProductQuestionAnswerOrderField {
   updatedAt
   """Sort by deletedAt"""
   deletedAt
+  """Sort by likeCount"""
+  likeCount
   """Sort by questionId"""
   questionId
   """Sort by isOfficial"""

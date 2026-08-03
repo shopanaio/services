@@ -787,6 +787,22 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 export type Product = Node & {
   __typename?: 'Product';
   id: Scalars['ID']['output'];
@@ -1051,6 +1067,8 @@ export enum ProductQuestionAnswerOrderField {
   IsAccepted = 'isAccepted',
   /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by questionId */
@@ -1112,6 +1130,8 @@ export type ProductQuestionAnswerWhereInput = {
   isAccepted?: InputMaybe<BooleanFilter>;
   /** Filter by isOfficial */
   isOfficial?: InputMaybe<BooleanFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<StringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
   /** Filter by questionId */
@@ -1189,6 +1209,8 @@ export enum ProductQuestionOrderField {
   DeletedAt = 'deletedAt',
   /** Sort by id */
   Id = 'id',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by officialAnswerCount */
@@ -1318,6 +1340,8 @@ export type ProductQuestionWhereInput = {
   deletedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by id */
   id?: InputMaybe<IdFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<StringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
   /** Filter by officialAnswerCount */
@@ -2993,6 +3017,8 @@ export enum ReviewReplyOrderField {
   Id = 'id',
   /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by reviewId */
@@ -3046,6 +3072,8 @@ export type ReviewReplyWhereInput = {
   id?: InputMaybe<IdFilter>;
   /** Filter by isOfficial */
   isOfficial?: InputMaybe<BooleanFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<StringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
   /** Filter by reviewId */
@@ -4108,6 +4136,8 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
   Product: ResolverTypeWrapper<Product>;
   ProductQuestion: ResolverTypeWrapper<Omit<ProductQuestion, 'answers' | 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'reports' | 'revisions' | 'subscriptions' | 'translations' | 'votes'> & { answers: ResolversTypes['ProductQuestionAnswerConnection'], externalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversTypes['ReviewModerationEventConnection'], moderationSignals: ResolversTypes['ReviewModerationSignalConnection'], publications: Array<ResolversTypes['ReviewContentPublication']>, reports: ResolversTypes['ReviewContentReportConnection'], revisions: ResolversTypes['ReviewContentRevisionConnection'], subscriptions: ResolversTypes['ProductQuestionSubscriptionConnection'], translations: Array<ResolversTypes['ReviewContentTranslation']>, votes: ResolversTypes['ReviewContentVoteConnection'] }>;
   ProductQuestionAnswer: ResolverTypeWrapper<Omit<ProductQuestionAnswer, 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'question' | 'reports' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversTypes['ReviewModerationEventConnection'], moderationSignals: ResolversTypes['ReviewModerationSignalConnection'], publications: Array<ResolversTypes['ReviewContentPublication']>, question: ResolversTypes['ProductQuestion'], reports: ResolversTypes['ReviewContentReportConnection'], revisions: ResolversTypes['ReviewContentRevisionConnection'], translations: Array<ResolversTypes['ReviewContentTranslation']>, votes: ResolversTypes['ReviewContentVoteConnection'] }>;

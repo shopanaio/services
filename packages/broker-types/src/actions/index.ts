@@ -125,6 +125,17 @@ export {
   CheckoutCompletionActions,
 } from "./checkout.js";
 
+// Orders service review-purchase verification
+export * as Orders from "./orders.js";
+export {
+  OrderReviewActionNames,
+  OrderReviewActions,
+} from "./orders.js";
+export type {
+  VerifyReviewPurchaseParams,
+  VerifyReviewPurchaseResult,
+} from "./orders.js";
+
 // Delivery service checkout actions
 export * as Delivery from "./delivery.js";
 export {

@@ -17,6 +17,8 @@ const STOREFRONT_PERMISSIONS = {
   CUSTOMER_WRITE: 'storefront.customer.write',
   ORDER_READ: 'storefront.order.read',
   ORDER_WRITE: 'storefront.order.write',
+  REVIEWS_READ: 'storefront.reviews.read',
+  REVIEWS_WRITE: 'storefront.reviews.write',
 } as const;
 
 const STOREFRONT_PERMISSION_VALUES = Object.values(STOREFRONT_PERMISSIONS);
@@ -27,6 +29,8 @@ const DEFAULT_PERMISSIONS = [
   STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
   STOREFRONT_PERMISSIONS.INVENTORY_READ,
   STOREFRONT_PERMISSIONS.ORDER_WRITE,
+  STOREFRONT_PERMISSIONS.REVIEWS_READ,
+  STOREFRONT_PERMISSIONS.REVIEWS_WRITE,
 ].sort();
 
 test.describe('Headless Admin API - storefront access policy', () => {

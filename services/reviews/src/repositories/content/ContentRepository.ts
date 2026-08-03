@@ -104,6 +104,20 @@ export type ContentPublicationPatch = Partial<
 
 export class ContentRepository extends BaseRepository {
   @ReadOnly()
+  async findByIdempotencyKey(
+    sourceChannel: string,
+    idempotencyKey: string
+  ): Promise<ContentItem | null> {
+    const rows = await this.connection.select().from(contentItem).where(and(
+      eq(contentItem.storeId, this.storeId),
+      eq(contentItem.sourceChannel, sourceChannel),
+      eq(contentItem.idempotencyKey, idempotencyKey),
+      isNull(contentItem.deletedAt)
+    )).limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
   async findById(
     id: string,
     options: { includeDeleted?: boolean } = {}

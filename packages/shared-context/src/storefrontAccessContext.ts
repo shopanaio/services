@@ -43,6 +43,7 @@ export interface StorefrontContextClaims {
   readonly iat: number;
   readonly exp: number;
   readonly organizationId: string;
+  readonly visitorId: string;
   readonly store: ContextStore;
   readonly storefront: ContextStorefrontAccess;
   readonly customer: ContextCustomer | null;
@@ -144,6 +145,8 @@ function validateClaims(
     value.exp <= now - tolerance ||
     value.exp - value.iat > 65 ||
     typeof value.organizationId !== "string" ||
+    typeof value.visitorId !== "string" ||
+    !/^[A-Za-z0-9_-]{16,128}$/.test(value.visitorId) ||
     !isRecord(value.store) ||
     !isRecord(value.storefront) ||
     (value.customer !== null && !isRecord(value.customer))

@@ -2,7 +2,7 @@ import type {
   GatewayConfig,
   GatewayPlugin,
 } from "@graphql-hive/gateway";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { GraphQLError } from "graphql";
 import { createWebSocketRequest } from "../WebSocketRequest.js";
 import { StorefrontAccessClient } from "./StorefrontAccessClient.js";
@@ -26,6 +26,7 @@ const STOREFRONT_WEBSOCKET_HEADERS = new Set([
   "authorization",
   "shopana-storefront-buyer-ip",
   "shopana-storefront-private-token",
+  "x-shopana-storefront-visitor-id",
   "traceparent",
   "tracestate",
   "user-agent",
@@ -124,7 +125,12 @@ export function createStorefrontAccessPlugin() {
     }
     const customerToken = parseCustomerAccessToken(request);
     if (!customerToken) {
-      return signer.sign(context, requestId, null);
+      return signer.sign(
+        context,
+        requestId,
+        storefrontVisitorId(request, context.access.credentialId, context.store.id, parsed.buyerIp),
+        null,
+      );
     }
     const customerContext = await customerClient.resolve({
       accessToken: customerToken,
@@ -142,6 +148,7 @@ export function createStorefrontAccessPlugin() {
     return signer.sign(
       context,
       requestId,
+      storefrontVisitorId(request, context.access.credentialId, context.store.id, parsed.buyerIp),
       customerContext.customer,
       customerContext.cacheUntil,
     );
@@ -154,6 +161,24 @@ export function createStorefrontAccessPlugin() {
       return contexts.get(request);
     },
   };
+}
+
+function storefrontVisitorId(
+  request: Request,
+  credentialId: string,
+  storeId: string,
+  buyerIp: string | undefined,
+): string {
+  const clientVisitorId = request.headers.get("x-shopana-storefront-visitor-id")?.trim();
+  if (clientVisitorId && !/^[A-Za-z0-9._~-]{16,128}$/.test(clientVisitorId)) {
+    throw requestError(400, "STOREFRONT_VISITOR_ID_INVALID", "Invalid storefront visitor ID");
+  }
+  const identity = clientVisitorId
+    ? `client:${clientVisitorId}`
+    : `network:${buyerIp ?? "unknown"}:${request.headers.get("user-agent")?.slice(0, 256) ?? "unknown"}`;
+  return createHash("sha256")
+    .update(`${storeId}:${credentialId}:${identity}`)
+    .digest("base64url");
 }
 
 function parseCustomerAccessToken(request: Request): string | undefined {

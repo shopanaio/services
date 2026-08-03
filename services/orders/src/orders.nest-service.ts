@@ -8,6 +8,11 @@ import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
 import { v7 as uuidv7 } from 'uuid';
 import { Repository } from './repositories/Repository.js';
+import {
+  OrderReviewActionNames,
+  type VerifyReviewPurchaseParams,
+  type VerifyReviewPurchaseResult,
+} from '@shopana/broker-types';
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -33,6 +38,37 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       return this.app.orderUsecase.getOrderById.execute(params);
     });
 
+    this.broker.register(
+      OrderReviewActionNames.verifyPurchase,
+      async (params: VerifyReviewPurchaseParams): Promise<VerifyReviewPurchaseResult> => {
+        const order = await this.app.orderReadRepository.findById(params.orderId);
+        if (!order || order.storeId !== params.storeId || order.deletedAt) {
+          return { eligible: false, code: 'ORDER_NOT_FOUND' };
+        }
+        if (order.status === 'DRAFT' || order.status === 'CANCELLED') {
+          return { eligible: false, code: 'ORDER_NOT_ELIGIBLE' };
+        }
+        if (order.customerId !== params.customerId) {
+          return { eligible: false, code: 'ORDER_CUSTOMER_MISMATCH' };
+        }
+        const line = order.lineItems.find(
+          (item) => item.id === params.orderLineId && item.deletedAt === null,
+        );
+        if (!line) return { eligible: false, code: 'ORDER_LINE_NOT_FOUND' };
+        if (params.variantId && line.unit.id !== params.variantId) {
+          return { eligible: false, code: 'ORDER_LINE_VARIANT_MISMATCH' };
+        }
+        const targeting = isRecord(line.unit.snapshot)
+          && isRecord(line.unit.snapshot.targeting)
+          ? line.unit.snapshot.targeting
+          : null;
+        if (targeting?.productId !== params.productId) {
+          return { eligible: false, code: 'ORDER_LINE_PRODUCT_MISMATCH' };
+        }
+        return { eligible: true, verificationMethod: 'ORDER_LINE' };
+      },
+    );
+
     this.servers = await startServer(this.broker as any);
     this.logger.log('Orders service started');
   }
@@ -46,4 +82,8 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     }
     this.logger.log('Orders service stopped');
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

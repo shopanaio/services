@@ -35,6 +35,7 @@ export class StorefrontContextSigner {
   sign(
     context: ResolvedStorefrontAccessContext,
     requestId: string,
+    visitorId: string,
     customer: ContextCustomer | null,
     customerCacheUntil?: Date,
   ): string {
@@ -54,6 +55,7 @@ export class StorefrontContextSigner {
       iat: now,
       exp: expiresAt,
       organizationId: context.store.organizationId,
+      visitorId,
       store: context.store,
       storefront: {
         connectionId: context.access.connectionId,
