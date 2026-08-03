@@ -1,0 +1,66 @@
+"""A published, locale-aware content page owned by the Online Store app."""
+type OnlineStorePage implements Node @key(fields: "id") {
+  """The globally unique Relay ID of the page."""
+  id: ID!
+
+  """Stable, locale-independent handle used to build the page URL."""
+  handle: String!
+
+  """Optional storefront template variant selected by the merchant."""
+  templateSuffix: String
+
+  """The instant at which this page became publicly visible."""
+  publishedAt: DateTime!
+
+  """
+  Localized page content.
+
+  When locale is omitted, the active storefront locale is used. Null is
+  returned when the requested locale is not active or has no translation.
+  """
+  content(locale: LocaleCode): OnlineStorePageContent
+}
+
+"""One localized representation of an Online Store page."""
+type OnlineStorePageContent {
+  """Locale resolved for this representation."""
+  locale: LocaleCode!
+
+  title: String!
+  body: RichText
+  seo: OnlineStoreSEO
+}
+
+"""Search engine and social sharing metadata for a localized page."""
+type OnlineStoreSEO {
+  title: String
+  description: String
+  openGraph: OnlineStoreOpenGraphMetadata
+}
+
+"""Open Graph metadata for a localized page."""
+type OnlineStoreOpenGraphMetadata {
+  title: String
+  description: String
+
+  """
+  Global media ID selected as the social preview image.
+
+  The ID can be resolved through the storefront media entity API once that
+  entity is exposed by the Media subgraph.
+  """
+  imageId: ID
+}
+
+"""A Relay connection containing published Online Store pages."""
+type OnlineStorePageConnection {
+  edges: [OnlineStorePageEdge!]!
+  nodes: [OnlineStorePage!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OnlineStorePageEdge {
+  cursor: String!
+  node: OnlineStorePage!
+}

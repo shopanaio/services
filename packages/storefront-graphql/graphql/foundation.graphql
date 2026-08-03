@@ -71,6 +71,13 @@ type Dimensions @shareable {
   unit: DimensionUnit!
 }
 
+"""Localized rich text in plain text, HTML, and structured JSON formats."""
+type RichText @shareable {
+  text: String!
+  html: HTML!
+  json: JSON!
+}
+
 """Represents a generic error in the input of a mutation."""
 type UserError implements DisplayableError @shareable {
   field: [String!]

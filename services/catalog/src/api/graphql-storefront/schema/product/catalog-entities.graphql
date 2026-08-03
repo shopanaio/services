@@ -38,13 +38,6 @@ type InventoryItem implements Node @key(fields: "id") {
   currentlyNotInStock: Boolean!
 }
 
-"""Localized rich content stored in all formats supported by Catalog."""
-type RichText {
-  text: String!
-  html: HTML!
-  json: JSON!
-}
-
 """Search-engine and social-sharing metadata."""
 type SEO {
   title: String

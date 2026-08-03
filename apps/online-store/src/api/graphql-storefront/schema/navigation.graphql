@@ -1,0 +1,104 @@
+"""A storefront navigation menu owned by the Online Store app."""
+type OnlineStoreNavigationMenu implements Node @key(fields: "id") {
+  """The globally unique Relay ID of the menu."""
+  id: ID!
+
+  """Stable handle used by storefront layouts, for example `main-menu`."""
+  handle: String!
+
+  """Top-level menu items in merchant-defined order."""
+  items(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): OnlineStoreNavigationMenuItemConnection!
+}
+
+"""A localized item in an ordered navigation tree."""
+type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
+  """The globally unique Relay ID of the item."""
+  id: ID!
+
+  menu: OnlineStoreNavigationMenu!
+  parent: OnlineStoreNavigationMenuItem
+
+  """
+  Label in the requested locale.
+
+  When locale is omitted, the active storefront locale is used. Null is
+  returned when the requested locale is not active or has no translation.
+  """
+  label(locale: LocaleCode): String
+
+  target: OnlineStoreNavigationTarget!
+  openInNewTab: Boolean!
+
+  """Direct children in merchant-defined order."""
+  children(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): OnlineStoreNavigationMenuItemConnection!
+}
+
+"""Kinds of destination supported by the Online Store domain model."""
+enum OnlineStoreNavigationTargetType {
+  URL
+  PAGE
+  PRODUCT
+  CATEGORY
+  COLLECTION
+}
+
+"""A normalized, frontend-ready navigation destination."""
+type OnlineStoreNavigationTarget {
+  type: OnlineStoreNavigationTargetType!
+
+  """
+  Global Relay ID of the referenced resource. Null only for a URL target.
+  """
+  resourceId: ID
+
+  """
+  Referenced federated Node when the resource is public and resolvable.
+
+  This can resolve to OnlineStorePage, Product, Category, or a future
+  storefront Collection entity. It is null for URL targets and unavailable
+  resources.
+  """
+  resource: Node
+
+  """
+  Frontend-ready destination URL. For resource targets this is the canonical
+  storefront URL derived from the referenced resource.
+  """
+  url: URL!
+}
+
+"""A Relay connection containing navigation menus."""
+type OnlineStoreNavigationMenuConnection {
+  edges: [OnlineStoreNavigationMenuEdge!]!
+  nodes: [OnlineStoreNavigationMenu!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OnlineStoreNavigationMenuEdge {
+  cursor: String!
+  node: OnlineStoreNavigationMenu!
+}
+
+"""A Relay connection containing one ordered level of a menu tree."""
+type OnlineStoreNavigationMenuItemConnection {
+  edges: [OnlineStoreNavigationMenuItemEdge!]!
+  nodes: [OnlineStoreNavigationMenuItem!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OnlineStoreNavigationMenuItemEdge {
+  cursor: String!
+  node: OnlineStoreNavigationMenuItem!
+}
