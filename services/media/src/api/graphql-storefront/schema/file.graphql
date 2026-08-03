@@ -1,0 +1,167 @@
+"""A web address."""
+scalar URL
+
+"""A JSON value."""
+scalar JSON
+
+"""
+An object with an ID field to support global identification, in accordance
+with the Relay specification.
+"""
+interface Node {
+  """A globally unique ID."""
+  id: ID!
+}
+
+"""The part of the image that should remain after cropping."""
+enum CropRegion {
+  BOTTOM
+  CENTER
+  LEFT
+  RIGHT
+  TOP
+}
+
+"""List of supported image content types."""
+enum ImageContentType {
+  JPG
+  PNG
+  WEBP
+}
+
+"""The available options for transforming an image."""
+input ImageTransformInput {
+  crop: CropRegion
+  maxHeight: Int
+  maxWidth: Int
+  preferredContentType: ImageContentType
+  scale: Int = 1
+}
+
+"""An image resource with URL, dimensions, and transformation options."""
+type Image {
+  altText: String
+  height: Int
+  id: ID
+  thumbhash: String
+  url(transform: ImageTransformInput): URL!
+  width: Int
+
+  originalSrc: URL! @deprecated(reason: "Use `url` instead.")
+  src: URL! @deprecated(reason: "Use `url` instead.")
+  transformedSrc(
+    crop: CropRegion
+    maxHeight: Int
+    maxWidth: Int
+    preferredContentType: ImageContentType
+    scale: Int = 1
+  ): URL! @deprecated(reason: "Use `url(transform:)` instead.")
+}
+
+"""
+Any file that doesn't fit into a designated type like image or video. For
+example, a PDF or JSON document.
+"""
+type GenericFile implements Node @key(fields: "id") {
+  alt: String
+  id: ID!
+  mimeType: String
+  originalFileSize: Int
+  previewImage: Image
+  url: URL
+}
+
+"""The possible content types for a media object."""
+enum MediaContentType {
+  EXTERNAL_VIDEO
+  IMAGE
+  MODEL_3D
+  VIDEO
+}
+
+"""Host for a media resource."""
+enum MediaHost {
+  VIMEO
+  YOUTUBE
+}
+
+"""The possible formats for a media presentation."""
+enum MediaPresentationFormat {
+  IMAGE
+  MODEL_VIEWER
+}
+
+"""A media presentation."""
+type MediaPresentation implements Node @key(fields: "id") {
+  asJson(format: MediaPresentationFormat!): JSON
+  id: ID! @deprecated(reason: "This field is no longer used.")
+}
+
+"""A common set of fields for media content associated with products."""
+interface Media {
+  alt: String
+  id: ID!
+  mediaContentType: MediaContentType!
+  presentation: MediaPresentation
+  previewImage: Image
+}
+
+"""An image hosted on the platform's content delivery network."""
+type MediaImage implements Media & Node @key(fields: "id") {
+  alt: String
+  id: ID!
+  image: Image
+  mediaContentType: MediaContentType!
+  presentation: MediaPresentation
+  previewImage: Image
+}
+
+"""A source for a hosted video."""
+type VideoSource {
+  format: String!
+  height: Int!
+  mimeType: String!
+  url: String!
+  width: Int!
+}
+
+"""A video hosted on the platform's servers."""
+type Video implements Media & Node @key(fields: "id") {
+  alt: String
+  id: ID!
+  mediaContentType: MediaContentType!
+  presentation: MediaPresentation
+  previewImage: Image
+  sources: [VideoSource!]!
+}
+
+"""A video hosted outside of the platform."""
+type ExternalVideo implements Media & Node @key(fields: "id") {
+  alt: String
+  embedUrl: URL!
+  embeddedUrl: URL! @deprecated(reason: "Use `embedUrl` instead.")
+  host: MediaHost!
+  id: ID!
+  mediaContentType: MediaContentType!
+  originUrl: URL!
+  presentation: MediaPresentation
+  previewImage: Image
+}
+
+"""A source for a hosted 3D model."""
+type Model3dSource {
+  filesize: Int!
+  format: String!
+  mimeType: String!
+  url: String!
+}
+
+"""A hosted 3D model."""
+type Model3d implements Media & Node @key(fields: "id") {
+  alt: String
+  id: ID!
+  mediaContentType: MediaContentType!
+  presentation: MediaPresentation
+  previewImage: Image
+  sources: [Model3dSource!]!
+}
