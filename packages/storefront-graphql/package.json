@@ -1,0 +1,20 @@
+{
+  "name": "@shopana/storefront-graphql",
+  "version": "0.0.1",
+  "description": "Shopify-shaped GraphQL foundation for Shopana storefront subgraphs",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./graphql": {
+      "import": "./graphql/foundation.graphql",
+      "default": "./graphql/foundation.graphql"
+    }
+  },
+  "dependencies": {
+    "@shopana/shared-references": "workspace:*"
+  },
+  "files": [
+    "graphql",
+    "README.md"
+  ]
+}

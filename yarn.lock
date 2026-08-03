@@ -7142,7 +7142,10 @@ __metadata:
   resolution: "@shopana/app-online-store@workspace:apps/online-store"
   dependencies:
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/shared-kernel": "workspace:*"
+    "@shopana/shared-references": "npm:*"
     "@types/node": "npm:^22.7.4"
+    drizzle-orm: "npm:^0.45.1"
     typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
@@ -8169,6 +8172,14 @@ __metadata:
     zod: "npm:^3.24.0"
   peerDependencies:
     dotenv: ^16.4.5
+  languageName: unknown
+  linkType: soft
+
+"@shopana/storefront-graphql@workspace:packages/storefront-graphql":
+  version: 0.0.0-use.local
+  resolution: "@shopana/storefront-graphql@workspace:packages/storefront-graphql"
+  dependencies:
+    "@shopana/shared-references": "workspace:*"
   languageName: unknown
   linkType: soft
 
