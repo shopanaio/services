@@ -5,3 +5,6 @@ type Query {
 type Mutation {
   _listing: Boolean
 }
+
+"""Exactly one field of the annotated input object must be non-null."""
+directive @oneOf on INPUT_OBJECT

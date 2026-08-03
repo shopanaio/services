@@ -11,9 +11,11 @@ extend type Category @key(fields: "id") {
   Products published in this category.
 
   When query is provided, text search is applied inside the category scope.
-  The contextual default sort is MANUAL.
+  With no query the contextual default sort is MANUAL. With a non-empty query
+  it is RELEVANCE.
   """
   products(
+    """Number of products to return; must be between 1 and 100."""
     first: Int = 20
     after: String
     query: String
@@ -29,10 +31,12 @@ extend type Query {
   Search published products.
 
   Search uses the locale and currency from the active storefront context. The
-  contextual default sort is RELEVANCE.
+  query must contain 1-128 Unicode code points after whitespace normalization.
+  The contextual default sort is RELEVANCE.
   """
   searchProducts(
     query: String!
+    """Number of products to return; must be between 1 and 100."""
     first: Int = 20
     after: String
     filters: [ListingFilterInput!]
@@ -69,7 +73,10 @@ type ProductConnection {
   """The effective sort selected for this request."""
   sort: ListingSort!
 
-  """Sorts valid for the current category or search context."""
+  """
+  Sorts valid for this context. MANUAL is category-only. RELEVANCE is returned
+  only when a non-empty query is active.
+  """
   availableSorts: [ListingSort!]!
 }
 
@@ -90,7 +97,7 @@ Exactly one field must be provided. Different filter kinds are combined with
 AND. Repeated values of the same filter are combined with OR. Variant facets,
 price, and availability are evaluated against the same variant.
 """
-input ListingFilterInput {
+input ListingFilterInput @oneOf {
   facet: FacetFilterInput
   vendorId: ID
   price: PriceRangeFilterInput
@@ -134,21 +141,28 @@ Availability placement is controlled by listing/search policy and is not
 reversed by the selected product sort.
 """
 enum ListingSort {
-  """Merchant-defined category order. Available in category scope."""
+  """Merchant-defined order. Available only in category scope."""
   MANUAL
 
-  """Search relevance. Available when a search query is active."""
+  """Search relevance. Available when a query is active in any scope."""
   RELEVANCE
 
-  """Published date descending, then product creation date descending."""
+  """Published date descending. Available in category and query contexts."""
   NEWEST
 
-  """Product creation date descending."""
+  """Creation date descending. Available in category and query contexts."""
   CREATED_AT
 
+  """Localized title ascending. Available in category and query contexts."""
   TITLE_ASC
+
+  """Localized title descending. Available in category and query contexts."""
   TITLE_DESC
+
+  """Storefront price ascending. Available in category and query contexts."""
   PRICE_ASC
+
+  """Storefront price descending. Available in category and query contexts."""
   PRICE_DESC
 }
 
@@ -182,6 +196,9 @@ type Filter {
   """
   selectionMode: FacetSelectionMode
 
+  """Typed bounds and active selection for a PRICE_RANGE filter."""
+  priceRange: FilterPriceRange
+
   """Selectable values and reusable inputs for this filter."""
   values: [FilterValue!]!
 }
@@ -195,7 +212,14 @@ enum FilterType {
 enum FilterPresentation {
   TEXT
   SWATCH
-  IMAGE
+}
+
+"""Store-currency price metadata expressed in decimal major units."""
+type FilterPriceRange {
+  min: Money!
+  max: Money!
+  selectedMin: Money
+  selectedMax: Money
 }
 
 type FilterValue {
@@ -258,7 +282,6 @@ enum FacetValueKind {
 enum SwatchType {
   COLOR
   GRADIENT
-  IMAGE
 }
 
 """A configured listing facet owned by the Listing service."""
@@ -283,10 +306,8 @@ type FacetValue implements Node @key(fields: "id") {
 }
 
 """
-Canonical visual metadata associated with a facet value.
-
-Image-backed file resolution is intentionally omitted until the Media
-storefront publishes the canonical File entity.
+Canonical color or gradient metadata associated with a facet value. Image
+swatches are not exposed until the Media storefront entity path is available.
 """
 type FacetSwatch implements Node @key(fields: "id") {
   id: ID!
