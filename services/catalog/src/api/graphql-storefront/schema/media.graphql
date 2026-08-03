@@ -1,3 +1,62 @@
-interface Media {
-  id: ID!
+# A media resource owned by the Media subgraph. Concrete image, video,
+# external-video, and 3D-model fields are selected through inline fragments on
+# the concrete Media implementations.
+extend interface Media {
+  id: ID! @external
+}
+
+"""An ordered media item registered on a product."""
+type ProductMediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+"""A Relay connection to the media registered on a product."""
+type ProductMediaConnection {
+  edges: [ProductMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An ordered media item registered on a category."""
+type CategoryMediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+"""A Relay connection to the media registered on a category."""
+type CategoryMediaConnection {
+  edges: [CategoryMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An ordered media item registered on a collection."""
+type CollectionMediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+"""A Relay connection to the media registered on a collection."""
+type CollectionMediaConnection {
+  edges: [CollectionMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+"""An ordered media item selected for a particular product variant."""
+type ProductVariantMediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+"""A Relay connection to media selected for a particular product variant."""
+type ProductVariantMediaConnection {
+  edges: [ProductVariantMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
 }

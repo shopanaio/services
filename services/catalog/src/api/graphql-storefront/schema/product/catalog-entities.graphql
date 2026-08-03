@@ -1,27 +1,60 @@
+"""The brand, manufacturer, or supplier associated with a product."""
 type Vendor implements Node @key(fields: "id") {
   id: ID!
+  name: String!
 }
 
+"""A localized, stable label used to organize and filter products."""
 type Tag implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  name: String!
 }
 
+"""The policy applied when a tracked variant has no sellable inventory."""
+enum ProductVariantInventoryPolicy {
+  """The variant cannot be purchased when inventory is unavailable."""
+  DENY
+
+  """The variant can be purchased when inventory is unavailable."""
+  CONTINUE
+}
+
+"""
+Buyer-safe inventory information for a product variant.
+
+Warehouse identities, reservations, unavailable quantities, and unit costs are
+operational data and are intentionally available only through the Admin API.
+"""
 type InventoryItem implements Node @key(fields: "id") {
   id: ID!
+  variant: ProductVariant!
+  sku: String
+  tracked: Boolean!
+  requiresShipping: Boolean!
+  inventoryPolicy: ProductVariantInventoryPolicy!
+  quantityAvailable: Int
+  availableForSale: Boolean!
+  currentlyNotInStock: Boolean!
 }
 
-type VariantPrice implements Node {
-  id: ID!
+"""Localized rich content stored in all formats supported by Catalog."""
+type RichText {
+  text: String!
+  html: HTML!
+  json: JSON!
 }
 
-type VariantCost implements Node {
-  id: ID!
+"""Search-engine and social-sharing metadata."""
+type SEO {
+  title: String
+  description: String
+  openGraph: OpenGraphMetadata!
 }
 
-type Warehouse implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type WarehouseStock implements Node {
-  id: ID!
+"""Metadata used when a catalog page is shared on social platforms."""
+type OpenGraphMetadata {
+  title: String
+  description: String
+  image: Media
 }

@@ -1,0 +1,54 @@
+"""A curated or rule-based group of products published to the storefront."""
+type Collection implements Node @key(fields: "id") {
+  id: ID!
+  handle: String
+  title: String!
+  description: RichText
+  excerpt: RichText
+  seo: SEO!
+  media(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CollectionMediaConnection!
+  featuredMedia: Media
+  defaultProductSort: CatalogProductSort!
+  defaultProductSortDirection: CatalogSortDirection!
+  products(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CollectionProductConnection!
+  productsCount: Int!
+  publishedAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""A Relay connection to active, published collections."""
+type CollectionConnection {
+  edges: [CollectionEdge!]!
+  nodes: [Collection!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionEdge {
+  cursor: String!
+  node: Collection!
+}
+
+"""A Relay connection preserving a collection's merchant-defined order."""
+type CollectionProductConnection {
+  edges: [CollectionProductEdge!]!
+  nodes: [Product!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionProductEdge {
+  cursor: String!
+  node: Product!
+}

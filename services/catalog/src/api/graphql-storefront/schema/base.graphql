@@ -1,7 +1,67 @@
+"""Public Catalog entry points for the active storefront context."""
 type Query {
+  """Returns any catalog object by its globally unique Relay ID."""
+  node(id: ID!): Node
+
+  """Returns catalog objects in the same order as the supplied Relay IDs."""
+  nodes(ids: [ID!]!): [Node]!
+
+  """Returns a published product by its globally unique Relay ID."""
+  product(id: ID!): Product
+
+  """Returns a published product by its stable storefront handle."""
+  productByHandle(handle: String!): Product
+
+  """Returns a published product variant by its globally unique Relay ID."""
+  productVariant(id: ID!): ProductVariant
+
+  """Returns a published category by its globally unique Relay ID."""
+  category(id: ID!): Category
+
+  """Returns a published category by its stable storefront handle."""
+  categoryByHandle(handle: String!): Category
+
+  """Returns published categories using Relay cursor pagination."""
+  categories(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CategoryConnection!
+
+  """Returns an active, published collection by its globally unique Relay ID."""
+  collection(id: ID!): Collection
+
+  """Returns an active, published collection by its stable storefront handle."""
+  collectionByHandle(handle: String!): Collection
+
+  """Returns active, published collections using Relay cursor pagination."""
+  collections(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CollectionConnection!
+}
+
+"""
+Catalog storefront mutations are intentionally empty. Catalog authoring belongs
+to the Admin API; buyer-side mutations are owned by cart and checkout services.
+"""
+type Mutation {
   _catalog: Boolean
 }
 
-type Mutation {
-  _catalog: Boolean
+"""Merchant-defined product ordering supported by categories and collections."""
+enum CatalogProductSort {
+  MANUAL
+  PRICE
+  NEWEST
+  TITLE
+}
+
+"""Direction in which an ordered catalog connection is traversed."""
+enum CatalogSortDirection {
+  ASC
+  DESC
 }

@@ -1,52 +1,153 @@
+"""A published item offered for sale in the storefront catalog."""
 type Product implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  title: String!
+  description: RichText
+  excerpt: RichText
+  seo: SEO!
+  vendor: Vendor
+  tags: [Tag!]!
+  primaryCategory: Category
+  categories(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CategoryConnection!
+  collections(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CollectionConnection!
+  options: [ProductOption!]!
+  features: [ProductFeature!]!
+  featureGroups: [ProductFeatureGroup!]!
+  media(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductMediaConnection!
+  featuredMedia: Media
+  variants(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductVariantConnection!
+  variantBySelectedOptions(
+    selectedOptions: [SelectedOptionInput!]!
+  ): ProductVariant
+  selectedOrFirstAvailableVariant(
+    selectedOptions: [SelectedOptionInput!]
+  ): ProductVariant
+  priceRange: ProductPriceRange
+  compareAtPriceRange: ProductPriceRange
+  availableForSale: Boolean!
+  totalInventory: Int
+  publishedAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""A purchasable combination of product option values."""
 type ProductVariant implements Node @key(fields: "id") {
   id: ID!
+  product: Product!
+  handle: String!
+  title: String!
+  sku: String
+  isDefault: Boolean!
+  selectedOptions: [SelectedOption!]!
+  price: Money
+  compareAtPrice: Money
+  availableForSale: Boolean!
+  currentlyNotInStock: Boolean!
+  quantityAvailable: Int
+  inventoryItem: InventoryItem
+  requiresShipping: Boolean!
+  weight: Weight
+  dimensions: Dimensions
+  media(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductVariantMediaConnection!
+  featuredMedia: Media
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""How an option should be presented by a product option picker."""
+enum ProductOptionDisplayType {
+  DROPDOWN
+  SWATCH
+  BUTTONS
+}
+
+"""A configurable product dimension such as size, color, or material."""
 type ProductOption implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  name: String!
+  displayType: ProductOptionDisplayType!
+  position: Int!
+  optionValues: [ProductOptionValue!]!
 }
 
+"""One customer-selectable value of a product option."""
 type ProductOptionValue implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  name: String!
+  position: Int!
+  swatch: ProductOptionValueSwatch
 }
 
-type ProductOptionValueSwatch implements Node @key(fields: "id") {
-  id: ID!
+"""The visual representation used for an option value."""
+enum ProductOptionSwatchType {
+  COLOR
+  GRADIENT
+  IMAGE
 }
 
+type ProductOptionValueSwatch {
+  type: ProductOptionSwatchType!
+  color: Color
+  secondaryColor: Color
+  image: Media
+  metadata: JSON
+}
+
+"""A resolved option/value pair selected by a product variant."""
 type SelectedOption {
+  option: ProductOption!
+  optionValue: ProductOptionValue!
   name: String!
   value: String!
 }
 
+"""Stable option and value handles used to resolve a product variant."""
+input SelectedOptionInput {
+  option: String!
+  value: String!
+}
+
+"""The lowest and highest current variant prices for a product."""
 type ProductPriceRange {
   minVariantPrice: Money!
   maxVariantPrice: Money!
 }
 
-type SEO {
-  title: String
-  description: String
-}
-
-type ProductMediaConnection {
-  edges: [ProductMediaEdge!]!
-  pageInfo: PageInfo!
-}
-
-type ProductMediaEdge {
-  cursor: String!
-  node: Media!
-}
-
+"""A Relay connection to product variants."""
 type ProductVariantConnection {
   edges: [ProductVariantEdge!]!
   nodes: [ProductVariant!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ProductVariantEdge {

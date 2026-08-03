@@ -1,13 +1,43 @@
+"""A published category in the storefront catalog hierarchy."""
 type Category implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  name: String!
+  description: RichText
+  excerpt: RichText
+  seo: SEO!
+  parent: Category
+  ancestors: [Category!]!
+  children(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CategoryConnection!
+  media(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): CategoryMediaConnection!
+  featuredMedia: Media
+  defaultProductSort: CatalogProductSort!
+  defaultProductSortDirection: CatalogSortDirection!
+  productsCount: Int!
+  publishedAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""A Relay connection to categories."""
 type CategoryConnection {
   edges: [CategoryEdge!]!
   nodes: [Category!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
+"""A category and its opaque position in a category connection."""
 type CategoryEdge {
   cursor: String!
   node: Category!
