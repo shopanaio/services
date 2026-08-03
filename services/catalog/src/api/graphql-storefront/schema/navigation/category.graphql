@@ -1,0 +1,14 @@
+type Category implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type CategoryConnection {
+  edges: [CategoryEdge!]!
+  nodes: [Category!]!
+  pageInfo: PageInfo!
+}
+
+type CategoryEdge {
+  cursor: String!
+  node: Category!
+}

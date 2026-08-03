@@ -1,0 +1,11 @@
+type ProductFeature implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductFeatureValue implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductFeatureGroup implements Node @key(fields: "id") {
+  id: ID!
+}

@@ -10,7 +10,8 @@
       "src/api/graphql-storefront/schema/**/*.graphql",
       "../../packages/storefront-graphql/graphql/foundation.graphql",
       "../../packages/shared-references/graphql/shared-currency.graphql",
-      "../../packages/shared-references/graphql/shared-locale.graphql"
+      "../../packages/shared-references/graphql/shared-locale.graphql",
+      "../../packages/shared-references/graphql/shared-units.graphql"
     ]
   },
   "assets": [
@@ -32,6 +33,10 @@
     },
     {
       "include": "../../packages/shared-references/graphql/shared-locale*.graphql",
+      "outDir": "dist/schema/storefront"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/shared-units*.graphql",
       "outDir": "dist/schema/storefront"
     },
     {

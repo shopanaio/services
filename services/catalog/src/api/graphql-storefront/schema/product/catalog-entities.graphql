@@ -1,0 +1,27 @@
+type Vendor implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type Tag implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type InventoryItem implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type VariantPrice implements Node {
+  id: ID!
+}
+
+type VariantCost implements Node {
+  id: ID!
+}
+
+type Warehouse implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type WarehouseStock implements Node {
+  id: ID!
+}

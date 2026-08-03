@@ -1,4 +1,4 @@
-# Shopify-shaped Storefront API foundation for Shopana subgraphs.
+# Storefront API foundation for Shopana subgraphs.
 # CurrencyCode and LocaleCode are owned by @shopana/shared-references.
 # Domain entities are intentionally defined by their owning Shopana subgraphs.
 
@@ -57,13 +57,27 @@ type Money @shareable {
   currencyCode: CurrencyCode!
 }
 
+"""A weight measurement expressed in a supported unit."""
+type Weight @shareable {
+  value: Float!
+  unit: WeightUnit!
+}
+
+"""Physical dimensions expressed in a common length unit."""
+type Dimensions @shareable {
+  width: Float!
+  height: Float!
+  length: Float!
+  unit: DimensionUnit!
+}
+
 """Represents a generic error in the input of a mutation."""
 type UserError implements DisplayableError @shareable {
   field: [String!]
   message: String!
 }
 
-"""CountryCode values supported by Shopify Storefront API 2026-07."""
+"""Supported country codes."""
 enum CountryCode {
   AC
   AD

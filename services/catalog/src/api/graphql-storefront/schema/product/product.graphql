@@ -1,0 +1,55 @@
+type Product implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductVariant implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductOption implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductOptionValue implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductOptionValueSwatch implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type SelectedOption {
+  name: String!
+  value: String!
+}
+
+type ProductPriceRange {
+  minVariantPrice: Money!
+  maxVariantPrice: Money!
+}
+
+type SEO {
+  title: String
+  description: String
+}
+
+type ProductMediaConnection {
+  edges: [ProductMediaEdge!]!
+  pageInfo: PageInfo!
+}
+
+type ProductMediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+type ProductVariantConnection {
+  edges: [ProductVariantEdge!]!
+  nodes: [ProductVariant!]!
+  pageInfo: PageInfo!
+}
+
+type ProductVariantEdge {
+  cursor: String!
+  node: ProductVariant!
+}
