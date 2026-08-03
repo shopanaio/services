@@ -26,7 +26,7 @@ export class FileDeleteManyScript extends BaseScript<
     // Collect files and their deletion states
     const filesMap = new Map<string, FileWithState>();
     for (const id of ids) {
-      const file = await this.repository.file.findAnyById(id);
+      const file = await this.findStoreFile(id, true);
       if (!file) {
         errors.push({ id, code: "FILE_NOT_FOUND" });
         continue;

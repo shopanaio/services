@@ -104,6 +104,7 @@ export async function startServer(serverConfig: ServerConfig) {
     "relay.graphql",
     "base.graphql",
     "bucket.graphql",
+    "cdn.graphql",
     "file.graphql",
     // Generated schemas
     "__generated__/base-filters.graphql",
@@ -166,7 +167,11 @@ export async function startServer(serverConfig: ServerConfig) {
         }
 
         // Create loaders per request for proper batching
-        const loaders = new Loader(kernel!.repository);
+        const loaders = new Loader(kernel!.repository, {
+          storeId: request.store.id,
+          organizationId: request.store.organizationId,
+          userId: request.user.id,
+        });
 
         const ctx = new ServiceContext({
           requestId: request.id as string,

@@ -63,6 +63,49 @@ enum FileProvider {
   LOCAL
 }
 
+enum MediaType {
+  IMAGE
+  VIDEO
+  EXTERNAL_VIDEO
+  MODEL_3D
+  GENERIC_FILE
+}
+
+enum MediaProcessingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum FileStateScope {
+  ACTIVE
+  DELETED
+  ALL
+}
+
+enum CropRegion {
+  BOTTOM
+  CENTER
+  LEFT
+  RIGHT
+  TOP
+}
+
+enum ImageContentType {
+  JPG
+  PNG
+  WEBP
+}
+
+input ImageTransformInput {
+  crop: CropRegion
+  maxHeight: Int
+  maxWidth: Int
+  preferredContentType: ImageContentType
+  scale: Int = 1
+}
+
 """
 Image/video dimensions.
 """
@@ -135,7 +178,10 @@ type File implements Node @key(fields: "id") {
   """
   Public URL to access file.
   """
-  url: String!
+  url(transform: ImageTransformInput, country: String): String!
+
+  """Canonical provider URL before CDN routing and transforms."""
+  originUrl: String!
 
   """
   MIME type.
@@ -171,6 +217,20 @@ type File implements Node @key(fields: "id") {
   Alt text for accessibility.
   """
   altText: String
+
+  mediaType: MediaType!
+
+  previewFile: File
+
+  thumbhash: String
+
+  processingStatus: MediaProcessingStatus!
+
+  processingError: String
+
+  processedAt: DateTime
+
+  sources: [MediaSource!]!
 
   """
   Source URL (for files uploaded from URL).
@@ -427,6 +487,16 @@ input FileUpdateInput {
   Additional metadata.
   """
   meta: JSON
+
+  mediaType: MediaType
+
+  previewFileId: ID
+
+  thumbhash: String
+
+  processingStatus: MediaProcessingStatus
+
+  processingError: String
 }
 
 """
@@ -592,5 +662,46 @@ type AvatarUploadPayload {
   """
   List of errors that occurred during the mutation.
   """
+  userErrors: [GenericUserError!]!
+}
+
+# ---- Prepared video/3D sources ----
+
+type MediaSource {
+  sourceFile: File!
+  kind: String!
+  format: String!
+  sortOrder: Int!
+  createdAt: DateTime!
+}
+
+input MediaSourceCreateInput {
+  mediaFileId: ID!
+  sourceFileId: ID!
+  kind: String!
+  format: String!
+  sortOrder: Int
+}
+
+input MediaSourceUpdateInput {
+  mediaFileId: ID!
+  sourceFileId: ID!
+  kind: String
+  format: String
+  sortOrder: Int
+}
+
+input MediaSourceDeleteInput {
+  mediaFileId: ID!
+  sourceFileId: ID!
+}
+
+type MediaSourcePayload {
+  source: MediaSource
+  userErrors: [GenericUserError!]!
+}
+
+type MediaSourceDeletePayload {
+  deletedSourceFileId: ID
   userErrors: [GenericUserError!]!
 }

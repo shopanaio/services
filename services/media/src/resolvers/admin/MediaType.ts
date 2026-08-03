@@ -2,9 +2,12 @@ import {
   BaseType,
   Cache,
   createExecutor,
+  createAuthorizationMiddleware,
   type CacheStore,
+  type Authorizable,
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";
+import { AuthProvider } from "../../kernel/Authorizable.js";
 
 export { Cache };
 
@@ -24,12 +27,15 @@ export { Cache };
  * }
  * ```
  */
-export abstract class MediaType<TValue, TData = unknown> extends BaseType<
-  TValue,
-  TData,
-  ServiceContext
-> {
-  static executor = createExecutor<ServiceContext>({});
+export abstract class MediaType<TValue, TData = unknown>
+  extends BaseType<TValue, TData, ServiceContext>
+  implements Authorizable
+{
+  readonly authProvider = new AuthProvider();
+
+  static executor = createExecutor<ServiceContext>({
+    middleware: [createAuthorizationMiddleware()],
+  });
 
   protected getCache(): CacheStore {
     return this.$ctx.kernel.cache as CacheStore;

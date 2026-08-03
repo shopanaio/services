@@ -1,0 +1,125 @@
+type MediaSettings {
+  assetGroupId: ID!
+  cdnConfigurations: [CdnConfiguration!]!
+  cdnRoutingRules: [CdnRoutingRule!]!
+}
+
+type CdnConfiguration implements Node {
+  id: ID!
+  name: String!
+  provider: String!
+  baseUrl: String!
+  pathPrefix: String!
+  enabled: Boolean!
+  isDefault: Boolean!
+  signingMode: String!
+  secretRef: String
+  transformStrategy: String!
+  urlTemplate: String
+  providerConfig: JSON!
+  transformConfig: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CdnRoutingRule implements Node {
+  id: ID!
+  configuration: CdnConfiguration!
+  name: String!
+  priority: Int!
+  enabled: Boolean!
+  conditions: JSON!
+  transformOverrides: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CdnDeliveryPreview {
+  url: String!
+  originUrl: String!
+  configuration: CdnConfiguration
+  routingRule: CdnRoutingRule
+  fallback: Boolean!
+  userErrors: [GenericUserError!]!
+}
+
+input CdnConfigurationCreateInput {
+  name: String!
+  provider: String!
+  baseUrl: String!
+  pathPrefix: String
+  enabled: Boolean
+  isDefault: Boolean
+  signingMode: String
+  secretRef: String
+  transformStrategy: String
+  urlTemplate: String
+  providerConfig: JSON
+  transformConfig: JSON
+}
+
+input CdnConfigurationUpdateInput {
+  id: ID!
+  name: String
+  provider: String
+  baseUrl: String
+  pathPrefix: String
+  enabled: Boolean
+  isDefault: Boolean
+  signingMode: String
+  secretRef: String
+  transformStrategy: String
+  urlTemplate: String
+  providerConfig: JSON
+  transformConfig: JSON
+}
+
+input CdnConfigurationTestInput {
+  configuration: CdnConfigurationCreateInput!
+  objectPath: String!
+  transform: ImageTransformInput
+}
+
+type CdnConfigurationPayload {
+  configuration: CdnConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+type CdnConfigurationDeletePayload {
+  deletedConfigurationId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type CdnConfigurationTestPayload {
+  preview: CdnDeliveryPreview
+  userErrors: [GenericUserError!]!
+}
+
+input CdnRoutingRuleCreateInput {
+  cdnConfigurationId: ID!
+  name: String!
+  priority: Int
+  enabled: Boolean
+  conditions: JSON
+  transformOverrides: JSON
+}
+
+input CdnRoutingRuleUpdateInput {
+  id: ID!
+  cdnConfigurationId: ID
+  name: String
+  priority: Int
+  enabled: Boolean
+  conditions: JSON
+  transformOverrides: JSON
+}
+
+type CdnRoutingRulePayload {
+  routingRule: CdnRoutingRule
+  userErrors: [GenericUserError!]!
+}
+
+type CdnRoutingRuleDeletePayload {
+  deletedRoutingRuleId: ID
+  userErrors: [GenericUserError!]!
+}

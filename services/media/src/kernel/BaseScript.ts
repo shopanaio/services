@@ -8,6 +8,7 @@ import {
 import { getContext } from "../context/index.js";
 import type { MediaKernelServices } from "./types.js";
 import { AuthProvider } from "./Authorizable.js";
+import type { AssetGroup, File } from "../repositories/models/index.js";
 
 // Re-export decorators for convenience
 export { ZodSchema, Transactional, ValidationError };
@@ -90,6 +91,33 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
    */
   protected get currentUser() {
     return this.context.user;
+  }
+
+  /** Current store media library, created lazily for upload/settings flows. */
+  protected async getOrCreateStoreAssetGroup(): Promise<AssetGroup> {
+    const existing = await this.repository.assetGroup.findByOwner(
+      "store",
+      this.storeId
+    );
+    if (existing) return existing;
+
+    return this.repository.assetGroup.create({
+      ownerType: "store",
+      ownerId: this.storeId,
+    });
+  }
+
+  /** Tenant-safe lookup used before every store file mutation. */
+  protected findStoreFile(
+    fileId: string,
+    includeDeleted = false
+  ): Promise<File | null> {
+    return this.repository.file.findByOwner(
+      fileId,
+      "store",
+      this.storeId,
+      includeDeleted
+    );
   }
 
   /**

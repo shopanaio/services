@@ -11,7 +11,7 @@ export class FileRestoreScript extends BaseScript<
   protected async execute(
     params: FileRestoreParams
   ): Promise<FileRestoreResult> {
-    const file = await this.repository.file.findAnyById(params.id);
+    const file = await this.findStoreFile(params.id, true);
     if (!file) {
       return { error: "FILE_NOT_FOUND" };
     }
@@ -25,7 +25,7 @@ export class FileRestoreScript extends BaseScript<
     // Clear deletedAt on file
     await this.repository.file.restore(params.id);
 
-    const restored = await this.repository.file.findById(params.id);
+    const restored = await this.findStoreFile(params.id);
     if (!restored) {
       return { error: "INTERNAL_ERROR" };
     }

@@ -20,6 +20,7 @@ export const FILES_QUERY = gql`
     $before: String
     $where: FileWhereInput
     $orderBy: [FileOrderByInput!]
+    $state: FileStateScope
   ) {
     mediaQuery {
       files(
@@ -29,6 +30,7 @@ export const FILES_QUERY = gql`
         before: $before
         where: $where
         orderBy: $orderBy
+        state: $state
       ) {
         edges {
           cursor

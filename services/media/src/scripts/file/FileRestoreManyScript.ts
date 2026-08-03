@@ -20,7 +20,7 @@ export class FileRestoreManyScript extends BaseScript<
     // Collect files and their deletion states
     const statesMap = new Map<string, FileDeletionState | null>();
     for (const id of ids) {
-      const file = await this.repository.file.findAnyById(id);
+      const file = await this.findStoreFile(id, true);
       if (!file) {
         errors.push({ id, code: "FILE_NOT_FOUND" });
         continue;

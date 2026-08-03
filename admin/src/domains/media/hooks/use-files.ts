@@ -9,7 +9,7 @@ import type {
   ApiFileWhereInput,
   ApiFileOrderByInput,
 } from "@/graphql/types";
-import { SortDirection, FileOrderField } from "@/graphql/types";
+import { SortDirection, FileOrderField, FileStateScope } from "@/graphql/types";
 
 interface UseFilesOptions {
   /**
@@ -44,6 +44,8 @@ interface UseFilesOptions {
    * Sort configuration.
    */
   orderBy?: ApiFileOrderByInput[];
+  /** Lifecycle scope. Active files are returned by default. */
+  state?: FileStateScope;
 }
 
 interface UseFilesReturn {
@@ -117,6 +119,7 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     search,
     where: externalWhere,
     orderBy,
+    state = FileStateScope.Active,
   } = options;
 
   // Build the combined where clause with search
@@ -140,20 +143,17 @@ export function useFiles(options: UseFilesOptions = {}): UseFilesReturn {
     return { _and: conditions };
   }, [search, externalWhere]);
 
-  const { data, previousData, loading, error, refetch } =
+  const { data, loading, error, refetch } =
     useQuery<FilesQueryResponse>(FILES_QUERY, {
-      variables: { first, last, after, before, where, orderBy },
+      variables: { first, last, after, before, where, orderBy, state },
       skip,
       fetchPolicy: "cache-and-network",
     });
 
-  // Use previousData while loading to prevent UI flickering
-  const effectiveData = data ?? previousData;
-
   const files =
-    effectiveData?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
-  const pageInfo = effectiveData?.mediaQuery.files.pageInfo ?? null;
-  const totalCount = effectiveData?.mediaQuery.files.totalCount ?? 0;
+    data?.mediaQuery.files.edges.map((edge) => edge.node) ?? [];
+  const pageInfo = data?.mediaQuery.files.pageInfo ?? null;
+  const totalCount = data?.mediaQuery.files.totalCount ?? 0;
 
   return {
     files,

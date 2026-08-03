@@ -1,5 +1,5 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { MediaType, Cache } from "./MediaType.js";
+import { MediaType } from "./MediaType.js";
 import type { ExternalMedia } from "../../repositories/models/index.js";
 
 /**

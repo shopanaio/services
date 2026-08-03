@@ -1,4 +1,4 @@
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, or, isNull, inArray, sql } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -36,7 +36,17 @@ export type FileRelayInput = InferRelayInput<typeof fileRelayQuery> & {
   ownerType?: AssetOwnerType;
   /** Owner ID */
   ownerId: string;
+  /** File lifecycle scope used by Admin library/trash views. */
+  state?: FileStateScope;
 };
+
+export type FileStateScope = "ACTIVE" | "DELETED" | "ALL";
+
+export interface FileAccessScope {
+  storeId: string;
+  organizationId?: string | null;
+  userId?: string | null;
+}
 
 export interface FileConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
@@ -160,6 +170,117 @@ export class FileRepository {
           isNull(files.deletedAt)
         )
       );
+  }
+
+  /**
+   * Load a file owned by one exact asset-group owner. Admin mutations use this
+   * method before changing a file so a global File ID cannot cross tenants.
+   */
+  async findByOwner(
+    fileId: string,
+    ownerType: AssetOwnerType,
+    ownerId: string,
+    includeDeleted = false
+  ): Promise<File | null> {
+    const predicates = [
+      eq(files.id, fileId),
+      eq(assetGroups.ownerType, ownerType),
+      eq(assetGroups.ownerId, ownerId),
+    ];
+    if (!includeDeleted) predicates.push(isNull(files.deletedAt));
+
+    const result = await this.db
+      .select({ file: files })
+      .from(files)
+      .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
+      .where(and(...predicates))
+      .limit(1);
+
+    return result[0]?.file ?? null;
+  }
+
+  /**
+   * Read scope for federated/admin file references. Store media, the current
+   * organization media, and the authenticated user's profile media are visible.
+   */
+  async findAccessibleById(
+    fileId: string,
+    scope: FileAccessScope,
+    includeDeleted = false
+  ): Promise<File | null> {
+    const ownership = or(
+      and(
+        eq(assetGroups.ownerType, "store"),
+        eq(assetGroups.ownerId, scope.storeId)
+      ),
+      scope.organizationId
+        ? and(
+            eq(assetGroups.ownerType, "organization"),
+            eq(assetGroups.ownerId, scope.organizationId)
+          )
+        : undefined,
+      scope.userId
+        ? and(
+            eq(assetGroups.ownerType, "user_profile"),
+            eq(assetGroups.ownerId, scope.userId)
+          )
+        : undefined
+    );
+
+    const result = await this.db
+      .select({ file: files })
+      .from(files)
+      .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
+      .where(
+        and(
+          eq(files.id, fileId),
+          ownership,
+          includeDeleted ? undefined : isNull(files.deletedAt)
+        )
+      )
+      .limit(1);
+
+    return result[0]?.file ?? null;
+  }
+
+  async findAccessibleByIds(
+    ids: readonly string[],
+    scope: FileAccessScope
+  ): Promise<File[]> {
+    if (ids.length === 0) return [];
+
+    const ownership = or(
+      and(
+        eq(assetGroups.ownerType, "store"),
+        eq(assetGroups.ownerId, scope.storeId)
+      ),
+      scope.organizationId
+        ? and(
+            eq(assetGroups.ownerType, "organization"),
+            eq(assetGroups.ownerId, scope.organizationId)
+          )
+        : undefined,
+      scope.userId
+        ? and(
+            eq(assetGroups.ownerType, "user_profile"),
+            eq(assetGroups.ownerId, scope.userId)
+          )
+        : undefined
+    );
+
+    const result = await this.db
+      .select({ file: files })
+      .from(files)
+      .innerJoin(assetGroups, eq(files.assetGroupId, assetGroups.id))
+      .where(
+        and(
+          inArray(files.id, [...ids]),
+          ownership,
+          isNull(files.deletedAt)
+        )
+      );
+
+    return result.map((row) => row.file);
   }
 
   // ---- Write methods ----
@@ -447,7 +568,14 @@ export class FileRepository {
    * Get files with Relay-style cursor pagination
    */
   async getConnection(args: FileRelayInput): Promise<FileConnectionResult> {
-    const { where, orderBy, ownerType = "store", ownerId, ...paginationArgs } = args;
+    const {
+      where,
+      orderBy,
+      ownerType = "store",
+      ownerId,
+      state = "ACTIVE",
+      ...paginationArgs
+    } = args;
 
     // Resolve asset group ID from owner type + owner ID
     const assetGroupId = await this.resolveAssetGroupId(ownerType, ownerId);
@@ -467,9 +595,16 @@ export class FileRepository {
     }
 
     // Merge user-provided where with assetGroupId and deletedAt filters
+    const stateWhere =
+      state === "ACTIVE"
+        ? { deletedAt: { _is: null } }
+        : state === "DELETED"
+          ? { deletedAt: { _isNot: null } }
+          : null;
+
     const mergedWhere: FileRelayInput["where"] = {
       _and: [
-        { deletedAt: { _is: null } },
+        ...(stateWhere ? [stateWhere] : []),
         { assetGroupId: { _eq: assetGroupId } },
         ...(where ? [where] : []),
       ],

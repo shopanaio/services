@@ -9,7 +9,7 @@ export class FileDeleteScript extends BaseScript<
   FileDeleteResult
 > {
   protected async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
-    const file = await this.repository.file.findAnyById(params.id);
+    const file = await this.findStoreFile(params.id, true);
     if (!file) {
       return {
         deletedFileId: null,

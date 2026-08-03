@@ -8,7 +8,11 @@ import {
 } from "@shopana/shared-kernel";
 import { DBOS } from "@dbos-inc/dbos-sdk";
 import { Kernel } from "../kernel/Kernel.js";
-import { classifyError, MissingMetadataError } from "../utils/classifyError.js";
+import {
+  classifyError,
+  DeletionBlockedError,
+  MissingMetadataError,
+} from "../utils/classifyError.js";
 import { S3Client, S3_CLIENT } from "../infrastructure/S3Client.js";
 
 export interface FileHardDeleteOutput {
@@ -40,6 +44,7 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
     const s3ObjectRepo = this.repository.s3Object;
     const bucketRepo = this.repository.bucket;
     const assetGroupRepo = this.repository.assetGroup;
+    const mediaSourceRepo = this.repository.mediaSource;
 
     // Get file and its deletion state
     const file = await fileRepo.findAnyById(fileId);
@@ -87,6 +92,14 @@ export class FileHardDeleteWorkflow extends BrokerWorkflows {
     try {
       let bucketName: string | null = null;
       let objectKey: string | null = null;
+
+      const preparedSourceReferences =
+        await mediaSourceRepo.getReferencingMediaFileIds(fileId);
+      if (preparedSourceReferences.length > 0) {
+        throw new DeletionBlockedError(
+          `File ${fileId} is still used by ${preparedSourceReferences.length} prepared media source relation(s)`
+        );
+      }
 
       if (file.provider === "S3") {
         const s3Object = await s3ObjectRepo.findByFileId(fileId);

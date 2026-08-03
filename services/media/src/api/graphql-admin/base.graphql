@@ -26,6 +26,17 @@ extend type Mutation {
 }
 
 type MediaQuery {
+  """Media delivery settings for the current store."""
+  mediaSettings: MediaSettings
+
+  """Resolve and inspect the CDN route for a current-store file."""
+  cdnDeliveryPreview(
+    fileId: ID!
+    configurationId: ID
+    country: String
+    transform: ImageTransformInput
+  ): CdnDeliveryPreview!
+
   """
   Get a node by its global ID
   """
@@ -63,12 +74,26 @@ type MediaQuery {
     Sort order
     """
     orderBy: [FileOrderByInput!]
+    """Select active media, trash, or both."""
+    state: FileStateScope = ACTIVE
   ): FileConnection!
 }
 
 type MediaMutation {
   # Bucket mutations
   bucketCreate(input: BucketCreateInput!): BucketCreatePayload!
+
+  # CDN configuration mutations
+  cdnConfigurationCreate(input: CdnConfigurationCreateInput!): CdnConfigurationPayload!
+  cdnConfigurationUpdate(input: CdnConfigurationUpdateInput!): CdnConfigurationPayload!
+  cdnConfigurationDelete(id: ID!): CdnConfigurationDeletePayload!
+  cdnConfigurationSetDefault(id: ID!): CdnConfigurationPayload!
+  cdnConfigurationTest(input: CdnConfigurationTestInput!): CdnConfigurationTestPayload!
+
+  # CDN routing mutations
+  cdnRoutingRuleCreate(input: CdnRoutingRuleCreateInput!): CdnRoutingRulePayload!
+  cdnRoutingRuleUpdate(input: CdnRoutingRuleUpdateInput!): CdnRoutingRulePayload!
+  cdnRoutingRuleDelete(id: ID!): CdnRoutingRuleDeletePayload!
 
   # File mutations
   fileUpload(input: FileUploadMultipartInput!): FileUploadPayload!
@@ -102,7 +127,12 @@ type MediaMutation {
   fileRestoreMany(input: FileRestoreManyInput!): FileRestoreManyPayload!
 
   """
-  Clear errors for multiple files by ID.
+  Clear the deletion error for one file by ID.
   """
   fileClearError(input: FileClearErrorInput!): FileClearErrorPayload!
+
+  # Prepared video/3D sources
+  mediaSourceCreate(input: MediaSourceCreateInput!): MediaSourcePayload!
+  mediaSourceUpdate(input: MediaSourceUpdateInput!): MediaSourcePayload!
+  mediaSourceDelete(input: MediaSourceDeleteInput!): MediaSourceDeletePayload!
 }

@@ -19,16 +19,13 @@ export class FileUploadMultipartScript extends BaseScript<
     params: FileUploadMultipartParams
   ): Promise<FileUploadMultipartResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
-    const assetGroup = await this.repository.assetGroup.findByOwner(
-      "store",
-      this.storeId
-    );
-    const assetGroupId = assetGroup?.id ?? null;
+    const assetGroup = await this.getOrCreateStoreAssetGroup();
+    const assetGroupId = assetGroup.id;
 
     this.logger.info({ storeId: this.storeId, assetGroupId }, "FileUploadMultipartScript: starting");
 
     // 1. Check idempotency key
-    if (params.idempotencyKey && assetGroupId) {
+    if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
         params.idempotencyKey
@@ -123,7 +120,7 @@ export class FileUploadMultipartScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 6. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(assetGroupId!, {
+    const file = await this.repository.file.create(assetGroupId, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -140,7 +137,7 @@ export class FileUploadMultipartScript extends BaseScript<
     });
 
     // 7. Create record in `s3Objects` table
-    await this.repository.s3Object.create(assetGroupId!, {
+    await this.repository.s3Object.create(assetGroupId, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,

@@ -3,6 +3,7 @@ import { FileLoader } from "./FileLoader.js";
 import { S3ObjectLoader } from "./S3ObjectLoader.js";
 import { ExternalMediaLoader } from "./ExternalMediaLoader.js";
 import { FileUsageLoader } from "./FileUsageLoader.js";
+import type { FileAccessScope } from "../repositories/FileRepository.js";
 
 /**
  * Loader - aggregates all data loaders for Media service
@@ -14,8 +15,8 @@ export class Loader {
   public readonly s3Object: S3ObjectLoader["s3Object"];
   public readonly externalMedia: ExternalMediaLoader["externalMedia"];
 
-  constructor(repository: Repository) {
-    const fileLoader = new FileLoader(repository);
+  constructor(repository: Repository, scope: FileAccessScope) {
+    const fileLoader = new FileLoader(repository, scope);
     const fileUsageLoader = new FileUsageLoader(repository);
     const s3ObjectLoader = new S3ObjectLoader(repository);
     const externalMediaLoader = new ExternalMediaLoader(repository);

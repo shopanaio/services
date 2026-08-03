@@ -27,11 +27,8 @@ export class FileUploadFromUrlScript extends BaseScript<
 > {
   protected async execute(params: FileUploadFromUrlParams): Promise<FileUploadFromUrlResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
-    const assetGroup = await this.repository.assetGroup.findByOwner(
-      "store",
-      this.storeId
-    );
-    const assetGroupId = assetGroup?.id ?? null;
+    const assetGroup = await this.getOrCreateStoreAssetGroup();
+    const assetGroupId = assetGroup.id;
 
     this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileUploadFromUrlScript: starting");
 
@@ -54,7 +51,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     }
 
     // 1. Check idempotency key
-    if (params.idempotencyKey && assetGroupId) {
+    if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
         params.idempotencyKey
@@ -77,7 +74,7 @@ export class FileUploadFromUrlScript extends BaseScript<
 
     // 2. Check for existing file by source URL (deduplication)
     // Skip for data URLs as they are unique uploads
-    if (!isDataUrl && assetGroupId) {
+    if (!isDataUrl) {
       const existingByUrl = await this.repository.file.findBySourceUrl(
         assetGroupId,
         params.sourceUrl
@@ -156,7 +153,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     const publicUrl = buildPublicUrl(objectKey);
 
     // 7. Create record in `files` table with detected metadata
-    const file = await this.repository.file.create(assetGroupId!, {
+    const file = await this.repository.file.create(assetGroupId, {
       provider: "S3",
       url: publicUrl,
       mimeType: metadata.mimeType,
@@ -174,7 +171,7 @@ export class FileUploadFromUrlScript extends BaseScript<
     });
 
     // 8. Create record in `s3Objects` table
-    await this.repository.s3Object.create(assetGroupId!, {
+    await this.repository.s3Object.create(assetGroupId, {
       fileId: file.id,
       bucketId: bucket.id,
       objectKey,

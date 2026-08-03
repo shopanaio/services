@@ -1,5 +1,5 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2026-07-25T15:24:01.907Z
+# Generated at: 2026-08-03T19:04:47.203Z
 
 # ---- File ----
 
@@ -35,6 +35,18 @@ input FileWhereInput {
   durationMs: IntFilter
   """Filter by altText"""
   altText: StringFilter
+  """Filter by mediaType"""
+  mediaType: StringFilter
+  """Filter by previewFileId"""
+  previewFileId: IDFilter
+  """Filter by thumbhash"""
+  thumbhash: StringFilter
+  """Filter by processingStatus"""
+  processingStatus: StringFilter
+  """Filter by processingError"""
+  processingError: StringFilter
+  """Filter by processedAt"""
+  processedAt: DateTimeFilter
   """Filter by sourceUrl"""
   sourceUrl: StringFilter
   """Filter by idempotencyKey"""
@@ -75,6 +87,18 @@ enum FileOrderField {
   durationMs
   """Sort by altText"""
   altText
+  """Sort by mediaType"""
+  mediaType
+  """Sort by previewFileId"""
+  previewFileId
+  """Sort by thumbhash"""
+  thumbhash
+  """Sort by processingStatus"""
+  processingStatus
+  """Sort by processingError"""
+  processingError
+  """Sort by processedAt"""
+  processedAt
   """Sort by sourceUrl"""
   sourceUrl
   """Sort by idempotencyKey"""

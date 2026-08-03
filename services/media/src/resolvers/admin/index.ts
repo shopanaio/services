@@ -14,6 +14,11 @@ export { FileResolver } from "./FileResolver.js";
 export { BucketResolver } from "./BucketResolver.js";
 export { S3DataResolver } from "./S3DataResolver.js";
 export { ExternalDataResolver } from "./ExternalDataResolver.js";
+export { CdnConfigurationResolver } from "./CdnConfigurationResolver.js";
+export { CdnRoutingRuleResolver } from "./CdnRoutingRuleResolver.js";
+export { MediaSettingsResolver } from "./MediaSettingsResolver.js";
+export { CdnDeliveryPreviewResolver } from "./CdnDeliveryPreviewResolver.js";
+export { MediaSourceResolver } from "./MediaSourceResolver.js";
 
 // Connection resolvers
 export * from "./connection/index.js";

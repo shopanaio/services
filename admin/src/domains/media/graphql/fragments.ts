@@ -24,6 +24,14 @@ export const FILE_BASIC_FRAGMENT = gql`
     createdAt
     deletedAt
     deletionState
+    deletionErrorCode
+    lastDeletionError
+    failedAt
+    mediaType
+    processingStatus
+    processingError
+    processedAt
+    thumbhash
     usage {
       totalCount
       byEntity {
@@ -59,6 +67,11 @@ export const FILE_FRAGMENT = gql`
     altText
     sourceUrl
     isProcessed
+    mediaType
+    processingStatus
+    processingError
+    processedAt
+    thumbhash
     meta
     createdAt
     updatedAt

@@ -12,7 +12,7 @@ export class FileUpdateScript extends BaseScript<
     this.logger.info({ params }, "FileUpdateScript: starting");
 
     // 1. Find file by ID (any state to block DELETING)
-    const existingFile = await this.repository.file.findAnyById(params.id);
+    const existingFile = await this.findStoreFile(params.id, true);
 
     // 2. Check that file exists
     if (!existingFile) {
@@ -63,6 +63,11 @@ export class FileUpdateScript extends BaseScript<
       altText?: string | null;
       originalName?: string | null;
       meta?: Record<string, unknown> | null;
+      mediaType?: typeof params.mediaType;
+      previewFileId?: string | null;
+      thumbhash?: string | null;
+      processingStatus?: typeof params.processingStatus;
+      processingError?: string | null;
     } = {};
 
     if (params.altText !== undefined) {
@@ -73,6 +78,81 @@ export class FileUpdateScript extends BaseScript<
     }
     if (params.meta !== undefined) {
       updateData.meta = params.meta;
+    }
+    if (params.mediaType !== undefined) {
+      updateData.mediaType = params.mediaType;
+    }
+    if (params.previewFileId !== undefined) {
+      if (params.previewFileId === params.id) {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message: "A file cannot be its own preview",
+              field: ["previewFileId"],
+              code: "SELF_REFERENCE",
+            },
+          ],
+        };
+      }
+      if (params.previewFileId) {
+        const preview = await this.findStoreFile(params.previewFileId);
+        if (!preview || preview.mediaType !== "IMAGE") {
+          return {
+            file: null,
+            userErrors: [
+              {
+                message: "Preview must be an active image from the current store",
+                field: ["previewFileId"],
+                code: "INVALID_PREVIEW",
+              },
+            ],
+          };
+        }
+      }
+      updateData.previewFileId = params.previewFileId;
+    }
+    if (params.thumbhash !== undefined) {
+      updateData.thumbhash = params.thumbhash;
+    }
+    if (params.processingStatus !== undefined) {
+      if (
+        params.processingError &&
+        params.processingStatus !== "FAILED"
+      ) {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message: "processingError can only be set for a failed file",
+              field: ["processingError"],
+              code: "INVALID_PROCESSING_STATE",
+            },
+          ],
+        };
+      }
+      updateData.processingStatus = params.processingStatus;
+      if (params.processingError === undefined && params.processingStatus !== "FAILED") {
+        updateData.processingError = null;
+      }
+    }
+    if (params.processingError !== undefined) {
+      if (
+        params.processingError &&
+        (params.processingStatus ?? existingFile.processingStatus) !== "FAILED"
+      ) {
+        return {
+          file: null,
+          userErrors: [
+            {
+              message: "processingError can only be set for a failed file",
+              field: ["processingError"],
+              code: "INVALID_PROCESSING_STATE",
+            },
+          ],
+        };
+      }
+      updateData.processingError = params.processingError;
     }
 
     // Check if there are any updates to make

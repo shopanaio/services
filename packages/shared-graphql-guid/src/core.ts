@@ -170,6 +170,8 @@ export enum GlobalIdEntity {
   File = "File",
   MediaAssetGroup = "MediaAssetGroup",
   Bucket = "Bucket",
+  CdnConfiguration = "CdnConfiguration",
+  CdnRoutingRule = "CdnRoutingRule",
   // Reviews
   ReviewStoreConfiguration = "ReviewStoreConfiguration",
   ReviewRatingCriterion = "ReviewRatingCriterion",

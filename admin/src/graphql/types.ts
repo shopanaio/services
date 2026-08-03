@@ -1849,12 +1849,6 @@ export type ApiBulkUpdateUserError = ApiUserError & {
   variantId?: Maybe<Scalars['ID']['output']>;
 };
 
-export type ApiBundle = ApiListing & ApiNode & {
-  __typename?: 'Bundle';
-  /** The Bundle global ID owned by Catalog. */
-  id: Scalars['ID']['output'];
-};
-
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
   /** Create a new category */
@@ -2484,6 +2478,134 @@ export type ApiCategoryWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
+export type ApiCdnConfiguration = ApiNode & {
+  __typename?: 'CdnConfiguration';
+  baseUrl: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  pathPrefix: Scalars['String']['output'];
+  provider: Scalars['String']['output'];
+  providerConfig: Scalars['JSON']['output'];
+  secretRef?: Maybe<Scalars['String']['output']>;
+  signingMode: Scalars['String']['output'];
+  transformConfig: Scalars['JSON']['output'];
+  transformStrategy: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  urlTemplate?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiCdnConfigurationCreateInput = {
+  baseUrl: Scalars['String']['input'];
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
+  provider: Scalars['String']['input'];
+  providerConfig?: InputMaybe<Scalars['JSON']['input']>;
+  secretRef?: InputMaybe<Scalars['String']['input']>;
+  signingMode?: InputMaybe<Scalars['String']['input']>;
+  transformConfig?: InputMaybe<Scalars['JSON']['input']>;
+  transformStrategy?: InputMaybe<Scalars['String']['input']>;
+  urlTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCdnConfigurationDeletePayload = {
+  __typename?: 'CdnConfigurationDeletePayload';
+  deletedConfigurationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnConfigurationPayload = {
+  __typename?: 'CdnConfigurationPayload';
+  configuration?: Maybe<ApiCdnConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnConfigurationTestInput = {
+  configuration: ApiCdnConfigurationCreateInput;
+  objectPath: Scalars['String']['input'];
+  transform?: InputMaybe<ApiImageTransformInput>;
+};
+
+export type ApiCdnConfigurationTestPayload = {
+  __typename?: 'CdnConfigurationTestPayload';
+  preview?: Maybe<ApiCdnDeliveryPreview>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnConfigurationUpdateInput = {
+  baseUrl?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  providerConfig?: InputMaybe<Scalars['JSON']['input']>;
+  secretRef?: InputMaybe<Scalars['String']['input']>;
+  signingMode?: InputMaybe<Scalars['String']['input']>;
+  transformConfig?: InputMaybe<Scalars['JSON']['input']>;
+  transformStrategy?: InputMaybe<Scalars['String']['input']>;
+  urlTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiCdnDeliveryPreview = {
+  __typename?: 'CdnDeliveryPreview';
+  configuration?: Maybe<ApiCdnConfiguration>;
+  fallback: Scalars['Boolean']['output'];
+  originUrl: Scalars['String']['output'];
+  routingRule?: Maybe<ApiCdnRoutingRule>;
+  url: Scalars['String']['output'];
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnRoutingRule = ApiNode & {
+  __typename?: 'CdnRoutingRule';
+  conditions: Scalars['JSON']['output'];
+  configuration: ApiCdnConfiguration;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  priority: Scalars['Int']['output'];
+  transformOverrides: Scalars['JSON']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiCdnRoutingRuleCreateInput = {
+  cdnConfigurationId: Scalars['ID']['input'];
+  conditions?: InputMaybe<Scalars['JSON']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type ApiCdnRoutingRuleDeletePayload = {
+  __typename?: 'CdnRoutingRuleDeletePayload';
+  deletedRoutingRuleId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnRoutingRulePayload = {
+  __typename?: 'CdnRoutingRulePayload';
+  routingRule?: Maybe<ApiCdnRoutingRule>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCdnRoutingRuleUpdateInput = {
+  cdnConfigurationId?: InputMaybe<Scalars['ID']['input']>;
+  conditions?: InputMaybe<Scalars['JSON']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
+};
+
 export type ApiCollection = ApiNode & {
   __typename?: 'Collection';
   activeFrom?: Maybe<Scalars['DateTime']['output']>;
@@ -3088,6 +3210,14 @@ export enum CountryCode {
   Zm = 'ZM',
   /** Zimbabwe */
   Zw = 'ZW'
+}
+
+export enum CropRegion {
+  Bottom = 'BOTTOM',
+  Center = 'CENTER',
+  Left = 'LEFT',
+  Right = 'RIGHT',
+  Top = 'TOP'
 }
 
 /** Currency codes according to ISO 4217 */
@@ -4250,7 +4380,7 @@ export type ApiCustomerGroup = ApiNode & {
   isActive: Scalars['Boolean']['output'];
   isDefault: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
-  /** Aggregate revision incremented by definition and membership changes. */
+  /** Aggregate revision incremented by definition, state and membership changes. */
   revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -4827,7 +4957,7 @@ export type ApiCustomerSegment = ApiNode & {
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   query?: Maybe<Scalars['String']['output']>;
-  /** Aggregate revision incremented by definition and membership changes. */
+  /** Aggregate revision incremented by definition, state and membership changes. */
   revision: Scalars['Int']['output'];
   status: CustomerSegmentStatus;
   type: CustomerSegmentType;
@@ -6033,7 +6163,7 @@ export type ApiDimensionsInput = {
   width: Scalars['Int']['input'];
 };
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscount = ApiNode & {
   __typename?: 'Discount';
   appliesOnOneTimePurchase: Scalars['Boolean']['output'];
@@ -6042,6 +6172,7 @@ export type ApiDiscount = ApiNode & {
   archivedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Buyer eligibility is absent until it is configured on an incomplete draft. */
   buyerContext?: Maybe<ApiDiscountBuyerContext>;
+  calculationStrategy: DiscountCalculationStrategy;
   channelCodes: Array<Scalars['String']['output']>;
   channels: Array<ApiDiscountChannel>;
   codes: ApiDiscountCodeConnection;
@@ -6058,8 +6189,9 @@ export type ApiDiscount = ApiNode & {
   endsAt?: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ApiDiscountExternalReferenceConnection;
   featuredChannelCodes: Array<Scalars['String']['output']>;
+  functionBinding?: Maybe<ApiDiscountFunctionBinding>;
   id: Scalars['ID']['output'];
-  kind: DiscountKind;
+  kind?: Maybe<DiscountKind>;
   metadata: Scalars['JSON']['output'];
   method: DiscountMethod;
   minimumRequirement?: Maybe<ApiDiscountMinimumRequirement>;
@@ -6084,7 +6216,7 @@ export type ApiDiscount = ApiNode & {
 };
 
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountCodesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -6095,7 +6227,7 @@ export type ApiDiscountCodesArgs = {
 };
 
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -6106,7 +6238,7 @@ export type ApiDiscountExternalReferencesArgs = {
 };
 
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountRedemptionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -6117,7 +6249,7 @@ export type ApiDiscountRedemptionsArgs = {
 };
 
 
-/** A store-scoped native discount aggregate owned by Pricing. */
+/** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountUsageReservationsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -6220,6 +6352,11 @@ export enum DiscountBuyerContextType {
   All = 'ALL',
   Customers = 'CUSTOMERS',
   Segments = 'SEGMENTS'
+}
+
+export enum DiscountCalculationStrategy {
+  Function = 'FUNCTION',
+  Native = 'NATIVE'
 }
 
 export type ApiDiscountCatalogTarget = ApiCategory | ApiProduct | ApiVariant;
@@ -6375,11 +6512,15 @@ export type ApiDiscountConnection = {
 
 export type ApiDiscountCreateInput = {
   buyerContext?: InputMaybe<ApiDiscountBuyerContextInput>;
+  calculationStrategy?: InputMaybe<DiscountCalculationStrategy>;
   channels?: InputMaybe<Array<ApiDiscountChannelInput>>;
   codes?: InputMaybe<Array<ApiDiscountCodeCreateOperationInput>>;
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   currency: CurrencyCode;
-  kind: DiscountKind;
+  /** Required for FUNCTION; derived from kind for NATIVE. */
+  discountClass?: InputMaybe<DiscountClass>;
+  functionBinding?: InputMaybe<ApiDiscountFunctionBindingInput>;
+  kind?: InputMaybe<DiscountKind>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   method: DiscountMethod;
   minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementInput>;
@@ -6630,6 +6771,46 @@ export type ApiDiscountFreeShippingRuleInput = {
   maximumShippingPriceMinor?: InputMaybe<Scalars['BigInt']['input']>;
 };
 
+export type ApiDiscountFunctionBinding = {
+  __typename?: 'DiscountFunctionBinding';
+  activationSequence: Scalars['BigInt']['output'];
+  configurationRevision: Scalars['String']['output'];
+  configurationSnapshot: Scalars['JSON']['output'];
+  contractVersion: Scalars['Int']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  failureMode: DiscountFunctionFailureMode;
+  functionKey: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  installationId: Scalars['ID']['output'];
+  precedence: Scalars['Int']['output'];
+  routeRevision: Scalars['String']['output'];
+  status: DiscountFunctionBindingStatus;
+  target: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiDiscountFunctionBindingInput = {
+  activationSequence: Scalars['BigInt']['input'];
+  configurationRevision: Scalars['String']['input'];
+  configurationSnapshot: Scalars['JSON']['input'];
+  failureMode?: InputMaybe<DiscountFunctionFailureMode>;
+  functionKey: Scalars['String']['input'];
+  installationId: Scalars['ID']['input'];
+  precedence?: InputMaybe<Scalars['Int']['input']>;
+  routeRevision: Scalars['String']['input'];
+  status?: InputMaybe<DiscountFunctionBindingStatus>;
+};
+
+export enum DiscountFunctionBindingStatus {
+  Active = 'ACTIVE',
+  Disabled = 'DISABLED'
+}
+
+export enum DiscountFunctionFailureMode {
+  Optional = 'OPTIONAL',
+  Required = 'REQUIRED'
+}
+
 export enum DiscountKind {
   AmountOffOrder = 'AMOUNT_OFF_ORDER',
   AmountOffProducts = 'AMOUNT_OFF_PRODUCTS',
@@ -6694,6 +6875,7 @@ export enum DiscountOperationType {
   DefinitionUpdate = 'DEFINITION_UPDATE',
   EligibilityUpdate = 'ELIGIBILITY_UPDATE',
   ExternalReferenceUpdate = 'EXTERNAL_REFERENCE_UPDATE',
+  FunctionBindingUpdate = 'FUNCTION_BINDING_UPDATE',
   LifecycleUpdate = 'LIFECYCLE_UPDATE',
   MetadataUpdate = 'METADATA_UPDATE',
   MinimumRequirementUpdate = 'MINIMUM_REQUIREMENT_UPDATE',
@@ -6934,6 +7116,7 @@ export type ApiDiscountUpdateInput = {
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   definition?: InputMaybe<ApiDiscountDefinitionUpdateInput>;
   eligibility?: InputMaybe<ApiDiscountBuyerContextInput>;
+  functionBinding?: InputMaybe<ApiDiscountFunctionBindingInput>;
   lifecycle?: InputMaybe<ApiDiscountLifecycleUpdateInput>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   minimumRequirement?: InputMaybe<ApiDiscountMinimumRequirementSyncInput>;
@@ -7531,12 +7714,19 @@ export type ApiFile = ApiNode & {
   isProcessed: Scalars['Boolean']['output'];
   /** Last deletion error details. */
   lastDeletionError?: Maybe<Scalars['String']['output']>;
+  mediaType: MediaType;
   /** Additional metadata. */
   meta?: Maybe<Scalars['JSON']['output']>;
   /** MIME type. */
   mimeType?: Maybe<Scalars['String']['output']>;
+  /** Canonical provider URL before CDN routing and transforms. */
+  originUrl: Scalars['String']['output'];
   /** Original filename from upload. */
   originalName?: Maybe<Scalars['String']['output']>;
+  previewFile?: Maybe<ApiFile>;
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  processingError?: Maybe<Scalars['String']['output']>;
+  processingStatus: MediaProcessingStatus;
   /** Provider type (s3, youtube, vimeo, url, local). */
   provider: FileProvider;
   /** S3-specific data (only for S3 provider). */
@@ -7545,12 +7735,21 @@ export type ApiFile = ApiNode & {
   sizeBytes: Scalars['BigInt']['output'];
   /** Source URL (for files uploaded from URL). */
   sourceUrl?: Maybe<Scalars['String']['output']>;
+  sources: Array<ApiMediaSource>;
+  thumbhash?: Maybe<Scalars['String']['output']>;
   /** The date and time when the file was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
   /** Usage summary for this file. */
   usage: ApiFileUsageSummary;
+};
+
+
+/** A file represents a stored media asset. */
+export type ApiFileUrlArgs = {
+  country?: InputMaybe<Scalars['String']['input']>;
+  transform?: InputMaybe<ApiImageTransformInput>;
 };
 
 export type ApiFileClearErrorInput = {
@@ -7702,18 +7901,30 @@ export enum FileOrderField {
   IdempotencyKey = 'idempotencyKey',
   /** Sort by isProcessed */
   IsProcessed = 'isProcessed',
+  /** Sort by mediaType */
+  MediaType = 'mediaType',
   /** Sort by meta */
   Meta = 'meta',
   /** Sort by mimeType */
   MimeType = 'mimeType',
   /** Sort by originalName */
   OriginalName = 'originalName',
+  /** Sort by previewFileId */
+  PreviewFileId = 'previewFileId',
+  /** Sort by processedAt */
+  ProcessedAt = 'processedAt',
+  /** Sort by processingError */
+  ProcessingError = 'processingError',
+  /** Sort by processingStatus */
+  ProcessingStatus = 'processingStatus',
   /** Sort by provider */
   Provider = 'provider',
   /** Sort by sizeBytes */
   SizeBytes = 'sizeBytes',
   /** Sort by sourceUrl */
   SourceUrl = 'sourceUrl',
+  /** Sort by thumbhash */
+  Thumbhash = 'thumbhash',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
   /** Sort by url */
@@ -7762,16 +7973,27 @@ export type ApiFileRestorePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+export enum FileStateScope {
+  Active = 'ACTIVE',
+  All = 'ALL',
+  Deleted = 'DELETED'
+}
+
 /** Input for updating a file. */
 export type ApiFileUpdateInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
   /** The file ID. */
   id: Scalars['ID']['input'];
+  mediaType?: InputMaybe<MediaType>;
   /** Additional metadata. */
   meta?: InputMaybe<Scalars['JSON']['input']>;
   /** Original name. */
   originalName?: InputMaybe<Scalars['String']['input']>;
+  previewFileId?: InputMaybe<Scalars['ID']['input']>;
+  processingError?: InputMaybe<Scalars['String']['input']>;
+  processingStatus?: InputMaybe<MediaProcessingStatus>;
+  thumbhash?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Payload for file update. */
@@ -7862,18 +8084,30 @@ export type ApiFileWhereInput = {
   idempotencyKey?: InputMaybe<ApiStringFilter>;
   /** Filter by isProcessed */
   isProcessed?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by mediaType */
+  mediaType?: InputMaybe<ApiStringFilter>;
   /** Filter by meta */
   meta?: InputMaybe<ApiStringFilter>;
   /** Filter by mimeType */
   mimeType?: InputMaybe<ApiStringFilter>;
   /** Filter by originalName */
   originalName?: InputMaybe<ApiStringFilter>;
+  /** Filter by previewFileId */
+  previewFileId?: InputMaybe<ApiIdFilter>;
+  /** Filter by processedAt */
+  processedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by processingError */
+  processingError?: InputMaybe<ApiStringFilter>;
+  /** Filter by processingStatus */
+  processingStatus?: InputMaybe<ApiStringFilter>;
   /** Filter by provider */
   provider?: InputMaybe<ApiStringFilter>;
   /** Filter by sizeBytes */
   sizeBytes?: InputMaybe<ApiIntFilter>;
   /** Filter by sourceUrl */
   sourceUrl?: InputMaybe<ApiStringFilter>;
+  /** Filter by thumbhash */
+  thumbhash?: InputMaybe<ApiStringFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by url */
@@ -8137,6 +8371,20 @@ export type ApiIdFilter = {
   _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
+export enum ImageContentType {
+  Jpg = 'JPG',
+  Png = 'PNG',
+  Webp = 'WEBP'
+}
+
+export type ApiImageTransformInput = {
+  crop?: InputMaybe<CropRegion>;
+  maxHeight?: InputMaybe<Scalars['Int']['input']>;
+  maxWidth?: InputMaybe<Scalars['Int']['input']>;
+  preferredContentType?: InputMaybe<ImageContentType>;
+  scale?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Filter operators for Int fields */
 export type ApiIntFilter = {
   /** Between range (inclusive) */
@@ -8187,6 +8435,8 @@ export type ApiInventoryItem = ApiNode & {
   createdAt: Scalars['DateTime']['output'];
   /** Global ID (Relay) */
   id: Scalars['ID']['output'];
+  /** Whether this item requires physical delivery. */
+  requiresShipping: Scalars['Boolean']['output'];
   /** SKU code */
   sku?: Maybe<Scalars['String']['output']>;
   /** Stock levels across warehouses */
@@ -8237,6 +8487,8 @@ export type ApiInventoryItemEdge = {
 export type ApiInventoryItemInput = {
   /** Allow sales when stock is zero. */
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Whether variants created for this product require physical delivery. */
+  requiresShipping: Scalars['Boolean']['input'];
   /** Stock Keeping Unit. */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Whether to track inventory for this product. */
@@ -8275,6 +8527,8 @@ export type ApiInventoryItemUpdateInput = {
   continueSellingWhenOutOfStock?: InputMaybe<Scalars['Boolean']['input']>;
   /** The inventory item ID to update */
   id: Scalars['ID']['input'];
+  /** Whether this item requires physical delivery. */
+  requiresShipping?: InputMaybe<Scalars['Boolean']['input']>;
   /** New SKU value */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Stock update for a specific warehouse */
@@ -8469,7 +8723,7 @@ export type ApiListing = {
   id: Scalars['ID']['output'];
 };
 
-/** A connection to a mixed list of catalog listing items. */
+/** A connection to catalog products. */
 export type ApiListingConnection = {
   __typename?: 'ListingConnection';
   /** A list of edges. */
@@ -9261,7 +9515,15 @@ export type ApiMediaMutation = {
    */
   avatarUpload: ApiAvatarUploadPayload;
   bucketCreate: ApiBucketCreatePayload;
-  /** Clear errors for multiple files by ID. */
+  cdnConfigurationCreate: ApiCdnConfigurationPayload;
+  cdnConfigurationDelete: ApiCdnConfigurationDeletePayload;
+  cdnConfigurationSetDefault: ApiCdnConfigurationPayload;
+  cdnConfigurationTest: ApiCdnConfigurationTestPayload;
+  cdnConfigurationUpdate: ApiCdnConfigurationPayload;
+  cdnRoutingRuleCreate: ApiCdnRoutingRulePayload;
+  cdnRoutingRuleDelete: ApiCdnRoutingRuleDeletePayload;
+  cdnRoutingRuleUpdate: ApiCdnRoutingRulePayload;
+  /** Clear the deletion error for one file by ID. */
   fileClearError: ApiFileClearErrorPayload;
   fileCreateExternal: ApiFileCreateExternalPayload;
   fileDelete: ApiFileDeletePayload;
@@ -9274,6 +9536,9 @@ export type ApiMediaMutation = {
   fileUpdate: ApiFileUpdatePayload;
   fileUpload: ApiFileUploadPayload;
   fileUploadFromUrl: ApiFileUploadPayload;
+  mediaSourceCreate: ApiMediaSourcePayload;
+  mediaSourceDelete: ApiMediaSourceDeletePayload;
+  mediaSourceUpdate: ApiMediaSourcePayload;
 };
 
 
@@ -9284,6 +9549,46 @@ export type ApiMediaMutationAvatarUploadArgs = {
 
 export type ApiMediaMutationBucketCreateArgs = {
   input: ApiBucketCreateInput;
+};
+
+
+export type ApiMediaMutationCdnConfigurationCreateArgs = {
+  input: ApiCdnConfigurationCreateInput;
+};
+
+
+export type ApiMediaMutationCdnConfigurationDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiMediaMutationCdnConfigurationSetDefaultArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiMediaMutationCdnConfigurationTestArgs = {
+  input: ApiCdnConfigurationTestInput;
+};
+
+
+export type ApiMediaMutationCdnConfigurationUpdateArgs = {
+  input: ApiCdnConfigurationUpdateInput;
+};
+
+
+export type ApiMediaMutationCdnRoutingRuleCreateArgs = {
+  input: ApiCdnRoutingRuleCreateInput;
+};
+
+
+export type ApiMediaMutationCdnRoutingRuleDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type ApiMediaMutationCdnRoutingRuleUpdateArgs = {
+  input: ApiCdnRoutingRuleUpdateInput;
 };
 
 
@@ -9331,8 +9636,32 @@ export type ApiMediaMutationFileUploadFromUrlArgs = {
   input: ApiFileUploadFromUrlInput;
 };
 
+
+export type ApiMediaMutationMediaSourceCreateArgs = {
+  input: ApiMediaSourceCreateInput;
+};
+
+
+export type ApiMediaMutationMediaSourceDeleteArgs = {
+  input: ApiMediaSourceDeleteInput;
+};
+
+
+export type ApiMediaMutationMediaSourceUpdateArgs = {
+  input: ApiMediaSourceUpdateInput;
+};
+
+export enum MediaProcessingStatus {
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Ready = 'READY'
+}
+
 export type ApiMediaQuery = {
   __typename?: 'MediaQuery';
+  /** Resolve and inspect the CDN route for a current-store file. */
+  cdnDeliveryPreview: ApiCdnDeliveryPreview;
   /** Get a file by ID */
   file?: Maybe<ApiFile>;
   /**
@@ -9340,10 +9669,20 @@ export type ApiMediaQuery = {
    * Store context is determined from x-store-name header.
    */
   files: ApiFileConnection;
+  /** Media delivery settings for the current store. */
+  mediaSettings?: Maybe<ApiMediaSettings>;
   /** Get a node by its global ID */
   node?: Maybe<ApiNode>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<ApiNode>>;
+};
+
+
+export type ApiMediaQueryCdnDeliveryPreviewArgs = {
+  configurationId?: InputMaybe<Scalars['ID']['input']>;
+  country?: InputMaybe<Scalars['String']['input']>;
+  fileId: Scalars['ID']['input'];
+  transform?: InputMaybe<ApiImageTransformInput>;
 };
 
 
@@ -9358,6 +9697,7 @@ export type ApiMediaQueryFilesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<ApiFileOrderByInput>>;
+  state?: InputMaybe<FileStateScope>;
   where?: InputMaybe<ApiFileWhereInput>;
 };
 
@@ -9370,6 +9710,63 @@ export type ApiMediaQueryNodeArgs = {
 export type ApiMediaQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
+
+export type ApiMediaSettings = {
+  __typename?: 'MediaSettings';
+  assetGroupId: Scalars['ID']['output'];
+  cdnConfigurations: Array<ApiCdnConfiguration>;
+  cdnRoutingRules: Array<ApiCdnRoutingRule>;
+};
+
+export type ApiMediaSource = {
+  __typename?: 'MediaSource';
+  createdAt: Scalars['DateTime']['output'];
+  format: Scalars['String']['output'];
+  kind: Scalars['String']['output'];
+  sortOrder: Scalars['Int']['output'];
+  sourceFile: ApiFile;
+};
+
+export type ApiMediaSourceCreateInput = {
+  format: Scalars['String']['input'];
+  kind: Scalars['String']['input'];
+  mediaFileId: Scalars['ID']['input'];
+  sortOrder?: InputMaybe<Scalars['Int']['input']>;
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export type ApiMediaSourceDeleteInput = {
+  mediaFileId: Scalars['ID']['input'];
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export type ApiMediaSourceDeletePayload = {
+  __typename?: 'MediaSourceDeletePayload';
+  deletedSourceFileId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiMediaSourcePayload = {
+  __typename?: 'MediaSourcePayload';
+  source?: Maybe<ApiMediaSource>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiMediaSourceUpdateInput = {
+  format?: InputMaybe<Scalars['String']['input']>;
+  kind?: InputMaybe<Scalars['String']['input']>;
+  mediaFileId: Scalars['ID']['input'];
+  sortOrder?: InputMaybe<Scalars['Int']['input']>;
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export enum MediaType {
+  ExternalVideo = 'EXTERNAL_VIDEO',
+  GenericFile = 'GENERIC_FILE',
+  Image = 'IMAGE',
+  Model_3D = 'MODEL_3D',
+  Video = 'VIDEO'
+}
 
 /**
  * Member with role assignment.
@@ -9498,7 +9895,8 @@ export type ApiMutation = {
   listingMutation: ApiListingMutation;
   mediaMutation: ApiMediaMutation;
   notificationsMutation: ApiNotificationsMutation;
-  orderMutation: ApiOrderMutation;
+  /** Online Store content mutation namespace. */
+  onlineStoreAppMutation: ApiOnlineStoreAppMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
   /** Pricing Admin mutation namespace. */
@@ -9872,6 +10270,468 @@ export type ApiNotificationsQueryTemplateArgs = {
   locale: Scalars['String']['input'];
 };
 
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutation = {
+  __typename?: 'OnlineStoreAppMutation';
+  navigationMenuCreate: ApiOnlineStoreNavigationMenuCreatePayload;
+  navigationMenuDelete: ApiOnlineStoreNavigationMenuDeletePayload;
+  navigationMenuItemCreate: ApiOnlineStoreNavigationMenuItemCreatePayload;
+  navigationMenuItemDelete: ApiOnlineStoreNavigationMenuItemDeletePayload;
+  navigationMenuItemUpdate: ApiOnlineStoreNavigationMenuItemUpdatePayload;
+  navigationMenuUpdate: ApiOnlineStoreNavigationMenuUpdatePayload;
+  pageCreate: ApiOnlineStorePageCreatePayload;
+  pageDelete: ApiOnlineStorePageDeletePayload;
+  pageUpdate: ApiOnlineStorePageUpdatePayload;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuCreateArgs = {
+  input: ApiOnlineStoreNavigationMenuCreateInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuDeleteArgs = {
+  input: ApiOnlineStoreNavigationMenuDeleteInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuItemCreateArgs = {
+  input: ApiOnlineStoreNavigationMenuItemCreateInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuItemDeleteArgs = {
+  input: ApiOnlineStoreNavigationMenuItemDeleteInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuItemUpdateArgs = {
+  input: ApiOnlineStoreNavigationMenuItemUpdateInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationNavigationMenuUpdateArgs = {
+  input: ApiOnlineStoreNavigationMenuUpdateInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationPageCreateArgs = {
+  input: ApiOnlineStorePageCreateInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationPageDeleteArgs = {
+  input: ApiOnlineStorePageDeleteInput;
+};
+
+
+/** Admin mutations scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppMutationPageUpdateArgs = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  operations: ApiOnlineStorePageUpdateInput;
+  pageId: Scalars['ID']['input'];
+};
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQuery = {
+  __typename?: 'OnlineStoreAppQuery';
+  /** Get a navigation menu by its global ID. */
+  navigationMenu?: Maybe<ApiOnlineStoreNavigationMenu>;
+  /** Get a navigation menu by its URL handle. */
+  navigationMenuByHandle?: Maybe<ApiOnlineStoreNavigationMenu>;
+  /** Get navigation menus with Relay-style pagination. */
+  navigationMenus: ApiOnlineStoreNavigationMenuConnection;
+  /** Get an Online Store node by its global ID. */
+  node?: Maybe<ApiNode>;
+  /** Get Online Store nodes by their global IDs. */
+  nodes: Array<Maybe<ApiNode>>;
+  /** Get a page by its global ID. */
+  page?: Maybe<ApiOnlineStorePage>;
+  /** Get a page by its URL handle. */
+  pageByHandle?: Maybe<ApiOnlineStorePage>;
+  /** Get pages with Relay-style pagination. */
+  pages: ApiOnlineStorePageConnection;
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryNavigationMenuArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryNavigationMenuByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryNavigationMenusArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiOnlineStoreNavigationMenuOrderByInput>>;
+  where?: InputMaybe<ApiOnlineStoreNavigationMenuWhereInput>;
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryPageArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryPageByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+/** Admin queries scoped to the active Online Store App installation. */
+export type ApiOnlineStoreAppQueryPagesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiOnlineStorePageOrderByInput>>;
+  where?: InputMaybe<ApiOnlineStorePageWhereInput>;
+};
+
+/** A navigation menu owned by an Online Store installation. */
+export type ApiOnlineStoreNavigationMenu = ApiNode & {
+  __typename?: 'OnlineStoreNavigationMenu';
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  items: Array<ApiOnlineStoreNavigationMenuItem>;
+  name: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiOnlineStoreNavigationMenuConnection = {
+  __typename?: 'OnlineStoreNavigationMenuConnection';
+  edges: Array<ApiOnlineStoreNavigationMenuEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiOnlineStoreNavigationMenuCreateInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+};
+
+export type ApiOnlineStoreNavigationMenuCreatePayload = {
+  __typename?: 'OnlineStoreNavigationMenuCreatePayload';
+  navigationMenu?: Maybe<ApiOnlineStoreNavigationMenu>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStoreNavigationMenuDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiOnlineStoreNavigationMenuDeletePayload = {
+  __typename?: 'OnlineStoreNavigationMenuDeletePayload';
+  deletedNavigationMenuId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStoreNavigationMenuEdge = {
+  __typename?: 'OnlineStoreNavigationMenuEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiOnlineStoreNavigationMenu;
+};
+
+/** A localized item in a navigation menu tree. */
+export type ApiOnlineStoreNavigationMenuItem = ApiNode & {
+  __typename?: 'OnlineStoreNavigationMenuItem';
+  children: Array<ApiOnlineStoreNavigationMenuItem>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  label: Scalars['String']['output'];
+  menu: ApiOnlineStoreNavigationMenu;
+  openInNewTab: Scalars['Boolean']['output'];
+  parent?: Maybe<ApiOnlineStoreNavigationMenuItem>;
+  revision: Scalars['Int']['output'];
+  target: ApiOnlineStoreNavigationTarget;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiOnlineStoreNavigationMenuItemCreateInput = {
+  afterItemId?: InputMaybe<Scalars['ID']['input']>;
+  beforeItemId?: InputMaybe<Scalars['ID']['input']>;
+  label: Scalars['String']['input'];
+  menuId: Scalars['ID']['input'];
+  openInNewTab?: InputMaybe<Scalars['Boolean']['input']>;
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+  target: ApiOnlineStoreNavigationTargetInput;
+};
+
+export type ApiOnlineStoreNavigationMenuItemCreatePayload = {
+  __typename?: 'OnlineStoreNavigationMenuItemCreatePayload';
+  navigationMenuItem?: Maybe<ApiOnlineStoreNavigationMenuItem>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStoreNavigationMenuItemDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiOnlineStoreNavigationMenuItemDeletePayload = {
+  __typename?: 'OnlineStoreNavigationMenuItemDeletePayload';
+  deletedNavigationMenuItemId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStoreNavigationMenuItemUpdateInput = {
+  afterItemId?: InputMaybe<Scalars['ID']['input']>;
+  beforeItemId?: InputMaybe<Scalars['ID']['input']>;
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+  label?: InputMaybe<Scalars['String']['input']>;
+  openInNewTab?: InputMaybe<Scalars['Boolean']['input']>;
+  parentId?: InputMaybe<Scalars['ID']['input']>;
+  target?: InputMaybe<ApiOnlineStoreNavigationTargetInput>;
+};
+
+export type ApiOnlineStoreNavigationMenuItemUpdatePayload = {
+  __typename?: 'OnlineStoreNavigationMenuItemUpdatePayload';
+  navigationMenuItem?: Maybe<ApiOnlineStoreNavigationMenuItem>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Ordering configuration for OnlineStoreNavigationMenu */
+export type ApiOnlineStoreNavigationMenuOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: OnlineStoreNavigationMenuOrderField;
+};
+
+/** Fields available for sorting OnlineStoreNavigationMenu */
+export enum OnlineStoreNavigationMenuOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiOnlineStoreNavigationMenuUpdateInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiOnlineStoreNavigationMenuUpdatePayload = {
+  __typename?: 'OnlineStoreNavigationMenuUpdatePayload';
+  navigationMenu?: Maybe<ApiOnlineStoreNavigationMenu>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for OnlineStoreNavigationMenu */
+export type ApiOnlineStoreNavigationMenuWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiOnlineStoreNavigationMenuWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiOnlineStoreNavigationMenuWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiOnlineStoreNavigationMenuWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiOnlineStoreNavigationTarget = {
+  __typename?: 'OnlineStoreNavigationTarget';
+  id?: Maybe<Scalars['ID']['output']>;
+  type: OnlineStoreNavigationTargetType;
+  url?: Maybe<Scalars['String']['output']>;
+};
+
+export type ApiOnlineStoreNavigationTargetInput = {
+  id?: InputMaybe<Scalars['ID']['input']>;
+  type: OnlineStoreNavigationTargetType;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum OnlineStoreNavigationTargetType {
+  Category = 'CATEGORY',
+  Collection = 'COLLECTION',
+  Page = 'PAGE',
+  Product = 'PRODUCT',
+  Url = 'URL'
+}
+
+/** A localized content page owned by an Online Store installation. */
+export type ApiOnlineStorePage = ApiNode & {
+  __typename?: 'OnlineStorePage';
+  body?: Maybe<ApiRichText>;
+  createdAt: Scalars['DateTime']['output'];
+  deletedAt?: Maybe<Scalars['DateTime']['output']>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  isPublished: Scalars['Boolean']['output'];
+  publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  revision: Scalars['Int']['output'];
+  seo?: Maybe<ApiSeo>;
+  templateSuffix?: Maybe<Scalars['String']['output']>;
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiOnlineStorePageConnection = {
+  __typename?: 'OnlineStorePageConnection';
+  edges: Array<ApiOnlineStorePageEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiOnlineStorePageCreateInput = {
+  body?: InputMaybe<ApiRichTextInput>;
+  handle: Scalars['String']['input'];
+  publish?: InputMaybe<Scalars['Boolean']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+  templateSuffix?: InputMaybe<Scalars['String']['input']>;
+  title: Scalars['String']['input'];
+};
+
+export type ApiOnlineStorePageCreatePayload = {
+  __typename?: 'OnlineStorePageCreatePayload';
+  page?: Maybe<ApiOnlineStorePage>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStorePageDeleteInput = {
+  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
+  id: Scalars['ID']['input'];
+};
+
+export type ApiOnlineStorePageDeletePayload = {
+  __typename?: 'OnlineStorePageDeletePayload';
+  deletedPageId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiOnlineStorePageEdge = {
+  __typename?: 'OnlineStorePageEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiOnlineStorePage;
+};
+
+/** Ordering configuration for OnlineStorePage */
+export type ApiOnlineStorePageOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: OnlineStorePageOrderField;
+};
+
+/** Fields available for sorting OnlineStorePage */
+export enum OnlineStorePageOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by handle */
+  Handle = 'handle',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by isPublished */
+  IsPublished = 'isPublished',
+  /** Sort by publishedAt */
+  PublishedAt = 'publishedAt',
+  /** Sort by templateSuffix */
+  TemplateSuffix = 'templateSuffix',
+  /** Sort by title */
+  Title = 'title',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
+export enum OnlineStorePageStatus {
+  Draft = 'DRAFT',
+  Published = 'PUBLISHED'
+}
+
+export type ApiOnlineStorePageUpdateInput = {
+  body?: InputMaybe<ApiRichTextInput>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+  seo?: InputMaybe<ApiSeoInput>;
+  status?: InputMaybe<OnlineStorePageStatus>;
+  templateSuffix?: InputMaybe<Scalars['String']['input']>;
+  title?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiOnlineStorePageUpdatePayload = {
+  __typename?: 'OnlineStorePageUpdatePayload';
+  page?: Maybe<ApiOnlineStorePage>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for OnlineStorePage */
+export type ApiOnlineStorePageWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiOnlineStorePageWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiOnlineStorePageWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiOnlineStorePageWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by handle */
+  handle?: InputMaybe<ApiStringFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by isPublished */
+  isPublished?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by publishedAt */
+  publishedAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by templateSuffix */
+  templateSuffix?: InputMaybe<ApiStringFilter>;
+  /** Filter by title */
+  title?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
 /** Result of a single operation in the unified update. */
 export type ApiOperationResult = {
   __typename?: 'OperationResult';
@@ -9926,7 +10786,6 @@ export type ApiOrder = {
   customerStatistic: ApiOrderCustomerStatistic;
   deletedAt?: Maybe<Scalars['DateTime']['output']>;
   discountTotal?: Maybe<Scalars['BigInt']['output']>;
-  events: Array<ApiOrderEvent>;
   grandTotal: Scalars['BigInt']['output'];
   id: Scalars['ID']['output'];
   labels: Array<ApiLabel>;
@@ -9941,35 +10800,6 @@ export type ApiOrder = {
 };
 
 export type ApiOrderActor = ApiApiKey | ApiUser;
-
-export type ApiOrderAdminNoteUpdateInput = {
-  note: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCancelInput = {
-  comment?: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-  reason: OrderCancelReason;
-};
-
-export enum OrderCancelReason {
-  Customer = 'CUSTOMER',
-  Fraud = 'FRAUD',
-  Inventory = 'INVENTORY',
-  Other = 'OTHER',
-  Staff = 'STAFF'
-}
-
-export type ApiOrderCloseInput = {
-  comment?: InputMaybe<Scalars['String']['input']>;
-  orderId: Scalars['ID']['input'];
-};
-
-export type ApiOrderCommentAddInput = {
-  comment: Scalars['String']['input'];
-  orderId: Scalars['ID']['input'];
-};
 
 export type ApiOrderCustomerIdentity = {
   __typename?: 'OrderCustomerIdentity';
@@ -10002,20 +10832,6 @@ export type ApiOrderDeliveryAddress = {
   provinceCode?: Maybe<Scalars['String']['output']>;
 };
 
-export type ApiOrderEvent = {
-  __typename?: 'OrderEvent';
-  createdAt: Scalars['DateTime']['output'];
-  data?: Maybe<Scalars['JSON']['output']>;
-  eventType: OrderEventType;
-  id: Scalars['String']['output'];
-  metadata?: Maybe<Scalars['JSON']['output']>;
-  performedBy: ApiOrderActor;
-};
-
-export enum OrderEventType {
-  OrderCreated = 'ORDER_CREATED'
-}
-
 export type ApiOrderLine = {
   __typename?: 'OrderLine';
   createdAt: Scalars['DateTime']['output'];
@@ -10029,34 +10845,6 @@ export type ApiOrderLine = {
   unitComparePrice: Scalars['Int']['output'];
   unitPrice: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
-};
-
-export type ApiOrderMutation = {
-  __typename?: 'OrderMutation';
-  orderAdminNoteUpdate: Scalars['Boolean']['output'];
-  orderCancel: Scalars['Boolean']['output'];
-  orderClose: Scalars['Boolean']['output'];
-  orderCommentAdd: Scalars['Boolean']['output'];
-};
-
-
-export type ApiOrderMutationOrderAdminNoteUpdateArgs = {
-  input: ApiOrderAdminNoteUpdateInput;
-};
-
-
-export type ApiOrderMutationOrderCancelArgs = {
-  input: ApiOrderCancelInput;
-};
-
-
-export type ApiOrderMutationOrderCloseArgs = {
-  input: ApiOrderCloseInput;
-};
-
-
-export type ApiOrderMutationOrderCommentAddArgs = {
-  input: ApiOrderCommentAddInput;
 };
 
 export type ApiOrderQuery = {
@@ -12678,6 +13466,8 @@ export type ApiQuery = {
   listingQuery: ApiListingQuery;
   mediaQuery: ApiMediaQuery;
   notificationsQuery: ApiNotificationsQuery;
+  /** Online Store content query namespace. */
+  onlineStoreAppQuery: ApiOnlineStoreAppQuery;
   orderQuery: ApiOrderQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
@@ -15275,7 +16065,7 @@ export type ApiRichText = {
   text: Scalars['String']['output'];
 };
 
-/** Input for rich text content (all fields required). */
+/** Input for rich text content. */
 export type ApiRichTextInput = {
   /** HTML content. */
   html: Scalars['String']['input'];
@@ -17136,6 +17926,8 @@ export type ApiVariantInventoryOpInput = {
   costCurrency?: InputMaybe<CurrencyCode>;
   /** Quantity on hand. Required together with warehouseId for a stock update. */
   onHand?: InputMaybe<Scalars['Int']['input']>;
+  /** Whether this variant requires physical delivery. */
+  requiresShipping?: InputMaybe<Scalars['Boolean']['input']>;
   /** SKU code. */
   sku?: InputMaybe<Scalars['String']['input']>;
   /** Whether inventory quantities control availability. */
@@ -17891,6 +18683,7 @@ export enum Join__Graph {
   AppsAdmin = 'APPS_ADMIN',
   AppsHeadlessAdmin = 'APPS_HEADLESS_ADMIN',
   AppsHelloWorldAdmin = 'APPS_HELLO_WORLD_ADMIN',
+  AppsOnlineStoreAdmin = 'APPS_ONLINE_STORE_ADMIN',
   AppsSmtpAdmin = 'APPS_SMTP_ADMIN',
   CatalogAdmin = 'CATALOG_ADMIN',
   CustomersAdmin = 'CUSTOMERS_ADMIN',

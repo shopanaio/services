@@ -2,7 +2,7 @@ import {
   BaseConnectionResolver,
   type ConnectionData,
 } from "./BaseConnectionResolver.js";
-import { FileResolver } from "../FileResolver.js";
+import { FileAnyResolver } from "../FileResolver.js";
 import type { FileRelayInput } from "../../../repositories/FileRepository.js";
 
 /**
@@ -14,6 +14,6 @@ export class FileConnectionResolver extends BaseConnectionResolver<FileRelayInpu
   }
 
   protected createNodeResolver(nodeId: string) {
-    return new FileResolver(nodeId, this.$ctx);
+    return new FileAnyResolver(nodeId, this.$ctx);
   }
 }

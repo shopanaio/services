@@ -29,11 +29,8 @@ export class FileCreateExternalScript extends BaseScript<
 > {
   protected async execute(params: FileCreateExternalParams): Promise<FileCreateExternalResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
-    const assetGroup = await this.repository.assetGroup.findByOwner(
-      "store",
-      this.storeId
-    );
-    const assetGroupId = assetGroup?.id ?? null;
+    const assetGroup = await this.getOrCreateStoreAssetGroup();
+    const assetGroupId = assetGroup.id;
 
     this.logger.info({ params, storeId: this.storeId, assetGroupId }, "FileCreateExternalScript: starting");
 
@@ -53,7 +50,7 @@ export class FileCreateExternalScript extends BaseScript<
     }
 
     // 2. Check idempotency key
-    if (params.idempotencyKey && assetGroupId) {
+    if (params.idempotencyKey) {
       const existingFile = await this.repository.file.findByIdempotencyKey(
         assetGroupId,
         params.idempotencyKey
@@ -72,7 +69,7 @@ export class FileCreateExternalScript extends BaseScript<
     }
 
     // 3. Check for existing file by externalId (deduplication)
-    if (assetGroupId) {
+    {
       const existingExternal = await this.repository.externalMedia.findByExternalId(
         assetGroupId,
         params.externalId
@@ -101,7 +98,7 @@ export class FileCreateExternalScript extends BaseScript<
     const mimeType = getMimeTypeForProvider(params.provider);
 
     // 5. Create record in `files` table
-    const file = await this.repository.file.create(assetGroupId!, {
+    const file = await this.repository.file.create(assetGroupId, {
       provider: params.provider as FileProvider,
       url: params.url,
       mimeType,
@@ -117,7 +114,7 @@ export class FileCreateExternalScript extends BaseScript<
     });
 
     // 6. Create record in `externalMedia` table
-    await this.repository.externalMedia.create(assetGroupId!, {
+    await this.repository.externalMedia.create(assetGroupId, {
       fileId: file.id,
       externalId: params.externalId,
       providerMeta: {

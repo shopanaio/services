@@ -12,6 +12,9 @@ export type { ExternalMediaRepository } from "./ExternalMediaRepository";
 export type { UploadSessionRepository } from "./UploadSessionRepository";
 export type { BucketRotationLogRepository } from "./BucketRotationLogRepository";
 export type { FileBackRefRepository } from "./FileBackRefRepository";
+export type { CdnConfigurationRepository } from "./CdnConfigurationRepository.js";
+export type { CdnRoutingRuleRepository } from "./CdnRoutingRuleRepository.js";
+export type { MediaSourceRepository } from "./MediaSourceRepository.js";
 
 // FileRepository types
 export type {

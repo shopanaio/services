@@ -14,6 +14,17 @@ import {
   FileRestoreManyScript,
   FileClearErrorScript,
   ProfileAvatarUploadScript,
+  CdnConfigurationCreateScript,
+  CdnConfigurationUpdateScript,
+  CdnConfigurationDeleteScript,
+  CdnConfigurationSetDefaultScript,
+  CdnConfigurationTestScript,
+  CdnRoutingRuleCreateScript,
+  CdnRoutingRuleUpdateScript,
+  CdnRoutingRuleDeleteScript,
+  MediaSourceCreateScript,
+  MediaSourceUpdateScript,
+  MediaSourceDeleteScript,
 } from "../../scripts/index.js";
 import type { AssetOwnerType } from "../../repositories/models/index.js";
 import {
@@ -22,12 +33,56 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
+import { TypePolicy } from "@shopana/type-resolver";
+import { CdnConfigurationResolver } from "./CdnConfigurationResolver.js";
+import { CdnRoutingRuleResolver } from "./CdnRoutingRuleResolver.js";
+import { CdnDeliveryPreviewResolver } from "./CdnDeliveryPreviewResolver.js";
+import { MediaSourceResolver } from "./MediaSourceResolver.js";
+import type { ImageTransformOptions } from "../../infrastructure/cdn/index.js";
+import type {
+  CdnRoutingConditions,
+  CdnTransformOverrides,
+} from "../../repositories/models/index.js";
+import type {
+  MediaProcessingStatus,
+  MediaType as FileMediaType,
+} from "../../repositories/FileRepository.js";
+
+interface CdnConfigurationMutationInput {
+  name?: string;
+  provider?: string;
+  baseUrl?: string;
+  pathPrefix?: string;
+  enabled?: boolean;
+  isDefault?: boolean;
+  signingMode?: string;
+  secretRef?: string | null;
+  transformStrategy?: string;
+  urlTemplate?: string | null;
+  providerConfig?: Record<string, unknown>;
+  transformConfig?: Record<string, unknown>;
+}
+
+interface CdnRoutingRuleMutationInput {
+  cdnConfigurationId?: string;
+  name?: string;
+  priority?: number;
+  enabled?: boolean;
+  conditions?: CdnRoutingConditions;
+  transformOverrides?: CdnTransformOverrides;
+}
 
 /**
  * MediaMutation namespace resolver.
  * Handles all media mutation operations.
  * Store context is determined from x-store-name header.
  */
+@TypePolicy<MediaMutationResolver>({
+  resource: "store.data",
+  action: "write",
+  organizationId: (resolver) => resolver.$ctx.store.organizationId,
+  domain: (resolver) => `store:${resolver.$ctx.store.id}`,
+})
 export class MediaMutationResolver extends MediaType<Record<string, never>> {
   /**
    * Create a bucket
@@ -56,6 +111,191 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     return {
       bucket: result.bucket
         ? new BucketResolver(result.bucket.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnConfigurationCreate({
+    input,
+  }: {
+    input: CdnConfigurationMutationInput & {
+      name: string;
+      provider: string;
+      baseUrl: string;
+    };
+  }) {
+    const result = await this.$ctx.kernel.runScript(
+      CdnConfigurationCreateScript,
+      input
+    );
+    return {
+      configuration: result.configuration
+        ? new CdnConfigurationResolver(result.configuration.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnConfigurationUpdate({
+    input,
+  }: {
+    input: CdnConfigurationMutationInput & { id: string };
+  }) {
+    const id = this.decodeId(input.id, GlobalIdEntity.CdnConfiguration);
+    if (!id) return this.invalidEntityPayload("configuration", "id");
+    const { id: _globalId, ...changes } = input;
+    const result = await this.$ctx.kernel.runScript(
+      CdnConfigurationUpdateScript,
+      { id, ...changes }
+    );
+    return {
+      configuration: result.configuration
+        ? new CdnConfigurationResolver(result.configuration.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnConfigurationDelete({ id: globalId }: { id: string }) {
+    const id = this.decodeId(globalId, GlobalIdEntity.CdnConfiguration);
+    if (!id) {
+      return {
+        deletedConfigurationId: null,
+        userErrors: [this.invalidIdError("id")],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(
+      CdnConfigurationDeleteScript,
+      { id }
+    );
+    return {
+      deletedConfigurationId: result.deletedConfigurationId
+        ? encodeGlobalIdByType(
+            result.deletedConfigurationId,
+            GlobalIdEntity.CdnConfiguration
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnConfigurationSetDefault({ id: globalId }: { id: string }) {
+    const id = this.decodeId(globalId, GlobalIdEntity.CdnConfiguration);
+    if (!id) return this.invalidEntityPayload("configuration", "id");
+    const result = await this.$ctx.kernel.runScript(
+      CdnConfigurationSetDefaultScript,
+      { id }
+    );
+    return {
+      configuration: result.configuration
+        ? new CdnConfigurationResolver(result.configuration.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnConfigurationTest({
+    input,
+  }: {
+    input: {
+      configuration: CdnConfigurationMutationInput & {
+        name: string;
+        provider: string;
+        baseUrl: string;
+      };
+      objectPath: string;
+      transform?: ImageTransformOptions | null;
+    };
+  }) {
+    const result = await this.$ctx.kernel.runScript(
+      CdnConfigurationTestScript,
+      {
+        ...input.configuration,
+        objectPath: input.objectPath,
+        transform: input.transform,
+      }
+    );
+    return {
+      preview: result.preview
+        ? new CdnDeliveryPreviewResolver(result.preview, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnRoutingRuleCreate({
+    input,
+  }: {
+    input: CdnRoutingRuleMutationInput & {
+      cdnConfigurationId: string;
+      name: string;
+    };
+  }) {
+    const cdnConfigurationId = this.decodeId(
+      input.cdnConfigurationId,
+      GlobalIdEntity.CdnConfiguration
+    );
+    if (!cdnConfigurationId) return this.invalidEntityPayload("routingRule", "cdnConfigurationId");
+    const result = await this.$ctx.kernel.runScript(
+      CdnRoutingRuleCreateScript,
+      { ...input, cdnConfigurationId }
+    );
+    return {
+      routingRule: result.routingRule
+        ? new CdnRoutingRuleResolver(result.routingRule.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnRoutingRuleUpdate({
+    input,
+  }: {
+    input: CdnRoutingRuleMutationInput & { id: string };
+  }) {
+    const id = this.decodeId(input.id, GlobalIdEntity.CdnRoutingRule);
+    if (!id) return this.invalidEntityPayload("routingRule", "id");
+    const cdnConfigurationId = input.cdnConfigurationId
+      ? this.decodeId(
+          input.cdnConfigurationId,
+          GlobalIdEntity.CdnConfiguration
+        )
+      : undefined;
+    if (input.cdnConfigurationId && !cdnConfigurationId) {
+      return this.invalidEntityPayload("routingRule", "cdnConfigurationId");
+    }
+    const { id: _globalId, ...changes } = input;
+    const result = await this.$ctx.kernel.runScript(
+      CdnRoutingRuleUpdateScript,
+      { ...changes, id, cdnConfigurationId }
+    );
+    return {
+      routingRule: result.routingRule
+        ? new CdnRoutingRuleResolver(result.routingRule.id, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async cdnRoutingRuleDelete({ id: globalId }: { id: string }) {
+    const id = this.decodeId(globalId, GlobalIdEntity.CdnRoutingRule);
+    if (!id) {
+      return {
+        deletedRoutingRuleId: null,
+        userErrors: [this.invalidIdError("id")],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(
+      CdnRoutingRuleDeleteScript,
+      { id }
+    );
+    return {
+      deletedRoutingRuleId: result.deletedRoutingRuleId
+        ? encodeGlobalIdByType(
+            result.deletedRoutingRuleId,
+            GlobalIdEntity.CdnRoutingRule
+          )
         : null,
       userErrors: result.userErrors,
     };
@@ -166,18 +406,33 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
   }: {
     input: {
       id: string;
-      altText?: string;
-      originalName?: string;
-      meta?: Record<string, unknown>;
+      altText?: string | null;
+      originalName?: string | null;
+      meta?: Record<string, unknown> | null;
+      mediaType?: FileMediaType;
+      previewFileId?: string | null;
+      thumbhash?: string | null;
+      processingStatus?: MediaProcessingStatus;
+      processingError?: string | null;
     };
   }) {
-    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    const fileId = this.decodeId(input.id, GlobalIdEntity.File);
     if (!fileId) {
       return {
         file: null,
         userErrors: [
           { message: "Invalid file ID", field: ["id"], code: "INVALID_ID" },
         ],
+      };
+    }
+
+    const previewFileId = input.previewFileId
+      ? this.decodeId(input.previewFileId, GlobalIdEntity.File)
+      : input.previewFileId;
+    if (input.previewFileId && !previewFileId) {
+      return {
+        file: null,
+        userErrors: [this.invalidIdError("previewFileId")],
       };
     }
 
@@ -188,6 +443,11 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       altText: input.altText,
       originalName: input.originalName,
       meta: input.meta,
+      mediaType: input.mediaType,
+      previewFileId,
+      thumbhash: input.thumbhash,
+      processingStatus: input.processingStatus,
+      processingError: input.processingError,
     });
 
     return {
@@ -207,7 +467,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       permanent?: boolean;
     };
   }) {
-    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    const fileId = this.decodeId(input.id, GlobalIdEntity.File);
     if (!fileId) {
       return {
         deletedFileId: null,
@@ -244,7 +504,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const invalidIds: string[] = [];
 
     for (const id of input.ids) {
-      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      const fileId = this.decodeId(id, GlobalIdEntity.File);
       if (!fileId) {
         invalidIds.push(id);
         continue;
@@ -289,7 +549,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       id: string;
     };
   }) {
-    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    const fileId = this.decodeId(input.id, GlobalIdEntity.File);
     if (!fileId) {
       return {
         file: null,
@@ -336,7 +596,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const invalidIds: string[] = [];
 
     for (const id of input.ids) {
-      const fileId = decodeGlobalIdByType(id, GlobalIdEntity.File);
+      const fileId = this.decodeId(id, GlobalIdEntity.File);
       if (!fileId) {
         invalidIds.push(id);
         continue;
@@ -377,7 +637,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       id: string;
     };
   }) {
-    const fileId = decodeGlobalIdByType(input.id, GlobalIdEntity.File);
+    const fileId = this.decodeId(input.id, GlobalIdEntity.File);
     if (!fileId) {
       return {
         file: null,
@@ -410,6 +670,77 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     return {
       file: result.file ? new FileAnyResolver(result.file.id, this.$ctx) : null,
       userErrors: [],
+    };
+  }
+
+  async mediaSourceCreate({
+    input,
+  }: {
+    input: {
+      mediaFileId: string;
+      sourceFileId: string;
+      kind: string;
+      format: string;
+      sortOrder?: number;
+    };
+  }) {
+    const ids = this.decodeMediaSourceIds(input);
+    if (!ids) return this.invalidEntityPayload("source", "fileId");
+    const result = await this.$ctx.kernel.runScript(MediaSourceCreateScript, {
+      ...input,
+      ...ids,
+    });
+    return {
+      source: result.source
+        ? new MediaSourceResolver(result.source, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async mediaSourceUpdate({
+    input,
+  }: {
+    input: {
+      mediaFileId: string;
+      sourceFileId: string;
+      kind?: string;
+      format?: string;
+      sortOrder?: number;
+    };
+  }) {
+    const ids = this.decodeMediaSourceIds(input);
+    if (!ids) return this.invalidEntityPayload("source", "fileId");
+    const result = await this.$ctx.kernel.runScript(MediaSourceUpdateScript, {
+      ...input,
+      ...ids,
+    });
+    return {
+      source: result.source
+        ? new MediaSourceResolver(result.source, this.$ctx)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async mediaSourceDelete({
+    input,
+  }: {
+    input: { mediaFileId: string; sourceFileId: string };
+  }) {
+    const ids = this.decodeMediaSourceIds(input);
+    if (!ids) {
+      return {
+        deletedSourceFileId: null,
+        userErrors: [this.invalidIdError("fileId")],
+      };
+    }
+    const result = await this.$ctx.kernel.runScript(MediaSourceDeleteScript, ids);
+    return {
+      deletedSourceFileId: result.deletedSourceFileId
+        ? encodeGlobalIdByType(result.deletedSourceFileId, GlobalIdEntity.File)
+        : null,
+      userErrors: result.userErrors,
     };
   }
 
@@ -467,6 +798,26 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       };
     }
 
+    const allowedOwnerId =
+      ownerType === "store"
+        ? this.$ctx.store.id
+        : ownerType === "organization"
+          ? this.$ctx.store.organizationId
+          : this.$ctx.user.id;
+
+    if (ownerId !== allowedOwnerId) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: "The media owner is outside the current access scope",
+            field: ["ownerId"],
+            code: "OWNER_SCOPE_MISMATCH",
+          },
+        ],
+      };
+    }
+
     const result = await kernel.runScript(ProfileAvatarUploadScript, {
       file: input.file,
       ownerType,
@@ -488,5 +839,37 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       INTERNAL_ERROR: "Internal error",
     };
     return messages[code] ?? "Unknown error";
+  }
+
+  private decodeId(id: string, type: GlobalIdEntity): string | null {
+    try {
+      return decodeGlobalIdByType(id, type);
+    } catch {
+      return null;
+    }
+  }
+
+  private decodeMediaSourceIds(input: {
+    mediaFileId: string;
+    sourceFileId: string;
+  }): { mediaFileId: string; sourceFileId: string } | null {
+    const mediaFileId = this.decodeId(input.mediaFileId, GlobalIdEntity.File);
+    const sourceFileId = this.decodeId(input.sourceFileId, GlobalIdEntity.File);
+    return mediaFileId && sourceFileId ? { mediaFileId, sourceFileId } : null;
+  }
+
+  private invalidIdError(field: string) {
+    return {
+      field: [field],
+      code: "INVALID_ID",
+      message: "Invalid global ID",
+    };
+  }
+
+  private invalidEntityPayload(field: string, idField: string) {
+    return {
+      [field]: null,
+      userErrors: [this.invalidIdError(idField)],
+    };
   }
 }

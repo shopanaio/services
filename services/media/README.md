@@ -29,7 +29,7 @@ processor, stored as an image `files` row, and referenced by `preview_file_id`.
 
 ## Data resolved at request time
 
-Image renditions are not persisted. `Image.url(transform:)` is built at request
+Image renditions are not persisted. `File.url(transform:)` is built at request
 time from the original object path, the selected CDN configuration, routing
 rule, and transform input.
 
@@ -40,12 +40,7 @@ The following values are dynamic:
 - output scale;
 - preferred JPG, PNG, or WebP content type;
 - the transformed public URL;
-- transformed dimensions;
 - CDN signature and expiration, when signing is enabled;
-- `ExternalVideo.host`, `embedUrl`, and `originUrl`, derived from provider,
-  external ID, and source URL;
-- media presentation JSON, derived from media type, preview, and prepared
-  sources.
 
 The cropper/resizer only transforms images. It is not responsible for video
 transcoding, extracting video posters, rendering PDFs, producing 3D previews,
@@ -59,36 +54,26 @@ group. An asset group can have several profiles and one enabled default.
 
 | Field | Purpose |
 | --- | --- |
-| `provider` | Extensible provider code, for example `CLOUDFLARE`, `BUNNY`, `AWS_CLOUDFRONT`, or `CUSTOM` |
+| `provider` | Extensible metadata key selected by configuration, never by a provider-specific code branch |
 | `base_url` | Public CDN origin, without a trailing slash |
 | `path_prefix` | Optional prefix inserted before the object path |
 | `is_default` | Fallback profile when no routing rule matches |
-| `signing_mode` | Signature adapter, for example `NONE`, `CLOUDFLARE_TOKEN`, `BUNNY_TOKEN`, `AWS_CLOUDFRONT`, or `CUSTOM` |
+| `signing_mode` | Runtime signing-adapter key resolved through the adapter registry |
 | `secret_ref` | Reference to an external secret, never the secret value itself |
-| `transform_strategy` | URL adapter used to encode image transform options |
+| `transform_strategy` | Runtime transform-adapter key; the core does not know provider names |
 | `url_template` | Optional provider/custom URL template |
-| `provider_config` | Non-secret provider options such as zone ID, key-pair ID, or expiration policy |
+| `provider_config` | Non-secret options consumed by the selected runtime adapter |
 | `transform_config` | Parameter mappings, defaults, quality limits, and allowed output formats |
 
 Credentials, private keys, and signing tokens must not be stored in the media
 database. `secret_ref` identifies a value supplied by the runtime secret
 provider. `provider_config` may contain public identifiers but no credentials.
 
-Canonical transform strategies are:
-
-- `NONE`: return the CDN URL without image transformation;
-- `CLOUDFLARE_IMAGE_RESIZING`: encode options in a
-  `/cdn-cgi/image/<options>/<path>` segment;
-- `BUNNY_IMAGE_PROCESSING`: encode options as Bunny image query parameters;
-- `AWS_SERVERLESS_IMAGE_HANDLER`: build the URL expected by the deployed AWS
-  image handler in front of CloudFront;
-- `QUERY_PARAMETERS`: use mappings from `transform_config`;
-- `PATH_TEMPLATE`: render `url_template`;
-- `CUSTOM`: delegate URL construction and signing to an application adapter.
-
-CloudFront by itself is a cache and does not define a crop/resize URL contract.
-An AWS profile must therefore use `NONE`, describe the deployed Serverless
-Image Handler, or provide a custom template/adapter.
+Provider behavior is data-driven. `url_template` and
+`transform_config.parameterMap` describe the URL contract, while optional
+`transform_strategy` and `signing_mode` values are opaque adapter-registry
+keys. Adding a CDN provider must not add a provider enum or conditional branch
+to the media core.
 
 ### URL template contract
 
@@ -97,50 +82,31 @@ A `url_template`, when used, can reference these normalized values:
 ```text
 {baseUrl} {pathPrefix} {objectPath}
 {width} {height} {crop} {scale} {format}
-{quality} {transform} {signature} {expiresAt}
+{quality} {query}
 ```
 
 Missing optional transform values are omitted before the template is rendered.
 The adapter must URL-encode object paths and parameter values. The final URL
 must always use the configured `base_url`; a template cannot override the host.
+Generic transform limits can be declared with `minWidth`, `maxWidth`,
+`minHeight`, `maxHeight`, `minScale`, `maxScale`, `minQuality`, `maxQuality`,
+`allowedFormats`, and `allowedCrops` in `transform_config`.
 
-Example profile shapes:
+Example provider-neutral profile shape:
 
 ```json
 {
-  "provider": "CLOUDFLARE",
+  "provider": "edge-primary",
   "baseUrl": "https://media.example.com",
-  "transformStrategy": "CLOUDFLARE_IMAGE_RESIZING",
+  "urlTemplate": "{baseUrl}/{pathPrefix}{objectPath}?{query}",
   "transformConfig": {
     "defaultQuality": 85,
-    "allowedFormats": ["JPG", "PNG", "WEBP"]
-  }
-}
-```
-
-```json
-{
-  "provider": "BUNNY",
-  "baseUrl": "https://shopana.b-cdn.net",
-  "signingMode": "BUNNY_TOKEN",
-  "secretRef": "secret://media/bunny/signing-key",
-  "transformStrategy": "BUNNY_IMAGE_PROCESSING",
-  "providerConfig": {
-    "tokenLifetimeSeconds": 3600
-  }
-}
-```
-
-```json
-{
-  "provider": "AWS_CLOUDFRONT",
-  "baseUrl": "https://d111111abcdef8.cloudfront.net",
-  "signingMode": "AWS_CLOUDFRONT",
-  "secretRef": "secret://media/cloudfront/private-key",
-  "transformStrategy": "AWS_SERVERLESS_IMAGE_HANDLER",
-  "providerConfig": {
-    "keyPairId": "K123EXAMPLE",
-    "tokenLifetimeSeconds": 3600
+    "allowedFormats": ["JPG", "PNG", "WEBP"],
+    "parameterMap": {
+      "width": "w",
+      "height": "h",
+      "format": "fm"
+    }
   }
 }
 ```
@@ -172,9 +138,9 @@ not restrict the request. Empty conditions match every request.
 
 `transform_overrides` applies rule-specific defaults or limits after the CDN
 profile's `transform_config`. Request arguments are applied last but must remain
-inside configured limits. For example, one rule can route images through
-Cloudflare, large videos through Bunny, and all remaining objects through the
-default CloudFront profile.
+inside configured limits. For example, one rule can route images through one
+configured delivery profile, large videos through another, and all remaining
+objects through the default profile.
 
 ## URL resolution order
 

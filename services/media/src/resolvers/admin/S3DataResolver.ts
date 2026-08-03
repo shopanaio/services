@@ -1,7 +1,11 @@
 import { PreloadNotFoundError } from "@shopana/type-resolver";
-import { MediaType, Cache } from "./MediaType.js";
+import { MediaType } from "./MediaType.js";
 import { BucketResolver } from "./BucketResolver.js";
 import type { S3Object } from "../../repositories/models/index.js";
+import {
+  encodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
 
 /**
  * S3Data resolver - resolves S3 storage data for files
@@ -30,7 +34,8 @@ export class S3DataResolver extends MediaType<string, S3Object> {
   }
 
   async bucketId() {
-    return this.$get("bucketId");
+    const bucketId = await this.$get("bucketId");
+    return encodeGlobalIdByType(bucketId, GlobalIdEntity.Bucket);
   }
 
   async bucket() {

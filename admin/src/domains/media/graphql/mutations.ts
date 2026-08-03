@@ -124,3 +124,35 @@ export const FILE_DELETE_MANY_MUTATION = gql`
   ${USER_ERROR_FRAGMENT}
 `;
 
+/** Restore multiple soft-deleted files. */
+export const FILE_RESTORE_MANY_MUTATION = gql`
+  mutation FileRestoreMany($input: FileRestoreManyInput!) {
+    mediaMutation {
+      fileRestoreMany(input: $input) {
+        restoredIds
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;
+
+/** Clear a deletion error so the file can be retried or restored. */
+export const FILE_CLEAR_ERROR_MUTATION = gql`
+  mutation FileClearError($input: FileClearErrorInput!) {
+    mediaMutation {
+      fileClearError(input: $input) {
+        file {
+          ...FileFields
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${FILE_FRAGMENT}
+  ${USER_ERROR_FRAGMENT}
+`;

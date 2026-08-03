@@ -7,6 +7,13 @@ export class MissingMetadataError extends Error {
   }
 }
 
+export class DeletionBlockedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeletionBlockedError";
+  }
+}
+
 const FATAL_S3_CODES = [
   "AccessDenied",
   "InvalidAccessKeyId",
@@ -33,7 +40,7 @@ export function classifyError(error: unknown): DeletionErrorCode {
     return "RETRYABLE";
   }
 
-  if (error instanceof MissingMetadataError) {
+  if (error instanceof MissingMetadataError || error instanceof DeletionBlockedError) {
     return "FATAL";
   }
 

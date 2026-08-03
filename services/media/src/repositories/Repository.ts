@@ -9,6 +9,9 @@ import { ExternalMediaRepository } from "./ExternalMediaRepository";
 import { UploadSessionRepository } from "./UploadSessionRepository";
 import { BucketRotationLogRepository } from "./BucketRotationLogRepository";
 import { FileBackRefRepository } from "./FileBackRefRepository";
+import { CdnConfigurationRepository } from "./CdnConfigurationRepository.js";
+import { CdnRoutingRuleRepository } from "./CdnRoutingRuleRepository.js";
+import { MediaSourceRepository } from "./MediaSourceRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -27,6 +30,9 @@ export class Repository {
   public readonly externalMedia: ExternalMediaRepository;
   public readonly uploadSession: UploadSessionRepository;
   public readonly bucketRotationLog: BucketRotationLogRepository;
+  public readonly cdnConfiguration: CdnConfigurationRepository;
+  public readonly cdnRoutingRule: CdnRoutingRuleRepository;
+  public readonly mediaSource: MediaSourceRepository;
   public readonly txManager: TransactionManager<Database>;
 
   private constructor(
@@ -39,6 +45,9 @@ export class Repository {
     externalMedia: ExternalMediaRepository,
     uploadSession: UploadSessionRepository,
     bucketRotationLog: BucketRotationLogRepository,
+    cdnConfiguration: CdnConfigurationRepository,
+    cdnRoutingRule: CdnRoutingRuleRepository,
+    mediaSource: MediaSourceRepository,
     txManager: TransactionManager<Database>
   ) {
     this.assetGroup = assetGroup;
@@ -50,6 +59,9 @@ export class Repository {
     this.externalMedia = externalMedia;
     this.uploadSession = uploadSession;
     this.bucketRotationLog = bucketRotationLog;
+    this.cdnConfiguration = cdnConfiguration;
+    this.cdnRoutingRule = cdnRoutingRule;
+    this.mediaSource = mediaSource;
     this.txManager = txManager;
   }
 
@@ -72,6 +84,9 @@ export class Repository {
     const externalMedia = new ExternalMediaRepository(db);
     const uploadSession = new UploadSessionRepository(db);
     const bucketRotationLog = new BucketRotationLogRepository(db);
+    const cdnConfiguration = new CdnConfigurationRepository(db);
+    const cdnRoutingRule = new CdnRoutingRuleRepository(db);
+    const mediaSource = new MediaSourceRepository(db);
 
     return new Repository(
       assetGroup,
@@ -83,6 +98,9 @@ export class Repository {
       externalMedia,
       uploadSession,
       bucketRotationLog,
+      cdnConfiguration,
+      cdnRoutingRule,
+      mediaSource,
       txManager
     );
   }

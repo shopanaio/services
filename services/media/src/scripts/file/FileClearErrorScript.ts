@@ -11,7 +11,7 @@ export class FileClearErrorScript extends BaseScript<
   protected async execute(
     params: FileClearErrorParams
   ): Promise<FileClearErrorResult> {
-    const file = await this.repository.file.findAnyById(params.id);
+    const file = await this.findStoreFile(params.id, true);
     if (!file) {
       return { error: "FILE_NOT_FOUND" };
     }

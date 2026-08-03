@@ -10,7 +10,7 @@ import { Kernel } from "../../kernel/Kernel.js";
 // Module augmentation for Fastify
 declare module "fastify" {
   interface FastifyRequest {
-    store?: ContextStore;
+    store: ContextStore;
     user: ContextUser;
     adminContext?: AdminContextClaims;
   }
@@ -24,7 +24,5 @@ export function buildAdminContextMiddleware() {
   const kernel = Kernel.getInstance();
   return buildMiddleware(kernel.getServices().broker, {
     serviceName: "MEDIA",
-    requireStore: false,
-    requireAuth: false,
   });
 }

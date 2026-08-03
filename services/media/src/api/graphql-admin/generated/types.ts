@@ -99,6 +99,142 @@ export type BucketCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CdnConfiguration = Node & {
+  __typename?: 'CdnConfiguration';
+  baseUrl: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  isDefault: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  pathPrefix: Scalars['String']['output'];
+  provider: Scalars['String']['output'];
+  providerConfig: Scalars['JSON']['output'];
+  secretRef?: Maybe<Scalars['String']['output']>;
+  signingMode: Scalars['String']['output'];
+  transformConfig: Scalars['JSON']['output'];
+  transformStrategy: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  urlTemplate?: Maybe<Scalars['String']['output']>;
+};
+
+export type CdnConfigurationCreateInput = {
+  baseUrl: Scalars['String']['input'];
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
+  provider: Scalars['String']['input'];
+  providerConfig?: InputMaybe<Scalars['JSON']['input']>;
+  secretRef?: InputMaybe<Scalars['String']['input']>;
+  signingMode?: InputMaybe<Scalars['String']['input']>;
+  transformConfig?: InputMaybe<Scalars['JSON']['input']>;
+  transformStrategy?: InputMaybe<Scalars['String']['input']>;
+  urlTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CdnConfigurationDeletePayload = {
+  __typename?: 'CdnConfigurationDeletePayload';
+  deletedConfigurationId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnConfigurationPayload = {
+  __typename?: 'CdnConfigurationPayload';
+  configuration?: Maybe<CdnConfiguration>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnConfigurationTestInput = {
+  configuration: CdnConfigurationCreateInput;
+  objectPath: Scalars['String']['input'];
+  transform?: InputMaybe<ImageTransformInput>;
+};
+
+export type CdnConfigurationTestPayload = {
+  __typename?: 'CdnConfigurationTestPayload';
+  preview?: Maybe<CdnDeliveryPreview>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnConfigurationUpdateInput = {
+  baseUrl?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  isDefault?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  pathPrefix?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  providerConfig?: InputMaybe<Scalars['JSON']['input']>;
+  secretRef?: InputMaybe<Scalars['String']['input']>;
+  signingMode?: InputMaybe<Scalars['String']['input']>;
+  transformConfig?: InputMaybe<Scalars['JSON']['input']>;
+  transformStrategy?: InputMaybe<Scalars['String']['input']>;
+  urlTemplate?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CdnDeliveryPreview = {
+  __typename?: 'CdnDeliveryPreview';
+  configuration?: Maybe<CdnConfiguration>;
+  fallback: Scalars['Boolean']['output'];
+  originUrl: Scalars['String']['output'];
+  routingRule?: Maybe<CdnRoutingRule>;
+  url: Scalars['String']['output'];
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnRoutingRule = Node & {
+  __typename?: 'CdnRoutingRule';
+  conditions: Scalars['JSON']['output'];
+  configuration: CdnConfiguration;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  priority: Scalars['Int']['output'];
+  transformOverrides: Scalars['JSON']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CdnRoutingRuleCreateInput = {
+  cdnConfigurationId: Scalars['ID']['input'];
+  conditions?: InputMaybe<Scalars['JSON']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  name: Scalars['String']['input'];
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export type CdnRoutingRuleDeletePayload = {
+  __typename?: 'CdnRoutingRuleDeletePayload';
+  deletedRoutingRuleId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnRoutingRulePayload = {
+  __typename?: 'CdnRoutingRulePayload';
+  routingRule?: Maybe<CdnRoutingRule>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type CdnRoutingRuleUpdateInput = {
+  cdnConfigurationId?: InputMaybe<Scalars['ID']['input']>;
+  conditions?: InputMaybe<Scalars['JSON']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
+};
+
+export enum CropRegion {
+  Bottom = 'BOTTOM',
+  Center = 'CENTER',
+  Left = 'LEFT',
+  Right = 'RIGHT',
+  Top = 'TOP'
+}
+
 /** Filter operators for DateTime fields */
 export type DateTimeFilter = {
   /** Between range (inclusive) */
@@ -163,12 +299,19 @@ export type File = Node & {
   isProcessed: Scalars['Boolean']['output'];
   /** Last deletion error details. */
   lastDeletionError?: Maybe<Scalars['String']['output']>;
+  mediaType: MediaType;
   /** Additional metadata. */
   meta?: Maybe<Scalars['JSON']['output']>;
   /** MIME type. */
   mimeType?: Maybe<Scalars['String']['output']>;
+  /** Canonical provider URL before CDN routing and transforms. */
+  originUrl: Scalars['String']['output'];
   /** Original filename from upload. */
   originalName?: Maybe<Scalars['String']['output']>;
+  previewFile?: Maybe<File>;
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  processingError?: Maybe<Scalars['String']['output']>;
+  processingStatus: MediaProcessingStatus;
   /** Provider type (s3, youtube, vimeo, url, local). */
   provider: FileProvider;
   /** S3-specific data (only for S3 provider). */
@@ -177,12 +320,21 @@ export type File = Node & {
   sizeBytes: Scalars['BigInt']['output'];
   /** Source URL (for files uploaded from URL). */
   sourceUrl?: Maybe<Scalars['String']['output']>;
+  sources: Array<MediaSource>;
+  thumbhash?: Maybe<Scalars['String']['output']>;
   /** The date and time when the file was last updated. */
   updatedAt: Scalars['DateTime']['output'];
   /** Public URL to access file. */
   url: Scalars['String']['output'];
   /** Usage summary for this file. */
   usage: FileUsageSummary;
+};
+
+
+/** A file represents a stored media asset. */
+export type FileUrlArgs = {
+  country?: InputMaybe<Scalars['String']['input']>;
+  transform?: InputMaybe<ImageTransformInput>;
 };
 
 export type FileClearErrorInput = {
@@ -334,18 +486,30 @@ export enum FileOrderField {
   IdempotencyKey = 'idempotencyKey',
   /** Sort by isProcessed */
   IsProcessed = 'isProcessed',
+  /** Sort by mediaType */
+  MediaType = 'mediaType',
   /** Sort by meta */
   Meta = 'meta',
   /** Sort by mimeType */
   MimeType = 'mimeType',
   /** Sort by originalName */
   OriginalName = 'originalName',
+  /** Sort by previewFileId */
+  PreviewFileId = 'previewFileId',
+  /** Sort by processedAt */
+  ProcessedAt = 'processedAt',
+  /** Sort by processingError */
+  ProcessingError = 'processingError',
+  /** Sort by processingStatus */
+  ProcessingStatus = 'processingStatus',
   /** Sort by provider */
   Provider = 'provider',
   /** Sort by sizeBytes */
   SizeBytes = 'sizeBytes',
   /** Sort by sourceUrl */
   SourceUrl = 'sourceUrl',
+  /** Sort by thumbhash */
+  Thumbhash = 'thumbhash',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
   /** Sort by url */
@@ -394,16 +558,27 @@ export type FileRestorePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export enum FileStateScope {
+  Active = 'ACTIVE',
+  All = 'ALL',
+  Deleted = 'DELETED'
+}
+
 /** Input for updating a file. */
 export type FileUpdateInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
   /** The file ID. */
   id: Scalars['ID']['input'];
+  mediaType?: InputMaybe<MediaType>;
   /** Additional metadata. */
   meta?: InputMaybe<Scalars['JSON']['input']>;
   /** Original name. */
   originalName?: InputMaybe<Scalars['String']['input']>;
+  previewFileId?: InputMaybe<Scalars['ID']['input']>;
+  processingError?: InputMaybe<Scalars['String']['input']>;
+  processingStatus?: InputMaybe<MediaProcessingStatus>;
+  thumbhash?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Payload for file update. */
@@ -494,18 +669,30 @@ export type FileWhereInput = {
   idempotencyKey?: InputMaybe<StringFilter>;
   /** Filter by isProcessed */
   isProcessed?: InputMaybe<BooleanFilter>;
+  /** Filter by mediaType */
+  mediaType?: InputMaybe<StringFilter>;
   /** Filter by meta */
   meta?: InputMaybe<StringFilter>;
   /** Filter by mimeType */
   mimeType?: InputMaybe<StringFilter>;
   /** Filter by originalName */
   originalName?: InputMaybe<StringFilter>;
+  /** Filter by previewFileId */
+  previewFileId?: InputMaybe<IdFilter>;
+  /** Filter by processedAt */
+  processedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by processingError */
+  processingError?: InputMaybe<StringFilter>;
+  /** Filter by processingStatus */
+  processingStatus?: InputMaybe<StringFilter>;
   /** Filter by provider */
   provider?: InputMaybe<StringFilter>;
   /** Filter by sizeBytes */
   sizeBytes?: InputMaybe<IntFilter>;
   /** Filter by sourceUrl */
   sourceUrl?: InputMaybe<StringFilter>;
+  /** Filter by thumbhash */
+  thumbhash?: InputMaybe<StringFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by url */
@@ -564,6 +751,20 @@ export type IdFilter = {
   _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
+export enum ImageContentType {
+  Jpg = 'JPG',
+  Png = 'PNG',
+  Webp = 'WEBP'
+}
+
+export type ImageTransformInput = {
+  crop?: InputMaybe<CropRegion>;
+  maxHeight?: InputMaybe<Scalars['Int']['input']>;
+  maxWidth?: InputMaybe<Scalars['Int']['input']>;
+  preferredContentType?: InputMaybe<ImageContentType>;
+  scale?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Filter operators for Int fields */
 export type IntFilter = {
   /** Between range (inclusive) */
@@ -607,7 +808,15 @@ export type MediaMutation = {
    */
   avatarUpload: AvatarUploadPayload;
   bucketCreate: BucketCreatePayload;
-  /** Clear errors for multiple files by ID. */
+  cdnConfigurationCreate: CdnConfigurationPayload;
+  cdnConfigurationDelete: CdnConfigurationDeletePayload;
+  cdnConfigurationSetDefault: CdnConfigurationPayload;
+  cdnConfigurationTest: CdnConfigurationTestPayload;
+  cdnConfigurationUpdate: CdnConfigurationPayload;
+  cdnRoutingRuleCreate: CdnRoutingRulePayload;
+  cdnRoutingRuleDelete: CdnRoutingRuleDeletePayload;
+  cdnRoutingRuleUpdate: CdnRoutingRulePayload;
+  /** Clear the deletion error for one file by ID. */
   fileClearError: FileClearErrorPayload;
   fileCreateExternal: FileCreateExternalPayload;
   fileDelete: FileDeletePayload;
@@ -620,6 +829,9 @@ export type MediaMutation = {
   fileUpdate: FileUpdatePayload;
   fileUpload: FileUploadPayload;
   fileUploadFromUrl: FileUploadPayload;
+  mediaSourceCreate: MediaSourcePayload;
+  mediaSourceDelete: MediaSourceDeletePayload;
+  mediaSourceUpdate: MediaSourcePayload;
 };
 
 
@@ -630,6 +842,46 @@ export type MediaMutationAvatarUploadArgs = {
 
 export type MediaMutationBucketCreateArgs = {
   input: BucketCreateInput;
+};
+
+
+export type MediaMutationCdnConfigurationCreateArgs = {
+  input: CdnConfigurationCreateInput;
+};
+
+
+export type MediaMutationCdnConfigurationDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MediaMutationCdnConfigurationSetDefaultArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MediaMutationCdnConfigurationTestArgs = {
+  input: CdnConfigurationTestInput;
+};
+
+
+export type MediaMutationCdnConfigurationUpdateArgs = {
+  input: CdnConfigurationUpdateInput;
+};
+
+
+export type MediaMutationCdnRoutingRuleCreateArgs = {
+  input: CdnRoutingRuleCreateInput;
+};
+
+
+export type MediaMutationCdnRoutingRuleDeleteArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MediaMutationCdnRoutingRuleUpdateArgs = {
+  input: CdnRoutingRuleUpdateInput;
 };
 
 
@@ -677,8 +929,32 @@ export type MediaMutationFileUploadFromUrlArgs = {
   input: FileUploadFromUrlInput;
 };
 
+
+export type MediaMutationMediaSourceCreateArgs = {
+  input: MediaSourceCreateInput;
+};
+
+
+export type MediaMutationMediaSourceDeleteArgs = {
+  input: MediaSourceDeleteInput;
+};
+
+
+export type MediaMutationMediaSourceUpdateArgs = {
+  input: MediaSourceUpdateInput;
+};
+
+export enum MediaProcessingStatus {
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Processing = 'PROCESSING',
+  Ready = 'READY'
+}
+
 export type MediaQuery = {
   __typename?: 'MediaQuery';
+  /** Resolve and inspect the CDN route for a current-store file. */
+  cdnDeliveryPreview: CdnDeliveryPreview;
   /** Get a file by ID */
   file?: Maybe<File>;
   /**
@@ -686,10 +962,20 @@ export type MediaQuery = {
    * Store context is determined from x-store-name header.
    */
   files: FileConnection;
+  /** Media delivery settings for the current store. */
+  mediaSettings?: Maybe<MediaSettings>;
   /** Get a node by its global ID */
   node?: Maybe<Node>;
   /** Get multiple nodes by their global IDs */
   nodes: Array<Maybe<Node>>;
+};
+
+
+export type MediaQueryCdnDeliveryPreviewArgs = {
+  configurationId?: InputMaybe<Scalars['ID']['input']>;
+  country?: InputMaybe<Scalars['String']['input']>;
+  fileId: Scalars['ID']['input'];
+  transform?: InputMaybe<ImageTransformInput>;
 };
 
 
@@ -704,6 +990,7 @@ export type MediaQueryFilesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<FileOrderByInput>>;
+  state?: InputMaybe<FileStateScope>;
   where?: InputMaybe<FileWhereInput>;
 };
 
@@ -716,6 +1003,63 @@ export type MediaQueryNodeArgs = {
 export type MediaQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
+
+export type MediaSettings = {
+  __typename?: 'MediaSettings';
+  assetGroupId: Scalars['ID']['output'];
+  cdnConfigurations: Array<CdnConfiguration>;
+  cdnRoutingRules: Array<CdnRoutingRule>;
+};
+
+export type MediaSource = {
+  __typename?: 'MediaSource';
+  createdAt: Scalars['DateTime']['output'];
+  format: Scalars['String']['output'];
+  kind: Scalars['String']['output'];
+  sortOrder: Scalars['Int']['output'];
+  sourceFile: File;
+};
+
+export type MediaSourceCreateInput = {
+  format: Scalars['String']['input'];
+  kind: Scalars['String']['input'];
+  mediaFileId: Scalars['ID']['input'];
+  sortOrder?: InputMaybe<Scalars['Int']['input']>;
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export type MediaSourceDeleteInput = {
+  mediaFileId: Scalars['ID']['input'];
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export type MediaSourceDeletePayload = {
+  __typename?: 'MediaSourceDeletePayload';
+  deletedSourceFileId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type MediaSourcePayload = {
+  __typename?: 'MediaSourcePayload';
+  source?: Maybe<MediaSource>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type MediaSourceUpdateInput = {
+  format?: InputMaybe<Scalars['String']['input']>;
+  kind?: InputMaybe<Scalars['String']['input']>;
+  mediaFileId: Scalars['ID']['input'];
+  sortOrder?: InputMaybe<Scalars['Int']['input']>;
+  sourceFileId: Scalars['ID']['input'];
+};
+
+export enum MediaType {
+  ExternalVideo = 'EXTERNAL_VIDEO',
+  GenericFile = 'GENERIC_FILE',
+  Image = 'IMAGE',
+  Model_3D = 'MODEL_3D',
+  Video = 'VIDEO'
+}
 
 export type Mutation = {
   __typename?: 'Mutation';
@@ -889,7 +1233,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( File );
+  Node: ( CdnConfiguration ) | ( CdnRoutingRule ) | ( File );
   UserError: ( GenericUserError );
 }>;
 
@@ -906,6 +1250,20 @@ export type ResolversTypes = ResolversObject<{
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: ResolverTypeWrapper<BucketCreatePayload>;
+  CdnConfiguration: ResolverTypeWrapper<CdnConfiguration>;
+  CdnConfigurationCreateInput: CdnConfigurationCreateInput;
+  CdnConfigurationDeletePayload: ResolverTypeWrapper<CdnConfigurationDeletePayload>;
+  CdnConfigurationPayload: ResolverTypeWrapper<CdnConfigurationPayload>;
+  CdnConfigurationTestInput: CdnConfigurationTestInput;
+  CdnConfigurationTestPayload: ResolverTypeWrapper<CdnConfigurationTestPayload>;
+  CdnConfigurationUpdateInput: CdnConfigurationUpdateInput;
+  CdnDeliveryPreview: ResolverTypeWrapper<CdnDeliveryPreview>;
+  CdnRoutingRule: ResolverTypeWrapper<CdnRoutingRule>;
+  CdnRoutingRuleCreateInput: CdnRoutingRuleCreateInput;
+  CdnRoutingRuleDeletePayload: ResolverTypeWrapper<CdnRoutingRuleDeletePayload>;
+  CdnRoutingRulePayload: ResolverTypeWrapper<CdnRoutingRulePayload>;
+  CdnRoutingRuleUpdateInput: CdnRoutingRuleUpdateInput;
+  CropRegion: CropRegion;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
@@ -928,6 +1286,7 @@ export type ResolversTypes = ResolversObject<{
   FileRestoreManyInput: FileRestoreManyInput;
   FileRestoreManyPayload: ResolverTypeWrapper<FileRestoreManyPayload>;
   FileRestorePayload: ResolverTypeWrapper<FileRestorePayload>;
+  FileStateScope: FileStateScope;
   FileUpdateInput: FileUpdateInput;
   FileUpdatePayload: ResolverTypeWrapper<FileUpdatePayload>;
   FileUploadFromUrlInput: FileUploadFromUrlInput;
@@ -940,11 +1299,22 @@ export type ResolversTypes = ResolversObject<{
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
+  ImageContentType: ImageContentType;
+  ImageTransformInput: ImageTransformInput;
   IntFilter: IntFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   MediaDimensions: ResolverTypeWrapper<MediaDimensions>;
   MediaMutation: ResolverTypeWrapper<MediaMutation>;
+  MediaProcessingStatus: MediaProcessingStatus;
   MediaQuery: ResolverTypeWrapper<Omit<MediaQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  MediaSettings: ResolverTypeWrapper<MediaSettings>;
+  MediaSource: ResolverTypeWrapper<MediaSource>;
+  MediaSourceCreateInput: MediaSourceCreateInput;
+  MediaSourceDeleteInput: MediaSourceDeleteInput;
+  MediaSourceDeletePayload: ResolverTypeWrapper<MediaSourceDeletePayload>;
+  MediaSourcePayload: ResolverTypeWrapper<MediaSourcePayload>;
+  MediaSourceUpdateInput: MediaSourceUpdateInput;
+  MediaType: MediaType;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
@@ -969,6 +1339,19 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: BucketCreatePayload;
+  CdnConfiguration: CdnConfiguration;
+  CdnConfigurationCreateInput: CdnConfigurationCreateInput;
+  CdnConfigurationDeletePayload: CdnConfigurationDeletePayload;
+  CdnConfigurationPayload: CdnConfigurationPayload;
+  CdnConfigurationTestInput: CdnConfigurationTestInput;
+  CdnConfigurationTestPayload: CdnConfigurationTestPayload;
+  CdnConfigurationUpdateInput: CdnConfigurationUpdateInput;
+  CdnDeliveryPreview: CdnDeliveryPreview;
+  CdnRoutingRule: CdnRoutingRule;
+  CdnRoutingRuleCreateInput: CdnRoutingRuleCreateInput;
+  CdnRoutingRuleDeletePayload: CdnRoutingRuleDeletePayload;
+  CdnRoutingRulePayload: CdnRoutingRulePayload;
+  CdnRoutingRuleUpdateInput: CdnRoutingRuleUpdateInput;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ExternalMediaData;
@@ -1001,11 +1384,19 @@ export type ResolversParentTypes = ResolversObject<{
   Float: Scalars['Float']['output'];
   GenericUserError: GenericUserError;
   IDFilter: IdFilter;
+  ImageTransformInput: ImageTransformInput;
   IntFilter: IntFilter;
   JSON: Scalars['JSON']['output'];
   MediaDimensions: MediaDimensions;
   MediaMutation: MediaMutation;
   MediaQuery: Omit<MediaQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
+  MediaSettings: MediaSettings;
+  MediaSource: MediaSource;
+  MediaSourceCreateInput: MediaSourceCreateInput;
+  MediaSourceDeleteInput: MediaSourceDeleteInput;
+  MediaSourceDeletePayload: MediaSourceDeletePayload;
+  MediaSourcePayload: MediaSourcePayload;
+  MediaSourceUpdateInput: MediaSourceUpdateInput;
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
@@ -1044,6 +1435,78 @@ export type BucketCreatePayloadResolvers<ContextType = GraphQLContext, ParentTyp
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CdnConfigurationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnConfiguration'] = ResolversParentTypes['CdnConfiguration']> = ResolversObject<{
+  baseUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  pathPrefix?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  provider?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  providerConfig?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  secretRef?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  signingMode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  transformConfig?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  transformStrategy?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  urlTemplate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnConfigurationDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnConfigurationDeletePayload'] = ResolversParentTypes['CdnConfigurationDeletePayload']> = ResolversObject<{
+  deletedConfigurationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnConfigurationPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnConfigurationPayload'] = ResolversParentTypes['CdnConfigurationPayload']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['CdnConfiguration']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnConfigurationTestPayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnConfigurationTestPayload'] = ResolversParentTypes['CdnConfigurationTestPayload']> = ResolversObject<{
+  preview?: Resolver<Maybe<ResolversTypes['CdnDeliveryPreview']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnDeliveryPreviewResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnDeliveryPreview'] = ResolversParentTypes['CdnDeliveryPreview']> = ResolversObject<{
+  configuration?: Resolver<Maybe<ResolversTypes['CdnConfiguration']>, ParentType, ContextType>;
+  fallback?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  originUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  routingRule?: Resolver<Maybe<ResolversTypes['CdnRoutingRule']>, ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnRoutingRuleResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnRoutingRule'] = ResolversParentTypes['CdnRoutingRule']> = ResolversObject<{
+  conditions?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  configuration?: Resolver<ResolversTypes['CdnConfiguration'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  priority?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  transformOverrides?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnRoutingRuleDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnRoutingRuleDeletePayload'] = ResolversParentTypes['CdnRoutingRuleDeletePayload']> = ResolversObject<{
+  deletedRoutingRuleId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnRoutingRulePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnRoutingRulePayload'] = ResolversParentTypes['CdnRoutingRulePayload']> = ResolversObject<{
+  routingRule?: Resolver<Maybe<ResolversTypes['CdnRoutingRule']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
 }
@@ -1069,15 +1532,23 @@ export type FileResolvers<ContextType = GraphQLContext, ParentType extends Resol
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isProcessed?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   lastDeletionError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  mediaType?: Resolver<ResolversTypes['MediaType'], ParentType, ContextType>;
   meta?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
   mimeType?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  originUrl?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   originalName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  previewFile?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType>;
+  processedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  processingError?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  processingStatus?: Resolver<ResolversTypes['MediaProcessingStatus'], ParentType, ContextType>;
   provider?: Resolver<ResolversTypes['FileProvider'], ParentType, ContextType>;
   s3Data?: Resolver<Maybe<ResolversTypes['S3ObjectData']>, ParentType, ContextType>;
   sizeBytes?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   sourceUrl?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sources?: Resolver<Array<ResolversTypes['MediaSource']>, ParentType, ContextType>;
+  thumbhash?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  url?: Resolver<ResolversTypes['String'], ParentType, ContextType, Partial<FileUrlArgs>>;
   usage?: Resolver<ResolversTypes['FileUsageSummary'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -1177,6 +1648,14 @@ export type MediaDimensionsResolvers<ContextType = GraphQLContext, ParentType ex
 export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaMutation'] = ResolversParentTypes['MediaMutation']> = ResolversObject<{
   avatarUpload?: Resolver<ResolversTypes['AvatarUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationAvatarUploadArgs, 'input'>>;
   bucketCreate?: Resolver<ResolversTypes['BucketCreatePayload'], ParentType, ContextType, RequireFields<MediaMutationBucketCreateArgs, 'input'>>;
+  cdnConfigurationCreate?: Resolver<ResolversTypes['CdnConfigurationPayload'], ParentType, ContextType, RequireFields<MediaMutationCdnConfigurationCreateArgs, 'input'>>;
+  cdnConfigurationDelete?: Resolver<ResolversTypes['CdnConfigurationDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationCdnConfigurationDeleteArgs, 'id'>>;
+  cdnConfigurationSetDefault?: Resolver<ResolversTypes['CdnConfigurationPayload'], ParentType, ContextType, RequireFields<MediaMutationCdnConfigurationSetDefaultArgs, 'id'>>;
+  cdnConfigurationTest?: Resolver<ResolversTypes['CdnConfigurationTestPayload'], ParentType, ContextType, RequireFields<MediaMutationCdnConfigurationTestArgs, 'input'>>;
+  cdnConfigurationUpdate?: Resolver<ResolversTypes['CdnConfigurationPayload'], ParentType, ContextType, RequireFields<MediaMutationCdnConfigurationUpdateArgs, 'input'>>;
+  cdnRoutingRuleCreate?: Resolver<ResolversTypes['CdnRoutingRulePayload'], ParentType, ContextType, RequireFields<MediaMutationCdnRoutingRuleCreateArgs, 'input'>>;
+  cdnRoutingRuleDelete?: Resolver<ResolversTypes['CdnRoutingRuleDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationCdnRoutingRuleDeleteArgs, 'id'>>;
+  cdnRoutingRuleUpdate?: Resolver<ResolversTypes['CdnRoutingRulePayload'], ParentType, ContextType, RequireFields<MediaMutationCdnRoutingRuleUpdateArgs, 'input'>>;
   fileClearError?: Resolver<ResolversTypes['FileClearErrorPayload'], ParentType, ContextType, RequireFields<MediaMutationFileClearErrorArgs, 'input'>>;
   fileCreateExternal?: Resolver<ResolversTypes['FileCreateExternalPayload'], ParentType, ContextType, RequireFields<MediaMutationFileCreateExternalArgs, 'input'>>;
   fileDelete?: Resolver<ResolversTypes['FileDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationFileDeleteArgs, 'input'>>;
@@ -1186,14 +1665,47 @@ export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType exte
   fileUpdate?: Resolver<ResolversTypes['FileUpdatePayload'], ParentType, ContextType, RequireFields<MediaMutationFileUpdateArgs, 'input'>>;
   fileUpload?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadArgs, 'input'>>;
   fileUploadFromUrl?: Resolver<ResolversTypes['FileUploadPayload'], ParentType, ContextType, RequireFields<MediaMutationFileUploadFromUrlArgs, 'input'>>;
+  mediaSourceCreate?: Resolver<ResolversTypes['MediaSourcePayload'], ParentType, ContextType, RequireFields<MediaMutationMediaSourceCreateArgs, 'input'>>;
+  mediaSourceDelete?: Resolver<ResolversTypes['MediaSourceDeletePayload'], ParentType, ContextType, RequireFields<MediaMutationMediaSourceDeleteArgs, 'input'>>;
+  mediaSourceUpdate?: Resolver<ResolversTypes['MediaSourcePayload'], ParentType, ContextType, RequireFields<MediaMutationMediaSourceUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type MediaQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaQuery'] = ResolversParentTypes['MediaQuery']> = ResolversObject<{
+  cdnDeliveryPreview?: Resolver<ResolversTypes['CdnDeliveryPreview'], ParentType, ContextType, RequireFields<MediaQueryCdnDeliveryPreviewArgs, 'fileId'>>;
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'id'>>;
-  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, Partial<MediaQueryFilesArgs>>;
+  files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, RequireFields<MediaQueryFilesArgs, 'state'>>;
+  mediaSettings?: Resolver<Maybe<ResolversTypes['MediaSettings']>, ParentType, ContextType>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<MediaQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<MediaQueryNodesArgs, 'ids'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MediaSettingsResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaSettings'] = ResolversParentTypes['MediaSettings']> = ResolversObject<{
+  assetGroupId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  cdnConfigurations?: Resolver<Array<ResolversTypes['CdnConfiguration']>, ParentType, ContextType>;
+  cdnRoutingRules?: Resolver<Array<ResolversTypes['CdnRoutingRule']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MediaSourceResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaSource'] = ResolversParentTypes['MediaSource']> = ResolversObject<{
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  format?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sortOrder?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  sourceFile?: Resolver<ResolversTypes['File'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MediaSourceDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaSourceDeletePayload'] = ResolversParentTypes['MediaSourceDeletePayload']> = ResolversObject<{
+  deletedSourceFileId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type MediaSourcePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaSourcePayload'] = ResolversParentTypes['MediaSourcePayload']> = ResolversObject<{
+  source?: Resolver<Maybe<ResolversTypes['MediaSource']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1202,7 +1714,7 @@ export type MutationResolvers<ContextType = GraphQLContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'File', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'CdnConfiguration' | 'CdnRoutingRule' | 'File', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -1242,6 +1754,14 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Bucket?: BucketResolvers<ContextType>;
   BucketCreatePayload?: BucketCreatePayloadResolvers<ContextType>;
+  CdnConfiguration?: CdnConfigurationResolvers<ContextType>;
+  CdnConfigurationDeletePayload?: CdnConfigurationDeletePayloadResolvers<ContextType>;
+  CdnConfigurationPayload?: CdnConfigurationPayloadResolvers<ContextType>;
+  CdnConfigurationTestPayload?: CdnConfigurationTestPayloadResolvers<ContextType>;
+  CdnDeliveryPreview?: CdnDeliveryPreviewResolvers<ContextType>;
+  CdnRoutingRule?: CdnRoutingRuleResolvers<ContextType>;
+  CdnRoutingRuleDeletePayload?: CdnRoutingRuleDeletePayloadResolvers<ContextType>;
+  CdnRoutingRulePayload?: CdnRoutingRulePayloadResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   ExternalMediaData?: ExternalMediaDataResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
@@ -1262,6 +1782,10 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   MediaDimensions?: MediaDimensionsResolvers<ContextType>;
   MediaMutation?: MediaMutationResolvers<ContextType>;
   MediaQuery?: MediaQueryResolvers<ContextType>;
+  MediaSettings?: MediaSettingsResolvers<ContextType>;
+  MediaSource?: MediaSourceResolvers<ContextType>;
+  MediaSourceDeletePayload?: MediaSourceDeletePayloadResolvers<ContextType>;
+  MediaSourcePayload?: MediaSourcePayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
