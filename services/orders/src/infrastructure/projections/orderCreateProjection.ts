@@ -1,377 +1,203 @@
-import { rawSql } from "@event-driven-io/dumbo";
-import { postgreSQLRawBatchSQLProjection } from "@event-driven-io/emmett-postgresql";
-import type { Event } from "@event-driven-io/emmett";
-import type { OrderCreatedPayload } from "@src/domain/order/events";
-import { knex } from "@src/infrastructure/db/knex";
+import { createHash } from "node:crypto";
 import { Money } from "@shopana/shared-money";
-import { OrderCommandMetadata } from "@src/domain/order/commands";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import { consumeOrderCreateProjectionContext } from "@src/application/usecases/orderCreateProjectionContext";
+import type { OrderCreated } from "@src/domain/order/events";
+import type { Database } from "@src/infrastructure/db/database";
+import { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
+import { OrderNumberRepository } from "@src/infrastructure/orderNumber/orderNumberRepository";
+import { OrdersPiiRepository } from "@src/infrastructure/pii/ordersPiiRepository";
+import {
+  orderAppliedDiscounts,
+  orderDeliveryGroups,
+  orderDeliveryMethods,
+  orderItems,
+  orderPaymentMethods,
+  orders,
+  orderSelectedPaymentMethods,
+} from "@src/repositories/models/index";
 import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 
-type OrderCreatedEvent = Event & {
-  type: "order.created";
-  data: OrderCreatedPayload;
-  metadata: OrderCommandMetadata;
-};
+const minor = (value: Money | null): bigint | null =>
+  value == null ? null : value.amountMinor();
 
-// Inline projection: materialize minimal order row
-/**
- * Coerces Money-like value to minor units (number) if possible.
- * Supports Money instance, JSON snapshot, or raw number.
- *
- * TODO: Accept wider input (Money | number | string | null | undefined)
- * and return a parameterized binding instead of string for safer bigint inserts.
- */
-const toBigintSql = (m: Money | null): string | null =>
-  m == null ? null : m.amountMinor().toString();
+export class OrderCreateProjection {
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>,
+    private readonly orderNumbers: OrderNumberRepository,
+    private readonly pii: OrdersPiiRepository,
+    private readonly idempotency: IdempotencyRepository,
+  ) {}
 
-/**
- * Builds SQL value for uuid[] array from a list of UUID strings.
- *
- * TODO: Replace string interpolation with parameterized array binding
- * to avoid potential SQL injection and improve correctness.
- */
-const uuidArray = (ids: readonly string[]) =>
-  ids.length > 0
-    ? knex.raw(`ARRAY[${ids.map((id) => `'${id}'::uuid`).join(", ")}]::uuid[]`)
-    : knex.raw("ARRAY[]::uuid[]");
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
+  }
 
-/**
- * Inline projection: materialize order row, items, delivery groups and applied discounts.
- */
-export const orderCreateProjection =
-  postgreSQLRawBatchSQLProjection<OrderCreatedEvent>(async (events, context) => {
-    const sqls: ReturnType<typeof rawSql>[] = [];
-    const { App } = await import("@src/ioc/container");
-    const { orderNumberRepository } = App.getInstance();
+  async apply(event: OrderCreated, projectedVersion: bigint): Promise<void> {
+    const storeId = event.metadata.storeId;
+    const orderId = event.metadata.aggregateId;
+    const context = consumeOrderCreateProjectionContext(orderId);
+    const orderNumber = await this.orderNumbers.reserve(storeId);
 
-    for (const event of events) {
-      const statements: ReturnType<typeof rawSql>[] = [];
+    await this.connection.insert(orders).values({
+      id: orderId,
+      storeId,
+      orderNumber: BigInt(orderNumber),
+      apiKeyId: null,
+      userId: event.metadata.userId ?? null,
+      salesChannel: event.data.salesChannel,
+      externalSource: event.data.externalSource,
+      externalId: event.data.externalId,
+      localeCode: event.data.localeCode,
+      currencyCode: event.data.currencyCode,
+      subtotal: minor(coerceMoney(event.data.subtotalAmount)) ?? 0n,
+      shippingTotal: minor(coerceMoney(event.data.totalShippingAmount)) ?? 0n,
+      discountTotal: minor(coerceMoney(event.data.totalDiscountAmount)) ?? 0n,
+      taxTotal: minor(coerceMoney(event.data.totalTaxAmount)) ?? 0n,
+      grandTotal: minor(coerceMoney(event.data.totalAmount)) ?? 0n,
+      status: "DRAFT",
+      metadata: {},
+      projectedVersion,
+      createdAt: event.metadata.now,
+      updatedAt: event.metadata.now,
+    });
 
-      const storeId = event.metadata.storeId;
-      const orderId = event.metadata.aggregateId;
-      const projectionContext = consumeOrderCreateProjectionContext(orderId);
-      const orderNumber = await orderNumberRepository.reserve(storeId, {
-        executor: context.execute,
-      });
-
-      // Insert order head
-      const insertOrderSql = knex
-        .withSchema("orders")
-        .table("orders")
-        .insert({
-          id: orderId,
-          // TODO: Remove `as any` by aligning metadata type with DB schema (UUID/text).
-          store_id: storeId as any,
-          order_number: orderNumber,
-          api_key_id: null,
-          user_id: event.metadata.userId ?? null,
-          sales_channel: event.data.salesChannel,
-          external_source: event.data.externalSource,
-          external_id: event.data.externalId,
-          // TODO: Remove `as any` by using a proper branded/string type compatible with DB column.
-          locale_code: event.data.localeCode as any,
-          currency_code: event.data.currencyCode,
-          // TODO: Use parameterized bindings for bigint values instead of strings.
-          subtotal: toBigintSql(coerceMoney(event.data.subtotalAmount)) ?? null,
-          shipping_total: toBigintSql(coerceMoney(event.data.totalShippingAmount)) ?? null,
-          discount_total: toBigintSql(coerceMoney(event.data.totalDiscountAmount)) ?? null,
-          tax_total: toBigintSql(coerceMoney(event.data.totalTaxAmount)) ?? null,
-          grand_total: toBigintSql(coerceMoney(event.data.totalAmount)) ?? null,
-          status: "DRAFT",
-          placed_at: null,
-          closed_at: null,
-          expires_at: null,
-          // TODO: Introduce small `jsonb(value)` helper to unify JSONB bindings.
-          metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-          created_at: event.metadata.now,
-          updated_at: event.metadata.now,
-          deleted_at: null,
-        })
-        .toString();
-      statements.push(rawSql(insertOrderSql));
-
-      // Insert order items
-      const lines = event.data.lines || [];
-      if (lines.length > 0) {
-        const itemRows = lines.map((l) => {
-          const unitPrice = coerceMoney(l.unit.price);
-          const compareAtPrice = coerceNullableMoney(l.unit.compareAtPrice);
-          const currencyCode = unitPrice.currency().code;
-          const subtotalMoney = unitPrice
-            .multiply(l.quantity)
-            .normalizeScale();
-          const zeroMoney = Money.zero(currencyCode);
-          const discountMoney = zeroMoney;
-          const taxMoney = zeroMoney;
-          const totalMoney = subtotalMoney;
-
-          return {
-            id: l.lineId,
-            store_id: storeId,
-            order_id: orderId,
-            quantity: l.quantity,
-            subtotal_amount: toBigintSql(subtotalMoney),
-            discount_amount: toBigintSql(discountMoney),
-            tax_amount: toBigintSql(taxMoney),
-            total_amount: toBigintSql(totalMoney),
-            unit_id: l.unit.id,
-            unit_title: l.unit.title,
-            unit_price: toBigintSql(unitPrice),
-            unit_compare_at_price: toBigintSql(compareAtPrice),
-            unit_sku: l.unit.sku,
-            unit_image_url: l.unit.imageUrl,
-            unit_snapshot: knex.raw("?::jsonb", [JSON.stringify(l.unit.snapshot ?? null)]),
-            metadata: knex.raw("?::jsonb", [JSON.stringify({})]),
-            created_at: event.metadata.now,
-            updated_at: event.metadata.now,
-            deleted_at: null,
-          };
-        });
-
-        const insertItemsSql = knex
-          .withSchema("orders")
-          .table("order_items")
-          .insert(itemRows)
-          .toString();
-        statements.push(rawSql(insertItemsSql));
-      }
-
-      // Insert delivery addresses and recipients first
-      if (projectionContext?.deliveryAddresses.length) {
-        const addressesSql = knex
-          .withSchema("orders")
-          .table("order_delivery_addresses")
-          .insert(
-            projectionContext.deliveryAddresses.map((address) => ({
-              id: address.id,
-              address1: address.address1,
-              address2: address.address2,
-              city: address.city,
-              country_code: address.countryCode,
-              province_code: address.provinceCode,
-              postal_code: address.postalCode,
-              metadata: knex.raw("?::jsonb", [
-                JSON.stringify(address.metadata ?? {}),
-              ]),
-            }))
-          )
-          .toString();
-        statements.push(rawSql(addressesSql));
-      }
-
-      if (projectionContext?.recipients.length) {
-        const recipientsSql = knex
-          .withSchema("orders")
-          .table("order_recipients")
-          .insert(
-            projectionContext.recipients.map((recipient) => ({
-              id: recipient.id,
-              store_id: recipient.storeId,
-              first_name: recipient.firstName,
-              last_name: recipient.lastName,
-              middle_name: recipient.middleName,
-              email: recipient.email,
-              phone: recipient.phone,
-              metadata: knex.raw("?::jsonb", [
-                JSON.stringify(recipient.metadata ?? {}),
-              ]),
-            }))
-          )
-          .toString();
-        statements.push(rawSql(recipientsSql));
-      }
-
-      // Insert delivery methods first
-      if (projectionContext?.deliveryMethods.length) {
-        const methodsInsert = projectionContext.deliveryMethods.map((method) =>
-          knex
-            .withSchema("orders")
-            .table("order_delivery_methods")
-            .insert({
-              code: method.code,
-              provider: method.provider,
-              store_id: storeId,
-              delivery_group_id: method.deliveryGroupId,
-              delivery_method_type: method.deliveryMethodType,
-              payment_model: method.paymentModel,
-              metadata: knex.raw("?::jsonb", [
-                JSON.stringify(method.metadata ?? {}),
-              ]),
-              customer_input: knex.raw("?::jsonb", [
-                JSON.stringify(method.customerInput ?? {}),
-              ]),
-            })
-            .toString()
-        );
-        methodsInsert.forEach((sql) => statements.push(rawSql(sql)));
-      }
-
-      // Insert delivery groups with references to addresses and recipients
-      const groups = event.data.deliveryGroups || [];
-      if (groups.length > 0) {
-        const deliveryGroupMappings =
-          projectionContext?.deliveryGroupMappings ?? [];
-        const mappings = new Map(
-          deliveryGroupMappings.map((m) => [
-            m.deliveryGroupId,
-            { addressId: m.addressId, recipientId: m.recipientId },
-          ])
-        );
-
-        const selectedDeliveryMethods =
-          projectionContext?.selectedDeliveryMethods ?? [];
-        const selectedMethods = new Map(
-          selectedDeliveryMethods.map((m) => [
-            m.deliveryGroupId,
-            { code: m.code, provider: m.provider },
-          ])
-        );
-
-        const groupRows = groups.map((g) => {
-          const mapping = mappings.get(g.id);
-          const selectedMethod = selectedMethods.get(g.id);
-          return {
-            id: g.id,
-            store_id: storeId as any,
-            order_id: orderId,
-            address_id: mapping?.addressId ?? null,
-            recipient_id: mapping?.recipientId ?? null,
-            selected_delivery_method_code: selectedMethod?.code ?? null,
-            selected_delivery_method_provider: selectedMethod?.provider ?? null,
-            line_item_ids: uuidArray(g.orderLineIds),
-            created_at: event.metadata.now,
-            updated_at: event.metadata.now,
-          };
-        });
-
-        const groupsInsert = groupRows.map((r) =>
-          knex
-            .withSchema("orders")
-            .table("order_delivery_groups")
-            .insert({
-              id: r.id,
-              store_id: r.store_id as any,
-              order_id: r.order_id,
-              address_id: r.address_id,
-              recipient_id: r.recipient_id,
-              selected_delivery_method_code: r.selected_delivery_method_code,
-              selected_delivery_method_provider: r.selected_delivery_method_provider,
-              line_item_ids: r.line_item_ids,
-              created_at: r.created_at,
-              updated_at: r.updated_at,
-            })
-            .toString(),
-        );
-        groupsInsert.forEach((sql) => statements.push(rawSql(sql)));
-      }
-
-      // Insert payment methods
-      if (projectionContext?.paymentMethods.length) {
-        const paymentMethodsSql = knex
-          .withSchema("orders")
-          .table("order_payment_methods")
-          .insert(
-            projectionContext.paymentMethods.map((method) => ({
-              order_id: orderId,
-              store_id: storeId,
-              code: method.code,
-              provider: method.provider,
-              flow: method.flow,
-              metadata: knex.raw("?::jsonb", [
-                JSON.stringify(method.metadata ?? {}),
-              ]),
-              customer_input: knex.raw("?::jsonb", [
-                JSON.stringify(method.customerInput ?? {}),
-              ]),
-            }))
-          )
-          .toString();
-        statements.push(rawSql(paymentMethodsSql));
-      }
-
-      // Insert selected payment method
-      if (projectionContext?.selectedPaymentMethod) {
-        const { selectedPaymentMethod } = projectionContext;
-        const selectedPaymentSql = knex
-          .withSchema("orders")
-          .table("order_selected_payment_methods")
-          .insert({
-            order_id: orderId,
-            store_id: storeId,
-            code: selectedPaymentMethod.code,
-            provider: selectedPaymentMethod.provider,
-          })
-          .toString();
-        statements.push(rawSql(selectedPaymentSql));
-      }
-
-      // Insert applied discounts
-      const discounts = event.data.appliedDiscounts || [];
-      if (discounts.length > 0) {
-        const discountRows = discounts.map((d) => ({
-          order_id: orderId,
-          // TODO: Remove `as any` by aligning types with DB (UUID).
-          store_id: storeId as any,
-          code: d.code,
-          discount_type: d.type,
-          // TODO: Generalize money coercion: accept number/Money and bind as bigint parameter.
-          value: typeof d.value === "number" ? String(d.value) : toBigintSql(d.value as unknown as Money),
-          provider: d.provider,
-          // TODO: Use shared `jsonb` helper for consistency.
-          conditions: knex.raw("?::jsonb", [JSON.stringify(null)]),
-          applied_at: d.appliedAt,
-        }));
-
-        const insertDiscountsSql = knex
-          .withSchema("orders")
-          .table("order_applied_discounts")
-          .insert(discountRows)
-          .toString();
-        statements.push(rawSql(insertDiscountsSql));
-      }
-
-      if (projectionContext?.contact) {
-        const { contact } = projectionContext;
-        const contactSql = knex
-          .withSchema("orders")
-          .table("orders_pii_records")
-          .insert({
-            store_id: contact.storeId,
-            order_id: orderId,
-            first_name: contact.firstName,
-            last_name: contact.lastName,
-            middle_name: contact.middleName,
-            customer_id: contact.customerId,
-            customer_email: contact.customerEmail,
-            customer_phone_e164: contact.customerPhoneE164,
-            customer_note: contact.customerNote,
-            country_code: contact.countryCode,
-            metadata: knex.raw("?::jsonb", [
-              JSON.stringify(contact.metadata ?? {}),
-            ]),
-            expires_at: contact.expiresAt,
-          })
-          .onConflict(["order_id"])
-          .merge({
-            first_name: knex.raw("EXCLUDED.first_name"),
-            last_name: knex.raw("EXCLUDED.last_name"),
-            middle_name: knex.raw("EXCLUDED.middle_name"),
-            customer_id: knex.raw("EXCLUDED.customer_id"),
-            customer_email: knex.raw("EXCLUDED.customer_email"),
-            customer_phone_e164: knex.raw("EXCLUDED.customer_phone_e164"),
-            customer_note: knex.raw("EXCLUDED.customer_note"),
-            country_code: knex.raw("EXCLUDED.country_code"),
-            metadata: knex.raw("EXCLUDED.metadata"),
-            expires_at: knex.raw("EXCLUDED.expires_at"),
-            updated_at: knex.raw("?::timestamptz", [event.metadata.now]),
-          })
-          .toString();
-        statements.push(rawSql(contactSql));
-      }
-
-      sqls.push(...statements);
+    if (event.data.lines.length > 0) {
+      await this.connection.insert(orderItems).values(event.data.lines.map((line) => {
+        const unitPrice = coerceMoney(line.unit.price);
+        const compareAtPrice = coerceNullableMoney(line.unit.compareAtPrice);
+        const subtotal = unitPrice.multiply(line.quantity).normalizeScale();
+        const zero = Money.zero(unitPrice.currency().code);
+        return {
+          id: line.lineId,
+          storeId,
+          orderId,
+          quantity: line.quantity,
+          subtotalAmount: minor(subtotal) ?? 0n,
+          discountAmount: minor(zero) ?? 0n,
+          taxAmount: minor(zero) ?? 0n,
+          totalAmount: minor(subtotal) ?? 0n,
+          unitId: line.unit.id,
+          unitTitle: line.unit.title,
+          unitPrice: minor(unitPrice),
+          unitCompareAtPrice: minor(compareAtPrice),
+          unitSku: line.unit.sku,
+          unitImageUrl: line.unit.imageUrl,
+          unitSnapshot: line.unit.snapshot,
+          metadata: {},
+          projectedVersion,
+          createdAt: event.metadata.now,
+          updatedAt: event.metadata.now,
+        };
+      }));
     }
 
-    return sqls;
-  }, "order.created");
+    if (context?.deliveryAddresses.length) {
+      await this.pii.insertDeliveryAddresses(context.deliveryAddresses);
+    }
+    if (context?.recipients.length) {
+      await this.pii.insertRecipients(context.recipients);
+    }
+
+    if (context?.deliveryMethods.length) {
+      await this.connection.insert(orderDeliveryMethods).values(
+        context.deliveryMethods.map((method) => ({
+          code: method.code,
+          provider: method.provider,
+          storeId,
+          deliveryGroupId: method.deliveryGroupId,
+          deliveryMethodType: method.deliveryMethodType,
+          paymentModel: method.paymentModel,
+          metadata: method.metadata ?? {},
+          customerInput: method.customerInput ?? {},
+        })),
+      );
+    }
+
+    if (event.data.deliveryGroups.length > 0) {
+      const mappings = new Map(
+        (context?.deliveryGroupMappings ?? []).map((mapping) => [mapping.deliveryGroupId, mapping]),
+      );
+      const selectedMethods = new Map(
+        (context?.selectedDeliveryMethods ?? []).map((method) => [method.deliveryGroupId, method]),
+      );
+      await this.connection.insert(orderDeliveryGroups).values(
+        event.data.deliveryGroups.map((group) => {
+          const mapping = mappings.get(group.id);
+          const selectedMethod = selectedMethods.get(group.id);
+          return {
+            id: group.id,
+            storeId,
+            orderId,
+            addressId: mapping?.addressId ?? null,
+            recipientId: mapping?.recipientId ?? null,
+            selectedDeliveryMethodCode: selectedMethod?.code ?? null,
+            selectedDeliveryMethodProvider: selectedMethod?.provider ?? null,
+            lineItemIds: group.orderLineIds,
+            createdAt: event.metadata.now,
+            updatedAt: event.metadata.now,
+          };
+        }),
+      );
+    }
+
+    if (context?.paymentMethods.length) {
+      await this.connection.insert(orderPaymentMethods).values(
+        context.paymentMethods.map((method) => ({
+          orderId,
+          storeId,
+          code: method.code,
+          provider: method.provider,
+          flow: method.flow,
+          metadata: method.metadata ?? {},
+          customerInput: method.customerInput ?? {},
+        })),
+      );
+    }
+
+    if (context?.selectedPaymentMethod) {
+      await this.connection.insert(orderSelectedPaymentMethods).values({
+        orderId,
+        storeId,
+        code: context.selectedPaymentMethod.code,
+        provider: context.selectedPaymentMethod.provider,
+      });
+    }
+
+    if (event.data.appliedDiscounts.length > 0) {
+      await this.connection.insert(orderAppliedDiscounts).values(
+        event.data.appliedDiscounts.map((discount) => ({
+          orderId,
+          storeId,
+          code: discount.code,
+          discountType: discount.type,
+          value: typeof discount.value === "number"
+            ? BigInt(discount.value)
+            : discount.value.amountMinor(),
+          provider: discount.provider,
+          conditions: null,
+          appliedAt: discount.appliedAt,
+        })),
+      );
+    }
+
+    if (context?.contact) {
+      await this.pii.upsertOrderContacts(context.contact);
+    }
+
+    const requestHash = createHash("sha256")
+      .update(JSON.stringify({
+        storeId,
+        currencyCode: event.data.currencyCode,
+        salesChannel: event.data.salesChannel,
+      }))
+      .digest("hex");
+    await this.idempotency.save({
+      storeId,
+      idempotencyKey: event.data.idempotencyKey,
+      requestHash,
+      response: { id: orderId },
+    });
+  }
+}

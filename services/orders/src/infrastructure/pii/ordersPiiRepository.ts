@@ -1,7 +1,11 @@
-import type { SQLExecutor } from "@event-driven-io/dumbo";
-import { rawSql } from "@event-driven-io/dumbo";
-import { knex } from "@src/infrastructure/db/knex";
-import { dumboPool } from "@src/infrastructure/db/dumbo";
+import { sql } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
+import type { Database } from "@src/infrastructure/db/database";
+import {
+  orderDeliveryAddresses,
+  orderRecipients,
+  ordersPiiRecords,
+} from "@src/repositories/models/index";
 
 export type OrderContactPII = {
   storeId: string;
@@ -40,109 +44,72 @@ export type RecipientPII = {
   metadata?: Record<string, unknown> | null;
 };
 
-/**
- * Repository to persist Order-related PII into dedicated tables.
- * Keeps PII out of event store payloads while allowing authorized read models to enrich views.
- */
 export class OrdersPiiRepository {
-  private readonly execute: SQLExecutor;
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>,
+  ) {}
 
-  constructor(executor: SQLExecutor = dumboPool.execute) {
-    this.execute = executor;
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
   }
 
-  /**
-   * Upserts per-order contact PII (customer identity).
-   */
   async upsertOrderContacts(input: OrderContactPII): Promise<void> {
-    const q = knex
-      .withSchema("orders")
-      .table("orders_pii_records")
-      .insert({
-        store_id: input.storeId,
-        order_id: input.orderId,
-        first_name: input.firstName ?? null,
-        last_name: input.lastName ?? null,
-        middle_name: input.middleName ?? null,
-        customer_id: input.customerId ?? null,
-        customer_email: input.customerEmail,
-        customer_phone_e164: input.customerPhoneE164,
-        customer_note: input.customerNote,
-        country_code: input.countryCode ?? null,
-        metadata: knex.raw("?::jsonb", [JSON.stringify(input.metadata ?? {})]),
-        expires_at: input.expiresAt ?? null,
-      })
-      .onConflict(["order_id"])
-      .merge({
-        first_name: knex.raw("EXCLUDED.first_name"),
-        last_name: knex.raw("EXCLUDED.last_name"),
-        middle_name: knex.raw("EXCLUDED.middle_name"),
-        customer_id: knex.raw("EXCLUDED.customer_id"),
-        customer_email: knex.raw("EXCLUDED.customer_email"),
-        customer_phone_e164: knex.raw("EXCLUDED.customer_phone_e164"),
-        customer_note: knex.raw("EXCLUDED.customer_note"),
-        country_code: knex.raw("EXCLUDED.country_code"),
-        metadata: knex.raw("EXCLUDED.metadata"),
-        expires_at: knex.raw("EXCLUDED.expires_at"),
-        updated_at: knex.raw("now()"),
-      })
-      .toString();
-    await this.execute.command(rawSql(q));
+    const values = {
+      storeId: input.storeId,
+      orderId: input.orderId,
+      firstName: input.firstName ?? null,
+      lastName: input.lastName ?? null,
+      middleName: input.middleName ?? null,
+      customerId: input.customerId ?? null,
+      customerEmail: input.customerEmail,
+      customerPhoneE164: input.customerPhoneE164,
+      customerNote: input.customerNote,
+      countryCode: input.countryCode ?? null,
+      metadata: input.metadata ?? {},
+      expiresAt: input.expiresAt ?? null,
+    };
+
+    await this.connection
+      .insert(ordersPiiRecords)
+      .values(values)
+      .onConflictDoUpdate({
+        target: ordersPiiRecords.orderId,
+        set: { ...values, updatedAt: sql`now()` },
+      });
   }
 
-  /**
-   * Inserts delivery addresses (without PII personal data).
-   */
-  async insertDeliveryAddresses(
-    addresses: DeliveryAddressPII[]
-  ): Promise<string[]> {
+  async insertDeliveryAddresses(addresses: DeliveryAddressPII[]): Promise<string[]> {
     if (addresses.length === 0) return [];
-
-    const rows = addresses.map((a) => ({
-      id: a.id,
-      address1: a.address1,
-      address2: a.address2 ?? null,
-      city: a.city,
-      country_code: a.countryCode,
-      province_code: a.provinceCode ?? null,
-      postal_code: a.postalCode ?? null,
-      metadata: knex.raw("?::jsonb", [JSON.stringify(a.metadata ?? {})]),
-    }));
-
-    const q = knex
-      .withSchema("orders")
-      .table("order_delivery_addresses")
-      .insert(rows)
-      .toString();
-    await this.execute.command(rawSql(q));
-
-    return addresses.map((a) => a.id);
+    await this.connection.insert(orderDeliveryAddresses).values(
+      addresses.map((address) => ({
+        id: address.id,
+        address1: address.address1,
+        address2: address.address2 ?? null,
+        city: address.city,
+        countryCode: address.countryCode,
+        provinceCode: address.provinceCode ?? null,
+        postalCode: address.postalCode ?? null,
+        metadata: address.metadata ?? {},
+      })),
+    );
+    return addresses.map(({ id }) => id);
   }
 
-  /**
-   * Inserts recipients (PII personal data).
-   */
   async insertRecipients(recipients: RecipientPII[]): Promise<string[]> {
     if (recipients.length === 0) return [];
-
-    const rows = recipients.map((r) => ({
-      id: r.id,
-      store_id: r.storeId,
-      first_name: r.firstName ?? null,
-      last_name: r.lastName ?? null,
-      middle_name: r.middleName ?? null,
-      email: r.email ?? null,
-      phone: r.phone ?? null,
-      metadata: knex.raw("?::jsonb", [JSON.stringify(r.metadata ?? {})]),
-    }));
-
-    const q = knex
-      .withSchema("orders")
-      .table("order_recipients")
-      .insert(rows)
-      .toString();
-    await this.execute.command(rawSql(q));
-
-    return recipients.map((r) => r.id);
+    await this.connection.insert(orderRecipients).values(
+      recipients.map((recipient) => ({
+        id: recipient.id,
+        storeId: recipient.storeId,
+        firstName: recipient.firstName ?? null,
+        lastName: recipient.lastName ?? null,
+        middleName: recipient.middleName ?? null,
+        email: recipient.email ?? null,
+        phone: recipient.phone ?? null,
+        metadata: recipient.metadata ?? {},
+      })),
+    );
+    return recipients.map(({ id }) => id);
   }
 }

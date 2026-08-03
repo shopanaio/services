@@ -1,57 +1,40 @@
-import type { SQLExecutor } from "@event-driven-io/dumbo";
-import { rawSql } from "@event-driven-io/dumbo";
-import { knex } from "@src/infrastructure/db/knex";
-import { dumboPool } from "@src/infrastructure/db/dumbo";
+import { sql } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import type { OrderNumberPort } from "@src/application/ports/orderNumberPort";
-
-type ReserveRow = {
-  last_number: string;
-};
+import type { Database } from "@src/infrastructure/db/database";
+import { orderNumberCounters } from "@src/repositories/models/index";
 
 export class OrderNumberRepository implements OrderNumberPort {
-  private readonly execute: SQLExecutor;
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>,
+  ) {}
 
-  constructor(executor: SQLExecutor = dumboPool.execute) {
-    this.execute = executor;
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
   }
 
-  /**
-   * Reserves the next sequential order number for the provided project.
-   * Allows overriding the SQL executor to share a transaction context.
-   */
-  async reserve(
-    storeId: string,
-    options?: { executor?: SQLExecutor }
-  ): Promise<number> {
-    const executor = options?.executor ?? this.execute;
-    const query = knex
-      .withSchema("orders")
-      .table("order_number_counters")
-      .insert({
-        store_id: storeId,
-        last_number: 1,
+  async reserve(storeId: string): Promise<number> {
+    const [row] = await this.connection
+      .insert(orderNumberCounters)
+      .values({ storeId, lastNumber: 1n })
+      .onConflictDoUpdate({
+        target: orderNumberCounters.storeId,
+        set: {
+          lastNumber: sql`${orderNumberCounters.lastNumber} + 1`,
+          updatedAt: sql`now()`,
+        },
       })
-      .onConflict("store_id")
-      .merge({
-        last_number: knex.raw('"order_number_counters"."last_number" + 1'),
-        updated_at: knex.raw("NOW()"),
-      })
-      .returning("last_number")
-      .toString();
+      .returning({ lastNumber: orderNumberCounters.lastNumber });
 
-    const result = await executor.query<ReserveRow>(rawSql(query));
-    const row = result.rows[0];
     if (!row) {
-      throw new Error(`Failed to reserve order number for project ${storeId}`);
+      throw new Error(`Failed to reserve order number for store ${storeId}`);
     }
 
-    const numberValue = Number(row.last_number);
-    if (!Number.isFinite(numberValue)) {
-      throw new Error(
-        `Invalid order number value returned for project ${storeId}`
-      );
+    const value = Number(row.lastNumber);
+    if (!Number.isSafeInteger(value)) {
+      throw new Error(`Invalid order number value returned for store ${storeId}`);
     }
-
-    return numberValue;
+    return value;
   }
 }

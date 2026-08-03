@@ -1,6 +1,26 @@
 -- Up Migration
 CREATE SCHEMA IF NOT EXISTS "orders";
 
+CREATE TABLE "orders"."order_streams" (
+  "stream_id" text PRIMARY KEY,
+  "version" bigint NOT NULL CHECK ("version" >= 0),
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE "orders"."order_events" (
+  "stream_id" text NOT NULL REFERENCES "orders"."order_streams" ("stream_id") ON DELETE CASCADE,
+  "version" bigint NOT NULL CHECK ("version" > 0),
+  "event_type" text NOT NULL,
+  "data" jsonb NOT NULL,
+  "metadata" jsonb NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY ("stream_id", "version")
+);
+
+CREATE INDEX "order_events_stream_version_idx"
+  ON "orders"."order_events" ("stream_id", "version");
+
 CREATE TABLE "orders"."orders" (
   "id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
@@ -22,6 +42,7 @@ CREATE TABLE "orders"."orders" (
   "closed_at" timestamptz,
   "expires_at" timestamptz,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "projected_version" bigint NOT NULL DEFAULT 0 CHECK ("projected_version" >= 0),
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   "deleted_at" timestamptz,
@@ -32,7 +53,8 @@ CREATE INDEX "orders_store_created_at_idx"
   ON "orders"."orders" ("store_id", "created_at" DESC);
 
 CREATE TABLE "orders"."order_number_counters" (
-  "store_id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY DEFAULT uuidv7(),
+  "store_id" uuid NOT NULL UNIQUE,
   "last_number" bigint NOT NULL CHECK ("last_number" >= 0),
   "updated_at" timestamptz NOT NULL DEFAULT now()
 );
@@ -54,6 +76,7 @@ CREATE TABLE "orders"."order_items" (
   "unit_image_url" text,
   "unit_snapshot" jsonb,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "projected_version" bigint NOT NULL DEFAULT 0 CHECK ("projected_version" >= 0),
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   "deleted_at" timestamptz
@@ -193,13 +216,14 @@ CREATE INDEX "order_applied_discounts_order_id_idx"
   ON "orders"."order_applied_discounts" ("order_id");
 
 CREATE TABLE "orders"."idempotency" (
+  "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "idempotency_key" text NOT NULL,
   "request_hash" text NOT NULL,
   "response" jsonb NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "expires_at" timestamptz NOT NULL,
-  PRIMARY KEY ("store_id", "idempotency_key")
+  CONSTRAINT "orders_idempotency_store_key_unique" UNIQUE ("store_id", "idempotency_key")
 );
 
 CREATE INDEX "orders_idempotency_expires_at_idx"

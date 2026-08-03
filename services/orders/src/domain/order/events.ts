@@ -1,4 +1,3 @@
-import type { CreateEventType } from "@event-driven-io/emmett";
 import { OrderCommandMetadata } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
 import { Money } from "@shopana/shared-money";
@@ -55,10 +54,10 @@ export type OrderCreatedPayload = Readonly<{
   checkoutSnapshot: CheckoutSnapshot;
 }>;
 
-export type OrderCreated = CreateEventType<
-  typeof OrderEventTypes.OrderCreated,
-  OrderCreatedPayload,
-  OrderCommandMetadata
->;
+export type OrderCreated = Readonly<{
+  type: typeof OrderEventTypes.OrderCreated;
+  data: OrderCreatedPayload;
+  metadata: OrderCommandMetadata;
+}>;
 
 export type OrderEvent = OrderCreated;

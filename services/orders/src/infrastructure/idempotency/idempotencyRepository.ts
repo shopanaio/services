@@ -1,7 +1,7 @@
-import type { SQLExecutor } from "@event-driven-io/dumbo";
-import { rawSql, sql, singleOrNull } from "@event-driven-io/dumbo";
-import { knex } from "@src/infrastructure/db/knex";
-import { dumboPool } from "@src/infrastructure/db/dumbo";
+import { and, eq, gt, lte, sql } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
+import type { Database } from "@src/infrastructure/db/database";
+import { idempotency } from "@src/repositories/models/index";
 
 export type IdempotencyRecord = {
   storeId: string;
@@ -13,31 +13,27 @@ export type IdempotencyRecord = {
 };
 
 export class IdempotencyRepository {
-  private readonly execute: SQLExecutor;
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>,
+  ) {}
 
-  constructor(executor: SQLExecutor = dumboPool.execute) {
-    this.execute = executor;
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
   }
 
-  async get(
-    storeId: string,
-    idempotencyKey: string
-  ): Promise<{ id: string } | null> {
-    const q = knex
-      .withSchema("orders")
-      .table("idempotency")
-      .select("response")
-      .where({
-        store_id: storeId,
-        idempotency_key: idempotencyKey,
-      })
-      .andWhereRaw("expires_at > NOW()")
-      .toString();
-    const row = await singleOrNull(
-      this.execute.query<{ response: unknown }>(rawSql(q))
-    );
+  async get(storeId: string, idempotencyKey: string): Promise<{ id: string } | null> {
+    const [row] = await this.connection
+      .select({ response: idempotency.response })
+      .from(idempotency)
+      .where(and(
+        eq(idempotency.storeId, storeId),
+        eq(idempotency.idempotencyKey, idempotencyKey),
+        gt(idempotency.expiresAt, sql`now()`),
+      ))
+      .limit(1);
 
-    return row ? (row.response as { id: string }) : null;
+    return row?.response ?? null;
   }
 
   async save(input: {
@@ -47,31 +43,23 @@ export class IdempotencyRepository {
     response: { id: string };
     ttlSeconds?: number;
   }): Promise<void> {
-    const ttl = input.ttlSeconds ?? 24 * 60 * 60;
-    const q = knex
-      .withSchema("orders")
-      .table("idempotency")
-      .insert({
-        store_id: input.storeId,
-        idempotency_key: input.idempotencyKey,
-        request_hash: input.requestHash,
-        response: knex.raw(`?::jsonb`, [JSON.stringify(input.response)]),
-        expires_at: knex.raw(`NOW() + (? || ' seconds')::interval`, [ttl]),
-      })
-      .onConflict(["store_id", "idempotency_key"])
-      .ignore()
-      .toString();
-    await this.execute.command(rawSql(q));
+    const ttlSeconds = input.ttlSeconds ?? 24 * 60 * 60;
+    await this.connection
+      .insert(idempotency)
+      .values({
+        storeId: input.storeId,
+        idempotencyKey: input.idempotencyKey,
+        requestHash: input.requestHash,
+        response: input.response,
+        expiresAt: new Date(Date.now() + ttlSeconds * 1_000),
+      });
   }
 
   async cleanupExpired(): Promise<number> {
-    const q = knex
-      .withSchema("orders")
-      .table("idempotency")
-      .delete()
-      .whereRaw("expires_at <= NOW()")
-      .toString();
-    const res = await this.execute.command(rawSql(q));
-    return res.rowCount ?? 0;
+    const rows = await this.connection
+      .delete(idempotency)
+      .where(lte(idempotency.expiresAt, sql`now()`))
+      .returning({ id: idempotency.id });
+    return rows.length;
   }
 }

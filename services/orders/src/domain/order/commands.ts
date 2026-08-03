@@ -1,11 +1,6 @@
-import type {
-  CreateCommandType,
-  DefaultCommandMetadata,
-} from "@event-driven-io/emmett";
-
 import type { OrderCreatedPayload } from "./events";
 
-export type OrderCommandMetadata = DefaultCommandMetadata & {
+export type OrderCommandMetadata = Readonly<{
   apiKey: string;
   aggregateId: string;
   contractVersion: number;
@@ -13,25 +8,16 @@ export type OrderCommandMetadata = DefaultCommandMetadata & {
   userId?: string;
   idempotencyKey?: string;
   now: Date;
-};
+}>;
 
 export const OrderCommandTypes = {
   Create: "order.create",
-  AddComment: "order.comment.add",
 } as const;
 
-export type CreateOrderCommand = CreateCommandType<
-  typeof OrderCommandTypes.Create,
-  OrderCreatedPayload,
-  OrderCommandMetadata
->;
+export type CreateOrderCommand = Readonly<{
+  type: typeof OrderCommandTypes.Create;
+  data: OrderCreatedPayload;
+  metadata: OrderCommandMetadata;
+}>;
 
-export type AddOrderCommentCommand = CreateCommandType<
-  typeof OrderCommandTypes.AddComment,
-  {
-    comment: string;
-  },
-  OrderCommandMetadata
->;
-
-export type OrderCommand = CreateOrderCommand | AddOrderCommentCommand;
+export type OrderCommand = CreateOrderCommand;

@@ -1,7 +1,5 @@
-import type { SQLExecutor } from "@event-driven-io/dumbo";
-import { rawSql, singleOrNull } from "@event-driven-io/dumbo";
-import { dumboPool } from "@src/infrastructure/db/dumbo";
-import { knex } from "@src/infrastructure/db/knex";
+import { asc, eq, inArray } from "drizzle-orm";
+import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   OrderReadPort,
   OrderReadPortRow,
@@ -10,265 +8,209 @@ import type {
   OrderDeliveryMethodRow,
   OrderPaymentMethodRow,
   OrderSelectedPaymentMethodRow,
-  OrderPromoCodeRow,
-  OrderDeliveryGroupRow,
-  OrderDeliveryGroup,
   OrderPromoCode,
+  OrderDeliveryGroup,
 } from "@src/application/read/orderReadRepository";
+import type { Database } from "@src/infrastructure/db/database";
+import {
+  orderAppliedDiscounts,
+  orderDeliveryAddresses,
+  orderDeliveryGroups,
+  orderDeliveryMethods,
+  orderPaymentMethods,
+  orderRecipients,
+  orders,
+  ordersPiiRecords,
+  orderSelectedPaymentMethods,
+} from "@src/repositories/models/index";
+import { coerceToDate } from "@src/utils/date";
 
 export class OrderReadRepository implements OrderReadPort {
-  private readonly execute: SQLExecutor;
+  constructor(
+    private readonly db: Database,
+    private readonly txManager: TransactionManager<Database>,
+  ) {}
 
-  constructor(executor: SQLExecutor = dumboPool.execute) {
-    this.execute = executor;
+  private get connection(): Database {
+    return this.txManager.getConnection() as Database;
   }
 
   async findById(id: string): Promise<OrderReadPortRow | null> {
-    const q = knex
-      .withSchema("orders")
-      .from("orders as o")
-      .leftJoin("orders_pii_records as pii", "pii.order_id", "o.id")
-      .select(
-        "o.id",
-        "o.store_id",
-        "o.api_key_id",
-        "o.user_id",
-        "o.sales_channel",
-        "o.external_source",
-        "o.order_number",
-        "o.external_id",
-        "o.locale_code",
-        "o.currency_code",
-        "o.subtotal",
-        "o.shipping_total",
-        "o.discount_total",
-        "o.tax_total",
-        "o.grand_total",
-        "o.status",
-        "o.expires_at",
-        "o.metadata",
-        "o.created_at",
-        "o.updated_at",
-        "o.deleted_at",
-        "pii.customer_email",
-        "pii.customer_phone_e164",
-        "pii.customer_note"
-      )
-      .where("o.id", id)
-      .toString();
-
-    const row = await singleOrNull(
-      this.execute.query<OrderReadPortRow>(rawSql(q))
-    );
-
-    return this.mapOrderRow(row, id);
-  }
-
-  async findDeliveryAddresses(
-    addressIds: string[]
-  ): Promise<OrderDeliveryAddressRow[]> {
-    if (addressIds.length === 0) return [];
-
-    const q = knex
-      .withSchema("orders")
-      .table("order_delivery_addresses")
-      .select(
-        "id",
-        "address1",
-        "address2",
-        "city",
-        "country_code",
-        "province_code",
-        "postal_code",
-        "metadata",
-        "created_at",
-        "updated_at"
-      )
-      .whereIn("id", addressIds)
-      .toString();
-
-    const result = await this.execute.query<OrderDeliveryAddressRow>(rawSql(q));
-    return result.rows;
-  }
-
-  async findRecipients(
-    recipientIds: string[]
-  ): Promise<OrderRecipientRow[]> {
-    if (recipientIds.length === 0) return [];
-
-    const q = knex
-      .withSchema("orders")
-      .table("order_recipients")
-      .select(
-        "id",
-        "store_id",
-        "first_name",
-        "last_name",
-        "middle_name",
-        "email",
-        "phone",
-        "metadata",
-        "created_at",
-        "updated_at"
-      )
-      .whereIn("id", recipientIds)
-      .toString();
-
-    const result = await this.execute.query<OrderRecipientRow>(rawSql(q));
-    return result.rows;
-  }
-
-  async findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]> {
-    const q = knex
-      .withSchema("orders")
-      .table("order_applied_discounts")
-      .select(
-        "order_id",
-        "store_id",
-        "code",
-        "discount_type",
-        "value",
-        "provider",
-        "conditions",
-        "applied_at"
-      )
-      .where({ order_id: orderId })
-      .orderBy("applied_at", "asc")
-      .toString();
-
-    const result = await this.execute.query<OrderPromoCodeRow>(rawSql(q));
-    return result.rows.map(
-      (row): OrderPromoCode => ({
-        orderId: row.order_id,
-        storeId: row.store_id,
-        code: row.code,
-        discountType: row.discount_type,
-        value: parseInt(row.value, 10), // Convert bigint string to number
-        provider: row.provider,
-        conditions: row.conditions,
-        appliedAt: row.applied_at,
+    const [row] = await this.connection
+      .select({
+        order: orders,
+        customerId: ordersPiiRecords.customerId,
+        customerEmail: ordersPiiRecords.customerEmail,
+        customerPhoneE164: ordersPiiRecords.customerPhoneE164,
+        customerCountryCode: ordersPiiRecords.countryCode,
+        customerNote: ordersPiiRecords.customerNote,
       })
-    );
-  }
+      .from(orders)
+      .leftJoin(ordersPiiRecords, eq(ordersPiiRecords.orderId, orders.id))
+      .where(eq(orders.id, id))
+      .limit(1);
 
-  async findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]> {
-    const q = knex
-      .withSchema("orders")
-      .table("order_delivery_groups")
-      .select(
-        "id",
-        "store_id",
-        "order_id",
-        "address_id",
-        "recipient_id",
-        "selected_delivery_method_code",
-        "selected_delivery_method_provider",
-        knex.raw("COALESCE(line_item_ids::text[], '{}') as line_item_ids"),
-        "created_at",
-        "updated_at"
-      )
-      .where({ order_id: orderId })
-      .orderBy("created_at", "asc")
-      .toString();
-
-    const result = await this.execute.query<OrderDeliveryGroupRow>(rawSql(q));
-    return result.rows.map(
-      (group): OrderDeliveryGroup => ({
-        id: group.id,
-        storeId: group.store_id,
-        orderId: group.order_id,
-        addressId: group.address_id,
-        recipientId: group.recipient_id,
-        selectedDeliveryMethodCode: group.selected_delivery_method_code,
-        selectedDeliveryMethodProvider: group.selected_delivery_method_provider,
-        lineItemIds: group.line_item_ids,
-        createdAt: group.created_at,
-        updatedAt: group.updated_at,
-      })
-    );
-  }
-
-  async findDeliveryMethods(
-    deliveryGroupIds: string[]
-  ): Promise<OrderDeliveryMethodRow[]> {
-    if (deliveryGroupIds.length === 0) return [];
-
-    const q = knex
-      .withSchema("orders")
-      .table("order_delivery_methods")
-      .select(
-        "code",
-        "provider",
-        "store_id",
-        "delivery_group_id",
-        "delivery_method_type",
-        "payment_model",
-        "metadata",
-        "customer_input"
-      )
-      .whereIn("delivery_group_id", deliveryGroupIds)
-      .toString();
-
-    const result = await this.execute.query<OrderDeliveryMethodRow>(rawSql(q));
-    return result.rows;
-  }
-
-  async findPaymentMethods(orderId: string): Promise<OrderPaymentMethodRow[]> {
-    const q = knex
-      .withSchema("orders")
-      .table("order_payment_methods")
-      .select(
-        "order_id",
-        "store_id",
-        "code",
-        "provider",
-        "flow",
-        "metadata",
-        "customer_input"
-      )
-      .where({ order_id: orderId })
-      .toString();
-
-    const result = await this.execute.query<OrderPaymentMethodRow>(rawSql(q));
-    return result.rows;
-  }
-
-  async findSelectedPaymentMethod(
-    orderId: string
-  ): Promise<OrderSelectedPaymentMethodRow | null> {
-    const q = knex
-      .withSchema("orders")
-      .table("order_selected_payment_methods")
-      .select("order_id", "store_id", "code", "provider")
-      .where({ order_id: orderId })
-      .toString();
-
-    const row = await singleOrNull(
-      this.execute.query<OrderSelectedPaymentMethodRow>(rawSql(q))
-    );
-
-    return row;
-  }
-
-  private mapOrderRow(
-    row: OrderReadPortRow | null,
-    orderIdForError?: string
-  ): OrderReadPortRow | null {
-    if (!row) {
-      return null;
-    }
-
-    const numericOrderNumber = Number(row.order_number);
-    if (!Number.isFinite(numericOrderNumber)) {
-      const identifier = orderIdForError ?? row.id;
-      throw new Error(
-        `Invalid order number in read model for order ${identifier}`
-      );
+    if (!row) return null;
+    const order = row.order;
+    const orderNumber = Number(order.orderNumber);
+    if (!Number.isSafeInteger(orderNumber)) {
+      throw new Error(`Invalid order number in read model for order ${id}`);
     }
 
     return {
-      ...row,
-      order_number: numericOrderNumber,
+      id: order.id,
+      store_id: order.storeId,
+      api_key_id: order.apiKeyId,
+      user_id: order.userId,
+      sales_channel: order.salesChannel,
+      external_source: order.externalSource,
+      order_number: orderNumber,
+      external_id: order.externalId,
+      customer_id: row.customerId,
+      customer_email: row.customerEmail,
+      customer_phone_e164: row.customerPhoneE164,
+      customer_country_code: row.customerCountryCode,
+      customer_note: row.customerNote,
+      locale_code: order.localeCode,
+      currency_code: order.currencyCode,
+      subtotal: order.subtotal,
+      shipping_total: order.shippingTotal,
+      discount_total: order.discountTotal,
+      tax_total: order.taxTotal,
+      grand_total: order.grandTotal,
+      status: order.status,
+      expires_at: order.expiresAt == null ? null : coerceToDate(order.expiresAt),
+      metadata: order.metadata,
+      created_at: coerceToDate(order.createdAt),
+      updated_at: coerceToDate(order.updatedAt),
+      deleted_at: order.deletedAt == null ? null : coerceToDate(order.deletedAt),
+      projected_version: order.projectedVersion,
     };
+  }
+
+  async findDeliveryAddresses(addressIds: string[]): Promise<OrderDeliveryAddressRow[]> {
+    if (addressIds.length === 0) return [];
+    const rows = await this.connection
+      .select()
+      .from(orderDeliveryAddresses)
+      .where(inArray(orderDeliveryAddresses.id, addressIds));
+    return rows.map((row) => ({
+      id: row.id,
+      address1: row.address1 ?? "",
+      address2: row.address2,
+      city: row.city ?? "",
+      country_code: row.countryCode ?? "",
+      province_code: row.provinceCode,
+      postal_code: row.postalCode,
+      metadata: row.metadata,
+      created_at: coerceToDate(row.createdAt),
+      updated_at: coerceToDate(row.updatedAt),
+    }));
+  }
+
+  async findRecipients(recipientIds: string[]): Promise<OrderRecipientRow[]> {
+    if (recipientIds.length === 0) return [];
+    const rows = await this.connection
+      .select()
+      .from(orderRecipients)
+      .where(inArray(orderRecipients.id, recipientIds));
+    return rows.map((row) => ({
+      id: row.id,
+      store_id: row.storeId,
+      first_name: row.firstName,
+      last_name: row.lastName,
+      middle_name: row.middleName,
+      email: row.email,
+      phone: row.phone,
+      metadata: row.metadata,
+      created_at: coerceToDate(row.createdAt),
+      updated_at: coerceToDate(row.updatedAt),
+    }));
+  }
+
+  async findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]> {
+    const rows = await this.connection
+      .select()
+      .from(orderAppliedDiscounts)
+      .where(eq(orderAppliedDiscounts.orderId, orderId))
+      .orderBy(asc(orderAppliedDiscounts.appliedAt));
+    return rows.map((row) => ({
+      orderId: row.orderId,
+      storeId: row.storeId,
+      code: row.code ?? "",
+      discountType: row.discountType ?? "",
+      value: Number(row.value),
+      provider: row.provider ?? "",
+      conditions: row.conditions,
+      appliedAt: coerceToDate(row.appliedAt),
+    }));
+  }
+
+  async findDeliveryGroups(orderId: string): Promise<OrderDeliveryGroup[]> {
+    const rows = await this.connection
+      .select()
+      .from(orderDeliveryGroups)
+      .where(eq(orderDeliveryGroups.orderId, orderId))
+      .orderBy(asc(orderDeliveryGroups.createdAt));
+    return rows.map((row) => ({
+      id: row.id,
+      storeId: row.storeId,
+      orderId: row.orderId,
+      addressId: row.addressId,
+      recipientId: row.recipientId,
+      selectedDeliveryMethodCode: row.selectedDeliveryMethodCode,
+      selectedDeliveryMethodProvider: row.selectedDeliveryMethodProvider,
+      lineItemIds: row.lineItemIds,
+      createdAt: coerceToDate(row.createdAt),
+      updatedAt: coerceToDate(row.updatedAt),
+    }));
+  }
+
+  async findDeliveryMethods(deliveryGroupIds: string[]): Promise<OrderDeliveryMethodRow[]> {
+    if (deliveryGroupIds.length === 0) return [];
+    const rows = await this.connection
+      .select()
+      .from(orderDeliveryMethods)
+      .where(inArray(orderDeliveryMethods.deliveryGroupId, deliveryGroupIds));
+    return rows.map((row) => ({
+      code: row.code,
+      provider: row.provider,
+      store_id: row.storeId,
+      delivery_group_id: row.deliveryGroupId,
+      delivery_method_type: row.deliveryMethodType ?? "",
+      payment_model: row.paymentModel,
+      metadata: row.metadata,
+      customer_input: row.customerInput,
+    }));
+  }
+
+  async findPaymentMethods(orderId: string): Promise<OrderPaymentMethodRow[]> {
+    const rows = await this.connection
+      .select()
+      .from(orderPaymentMethods)
+      .where(eq(orderPaymentMethods.orderId, orderId));
+    return rows.map((row) => ({
+      order_id: row.orderId,
+      store_id: row.storeId,
+      code: row.code,
+      provider: row.provider,
+      flow: row.flow,
+      metadata: row.metadata,
+      customer_input: row.customerInput,
+    }));
+  }
+
+  async findSelectedPaymentMethod(orderId: string): Promise<OrderSelectedPaymentMethodRow | null> {
+    const [row] = await this.connection
+      .select()
+      .from(orderSelectedPaymentMethods)
+      .where(eq(orderSelectedPaymentMethods.orderId, orderId))
+      .limit(1);
+    return row ? {
+      order_id: row.orderId,
+      store_id: row.storeId,
+      code: row.code,
+      provider: row.provider,
+    } : null;
   }
 }
