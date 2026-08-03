@@ -1366,11 +1366,18 @@ export function WarehouseWhereInputSchema(): z.ZodObject<Properties<WarehouseWhe
     _and: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
     _not: z.lazy(() => WarehouseWhereInputSchema().nullish()),
     _or: z.array(z.lazy(() => WarehouseWhereInputSchema())).nullish(),
+    addressLine1: z.lazy(() => StringFilterSchema().nullish()),
+    addressLine2: z.lazy(() => StringFilterSchema().nullish()),
+    city: z.lazy(() => StringFilterSchema().nullish()),
     code: z.lazy(() => StringFilterSchema().nullish()),
+    countryCode: z.lazy(() => StringFilterSchema().nullish()),
     createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     id: z.lazy(() => IdFilterSchema().nullish()),
     isDefault: z.lazy(() => BooleanFilterSchema().nullish()),
     name: z.lazy(() => StringFilterSchema().nullish()),
+    postalCode: z.lazy(() => StringFilterSchema().nullish()),
+    provinceCode: z.lazy(() => StringFilterSchema().nullish()),
+    provinceName: z.lazy(() => StringFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }

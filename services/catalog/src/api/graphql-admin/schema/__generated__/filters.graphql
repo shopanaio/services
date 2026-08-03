@@ -267,6 +267,20 @@ input WarehouseWhereInput {
   name: StringFilter
   """Filter by isDefault"""
   isDefault: BooleanFilter
+  """Filter by countryCode"""
+  countryCode: StringFilter
+  """Filter by provinceCode"""
+  provinceCode: StringFilter
+  """Filter by provinceName"""
+  provinceName: StringFilter
+  """Filter by city"""
+  city: StringFilter
+  """Filter by postalCode"""
+  postalCode: StringFilter
+  """Filter by addressLine1"""
+  addressLine1: StringFilter
+  """Filter by addressLine2"""
+  addressLine2: StringFilter
   """Filter by createdAt"""
   createdAt: DateTimeFilter
   """Filter by updatedAt"""
@@ -283,6 +297,20 @@ enum WarehouseOrderField {
   name
   """Sort by isDefault"""
   isDefault
+  """Sort by countryCode"""
+  countryCode
+  """Sort by provinceCode"""
+  provinceCode
+  """Sort by provinceName"""
+  provinceName
+  """Sort by city"""
+  city
+  """Sort by postalCode"""
+  postalCode
+  """Sort by addressLine1"""
+  addressLine1
+  """Sort by addressLine2"""
+  addressLine2
   """Sort by createdAt"""
   createdAt
   """Sort by updatedAt"""

@@ -4619,8 +4619,16 @@ export type WarehouseOrderByInput = {
 
 /** Fields available for sorting Warehouse */
 export enum WarehouseOrderField {
+  /** Sort by addressLine1 */
+  AddressLine1 = 'addressLine1',
+  /** Sort by addressLine2 */
+  AddressLine2 = 'addressLine2',
+  /** Sort by city */
+  City = 'city',
   /** Sort by code */
   Code = 'code',
+  /** Sort by countryCode */
+  CountryCode = 'countryCode',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by id */
@@ -4629,6 +4637,12 @@ export enum WarehouseOrderField {
   IsDefault = 'isDefault',
   /** Sort by name */
   Name = 'name',
+  /** Sort by postalCode */
+  PostalCode = 'postalCode',
+  /** Sort by provinceCode */
+  ProvinceCode = 'provinceCode',
+  /** Sort by provinceName */
+  ProvinceName = 'provinceName',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
@@ -4817,8 +4831,16 @@ export type WarehouseWhereInput = {
   _not?: InputMaybe<WarehouseWhereInput>;
   /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<WarehouseWhereInput>>;
+  /** Filter by addressLine1 */
+  addressLine1?: InputMaybe<StringFilter>;
+  /** Filter by addressLine2 */
+  addressLine2?: InputMaybe<StringFilter>;
+  /** Filter by city */
+  city?: InputMaybe<StringFilter>;
   /** Filter by code */
   code?: InputMaybe<StringFilter>;
+  /** Filter by countryCode */
+  countryCode?: InputMaybe<StringFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<DateTimeFilter>;
   /** Filter by id */
@@ -4827,6 +4849,12 @@ export type WarehouseWhereInput = {
   isDefault?: InputMaybe<BooleanFilter>;
   /** Filter by name */
   name?: InputMaybe<StringFilter>;
+  /** Filter by postalCode */
+  postalCode?: InputMaybe<StringFilter>;
+  /** Filter by provinceCode */
+  provinceCode?: InputMaybe<StringFilter>;
+  /** Filter by provinceName */
+  provinceName?: InputMaybe<StringFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
 };

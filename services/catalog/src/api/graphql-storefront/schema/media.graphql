@@ -5,6 +5,24 @@ extend interface Media {
   id: ID!
 }
 
+# Concrete entity stubs make Media a resolvable abstract return type inside the
+# Catalog subgraph while the Media subgraph remains the owner of all fields.
+extend type MediaImage implements Media @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type Video implements Media @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type ExternalVideo implements Media @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type Model3d implements Media @key(fields: "id") {
+  id: ID! @external
+}
+
 """An ordered media item registered on a product."""
 type ProductMediaEdge {
   cursor: Cursor!

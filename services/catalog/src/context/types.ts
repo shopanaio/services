@@ -1,10 +1,18 @@
 import type {
   AdminContextClaims,
+  ContextCustomer,
   ContextStore,
+  ContextStorefrontAccess,
   ContextUser,
 } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
+
+export interface ServiceGraphqlError {
+  message: string;
+  field?: string[];
+  code?: string;
+}
 
 /**
  * Context initialization options
@@ -21,6 +29,10 @@ export interface ServiceContextOptions {
   user?: ContextUser;
   /** Verified authorization claims issued by the Admin Gateway */
   adminContext?: AdminContextClaims;
+  /** Verified storefront credential and permission claims */
+  storefrontAccess?: ContextStorefrontAccess;
+  /** Authenticated storefront customer */
+  customer?: ContextCustomer | null;
   /** Current locale for translations */
   locale?: string;
   /** Current currency for pricing */
@@ -44,9 +56,14 @@ export class ServiceContext {
   readonly currency?: string;
   /** Verified authorization claims issued by the Admin Gateway */
   readonly adminContext?: AdminContextClaims;
+  /** Verified storefront credential and permission claims */
+  readonly storefrontAccess?: ContextStorefrontAccess;
+  /** Authenticated storefront customer */
+  readonly customer?: ContextCustomer | null;
 
   private _store?: ContextStore;
   private _user?: ContextUser;
+  private readonly graphqlErrors: ServiceGraphqlError[] = [];
 
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
@@ -55,6 +72,8 @@ export class ServiceContext {
     this.locale = options.locale;
     this.currency = options.currency;
     this.adminContext = options.adminContext;
+    this.storefrontAccess = options.storefrontAccess;
+    this.customer = options.customer;
     this._store = options.store;
     this._user = options.user;
   }
@@ -88,5 +107,13 @@ export class ServiceContext {
   /** Alias for store (for backward compatibility) */
   get project(): ContextStore {
     return this.store;
+  }
+
+  addGraphqlError(error: ServiceGraphqlError): void {
+    this.graphqlErrors.push(error);
+  }
+
+  getGraphqlErrors(): readonly ServiceGraphqlError[] {
+    return this.graphqlErrors;
   }
 }

@@ -107,6 +107,22 @@ export class ProductRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
+  async findByHandle(handle: string): Promise<Product | null> {
+    const result = await this.connection
+      .select()
+      .from(product)
+      .where(
+        and(
+          eq(product.storeId, this.storeId),
+          eq(product.handle, handle),
+          isNull(product.deletedAt),
+        ),
+      )
+      .limit(1);
+
+    return result[0] ?? null;
+  }
+
   async create(
     data: { vendorId?: string | null; publishedAt?: Date | string | null } = {}
   ): Promise<Product> {
