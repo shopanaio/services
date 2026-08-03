@@ -9,11 +9,14 @@ import {
 } from "drizzle-orm";
 import type { OnlineStoreDatabase } from "./database.js";
 import {
+  appInstallationsReference,
   navigationMenuItems,
   navigationMenus,
   pages,
 } from "./models/index.js";
 import type { OnlineStoreScope } from "./types.js";
+
+const ONLINE_STORE_APP_CODE = "shopana-online-store";
 
 export abstract class BaseRepository {
   constructor(
@@ -23,6 +26,28 @@ export abstract class BaseRepository {
 
   protected get connection(): OnlineStoreDatabase {
     return this.txManager.getConnection() as OnlineStoreDatabase;
+  }
+
+  protected async assertInstallationScope(
+    scope: OnlineStoreScope,
+  ): Promise<void> {
+    const rows = await this.connection
+      .select({ id: appInstallationsReference.id })
+      .from(appInstallationsReference)
+      .where(
+        and(
+          eq(appInstallationsReference.id, scope.installationId),
+          eq(appInstallationsReference.storeId, scope.storeId),
+          eq(appInstallationsReference.appCode, ONLINE_STORE_APP_CODE),
+        ),
+      )
+      .limit(1);
+
+    if (!rows[0]) {
+      throw new Error(
+        `Online Store installation "${scope.installationId}" does not belong to store "${scope.storeId}"`,
+      );
+    }
   }
 
   protected pageScope(scope: OnlineStoreScope) {

@@ -5,7 +5,6 @@ import {
   foreignKey,
   index,
   integer,
-  pgSchema,
   primaryKey,
   text,
   timestamp,
@@ -14,12 +13,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { localeCodeEnum, onlineStoreSchema } from "./schema.js";
-
-const appsSchema = pgSchema("apps");
-const appInstallationsReference = appsSchema.table("app_installations", {
-  id: uuid("id").primaryKey(),
-});
+import {
+  appInstallationsReference,
+  localeCodeEnum,
+  onlineStoreSchema,
+} from "./schema.js";
 
 export const navigationMenus = onlineStoreSchema.table(
   "navigation_menus",
@@ -59,8 +57,8 @@ export const navigationMenus = onlineStoreSchema.table(
       sql`btrim(${table.name}) <> ''`,
     ),
     check("navigation_menus_revision_check", sql`${table.revision} >= 0`),
-    uniqueIndex("navigation_menus_store_handle_key")
-      .on(table.storeId, table.handle)
+    uniqueIndex("navigation_menus_installation_handle_key")
+      .on(table.installationId, table.handle)
       .where(sql`${table.deletedAt} IS NULL`),
     index("navigation_menus_installation_idx").on(table.installationId),
     index("navigation_menus_store_idx")

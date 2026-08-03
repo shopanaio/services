@@ -4,7 +4,6 @@ import {
   index,
   integer,
   jsonb,
-  pgSchema,
   primaryKey,
   text,
   timestamp,
@@ -12,12 +11,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { localeCodeEnum, onlineStoreSchema } from "./schema.js";
-
-const appsSchema = pgSchema("apps");
-const appInstallationsReference = appsSchema.table("app_installations", {
-  id: uuid("id").primaryKey(),
-});
+import {
+  appInstallationsReference,
+  localeCodeEnum,
+  onlineStoreSchema,
+} from "./schema.js";
 
 export const pages = onlineStoreSchema.table(
   "pages",
@@ -54,8 +52,8 @@ export const pages = onlineStoreSchema.table(
   (table) => [
     check("pages_handle_not_empty_check", sql`btrim(${table.handle}) <> ''`),
     check("pages_revision_check", sql`${table.revision} >= 0`),
-    uniqueIndex("pages_store_handle_key")
-      .on(table.storeId, table.handle)
+    uniqueIndex("pages_installation_handle_key")
+      .on(table.installationId, table.handle)
       .where(sql`${table.deletedAt} IS NULL`),
     index("pages_installation_idx").on(table.installationId),
     index("pages_store_publication_idx")

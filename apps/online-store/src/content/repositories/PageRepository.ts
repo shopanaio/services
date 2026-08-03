@@ -112,6 +112,7 @@ export class PageRepository extends BaseRepository {
     scope: OnlineStoreScope,
     input: CreatePageInput,
   ): Promise<PageRecord> {
+    await this.assertInstallationScope(scope);
     const timestamp = now();
     const insert: NewPageModel = {
       installationId: scope.installationId,

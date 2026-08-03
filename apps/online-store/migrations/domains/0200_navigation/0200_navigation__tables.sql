@@ -22,8 +22,8 @@ CREATE TABLE "app_shopana_online_store"."navigation_menus" (
     CHECK ("revision" >= 0)
 );
 
-CREATE UNIQUE INDEX "navigation_menus_store_handle_key"
-  ON "app_shopana_online_store"."navigation_menus" ("store_id", "handle")
+CREATE UNIQUE INDEX "navigation_menus_installation_handle_key"
+  ON "app_shopana_online_store"."navigation_menus" ("installation_id", "handle")
   WHERE "deleted_at" IS NULL;
 
 CREATE INDEX "navigation_menus_installation_idx"

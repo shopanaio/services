@@ -91,6 +91,7 @@ export class NavigationMenuRepository extends BaseRepository {
     scope: OnlineStoreScope,
     input: CreateNavigationMenuInput,
   ): Promise<NavigationMenuRecord> {
+    await this.assertInstallationScope(scope);
     const timestamp = now();
     const insert: NewNavigationMenuModel = {
       installationId: scope.installationId,

@@ -21,8 +21,8 @@ CREATE TABLE "app_shopana_online_store"."pages" (
     CHECK ("revision" >= 0)
 );
 
-CREATE UNIQUE INDEX "pages_store_handle_key"
-  ON "app_shopana_online_store"."pages" ("store_id", "handle")
+CREATE UNIQUE INDEX "pages_installation_handle_key"
+  ON "app_shopana_online_store"."pages" ("installation_id", "handle")
   WHERE "deleted_at" IS NULL;
 
 CREATE INDEX "pages_installation_idx"

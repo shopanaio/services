@@ -73,7 +73,17 @@ export class TranslationRepository extends BaseRepository {
     return Object.freeze(rows.map(mapPageTranslation));
   }
 
-  async upsertPageTranslation(
+  upsertPageTranslation(
+    scope: OnlineStoreScope,
+    pageId: string,
+    input: UpsertPageTranslationInput,
+  ): Promise<PageTranslationRecord | null> {
+    return this.txManager.run(() =>
+      this.upsertPageTranslationInTransaction(scope, pageId, input),
+    );
+  }
+
+  private async upsertPageTranslationInTransaction(
     scope: OnlineStoreScope,
     pageId: string,
     input: UpsertPageTranslationInput,
@@ -82,7 +92,8 @@ export class TranslationRepository extends BaseRepository {
       .select({ id: pages.id })
       .from(pages)
       .where(this.pageOwnership(scope, pageId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!ownedPage[0]) return null;
 
     const rows = await this.connection
@@ -178,7 +189,17 @@ export class TranslationRepository extends BaseRepository {
     return Object.freeze(rows.map(mapMenuItemTranslation));
   }
 
-  async upsertMenuItemTranslation(
+  upsertMenuItemTranslation(
+    scope: OnlineStoreScope,
+    itemId: string,
+    input: UpsertNavigationMenuItemTranslationInput,
+  ): Promise<NavigationMenuItemTranslationRecord | null> {
+    return this.txManager.run(() =>
+      this.upsertMenuItemTranslationInTransaction(scope, itemId, input),
+    );
+  }
+
+  private async upsertMenuItemTranslationInTransaction(
     scope: OnlineStoreScope,
     itemId: string,
     input: UpsertNavigationMenuItemTranslationInput,
@@ -187,7 +208,8 @@ export class TranslationRepository extends BaseRepository {
       .select({ id: navigationMenuItems.id })
       .from(navigationMenuItems)
       .where(this.itemOwnership(scope, itemId))
-      .limit(1);
+      .limit(1)
+      .for("update");
     if (!ownedItem[0]) return null;
 
     const rows = await this.connection
