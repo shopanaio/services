@@ -1,5 +1,5 @@
 import { App } from "@src/ioc/container";
-import type { ApiCheckoutMutation, ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs } from "@src/interfaces/gql-storefront-api/types";
+import type { ApiMutation, ApiMutationCheckoutPaymentMethodUpdateArgs } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPaymentMethodUpdateDto } from "@src/application/dto/checkoutPaymentMethodUpdate.dto";
 import { createValidated } from "@src/utils/validation";
@@ -7,8 +7,8 @@ import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/ma
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 
 export const checkoutPaymentMethodUpdate = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutPaymentMethodUpdateArgs,
   ctx: GraphQLContext,
 ) => {
   const { checkoutUsecase, logger } = App.getInstance();

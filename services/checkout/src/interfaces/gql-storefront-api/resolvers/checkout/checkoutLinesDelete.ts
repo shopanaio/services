@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutLinesDeleteArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutLinesDeleteArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesDeleteDto } from "@src/application/dto/checkoutLinesDelete.dto";
@@ -14,8 +14,8 @@ import { createValidated } from "@src/utils/validation";
  * checkoutLinesDelete(input: CheckoutLinesDeleteInput!): CheckoutLinesDeletePayload!
  */
 export const checkoutLinesDelete = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutLinesDeleteArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutLinesDeleteArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

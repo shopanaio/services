@@ -605,184 +605,6 @@ export type ApiCheckoutLinesUpdatePayload = {
   errors: Maybe<Array<ApiCheckoutFieldError>>;
 };
 
-export type ApiCheckoutMutation = {
-  __typename?: 'CheckoutMutation';
-  /** Creates a new checkout. */
-  checkoutCreate: ApiCheckout;
-  /** Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR"). */
-  checkoutCurrencyCodeUpdate: ApiCheckout;
-  /**
-   * Updates customer identification data associated with the checkout
-   * (email, customerId and if necessary country/language for calculations).
-   */
-  checkoutCustomerIdentityUpdate: ApiCheckout;
-  /** Updates the customer note attached to the checkout (delivery instructions, etc.). */
-  checkoutCustomerNoteUpdate: ApiCheckout;
-  /** Adds one or more delivery addresses to the checkout (supports multi-shipping). */
-  checkoutDeliveryAddressesAdd: ApiCheckout;
-  /** Removes one or more delivery addresses previously attached to the checkout. */
-  checkoutDeliveryAddressesRemove: ApiCheckout;
-  /** Updates previously added delivery addresses (e.g., correcting postal code or city). */
-  checkoutDeliveryAddressesUpdate: ApiCheckout;
-  /** Selects or changes the delivery method for the entire checkout or specific address. */
-  checkoutDeliveryMethodUpdate: ApiCheckout;
-  /** Adds recipients to delivery groups. */
-  checkoutDeliveryRecipientsAdd: ApiCheckout;
-  /** Removes recipients from delivery groups. */
-  checkoutDeliveryRecipientsRemove: ApiCheckout;
-  /** Updates recipients for delivery groups. */
-  checkoutDeliveryRecipientsUpdate: ApiCheckout;
-  /** Updates the language/locale of the checkout (affects localization and formatting). */
-  checkoutLanguageCodeUpdate: ApiCheckout;
-  /** Adds an item to an existing checkout. */
-  checkoutLinesAdd: ApiCheckoutLinesAddPayload;
-  /** Clears all items from a checkout. */
-  checkoutLinesClear: ApiCheckoutLinesClearPayload;
-  /** Removes a single item from the checkout. */
-  checkoutLinesDelete: ApiCheckoutLinesDeletePayload;
-  /** Replaces one checkout line with another by merging quantities and removing the source line. */
-  checkoutLinesReplace: ApiCheckoutLinesReplacePayload;
-  /** Updates the quantity of a specific checkout item. */
-  checkoutLinesUpdate: ApiCheckoutLinesUpdatePayload;
-  /** Selects or changes the payment method for the checkout. */
-  checkoutPaymentMethodUpdate: ApiCheckout;
-  /** Applies a promo code/coupon to the checkout. */
-  checkoutPromoCodeAdd: ApiCheckout;
-  /** Removes a previously applied promo code/coupon from the checkout. */
-  checkoutPromoCodeRemove: ApiCheckout;
-  /** Creates a new checkout tag. */
-  checkoutTagCreate: ApiCheckout;
-  /** Deletes a checkout tag. */
-  checkoutTagDelete: ApiCheckout;
-  /** Updates a checkout tag. */
-  checkoutTagUpdate: ApiCheckout;
-  /**
-   * Places a committed checkout through the durable order placement workflow.
-   * Repeating the same request with the same idempotency key returns the same result.
-   */
-  placeOrder: ApiPlaceOrderPayload;
-};
-
-
-export type ApiCheckoutMutationCheckoutCreateArgs = {
-  input: ApiCheckoutCreateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCurrencyCodeUpdateArgs = {
-  input: ApiCheckoutCurrencyCodeUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs = {
-  input: ApiCheckoutCustomerIdentityUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutCustomerNoteUpdateArgs = {
-  input: ApiCheckoutCustomerNoteUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesAddArgs = {
-  input: ApiCheckoutDeliveryAddressesAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesRemoveArgs = {
-  input: ApiCheckoutDeliveryAddressesRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs = {
-  input: ApiCheckoutDeliveryAddressesUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs = {
-  input: ApiCheckoutDeliveryMethodUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs = {
-  input: ApiCheckoutDeliveryRecipientsAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs = {
-  input: ApiCheckoutDeliveryRecipientsRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutDeliveryRecipientsUpdateArgs = {
-  input: ApiCheckoutDeliveryRecipientsUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs = {
-  input: ApiCheckoutLanguageCodeUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesAddArgs = {
-  input: ApiCheckoutLinesAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesClearArgs = {
-  input: ApiCheckoutLinesClearInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesDeleteArgs = {
-  input: ApiCheckoutLinesDeleteInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesReplaceArgs = {
-  input: ApiCheckoutLinesReplaceInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutLinesUpdateArgs = {
-  input: ApiCheckoutLinesUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs = {
-  input: ApiCheckoutPaymentMethodUpdateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutPromoCodeAddArgs = {
-  input: ApiCheckoutPromoCodeAddInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutPromoCodeRemoveArgs = {
-  input: ApiCheckoutPromoCodeRemoveInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagCreateArgs = {
-  input: ApiCheckoutTagCreateInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagDeleteArgs = {
-  input: ApiCheckoutTagDeleteInput;
-};
-
-
-export type ApiCheckoutMutationCheckoutTagUpdateArgs = {
-  input: ApiCheckoutTagUpdateInput;
-};
-
-
-export type ApiCheckoutMutationPlaceOrderArgs = {
-  input: ApiPlaceOrderInput;
-};
-
 /** A non-blocking warning generated by checkout operations. */
 export type ApiCheckoutNotification = {
   __typename?: 'CheckoutNotification';
@@ -889,17 +711,6 @@ export type ApiCheckoutPromoCodeRemoveInput = {
   checkoutId: Scalars['ID']['input'];
   /** Text code of the coupon/promo code to be cancelled. */
   code: Scalars['String']['input'];
-};
-
-export type ApiCheckoutQuery = {
-  __typename?: 'CheckoutQuery';
-  /** Get a checkout by its ID. */
-  checkout: Maybe<ApiCheckout>;
-};
-
-
-export type ApiCheckoutQueryCheckoutArgs = {
-  id: Scalars['ID']['input'];
 };
 
 /** Recipient details for the delivery group. */
@@ -2050,7 +1861,180 @@ export type ApiMoney = {
 
 export type ApiMutation = {
   __typename?: 'Mutation';
-  checkoutMutation: ApiCheckoutMutation;
+  /** Creates a new checkout. */
+  checkoutCreate: ApiCheckout;
+  /** Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR"). */
+  checkoutCurrencyCodeUpdate: ApiCheckout;
+  /**
+   * Updates customer identification data associated with the checkout
+   * (email, customerId and if necessary country/language for calculations).
+   */
+  checkoutCustomerIdentityUpdate: ApiCheckout;
+  /** Updates the customer note attached to the checkout (delivery instructions, etc.). */
+  checkoutCustomerNoteUpdate: ApiCheckout;
+  /** Adds one or more delivery addresses to the checkout (supports multi-shipping). */
+  checkoutDeliveryAddressesAdd: ApiCheckout;
+  /** Removes one or more delivery addresses previously attached to the checkout. */
+  checkoutDeliveryAddressesRemove: ApiCheckout;
+  /** Updates previously added delivery addresses (e.g., correcting postal code or city). */
+  checkoutDeliveryAddressesUpdate: ApiCheckout;
+  /** Selects or changes the delivery method for the entire checkout or specific address. */
+  checkoutDeliveryMethodUpdate: ApiCheckout;
+  /** Adds recipients to delivery groups. */
+  checkoutDeliveryRecipientsAdd: ApiCheckout;
+  /** Removes recipients from delivery groups. */
+  checkoutDeliveryRecipientsRemove: ApiCheckout;
+  /** Updates recipients for delivery groups. */
+  checkoutDeliveryRecipientsUpdate: ApiCheckout;
+  /** Updates the language/locale of the checkout (affects localization and formatting). */
+  checkoutLanguageCodeUpdate: ApiCheckout;
+  /** Adds an item to an existing checkout. */
+  checkoutLinesAdd: ApiCheckoutLinesAddPayload;
+  /** Clears all items from a checkout. */
+  checkoutLinesClear: ApiCheckoutLinesClearPayload;
+  /** Removes a single item from the checkout. */
+  checkoutLinesDelete: ApiCheckoutLinesDeletePayload;
+  /** Replaces one checkout line with another by merging quantities and removing the source line. */
+  checkoutLinesReplace: ApiCheckoutLinesReplacePayload;
+  /** Updates the quantity of a specific checkout item. */
+  checkoutLinesUpdate: ApiCheckoutLinesUpdatePayload;
+  /** Selects or changes the payment method for the checkout. */
+  checkoutPaymentMethodUpdate: ApiCheckout;
+  /** Applies a promo code/coupon to the checkout. */
+  checkoutPromoCodeAdd: ApiCheckout;
+  /** Removes a previously applied promo code/coupon from the checkout. */
+  checkoutPromoCodeRemove: ApiCheckout;
+  /** Creates a new checkout tag. */
+  checkoutTagCreate: ApiCheckout;
+  /** Deletes a checkout tag. */
+  checkoutTagDelete: ApiCheckout;
+  /** Updates a checkout tag. */
+  checkoutTagUpdate: ApiCheckout;
+  /**
+   * Places a committed checkout through the durable order placement workflow.
+   * Repeating the same request with the same idempotency key returns the same result.
+   */
+  placeOrder: ApiPlaceOrderPayload;
+};
+
+
+export type ApiMutationCheckoutCreateArgs = {
+  input: ApiCheckoutCreateInput;
+};
+
+
+export type ApiMutationCheckoutCurrencyCodeUpdateArgs = {
+  input: ApiCheckoutCurrencyCodeUpdateInput;
+};
+
+
+export type ApiMutationCheckoutCustomerIdentityUpdateArgs = {
+  input: ApiCheckoutCustomerIdentityUpdateInput;
+};
+
+
+export type ApiMutationCheckoutCustomerNoteUpdateArgs = {
+  input: ApiCheckoutCustomerNoteUpdateInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryAddressesAddArgs = {
+  input: ApiCheckoutDeliveryAddressesAddInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryAddressesRemoveArgs = {
+  input: ApiCheckoutDeliveryAddressesRemoveInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryAddressesUpdateArgs = {
+  input: ApiCheckoutDeliveryAddressesUpdateInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryMethodUpdateArgs = {
+  input: ApiCheckoutDeliveryMethodUpdateInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryRecipientsAddArgs = {
+  input: ApiCheckoutDeliveryRecipientsAddInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryRecipientsRemoveArgs = {
+  input: ApiCheckoutDeliveryRecipientsRemoveInput;
+};
+
+
+export type ApiMutationCheckoutDeliveryRecipientsUpdateArgs = {
+  input: ApiCheckoutDeliveryRecipientsUpdateInput;
+};
+
+
+export type ApiMutationCheckoutLanguageCodeUpdateArgs = {
+  input: ApiCheckoutLanguageCodeUpdateInput;
+};
+
+
+export type ApiMutationCheckoutLinesAddArgs = {
+  input: ApiCheckoutLinesAddInput;
+};
+
+
+export type ApiMutationCheckoutLinesClearArgs = {
+  input: ApiCheckoutLinesClearInput;
+};
+
+
+export type ApiMutationCheckoutLinesDeleteArgs = {
+  input: ApiCheckoutLinesDeleteInput;
+};
+
+
+export type ApiMutationCheckoutLinesReplaceArgs = {
+  input: ApiCheckoutLinesReplaceInput;
+};
+
+
+export type ApiMutationCheckoutLinesUpdateArgs = {
+  input: ApiCheckoutLinesUpdateInput;
+};
+
+
+export type ApiMutationCheckoutPaymentMethodUpdateArgs = {
+  input: ApiCheckoutPaymentMethodUpdateInput;
+};
+
+
+export type ApiMutationCheckoutPromoCodeAddArgs = {
+  input: ApiCheckoutPromoCodeAddInput;
+};
+
+
+export type ApiMutationCheckoutPromoCodeRemoveArgs = {
+  input: ApiCheckoutPromoCodeRemoveInput;
+};
+
+
+export type ApiMutationCheckoutTagCreateArgs = {
+  input: ApiCheckoutTagCreateInput;
+};
+
+
+export type ApiMutationCheckoutTagDeleteArgs = {
+  input: ApiCheckoutTagDeleteInput;
+};
+
+
+export type ApiMutationCheckoutTagUpdateArgs = {
+  input: ApiCheckoutTagUpdateInput;
+};
+
+
+export type ApiMutationPlaceOrderArgs = {
+  input: ApiPlaceOrderInput;
 };
 
 export type ApiNode = {
@@ -2170,7 +2154,13 @@ export enum ApiPriceAdjustmentValueType {
 
 export type ApiQuery = {
   __typename?: 'Query';
-  checkoutQuery: ApiCheckoutQuery;
+  /** Get a checkout by its ID. */
+  checkout: Maybe<ApiCheckout>;
+};
+
+
+export type ApiQueryCheckoutArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type ApiUser = {
@@ -2315,7 +2305,6 @@ export type ApiResolversTypes = {
   CheckoutLinesReplacePayload: ResolverTypeWrapper<ApiCheckoutLinesReplacePayload>;
   CheckoutLinesUpdateInput: ApiCheckoutLinesUpdateInput;
   CheckoutLinesUpdatePayload: ResolverTypeWrapper<ApiCheckoutLinesUpdatePayload>;
-  CheckoutMutation: ResolverTypeWrapper<ApiCheckoutMutation>;
   CheckoutNotification: ResolverTypeWrapper<ApiCheckoutNotification>;
   CheckoutNotificationCode: ApiCheckoutNotificationCode;
   CheckoutPayment: ResolverTypeWrapper<ApiCheckoutPayment>;
@@ -2325,7 +2314,6 @@ export type ApiResolversTypes = {
   CheckoutPromoCode: ResolverTypeWrapper<ApiCheckoutPromoCode>;
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
-  CheckoutQuery: ResolverTypeWrapper<ApiCheckoutQuery>;
   CheckoutRecipient: ResolverTypeWrapper<ApiCheckoutRecipient>;
   CheckoutRecipientInput: ApiCheckoutRecipientInput;
   CheckoutSelectionResetReason: ResolverTypeWrapper<ApiCheckoutSelectionResetReason>;
@@ -2415,7 +2403,6 @@ export type ApiResolversParentTypes = {
   CheckoutLinesReplacePayload: ApiCheckoutLinesReplacePayload;
   CheckoutLinesUpdateInput: ApiCheckoutLinesUpdateInput;
   CheckoutLinesUpdatePayload: ApiCheckoutLinesUpdatePayload;
-  CheckoutMutation: ApiCheckoutMutation;
   CheckoutNotification: ApiCheckoutNotification;
   CheckoutPayment: ApiCheckoutPayment;
   CheckoutPaymentMethod: ApiCheckoutPaymentMethod;
@@ -2424,7 +2411,6 @@ export type ApiResolversParentTypes = {
   CheckoutPromoCode: ApiCheckoutPromoCode;
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
-  CheckoutQuery: ApiCheckoutQuery;
   CheckoutRecipient: ApiCheckoutRecipient;
   CheckoutRecipientInput: ApiCheckoutRecipientInput;
   CheckoutSelectionResetReason: ApiCheckoutSelectionResetReason;
@@ -2629,34 +2615,6 @@ export type ApiCheckoutLinesUpdatePayloadResolvers<ContextType = GraphQLContext,
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCheckoutMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutMutation'] = ApiResolversParentTypes['CheckoutMutation']> = {
-  checkoutCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutCreateArgs, 'input'>>;
-  checkoutCurrencyCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutCurrencyCodeUpdateArgs, 'input'>>;
-  checkoutCustomerIdentityUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutCustomerIdentityUpdateArgs, 'input'>>;
-  checkoutCustomerNoteUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutCustomerNoteUpdateArgs, 'input'>>;
-  checkoutDeliveryAddressesAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryAddressesAddArgs, 'input'>>;
-  checkoutDeliveryAddressesRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryAddressesRemoveArgs, 'input'>>;
-  checkoutDeliveryAddressesUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryAddressesUpdateArgs, 'input'>>;
-  checkoutDeliveryMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryMethodUpdateArgs, 'input'>>;
-  checkoutDeliveryRecipientsAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, 'input'>>;
-  checkoutDeliveryRecipientsRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsRemoveArgs, 'input'>>;
-  checkoutDeliveryRecipientsUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutDeliveryRecipientsUpdateArgs, 'input'>>;
-  checkoutLanguageCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs, 'input'>>;
-  checkoutLinesAdd: Resolver<ApiResolversTypes['CheckoutLinesAddPayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesAddArgs, 'input'>>;
-  checkoutLinesClear: Resolver<ApiResolversTypes['CheckoutLinesClearPayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesClearArgs, 'input'>>;
-  checkoutLinesDelete: Resolver<ApiResolversTypes['CheckoutLinesDeletePayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesDeleteArgs, 'input'>>;
-  checkoutLinesReplace: Resolver<ApiResolversTypes['CheckoutLinesReplacePayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesReplaceArgs, 'input'>>;
-  checkoutLinesUpdate: Resolver<ApiResolversTypes['CheckoutLinesUpdatePayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutLinesUpdateArgs, 'input'>>;
-  checkoutPaymentMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutPaymentMethodUpdateArgs, 'input'>>;
-  checkoutPromoCodeAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutPromoCodeAddArgs, 'input'>>;
-  checkoutPromoCodeRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutPromoCodeRemoveArgs, 'input'>>;
-  checkoutTagCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutTagCreateArgs, 'input'>>;
-  checkoutTagDelete: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutTagDeleteArgs, 'input'>>;
-  checkoutTagUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiCheckoutMutationCheckoutTagUpdateArgs, 'input'>>;
-  placeOrder: Resolver<ApiResolversTypes['PlaceOrderPayload'], ParentType, ContextType, RequireFields<ApiCheckoutMutationPlaceOrderArgs, 'input'>>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiCheckoutNotificationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutNotification'] = ApiResolversParentTypes['CheckoutNotification']> = {
   code: Resolver<ApiResolversTypes['CheckoutNotificationCode'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
@@ -2696,11 +2654,6 @@ export type ApiCheckoutPromoCodeResolvers<ContextType = GraphQLContext, ParentTy
   discountType: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   provider: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   value: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiCheckoutQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutQuery'] = ApiResolversParentTypes['CheckoutQuery']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType, RequireFields<ApiCheckoutQueryCheckoutArgs, 'id'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2751,7 +2704,30 @@ export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends A
 };
 
 export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
-  checkoutMutation: Resolver<ApiResolversTypes['CheckoutMutation'], ParentType, ContextType>;
+  checkoutCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCreateArgs, 'input'>>;
+  checkoutCurrencyCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCurrencyCodeUpdateArgs, 'input'>>;
+  checkoutCustomerIdentityUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerIdentityUpdateArgs, 'input'>>;
+  checkoutCustomerNoteUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerNoteUpdateArgs, 'input'>>;
+  checkoutDeliveryAddressesAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesAddArgs, 'input'>>;
+  checkoutDeliveryAddressesRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesRemoveArgs, 'input'>>;
+  checkoutDeliveryAddressesUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesUpdateArgs, 'input'>>;
+  checkoutDeliveryMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryMethodUpdateArgs, 'input'>>;
+  checkoutDeliveryRecipientsAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsAddArgs, 'input'>>;
+  checkoutDeliveryRecipientsRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsRemoveArgs, 'input'>>;
+  checkoutDeliveryRecipientsUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsUpdateArgs, 'input'>>;
+  checkoutLanguageCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLanguageCodeUpdateArgs, 'input'>>;
+  checkoutLinesAdd: Resolver<ApiResolversTypes['CheckoutLinesAddPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesAddArgs, 'input'>>;
+  checkoutLinesClear: Resolver<ApiResolversTypes['CheckoutLinesClearPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesClearArgs, 'input'>>;
+  checkoutLinesDelete: Resolver<ApiResolversTypes['CheckoutLinesDeletePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesDeleteArgs, 'input'>>;
+  checkoutLinesReplace: Resolver<ApiResolversTypes['CheckoutLinesReplacePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesReplaceArgs, 'input'>>;
+  checkoutLinesUpdate: Resolver<ApiResolversTypes['CheckoutLinesUpdatePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesUpdateArgs, 'input'>>;
+  checkoutPaymentMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPaymentMethodUpdateArgs, 'input'>>;
+  checkoutPromoCodeAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeAddArgs, 'input'>>;
+  checkoutPromoCodeRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeRemoveArgs, 'input'>>;
+  checkoutTagCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagCreateArgs, 'input'>>;
+  checkoutTagDelete: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagDeleteArgs, 'input'>>;
+  checkoutTagUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagUpdateArgs, 'input'>>;
+  placeOrder: Resolver<ApiResolversTypes['PlaceOrderPayload'], ParentType, ContextType, RequireFields<ApiMutationPlaceOrderArgs, 'input'>>;
 };
 
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
@@ -2791,7 +2767,7 @@ export type ApiPlaceOrderPaymentFailureResolvers<ContextType = GraphQLContext, P
 };
 
 export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Query'] = ApiResolversParentTypes['Query']> = {
-  checkoutQuery: Resolver<ApiResolversTypes['CheckoutQuery'], ParentType, ContextType>;
+  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType, RequireFields<ApiQueryCheckoutArgs, 'id'>>;
 };
 
 export type ApiUserResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['User'] = ApiResolversParentTypes['User']> = {
@@ -2819,13 +2795,11 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutLinesDeletePayload: ApiCheckoutLinesDeletePayloadResolvers<ContextType>;
   CheckoutLinesReplacePayload: ApiCheckoutLinesReplacePayloadResolvers<ContextType>;
   CheckoutLinesUpdatePayload: ApiCheckoutLinesUpdatePayloadResolvers<ContextType>;
-  CheckoutMutation: ApiCheckoutMutationResolvers<ContextType>;
   CheckoutNotification: ApiCheckoutNotificationResolvers<ContextType>;
   CheckoutPayment: ApiCheckoutPaymentResolvers<ContextType>;
   CheckoutPaymentMethod: ApiCheckoutPaymentMethodResolvers<ContextType>;
   CheckoutPaymentMethodSelection: ApiCheckoutPaymentMethodSelectionResolvers<ContextType>;
   CheckoutPromoCode: ApiCheckoutPromoCodeResolvers<ContextType>;
-  CheckoutQuery: ApiCheckoutQueryResolvers<ContextType>;
   CheckoutRecipient: ApiCheckoutRecipientResolvers<ContextType>;
   CheckoutSelectionResetReason: ApiCheckoutSelectionResetReasonResolvers<ContextType>;
   CheckoutTag: ApiCheckoutTagResolvers<ContextType>;

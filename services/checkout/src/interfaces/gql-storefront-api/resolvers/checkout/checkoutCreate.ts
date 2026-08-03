@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutCreateArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutCreateArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CreateCheckoutDto, type CheckoutLinePurchaseInputDto } from "@src/application/dto/createCheckout.dto";
@@ -11,8 +11,8 @@ import { createValidated } from "@src/utils/validation";
 import { invalidCheckoutMutation } from "@src/application/mutations/index.js";
 
 export const checkoutCreate = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutCreateArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutCreateArgs,
   ctx: GraphQLContext,
 ) => {
   const { checkoutUsecase, logger } = App.getInstance();

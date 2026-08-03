@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutPromoCodeRemoveArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutPromoCodeRemoveArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPromoCodeRemoveDto } from "@src/application/dto/checkoutPromoCodes.dto";
@@ -14,8 +14,8 @@ import { createValidated } from "@src/utils/validation";
  * checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
  */
 export const checkoutPromoCodeRemove = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutPromoCodeRemoveArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutPromoCodeRemoveArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

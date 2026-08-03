@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutLinesUpdateArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutLinesUpdateArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesUpdateDto } from "@src/application/dto/checkoutLinesUpdate.dto";
@@ -14,8 +14,8 @@ import { createValidated } from "@src/utils/validation";
  * checkoutLinesUpdate(input: CheckoutLinesUpdateInput!): CheckoutLinesUpdatePayload!
  */
 export const checkoutLinesUpdate = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutLinesUpdateArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutLinesUpdateArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

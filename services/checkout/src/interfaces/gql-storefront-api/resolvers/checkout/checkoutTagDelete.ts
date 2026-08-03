@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutation,
-  ApiCheckoutMutationCheckoutTagDeleteArgs,
+  ApiMutation,
+  ApiMutationCheckoutTagDeleteArgs,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutTagDeleteDto } from "@src/application/dto/checkoutTag.dto";
@@ -13,8 +13,8 @@ import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
  * checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
  */
 export const checkoutTagDelete = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutTagDeleteArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutTagDeleteArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

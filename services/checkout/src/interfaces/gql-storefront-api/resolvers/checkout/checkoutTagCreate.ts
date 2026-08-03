@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutation,
-  ApiCheckoutMutationCheckoutTagCreateArgs,
+  ApiMutation,
+  ApiMutationCheckoutTagCreateArgs,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutTagCreateDto } from "@src/application/dto/checkoutTag.dto";
@@ -13,8 +13,8 @@ import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
  * checkoutTagCreate(input: CheckoutTagCreateInput!): Checkout!
  */
 export const checkoutTagCreate = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutTagCreateArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutTagCreateArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

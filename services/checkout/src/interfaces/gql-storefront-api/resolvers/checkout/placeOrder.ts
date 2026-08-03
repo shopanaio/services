@@ -9,15 +9,15 @@ import type {
 import { placeOrderRequestHash } from "@src/workflows/PlaceOrderWorkflow.js";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import type {
-  ApiCheckoutMutation,
-  ApiCheckoutMutationPlaceOrderArgs,
+  ApiMutation,
+  ApiMutationPlaceOrderArgs,
 } from "@src/interfaces/gql-storefront-api/types";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { createValidated } from "@src/utils/validation";
 
 export const placeOrder = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationPlaceOrderArgs,
+  _parent: ApiMutation,
+  args: ApiMutationPlaceOrderArgs,
   ctx: GraphQLContext,
 ) => {
   const dto = createValidated(PlaceOrderDto, args.input);

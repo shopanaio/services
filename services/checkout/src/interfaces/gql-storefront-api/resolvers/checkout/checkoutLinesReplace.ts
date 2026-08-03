@@ -1,5 +1,5 @@
 import { App } from "@src/ioc/container";
-import type { ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
+import type { ApiMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesReplaceDto } from "@src/application/dto/checkoutLinesReplace.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
@@ -21,7 +21,7 @@ type CheckoutLinesReplaceArgs = {
 };
 
 export const checkoutLinesReplace = async (
-  _parent: ApiCheckoutMutation,
+  _parent: ApiMutation,
   args: CheckoutLinesReplaceArgs,
   ctx: GraphQLContext
 ) => {

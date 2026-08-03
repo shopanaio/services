@@ -1,6 +1,6 @@
 import { v7 as uuidv7 } from "uuid";
 import { App } from "@src/ioc/container";
-import type { ApiCheckoutMutationCheckoutLinesAddArgs, ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
+import type { ApiMutationCheckoutLinesAddArgs, ApiMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLinesAddDto } from "@src/application/dto/checkoutLinesAdd.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
@@ -8,7 +8,7 @@ import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/ma
 import { createValidated } from "@src/utils/validation";
 import { purchaseOf } from "./checkoutCreate.js";
 
-export const checkoutLinesAdd = async (_parent: ApiCheckoutMutation, args: ApiCheckoutMutationCheckoutLinesAddArgs, ctx: GraphQLContext) => {
+export const checkoutLinesAdd = async (_parent: ApiMutation, args: ApiMutationCheckoutLinesAddArgs, ctx: GraphQLContext) => {
   const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutLinesAddDto, args.input);
   try {

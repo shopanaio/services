@@ -36,28 +36,9 @@ import type { GraphQLContext } from "../context";
 
 const checkoutResolvers = {
   Query: {
-    checkoutQuery: (
-      _parent: unknown,
-      _args: unknown,
-      context: GraphQLContext,
-    ) => {
-      requireStorefrontPermission(
-        context.storefrontAccess,
-        STOREFRONT_PERMISSIONS.CHECKOUT_READ,
-      );
-      return {};
-    },
+    checkout: withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_READ, checkout),
   },
   Mutation: {
-    checkoutMutation: () => ({}),
-  },
-  CheckoutQuery: {
-    checkout,
-  },
-  Checkout: {
-    // All fields are projected from the committed pipeline snapshot.
-  },
-  CheckoutMutation: {
     checkoutCreate: withCheckoutWrite(checkoutCreate),
     checkoutLinesAdd: withCheckoutWrite(checkoutLinesAdd),
     checkoutLinesUpdate: withCheckoutWrite(checkoutLinesUpdate),
@@ -99,15 +80,18 @@ const checkoutResolvers = {
     ),
     placeOrder: withPermission(STOREFRONT_PERMISSIONS.ORDER_WRITE, placeOrder),
   },
+  Checkout: {
+    // All fields are projected from the committed pipeline snapshot.
+  },
 } as any;
 
 function withCheckoutWrite<TParent, TArgs, TResult>(
-  resolver: CheckoutMutationResolver<TParent, TArgs, TResult>,
-): CheckoutMutationResolver<TParent, TArgs, TResult> {
+  resolver: StorefrontResolver<TParent, TArgs, TResult>,
+): StorefrontResolver<TParent, TArgs, TResult> {
   return withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_WRITE, resolver);
 }
 
-type CheckoutMutationResolver<TParent, TArgs, TResult> = (
+type StorefrontResolver<TParent, TArgs, TResult> = (
   parent: TParent,
   args: TArgs,
   context: GraphQLContext,
@@ -116,8 +100,8 @@ type CheckoutMutationResolver<TParent, TArgs, TResult> = (
 
 function withPermission<TParent, TArgs, TResult>(
   permission: Parameters<typeof requireStorefrontPermission>[1],
-  resolver: CheckoutMutationResolver<TParent, TArgs, TResult>,
-): CheckoutMutationResolver<TParent, TArgs, TResult> {
+  resolver: StorefrontResolver<TParent, TArgs, TResult>,
+): StorefrontResolver<TParent, TArgs, TResult> {
   return (parent, args, context, ...rest) => {
     requireStorefrontPermission(context.storefrontAccess, permission);
     return resolver(parent, args, context, ...rest);

@@ -1,12 +1,12 @@
 import { App } from "@src/ioc/container";
-import type { ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, ApiCheckoutMutation } from "@src/interfaces/gql-storefront-api/types";
+import type { ApiMutationCheckoutDeliveryRecipientsAddArgs, ApiMutation } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutDeliveryRecipientsAddDto } from "@src/application/dto/checkoutDeliveryRecipients.dto";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { mapCommittedCheckoutToApi } from "@src/interfaces/gql-storefront-api/mapper/committedCheckout";
 import { createValidated } from "@src/utils/validation";
 
-export const checkoutDeliveryRecipientsAdd = async (_parent: ApiCheckoutMutation, args: ApiCheckoutMutationCheckoutDeliveryRecipientsAddArgs, ctx: GraphQLContext) => {
+export const checkoutDeliveryRecipientsAdd = async (_parent: ApiMutation, args: ApiMutationCheckoutDeliveryRecipientsAddArgs, ctx: GraphQLContext) => {
   const { checkoutUsecase, logger } = App.getInstance();
   const dto = createValidated(CheckoutDeliveryRecipientsAddDto, args.input);
   try {

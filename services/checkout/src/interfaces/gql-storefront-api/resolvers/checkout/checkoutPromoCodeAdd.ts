@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutPromoCodeAddArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutPromoCodeAddArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutPromoCodeAddDto } from "@src/application/dto/checkoutPromoCodes.dto";
@@ -14,8 +14,8 @@ import { createValidated } from "@src/utils/validation";
  * checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
  */
 export const checkoutPromoCodeAdd = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutPromoCodeAddArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutPromoCodeAddArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();

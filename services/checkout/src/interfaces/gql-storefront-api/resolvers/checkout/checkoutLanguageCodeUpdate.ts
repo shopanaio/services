@@ -1,7 +1,7 @@
 import { App } from "@src/ioc/container";
 import type {
-  ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs,
-  ApiCheckoutMutation,
+  ApiMutationCheckoutLanguageCodeUpdateArgs,
+  ApiMutation,
 } from "@src/interfaces/gql-storefront-api/types";
 import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import { CheckoutLanguageCodeUpdateInput } from "@src/application/dto/checkoutLanguageCodeUpdate.dto";
@@ -14,8 +14,8 @@ import { createValidated } from "@src/utils/validation";
  * checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
  */
 export const checkoutLanguageCodeUpdate = async (
-  _parent: ApiCheckoutMutation,
-  args: ApiCheckoutMutationCheckoutLanguageCodeUpdateArgs,
+  _parent: ApiMutation,
+  args: ApiMutationCheckoutLanguageCodeUpdateArgs,
   ctx: GraphQLContext
 ) => {
   const app = App.getInstance();
