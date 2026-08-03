@@ -42,7 +42,7 @@ CREATE TABLE listing.product_listing_index (
   CONSTRAINT product_listing_doc_product_unique
     UNIQUE (product_doc_id, product_id),
   CONSTRAINT chk_product_listing_entity_type
-    CHECK (entity_type IN ('product', 'bundle')),
+    CHECK (entity_type = 'product'),
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft')),
   CONSTRAINT chk_product_listing_doc_positive

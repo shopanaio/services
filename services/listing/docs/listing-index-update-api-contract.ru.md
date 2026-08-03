@@ -14,7 +14,7 @@ service.
 
 | Область | Владелец | Как участвует в update API |
 | --- | --- | --- |
-| Product / Bundle canonical data | `catalog` | Передается как snapshot sellable item. |
+| Product canonical data | `catalog` | Передается как snapshot sellable item. |
 | Variant canonical data | `catalog` | Передается внутри snapshot родительского item. |
 | Category, collection, vendor, tag assignments | `catalog` | Передаются как публичные listing dimensions. |
 | Facet handles и value handles | `catalog` | Передаются как стабильные публичные ключи фильтрации. |
@@ -37,7 +37,7 @@ await broker.call("listing.syncSellableItem", params);
 
 Полная замена публичного listing snapshot для одного sellable item.
 
-Используется для product/bundle create, update, publish, unpublish, variant,
+Используется для product create, update, publish, unpublish, variant,
 price, stock, category, vendor, tag, facet и searchable content changes.
 
 ```ts
@@ -124,17 +124,13 @@ interface ListingUpdateSource {
 
 ```ts
 interface ListingSellableItemRef {
-  entityType: "product" | "bundle";
+  entityType: "product";
   id: string;
 }
 ```
 
 `id` - canonical ID сущности, которой владеет `catalog`. Это не listing doc id,
 не database row id listing service и не cursor.
-
-Для текущей модели, где bundle является sellable item внутри product domain,
-`entityType = "bundle"` все равно использует canonical ID, который `catalog`
-возвращает для `Bundle` reference в supergraph.
 
 ## Sellable item snapshot
 
@@ -370,7 +366,7 @@ Retry rules:
 
 | Catalog change | Required listing action |
 | --- | --- |
-| Product or bundle created | `listing.syncSellableItem` |
+| Product created | `listing.syncSellableItem` |
 | Title, description, SEO text or keywords changed | `listing.syncSellableItem` |
 | Published/unpublished/archive status changed | `listing.syncSellableItem` |
 | Product deleted | `listing.deleteSellableItem` |

@@ -205,7 +205,7 @@ CREATE TABLE listing.product_listing_index (
   CONSTRAINT product_listing_store_doc_product_unique
     UNIQUE (store_id, product_doc_id, product_id),
   CONSTRAINT chk_product_listing_entity_type
-    CHECK (entity_type IN ('product', 'bundle')),
+    CHECK (entity_type = 'product'),
   CONSTRAINT chk_product_listing_status
     CHECK (status IN ('published', 'draft')),
   CONSTRAINT chk_product_listing_doc_positive
@@ -222,7 +222,7 @@ CREATE TABLE listing.product_listing_index (
 | `store_id` | Tenant/store boundary. Используется в index prefixes и во всех listing queries. Root identity остается `product_id`, а composite child FKs используют `store_id` только для consistency checks. |
 | `product_id` | External canonical product id from upstream product source. Listing stores it as an opaque id and does not enforce an FK to upstream schema. |
 | `product_doc_id` | Stable integer id товара внутри project для roaring product bitmaps. Выделяется один раз и не переиспользуется после удаления product. |
-| `entity_type` | Тип sellable entity из indexing payload: `product` или `bundle`. |
+| `entity_type` | Тип sellable entity из indexing payload: только `product`. |
 | `vendor_id` | Vendor product-level filter. Это явный фильтр, не generic facet. |
 | `handle` | Storefront handle published product. Используется для read model diagnostics и возможной hydration опоры, но не заменяет canonical product data. |
 | `status` | Listing visibility state: `published` или `draft`. Published означает `published_at IS NOT NULL` и product не deleted. Deleted products должны удаляться из index. |

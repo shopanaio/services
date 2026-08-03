@@ -4,7 +4,7 @@ import {
   type ListingVariantTerm,
 } from "../../listing/variantTerms/index.js";
 
-export type ProductEntityType = "product" | "bundle";
+export type ProductEntityType = "product";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 export type ProductPostingField = "category" | "vendor" | "facet";
@@ -195,7 +195,7 @@ export function assertNonNegativeInteger(value: number, label: string): void {
 }
 
 export function assertProductEntityType(value: ProductEntityType): void {
-  if (value !== "product" && value !== "bundle") {
+  if (value !== "product") {
     throw new Error(`Unsupported product entity type: ${value}`);
   }
 }

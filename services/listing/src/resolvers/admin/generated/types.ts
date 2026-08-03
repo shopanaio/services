@@ -35,12 +35,6 @@ export type BooleanFilter = {
   _neq?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type Bundle = Listing & Node & {
-  __typename?: 'Bundle';
-  /** The Bundle global ID owned by Catalog. */
-  id: Scalars['ID']['output'];
-};
-
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -911,7 +905,7 @@ export type Listing = {
   id: Scalars['ID']['output'];
 };
 
-/** A connection to a mixed list of catalog listing items. */
+/** A connection to catalog products. */
 export type ListingConnection = {
   __typename?: 'ListingConnection';
   /** A list of edges. */
@@ -1653,6 +1647,22 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 export type Product = Listing & Node & {
   __typename?: 'Product';
   /** The Product global ID owned by Catalog. */
@@ -2218,8 +2228,8 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Listing: ( Bundle ) | ( Product );
-  Node: ( Bundle ) | ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( Product );
+  Listing: ( Product );
+  Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( Product );
   UserError: ( GenericUserError );
 }>;
 
@@ -2228,14 +2238,13 @@ export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   BooleanFilter: BooleanFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  Bundle: ResolverTypeWrapper<Bundle>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Facet: ResolverTypeWrapper<Facet>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
@@ -2321,6 +2330,8 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
   Product: ResolverTypeWrapper<Product>;
   Query: ResolverTypeWrapper<{}>;
   SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
@@ -2377,12 +2388,11 @@ export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
   BooleanFilter: BooleanFilter;
   Boolean: Scalars['Boolean']['output'];
-  Bundle: Bundle;
-  ID: Scalars['ID']['output'];
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
   Facet: Facet;
+  ID: Scalars['ID']['output'];
   String: Scalars['String']['output'];
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: FacetCreatePayload;
@@ -2497,12 +2507,6 @@ export type ResolversParentTypes = ResolversObject<{
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
   name: 'BigInt';
 }
-
-export type BundleResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Bundle'] = ResolversParentTypes['Bundle']> = ResolversObject<{
-  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Bundle']>, ParentType, ContextType>;
-
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -2705,7 +2709,7 @@ export interface JsonScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes
 }
 
 export type ListingResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Listing'] = ResolversParentTypes['Listing']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Bundle' | 'Product', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Product', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2803,7 +2807,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Bundle' | 'Facet' | 'FacetSwatch' | 'FacetValue' | 'Product', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Facet' | 'FacetSwatch' | 'FacetValue' | 'Product', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -3009,7 +3013,6 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
-  Bundle?: BundleResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
   Facet?: FacetResolvers<ContextType>;

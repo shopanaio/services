@@ -2,33 +2,13 @@ import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
-import type { Repository } from "../../repositories/Repository.js";
-import type {
-  ListingNodeReference,
-  ProductEntityType,
-} from "./ListingQueryTypes.js";
-
-export async function loadProductEntityTypeMap(
-  repository: Repository,
-  productIds: readonly string[]
-): Promise<Map<string, ProductEntityType>> {
-  const uniqueIds = [...new Set(productIds)];
-  if (uniqueIds.length === 0) {
-    return new Map();
-  }
-
-  const rows = await repository.productListingIndex.getByProductIds(uniqueIds);
-  return new Map(
-    rows.map((row) => [row.productId, row.entityType as ProductEntityType])
-  );
-}
+import type { ListingNodeReference } from "./ListingQueryTypes.js";
 
 export function toListingNodeReference(
-  productId: string,
-  entityType: ProductEntityType | undefined
+  productId: string
 ): ListingNodeReference {
   return {
-    __typename: entityType === "bundle" ? "Bundle" : "Product",
+    __typename: "Product",
     id: encodeGlobalIdByType(productId, GlobalIdEntity.Product),
   };
 }

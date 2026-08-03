@@ -59,10 +59,8 @@ export interface ListingQueryArgs {
   orderBy?: ListingOrderByInput | null;
 }
 
-export type ProductEntityType = "product" | "bundle";
-
 export type ListingNodeReference = {
-  __typename: "Bundle" | "Product";
+  __typename: "Product";
   id: string;
 };
 

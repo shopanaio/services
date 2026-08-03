@@ -14,7 +14,6 @@
 Catalog остается владельцем canonical entity details:
 
 - `Product`
-- `Bundle`
 - `Facet`
 - `FacetValue`
 - `Category`
@@ -60,7 +59,7 @@ interface Listing implements Node {
   priceRange: ProductPriceRange
 }
 
-"""A connection to a mixed list of catalog listing items."""
+"""A connection to catalog products."""
 type ListingConnection {
   """A list of edges."""
   edges: [ListingEdge!]!
@@ -86,13 +85,13 @@ type ListingEdge {
 владения:
 
 - `Listing` в listing service содержит только `id`;
-- `Product` и `Bundle` подключаются к `Listing` через federation references;
+- `Product` подключается к `Listing` через federation reference;
 - `ListingConnection` расширяется listing-owned `facets`;
 - canonical поля старого `Listing` (`kind`, `isPublished`, `handle`, `title`,
   `media`, `priceRange`) больше не находятся на `Listing`.
 
 `ProductPriceRange` не переносится в listing service. Этот тип используется
-canonical полями `Product.priceRange` и `Bundle.priceRange`, поэтому должен
+canonical полем `Product.priceRange`, поэтому должен
 остаться в catalog SDL, но быть вынесен из удаляемого `listing.graphql` catalog
 в catalog-owned SDL файл.
 
@@ -108,7 +107,7 @@ canonical полями `Product.priceRange` и `Bundle.priceRange`, поэтом
 - `ListingOrderField`;
 - generated `ListingOrderByInput`.
 
-Из `Product` и `Bundle` убрать реализацию `Listing`:
+Из `Product` убрать реализацию `Listing`:
 
 ```graphql
 # было
@@ -116,16 +115,8 @@ type Product implements Node & Listing @key(fields: "id") {
   id: ID!
 }
 
-type Bundle implements Node & Listing @key(fields: "id") {
-  id: ID!
-}
-
 # должно быть
 type Product implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type Bundle implements Node @key(fields: "id") {
   id: ID!
 }
 ```
@@ -144,8 +135,8 @@ type Bundle implements Node @key(fields: "id") {
 
 ## Federation prerequisite
 
-В listing response federation references нужны только для sellable item nodes:
-`Product` и `Bundle`. Оба типа уже объявлены в catalog admin SDL через
+В listing response federation references нужны только для product nodes.
+`Product` уже объявлен в catalog admin SDL через
 `@key(fields: "id")`.
 
 Facet UI contract в listing service строится как единая Shopify-like форма
@@ -166,28 +157,23 @@ shared admin SDL, либо оставить `FacetSwatch` catalog entity с `@ke
 | `Listing`, `ListingConnection`, `ListingEdge` | listing | native types |
 | Порядок товаров, cursors, `totalCount` | listing | native fields |
 | Facet items, порядок facet values, counts | listing | `ListingFacet`, `ListingFacetValue`, `count`, `input` |
-| `Product`, `Bundle` details | catalog | federation references |
+| `Product` details | catalog | federation references |
 | Catalog facet metadata | catalog | used by listing index/sync, not exposed as separate listing filter shape |
 | Category, Collection, Vendor, Tag, Option, Feature details | catalog | source data for listing facets/scopes |
 | Price, vendor и availability facets | listing | same `ListingFacet`/`ListingFacetValue` shape as other facets |
-| `Product.priceRange`, `Bundle.priceRange` | catalog | canonical product/bundle fields |
+| `Product.priceRange` | catalog | canonical product field |
 
 ## Global ID mapping
 
 Listing service должен декодировать входные scope global IDs и кодировать
-выходные product/bundle references теми же `GlobalIdEntity`, которые использует
+выходные product references теми же `GlobalIdEntity`, которые использует
 catalog.
 
 | GraphQL type | GlobalIdEntity |
 | --- | --- |
 | `Product` | `Product` |
-| `Bundle` | `Product` |
 | `Category` | `Category` |
 | `Collection` | `Collection` |
-
-Важно: `Bundle` сейчас является sellable item в product domain. Если catalog
-использует для bundle id `GlobalIdEntity.Product`, listing service должен
-сохранять тот же формат global ID.
 
 ## Контракт admin listing query
 
@@ -197,7 +183,7 @@ listing read API:
 - принимает scope, text query, locale, currency, facets, sort и Relay
   pagination arguments;
 - возвращает перенесенный `ListingConnection`;
-- `edges[].node` возвращает `Product` или `Bundle` reference в финальном
+- `edges[].node` возвращает `Product` reference в финальном
   порядке listing engine;
 - `facets[]` возвращает ordered facet items, включая product facets, vendor,
   price и availability;
@@ -227,9 +213,6 @@ query CategoryListing($categoryId: ID!, $first: Int!) {
         node {
           id
           ... on Product {
-            title
-          }
-          ... on Bundle {
             title
           }
         }
@@ -277,7 +260,7 @@ Pagination:
    - удалить `type ListingConnection`;
    - удалить `type ListingEdge`;
    - удалить `Category.listing(...)`;
-   - убрать `& Listing` из `Product` и `Bundle`.
+   - убрать `& Listing` из `Product`.
 
 2. Удалить catalog implementation старого listing read API:
    - `CategoryResolver.listing`;
@@ -293,7 +276,7 @@ Pagination:
 
 4. Добавить файл
    `services/listing/src/api/graphql-admin/schema/listing.graphql`:
-   - объявить `Product` и `Bundle` reference stubs через
+   - объявить `Product` reference stub через
      `extend type ... implements Listing @key(fields: "id", resolvable: false)`;
    - добавить перенесенные `Listing`, `ListingConnection`, `ListingEdge`;
    - добавить `extend type ListingQuery` с полем `listing`;
@@ -307,8 +290,7 @@ Pagination:
    - не ходить в catalog за деталями сущностей.
 
 6. Маппинг repository result в GraphQL:
-   - `productId + kind = BASE` -> `{ __typename: "Product", id }`;
-   - `productId + kind = BUNDLE` -> `{ __typename: "Bundle", id }`;
+   - `productId` -> `{ __typename: "Product", id }`;
    - facet metadata, value counts и selected state -> `ListingFacet`;
    - price range, vendor и availability aggregates -> `ListingFacet` с тем же
      `values[].input` contract;
@@ -319,7 +301,7 @@ Pagination:
    - listing service не владеет canonical Node entities;
    - `listingQuery.node` и `listingQuery.nodes` могут остаться no-op до
      появления listing-owned Node entities;
-   - canonical product/bundle node resolution остается в catalog.
+   - canonical product node resolution остается в catalog.
 
 8. Проверить composition:
    - после изменения SDL запустить schema build через shopana-cli;
@@ -338,11 +320,6 @@ listing service через shared GraphQL references.
 
 extend type Product implements Listing @key(fields: "id", resolvable: false) {
   """The Product global ID owned by Catalog."""
-  id: ID! @external
-}
-
-extend type Bundle implements Listing @key(fields: "id", resolvable: false) {
-  """The Bundle global ID owned by Catalog."""
   id: ID! @external
 }
 
@@ -461,7 +438,7 @@ interface Listing implements Node {
   id: ID!
 }
 
-"""A connection to a mixed list of catalog listing items."""
+"""A connection to catalog products."""
 type ListingConnection {
   """A list of edges."""
   edges: [ListingEdge!]!
@@ -537,12 +514,12 @@ type ListingFacetValue {
 - Catalog admin SDL больше не содержит `Listing`, `ListingConnection`,
   `ListingEdge`, `Category.listing`, `ListingWhereInput`, `ListingOrderField`,
   generated `ListingOrderByInput`.
-- `Product` и `Bundle` в catalog больше не реализуют `Listing`.
+- `Product` в catalog больше не реализует `Listing`.
 - `ProductPriceRange` остается в catalog и продолжает использоваться
-  canonical полями `Product.priceRange` и `Bundle.priceRange`.
+  canonical полем `Product.priceRange`.
 - Listing service владеет `Listing`, `ListingConnection`, `ListingEdge`.
 - `listingQuery.listing` не возвращает canonical presentation fields напрямую.
-- Product/Bundle details доступны через composed
+- Product details доступны через composed
   supergraph selection после federation hydration.
 - Порядок `edges`, `facets` и `facets.values` полностью
   задается listing service.

@@ -140,7 +140,7 @@ function validateSyncAction(
       message: "eventSequence must be a positive integer",
     });
   }
-  if (item.entityType !== "product" && item.entityType !== "bundle") {
+  if (item.entityType !== "product") {
     issues.push({
       code: "VALIDATION_FAILED",
       field: ["item", "entityType"],
@@ -232,6 +232,13 @@ function validateDeleteAction(
   action: Extract<ListingIndexQueuedAction, { type: "deleteSellableItem" }>,
   issues: ListingIndexValidationIssue[]
 ): void {
+  if (action.params.itemRef.entityType !== "product") {
+    issues.push({
+      code: "VALIDATION_FAILED",
+      field: ["itemRef", "entityType"],
+      message: "Unsupported sellable item entityType",
+    });
+  }
   if (!action.params.itemRef.id) {
     issues.push({
       code: "VALIDATION_FAILED",

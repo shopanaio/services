@@ -129,7 +129,7 @@ constants. The repository files import Drizzle models from
 ## Shared types
 
 ```ts
-export type ProductEntityType = "product" | "bundle";
+export type ProductEntityType = "product";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
 

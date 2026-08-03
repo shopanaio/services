@@ -10,10 +10,7 @@ import {
   type ListingQueryArgs,
 } from "./ListingQueryTypes.js";
 import { mapListingFacets } from "./listingFacetMapper.js";
-import {
-  loadProductEntityTypeMap,
-  toListingNodeReference,
-} from "./listingReferences.js";
+import { toListingNodeReference } from "./listingReferences.js";
 import {
   throwGraphqlListingError,
   toStorefrontListingInput,
@@ -65,14 +62,10 @@ export class ListingConnectionResolver extends ListingType<
 
   async edges() {
     const rows = (await this.$get("rows")) ?? [];
-    const entityTypes = await loadProductEntityTypeMap(
-      this.$ctx.kernel.getServices().repository,
-      rows.map((row) => row.productId)
-    );
 
     return rows.map((row) => ({
       cursor: row.cursor ?? "",
-      node: toListingNodeReference(row.productId, entityTypes.get(row.productId)),
+      node: toListingNodeReference(row.productId),
     }));
   }
 

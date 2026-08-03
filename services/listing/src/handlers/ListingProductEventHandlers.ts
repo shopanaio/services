@@ -179,7 +179,7 @@ export class ListingProductEventHandlers extends EventHandlers {
   private async enqueueDeleteWorkflow(event: ProductDeletedEvent): Promise<void> {
     const eventSequence = this.getEventSequence(event);
     const itemRef: Listing.ListingSellableItemRef = {
-      entityType: event.payload.entityType ?? "product",
+      entityType: "product",
       id: event.payload.productId,
     };
 

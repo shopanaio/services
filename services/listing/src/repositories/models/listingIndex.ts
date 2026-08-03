@@ -128,7 +128,7 @@ export const productListingIndex = listingSchema.table(
     ),
     check(
       "chk_product_listing_entity_type",
-      sql`${table.entityType} IN ('product', 'bundle')`,
+      sql`${table.entityType} = 'product'`,
     ),
     check(
       "chk_product_listing_status",

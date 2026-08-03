@@ -109,7 +109,7 @@ revision. Обновление любого из этих компонентов
    facet isolation.
 6. Variant filters пересекаются в variant space до projection в product space по
    contract `knowledge/vault/listing/facets-architecture.ru.md`.
-7. Typo-tolerant mode выбирается один раз для всего result bundle; нельзя смешивать
+7. Typo-tolerant mode выбирается один раз для всего result set; нельзя смешивать
    PRIMARY page с FUZZY total/facets.
    Пустой итоговый Listing после category/price/facet/OOS-фильтров не является
    основанием для переключения с PRIMARY на FUZZY.
@@ -688,7 +688,7 @@ attempt. Technical error не запускает FUZZY fallback.
 3. Только если PRIMARY bitmap пуст, typo tolerance включён и limits пройдены,
    построить FUZZY plan из того же primary plan и materialize-ить FUZZY bitmap.
 4. Создать один `SearchCandidateContract` выбранного mode и выполнить с ним
-   полный Listing bundle ровно один раз.
+   полный Listing result set ровно один раз.
 5. PRIMARY и FUZZY candidate sets не объединять.
 6. Continuation выполняет только mode cursor с committed configuration нового request
    и materialize-ит candidate bitmap этого mode без дополнительного probe.
@@ -1221,7 +1221,7 @@ lexemes запрещены.
 
 Metrics:
 
-- primary/fuzzy bundle latency;
+- primary/fuzzy result-set latency;
 - FTS and identifier candidate cardinality;
 - trigram vocabulary candidates, Levenshtein verified alternatives и expanded
   FTS candidate cardinality;
@@ -1372,7 +1372,7 @@ fallback запрещены.
    membership/rank через существующий `(store_id, search_vector)` GIN.
 5. Запускать FUZZY только когда PRIMARY search candidate bitmap после
    `publishedUniverse` пуст, но до category scope и пользовательских filters.
-6. После выбора mode выполнять полный result bundle один раз на том же request
+6. После выбора mode выполнять полный result set один раз на том же request
    context и immutable `SearchCandidateContract`.
 7. Добавить FUZZY cursor ordering и continuation semantics.
 8. Добавить timeout, candidate-work и dictionary-scan guardrails.

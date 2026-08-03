@@ -24,7 +24,7 @@ export interface ListingUpdateMeta {
   source: ListingUpdateSource;
 }
 
-export type ListingSellableItemEntityType = "product" | "bundle";
+export type ListingSellableItemEntityType = "product";
 
 export interface ListingSellableItemRef {
   entityType: ListingSellableItemEntityType;

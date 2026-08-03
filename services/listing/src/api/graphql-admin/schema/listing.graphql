@@ -5,11 +5,6 @@ extend type Product implements Node & Listing @key(fields: "id", resolvable: fal
   id: ID! @external
 }
 
-extend type Bundle implements Node & Listing @key(fields: "id", resolvable: false) {
-  """The Bundle global ID owned by Catalog."""
-  id: ID! @external
-}
-
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
@@ -101,7 +96,7 @@ interface Listing implements Node {
   id: ID!
 }
 
-"""A connection to a mixed list of catalog listing items."""
+"""A connection to catalog products."""
 type ListingConnection {
   """A list of edges."""
   edges: [ListingEdge!]!

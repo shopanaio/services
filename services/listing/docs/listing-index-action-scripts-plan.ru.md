@@ -945,8 +945,7 @@ Responsibilities:
 Responsibilities:
 
 - Конвертирует публичный snapshot в physical repository DTOs.
-- Мапит `entityType = "product"` в `kind = "BASE"`.
-- Мапит `entityType = "bundle"` в `kind = "BUNDLE"`.
+- Проверяет `entityType = "product"`.
 - Мапит `status = "published"` в listing `published`, остальные public
   statuses в `draft`, если item не удаляется.
 - Строит product aggregate stock из snapshot availability или variants.
