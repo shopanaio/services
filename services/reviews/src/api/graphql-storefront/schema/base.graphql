@@ -1,7 +1,15 @@
 type Query {
-  _reviews: Boolean
+  """Storefront capabilities and limits for reviews and product questions."""
+  reviewStoreConfiguration: ReviewStoreConfiguration
+
+  """Returns a review visible in the current storefront context."""
+  review(id: ID!): Review
+
+  """Returns a product question visible in the current storefront context."""
+  productQuestion(id: ID!): ProductQuestion
 }
 
 type Mutation {
+  """Reserved for storefront review, question, vote, and report commands."""
   _reviews: Boolean
 }

@@ -1,3 +1,4 @@
+"""Distribution of reviews across the five supported rating values."""
 type ReviewRatingBreakdown {
   rating1Count: Int!
   rating2Count: Int!
@@ -6,24 +7,36 @@ type ReviewRatingBreakdown {
   rating5Count: Int!
 }
 
+"""Published review aggregates for one product."""
 type ProductReviewSummary {
+  product: Product!
   reviewCount: Int!
   verifiedReviewCount: Int!
   mediaReviewCount: Int!
   averageRating: Float!
   ratingBreakdown: ReviewRatingBreakdown!
+  criteria: [ProductRatingCriterionSummary!]!
+  lastReviewedAt: DateTime
+  updatedAt: DateTime!
 }
 
 type ProductRatingCriterionSummary {
+  criterion: ReviewRatingCriterion!
   reviewCount: Int!
   averageRating: Float!
   ratingBreakdown: ReviewRatingBreakdown!
+  updatedAt: DateTime!
 }
 
+"""Published question and answer aggregates for one product."""
 type ProductQuestionSummary {
+  product: Product!
   questionCount: Int!
   answeredQuestionCount: Int!
   unansweredQuestionCount: Int!
   answerCount: Int!
   officialAnswerCount: Int!
+  lastQuestionAt: DateTime
+  lastAnsweredAt: DateTime
+  updatedAt: DateTime!
 }

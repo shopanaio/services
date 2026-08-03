@@ -1,0 +1,163 @@
+"""The concrete Reviews aggregate represented by a content node."""
+enum ReviewContentKind {
+  REVIEW
+  REVIEW_REPLY
+  PRODUCT_QUESTION
+  QUESTION_ANSWER
+}
+
+"""The public lifecycle state of customer-authored content."""
+enum ReviewContentStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+"""The identity class used to present a content author."""
+enum ReviewContentAuthorType {
+  CUSTOMER
+  GUEST
+  SELLER
+  STAFF
+  SYSTEM
+  EXTERNAL
+}
+
+enum ReviewModerationMode {
+  PREMODERATION
+  POSTMODERATION
+  AUTOMATED
+}
+
+enum ReviewDuplicatePolicy {
+  ONE_PER_PRODUCT
+  ONE_PER_ORDER_LINE
+  ALLOW_MULTIPLE
+}
+
+enum ReviewRatingCriterionTargetType {
+  PRODUCT
+  CATEGORY
+}
+
+enum ReviewTranslationSource {
+  HUMAN
+  MACHINE
+  IMPORT
+}
+
+enum ReviewPublicationStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  UNPUBLISHED
+  FAILED
+}
+
+enum ReviewVerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  REVOKED
+}
+
+enum ReviewNotificationChannel {
+  EMAIL
+  SMS
+  PUSH
+  IN_APP
+}
+
+enum ReviewRequestStatus {
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  SUBMITTED
+  EXPIRED
+  CANCELLED
+  FAILED
+}
+
+enum ReviewRequestEventType {
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  SUBMITTED
+  BOUNCED
+  COMPLAINED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum ProductQuestionSubscriptionStatus {
+  ACTIVE
+  PAUSED
+  UNSUBSCRIBED
+}
+
+enum ReviewContentVoteType {
+  LIKE
+  DISLIKE
+}
+
+enum ReviewContentReportReason {
+  SPAM
+  OFFENSIVE
+  HARASSMENT
+  HATE_SPEECH
+  FRAUD_OR_SCAM
+  PERSONAL_INFORMATION
+  ILLEGAL_CONTENT
+  INTELLECTUAL_PROPERTY
+  CONFLICT_OF_INTEREST
+  NOT_RELEVANT
+  OTHER
+}
+
+enum ReviewContentReportStatus {
+  OPEN
+  UNDER_REVIEW
+  ACTIONED
+  DISMISSED
+}
+
+enum ReviewModerationCaseStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  CANCELLED
+}
+
+enum ReviewModerationAction {
+  SUBMITTED
+  AUTO_FLAGGED
+  ASSIGNED
+  PUBLISHED
+  REJECTED
+  RESTORED
+  EDITED
+  REDACTED
+  DELETED
+}
+
+enum ReviewModerationVerdict {
+  PASS
+  REVIEW
+  BLOCK
+}
+
+enum ReviewExternalSyncDirection {
+  IMPORT
+  EXPORT
+  BIDIRECTIONAL
+}
+
+enum ReviewExternalSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  DISABLED
+}

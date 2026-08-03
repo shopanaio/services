@@ -1,19 +1,71 @@
 type ReviewStoreConfiguration implements Node @key(fields: "id") {
   id: ID!
+  reviewsEnabled: Boolean!
+  questionsEnabled: Boolean!
+  guestReviewsEnabled: Boolean!
+  guestQuestionsEnabled: Boolean!
+  customerAnswersEnabled: Boolean!
+  verifiedPurchaseRequired: Boolean!
+  reviewModerationMode: ReviewModerationMode!
+  questionModerationMode: ReviewModerationMode!
+  answerModerationMode: ReviewModerationMode!
+  reviewDuplicatePolicy: ReviewDuplicatePolicy!
+  reviewRequestsEnabled: Boolean!
+  reviewRequestDelayDays: Int!
+  reviewRequestExpiryDays: Int!
+  reviewEditWindowHours: Int!
+  questionEditWindowHours: Int!
+  answerEditWindowHours: Int!
+  maxReviewMediaCount: Int!
+  maxAnswersPerQuestion: Int!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""A localized rating dimension such as quality, fit, or value."""
 type ReviewRatingCriterion implements Node @key(fields: "id") {
   id: ID!
+  code: String!
+  defaultTitle: String!
+  defaultDescription: String
+  title: String!
+  description: String
+  weight: Float!
+  isRequired: Boolean!
+  isActive: Boolean!
+  appliesToAllProducts: Boolean!
+  sortIndex: Int!
+  translations: [ReviewRatingCriterionTranslation!]!
+  assignments: [ReviewRatingCriterionAssignment!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
+
+type ReviewRatingCriterionTranslation {
+  locale: LocaleCode!
+  title: String!
+  description: String
+}
+
+union ReviewRatingCriterionTarget = Product | Category
 
 type ReviewRatingCriterionAssignment implements Node @key(fields: "id") {
   id: ID!
+  criterion: ReviewRatingCriterion!
+  targetType: ReviewRatingCriterionTargetType!
+  target: ReviewRatingCriterionTarget!
+  isRequired: Boolean!
+  sortIndex: Int!
+  createdAt: DateTime!
 }
 
+"""A Relay connection to rating criteria applicable in the current context."""
 type ReviewRatingCriterionConnection {
   edges: [ReviewRatingCriterionEdge!]!
   nodes: [ReviewRatingCriterion!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewRatingCriterionEdge {

@@ -1,11 +1,23 @@
 type ReviewContentExternalReference implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  externalUrl: URL
+  direction: ReviewExternalSyncDirection!
+  syncStatus: ReviewExternalSyncStatus!
+  lastSyncedAt: DateTime
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewContentExternalReferenceConnection {
   edges: [ReviewContentExternalReferenceEdge!]!
   nodes: [ReviewContentExternalReference!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewContentExternalReferenceEdge {

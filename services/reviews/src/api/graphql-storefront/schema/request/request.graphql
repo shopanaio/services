@@ -1,18 +1,58 @@
+"""A customer-facing invitation to review a purchased product."""
 type ReviewRequest implements Node @key(fields: "id") {
   id: ID!
+  customer: Customer!
+  product: Product!
+  variant: ProductVariant
+  review: Review
+  channel: ReviewNotificationChannel!
+  status: ReviewRequestStatus!
+  locale: LocaleCode!
+  attemptCount: Int!
+  scheduledAt: DateTime!
+  sentAt: DateTime
+  deliveredAt: DateTime
+  openedAt: DateTime
+  submittedAt: DateTime
+  expiresAt: DateTime
+  events(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewRequestEventConnection!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewRequestEvent implements Node @key(fields: "id") {
   id: ID!
+  reviewRequest: ReviewRequest!
+  type: ReviewRequestEventType!
+  occurredAt: DateTime!
+  createdAt: DateTime!
 }
 
 type ReviewRequestConnection {
   edges: [ReviewRequestEdge!]!
   nodes: [ReviewRequest!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewRequestEdge {
   cursor: String!
   node: ReviewRequest!
+}
+
+type ReviewRequestEventConnection {
+  edges: [ReviewRequestEventEdge!]!
+  nodes: [ReviewRequestEvent!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewRequestEventEdge {
+  cursor: String!
+  node: ReviewRequestEvent!
 }

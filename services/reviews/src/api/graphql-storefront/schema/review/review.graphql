@@ -1,23 +1,81 @@
 type Review implements Node & ReviewContent @key(fields: "id") {
   id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: LocaleCode!
+  author: ReviewContentAuthor!
+  status: ReviewContentStatus!
+  revision: Int!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  viewerEngagement: ReviewContentViewerEngagement!
+
+  product: Product!
+  variant: ProductVariant
+  rating: Int!
+  ratings: [ReviewRating!]!
+  verificationStatus: ReviewVerificationStatus!
+  isVerifiedPurchase: Boolean!
+  isIncentivized: Boolean!
+  incentiveDisclosure: String
+  media: [ReviewMedia!]!
+  replies(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewReplyConnection!
 }
 
 type ReviewMedia implements Node @key(fields: "id") {
   id: ID!
+  review: Review!
+  file: File!
+  sortIndex: Int!
+  caption: String
+  status: ReviewContentStatus!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: LocaleCode!
+  author: ReviewContentAuthor!
+  status: ReviewContentStatus!
+  revision: Int!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  viewerEngagement: ReviewContentViewerEngagement!
+
+  review: Review!
+  isOfficial: Boolean!
+  sortIndex: Int!
 }
 
 type ReviewRating {
+  criterion: ReviewRatingCriterion!
   value: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""A Relay connection to product reviews."""
 type ReviewConnection {
   edges: [ReviewEdge!]!
   nodes: [Review!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewEdge {
@@ -29,6 +87,7 @@ type ReviewReplyConnection {
   edges: [ReviewReplyEdge!]!
   nodes: [ReviewReply!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewReplyEdge {

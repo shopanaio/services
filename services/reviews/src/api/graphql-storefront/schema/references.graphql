@@ -1,19 +1,88 @@
-type Product @key(fields: "id", resolvable: false) {
-  id: ID!
+extend type Product @key(fields: "id") {
+  id: ID! @external
+
+  """Published reviews for this product."""
+  reviews(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    rating: Int
+    verifiedOnly: Boolean = false
+    withMediaOnly: Boolean = false
+  ): ReviewConnection!
+
+  """Published review aggregates for this product."""
+  reviewSummary: ProductReviewSummary!
+
+  """Rating criteria applicable to this product in display order."""
+  reviewRatingCriteria(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewRatingCriterionConnection!
+
+  """Published questions for this product."""
+  questions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    answered: Boolean
+  ): ProductQuestionConnection!
+
+  """Published question and answer aggregates for this product."""
+  questionSummary: ProductQuestionSummary!
 }
 
-type ProductVariant @key(fields: "id", resolvable: false) {
-  id: ID!
+extend type ProductVariant @key(fields: "id") {
+  id: ID! @external
+
+  reviews(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewConnection!
+
+  questions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductQuestionConnection!
 }
 
-type Category @key(fields: "id", resolvable: false) {
-  id: ID!
+extend type Category @key(fields: "id", resolvable: false) {
+  id: ID! @external
 }
 
-type Customer @key(fields: "id", resolvable: false) {
-  id: ID!
+extend type Customer @key(fields: "id") {
+  id: ID! @external
+
+  reviews(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewConnection!
+
+  productQuestions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductQuestionConnection!
+
+  reviewRequests(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ReviewRequestConnection!
 }
 
-type File @key(fields: "id", resolvable: false) {
-  id: ID!
+extend type File @key(fields: "id", resolvable: false) {
+  id: ID! @external
 }

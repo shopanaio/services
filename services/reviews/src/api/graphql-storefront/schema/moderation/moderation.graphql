@@ -1,19 +1,120 @@
+"""A report submitted against storefront content."""
 type ReviewContentReport implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  reporterCustomer: Customer
+  reason: ReviewContentReportReason!
+  details: String
+  status: ReviewContentReportStatus!
+  resolvedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""A moderation case associated with content owned by the current customer."""
 type ReviewModerationCase implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  status: ReviewModerationCaseStatus!
+  priority: Int!
+  reasonCode: String!
+  dueAt: DateTime
+  resolutionCode: String
+  resolvedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
+"""An append-only public lifecycle event for moderated content."""
 type ReviewModerationEvent implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  moderationCase: ReviewModerationCase
+  action: ReviewModerationAction!
+  fromStatus: ReviewContentStatus
+  toStatus: ReviewContentStatus
+  reasonCode: String
+  isAutomated: Boolean!
+  createdAt: DateTime!
 }
 
+"""A revision of content owned by the current customer."""
 type ReviewContentRevision implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  revision: Int!
+  changeReason: String
+  createdAt: DateTime!
 }
 
+"""Automated moderation evidence associated with customer-owned content."""
 type ReviewModerationSignal implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  provider: String!
+  signalType: String!
+  score: Float
+  verdict: ReviewModerationVerdict!
+  modelVersion: String
+  createdAt: DateTime!
+}
+
+type ReviewContentReportConnection {
+  edges: [ReviewContentReportEdge!]!
+  nodes: [ReviewContentReport!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentReportEdge {
+  cursor: String!
+  node: ReviewContentReport!
+}
+
+type ReviewModerationCaseConnection {
+  edges: [ReviewModerationCaseEdge!]!
+  nodes: [ReviewModerationCase!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationCaseEdge {
+  cursor: String!
+  node: ReviewModerationCase!
+}
+
+type ReviewModerationEventConnection {
+  edges: [ReviewModerationEventEdge!]!
+  nodes: [ReviewModerationEvent!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationEventEdge {
+  cursor: String!
+  node: ReviewModerationEvent!
+}
+
+type ReviewContentRevisionConnection {
+  edges: [ReviewContentRevisionEdge!]!
+  nodes: [ReviewContentRevision!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewContentRevisionEdge {
+  cursor: String!
+  node: ReviewContentRevision!
+}
+
+type ReviewModerationSignalConnection {
+  edges: [ReviewModerationSignalEdge!]!
+  nodes: [ReviewModerationSignal!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ReviewModerationSignalEdge {
+  cursor: String!
+  node: ReviewModerationSignal!
 }

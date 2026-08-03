@@ -1,19 +1,77 @@
+"""Shared storefront contract for reviews, replies, questions, and answers."""
 interface ReviewContent implements Node {
   id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: LocaleCode!
+  author: ReviewContentAuthor!
+  status: ReviewContentStatus!
+  revision: Int!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  viewerEngagement: ReviewContentViewerEngagement!
+}
+
+"""Privacy-safe author snapshot rendered with storefront content."""
+type ReviewContentAuthor {
+  type: ReviewContentAuthorType!
+  customer: Customer
+  displayName: String!
+}
+
+"""Counters maintained for fast storefront rendering."""
+type ReviewContentMetrics {
+  likeCount: Int!
+  dislikeCount: Int!
+  mediaCount: Int!
+  childCount: Int!
+  officialChildCount: Int!
+  acceptedChildCount: Int!
+  lastChildAt: DateTime
+  updatedAt: DateTime!
+}
+
+"""Request-scoped engagement state for the current storefront visitor."""
+type ReviewContentViewerEngagement {
+  vote: ReviewContentVoteType
+  hasReported: Boolean!
 }
 
 type ReviewContentTranslation implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  locale: LocaleCode!
+  title: String
+  body: String!
+  source: ReviewTranslationSource!
+  status: ReviewContentStatus!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewContentPublication implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  channel: String!
+  locale: LocaleCode
+  status: ReviewPublicationStatus!
+  scheduledAt: DateTime
+  publishedAt: DateTime
+  unpublishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewContentConnection {
   edges: [ReviewContentEdge!]!
   nodes: [ReviewContent!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewContentEdge {

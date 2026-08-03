@@ -1,11 +1,17 @@
 type ReviewContentVote implements Node @key(fields: "id") {
   id: ID!
+  content: ReviewContent!
+  voterCustomer: Customer
+  type: ReviewContentVoteType!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ReviewContentVoteConnection {
   edges: [ReviewContentVoteEdge!]!
   nodes: [ReviewContentVote!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ReviewContentVoteEdge {

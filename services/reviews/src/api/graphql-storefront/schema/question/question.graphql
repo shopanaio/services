@@ -1,19 +1,69 @@
 type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
   id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: LocaleCode!
+  author: ReviewContentAuthor!
+  status: ReviewContentStatus!
+  revision: Int!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  viewerEngagement: ReviewContentViewerEngagement!
+
+  product: Product!
+  variant: ProductVariant
+  answers(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ProductQuestionAnswerConnection!
+  viewerSubscription: ProductQuestionSubscription
 }
 
 type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
   id: ID!
+  kind: ReviewContentKind!
+  title: String
+  body: String!
+  locale: LocaleCode!
+  author: ReviewContentAuthor!
+  status: ReviewContentStatus!
+  revision: Int!
+  publishedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  metrics: ReviewContentMetrics!
+  translations: [ReviewContentTranslation!]!
+  viewerEngagement: ReviewContentViewerEngagement!
+
+  question: ProductQuestion!
+  isOfficial: Boolean!
+  isAccepted: Boolean!
+  sortIndex: Int!
 }
 
 type ProductQuestionSubscription implements Node @key(fields: "id") {
   id: ID!
+  question: ProductQuestion!
+  subscriberCustomer: Customer
+  channel: ReviewNotificationChannel!
+  status: ProductQuestionSubscriptionStatus!
+  locale: LocaleCode!
+  lastNotifiedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type ProductQuestionConnection {
   edges: [ProductQuestionEdge!]!
   nodes: [ProductQuestion!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ProductQuestionEdge {
@@ -25,6 +75,7 @@ type ProductQuestionAnswerConnection {
   edges: [ProductQuestionAnswerEdge!]!
   nodes: [ProductQuestionAnswer!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type ProductQuestionAnswerEdge {
