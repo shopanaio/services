@@ -63,28 +63,6 @@ type UserError implements DisplayableError @shareable {
   message: String!
 }
 
-"""The input fields for identifying a contextualized buyer."""
-input BuyerInput {
-  companyLocationId: ID
-  customerAccessToken: String!
-}
-
-"""The input fields for visitor consent preferences."""
-input VisitorConsent {
-  analytics: Boolean
-  marketing: Boolean
-  preferences: Boolean
-  saleOfData: Boolean
-}
-
-"""Applies country, language, buyer, and visitor-consent context."""
-directive @inContext(
-  buyer: BuyerInput
-  country: CountryCode
-  language: LocaleCode
-  visitorConsent: VisitorConsent
-) on QUERY | MUTATION
-
 """CountryCode values supported by Shopify Storefront API 2026-07."""
 enum CountryCode {
   AC
