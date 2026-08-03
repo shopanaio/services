@@ -13,6 +13,7 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   metrics: ReviewContentMetrics!
   translations: [ReviewContentTranslation!]!
   viewerEngagement: ReviewContentViewerEngagement!
+  viewerCapabilities: ReviewContentViewerCapabilities!
 
   product: Product!
   variant: ProductVariant
@@ -57,6 +58,7 @@ type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   metrics: ReviewContentMetrics!
   translations: [ReviewContentTranslation!]!
   viewerEngagement: ReviewContentViewerEngagement!
+  viewerCapabilities: ReviewContentViewerCapabilities!
 
   review: Review!
   isOfficial: Boolean!
@@ -136,5 +138,28 @@ input ReviewCreateInput {
 """Result of submitting a product review."""
 type ReviewCreatePayload {
   review: Review
+  userErrors: [ReviewUserError!]!
+}
+
+"""Customer-editable fields of an existing review."""
+input ReviewUpdateInput {
+  reviewId: ID!
+  expectedRevision: Int!
+  content: ReviewContentEditInput
+  """New overall rating from 1 through 5."""
+  rating: Int
+  """Complete detailed criterion rating replacement when supplied."""
+  ratings: [ReviewRatingValueInput!]
+  """Complete media replacement when supplied. An empty list removes media."""
+  media: [ReviewMediaCreateInput!]
+}
+
+type ReviewUpdatePayload {
+  review: Review
+  userErrors: [ReviewUserError!]!
+}
+
+type ReviewDeletePayload {
+  deletedReviewId: ID
   userErrors: [ReviewUserError!]!
 }

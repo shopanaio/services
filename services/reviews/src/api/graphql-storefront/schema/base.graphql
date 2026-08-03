@@ -7,6 +7,15 @@ type Query {
 
   """Returns a product question visible in the current storefront context."""
   productQuestion(id: ID!): ProductQuestion
+
+  """Returns a published review reply by its global ID."""
+  reviewReply(id: ID!): ReviewReply
+
+  """Returns a published product-question answer by its global ID."""
+  productQuestionAnswer(id: ID!): ProductQuestionAnswer
+
+  """Returns a review request owned by the authenticated customer."""
+  reviewRequest(id: ID!): ReviewRequest
 }
 
 type Mutation {
@@ -19,6 +28,12 @@ type Mutation {
   """
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
 
+  """Updates a review owned by the authenticated customer within its edit window."""
+  reviewUpdate(input: ReviewUpdateInput!): ReviewUpdatePayload!
+
+  """Deletes a review owned by the authenticated customer within its edit window."""
+  reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
+
   """
   Submits a product question in the active storefront context.
 
@@ -28,6 +43,16 @@ type Mutation {
   productQuestionCreate(
     input: ProductQuestionCreateInput!
   ): ProductQuestionCreatePayload!
+
+  """Updates a product question owned by the authenticated customer."""
+  productQuestionUpdate(
+    input: ProductQuestionUpdateInput!
+  ): ProductQuestionUpdatePayload!
+
+  """Deletes a product question owned by the authenticated customer."""
+  productQuestionDelete(
+    input: ReviewContentDeleteInput!
+  ): ProductQuestionDeletePayload!
 
   """
   Adds a customer answer to an existing product question.
@@ -39,6 +64,21 @@ type Mutation {
     input: ProductQuestionAnswerCreateInput!
   ): ProductQuestionAnswerCreatePayload!
 
+  """Updates a question answer owned by the authenticated customer."""
+  productQuestionAnswerUpdate(
+    input: ProductQuestionAnswerUpdateInput!
+  ): ProductQuestionAnswerUpdatePayload!
+
+  """Deletes a question answer owned by the authenticated customer."""
+  productQuestionAnswerDelete(
+    input: ReviewContentDeleteInput!
+  ): ProductQuestionAnswerDeletePayload!
+
+  """Creates, updates, pauses, or removes the viewer's question subscription."""
+  productQuestionSubscriptionSet(
+    input: ProductQuestionSubscriptionSetInput!
+  ): ProductQuestionSubscriptionSetPayload!
+
   """
   Sets the current viewer's LIKE or DISLIKE vote on storefront review content.
 
@@ -49,6 +89,11 @@ type Mutation {
   reviewContentVoteSet(
     input: ReviewContentVoteSetInput!
   ): ReviewContentVoteSetPayload!
+
+  """Removes the current viewer's LIKE or DISLIKE vote."""
+  reviewContentVoteRemove(
+    input: ReviewContentVoteRemoveInput!
+  ): ReviewContentVoteRemovePayload!
 
   """
   Reports storefront review content for moderation.

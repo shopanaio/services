@@ -103,6 +103,30 @@ enum ReviewContentVoteType {
   DISLIKE
 }
 
+"""Customer-facing orderings supported by review connections."""
+enum ReviewSort {
+  NEWEST
+  OLDEST
+  HIGHEST_RATING
+  LOWEST_RATING
+  MOST_HELPFUL
+}
+
+"""Customer-facing orderings supported by product-question connections."""
+enum ProductQuestionSort {
+  NEWEST
+  OLDEST
+  MOST_HELPFUL
+  MOST_ANSWERED
+}
+
+"""Customer-facing orderings supported by question-answer connections."""
+enum ProductQuestionAnswerSort {
+  NEWEST
+  OLDEST
+  MOST_HELPFUL
+}
+
 enum ReviewContentReportReason {
   SPAM
   OFFENSIVE

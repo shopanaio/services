@@ -13,6 +13,7 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
   metrics: ReviewContentMetrics!
   translations: [ReviewContentTranslation!]!
   viewerEngagement: ReviewContentViewerEngagement!
+  viewerCapabilities: ReviewContentViewerCapabilities!
 
   product: Product!
   variant: ProductVariant
@@ -21,6 +22,7 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
     after: Cursor
     last: Int
     before: Cursor
+    sort: ProductQuestionAnswerSort = NEWEST
   ): ProductQuestionAnswerConnection!
   viewerSubscription: ProductQuestionSubscription
 }
@@ -40,6 +42,7 @@ type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
   metrics: ReviewContentMetrics!
   translations: [ReviewContentTranslation!]!
   viewerEngagement: ReviewContentViewerEngagement!
+  viewerCapabilities: ReviewContentViewerCapabilities!
 
   question: ProductQuestion!
   isOfficial: Boolean!
@@ -113,5 +116,55 @@ input ProductQuestionAnswerCreateInput {
 type ProductQuestionAnswerCreatePayload {
   productQuestion: ProductQuestion
   answer: ProductQuestionAnswer
+  userErrors: [ReviewUserError!]!
+}
+
+"""Customer-editable fields of an existing product question."""
+input ProductQuestionUpdateInput {
+  productQuestionId: ID!
+  expectedRevision: Int!
+  content: ReviewContentEditInput!
+}
+
+type ProductQuestionUpdatePayload {
+  productQuestion: ProductQuestion
+  userErrors: [ReviewUserError!]!
+}
+
+type ProductQuestionDeletePayload {
+  deletedProductQuestionId: ID
+  userErrors: [ReviewUserError!]!
+}
+
+"""Customer-editable fields of an existing question answer."""
+input ProductQuestionAnswerUpdateInput {
+  answerId: ID!
+  expectedRevision: Int!
+  content: ReviewContentEditInput!
+}
+
+type ProductQuestionAnswerUpdatePayload {
+  answer: ProductQuestionAnswer
+  userErrors: [ReviewUserError!]!
+}
+
+type ProductQuestionAnswerDeletePayload {
+  deletedAnswerId: ID
+  userErrors: [ReviewUserError!]!
+}
+
+"""
+Desired notification state for the current customer's product-question
+subscription. The operation creates or updates the viewer's subscription.
+"""
+input ProductQuestionSubscriptionSetInput {
+  productQuestionId: ID!
+  subscribed: Boolean!
+  channel: ReviewNotificationChannel = EMAIL
+  locale: LocaleCode
+}
+
+type ProductQuestionSubscriptionSetPayload {
+  subscription: ProductQuestionSubscription
   userErrors: [ReviewUserError!]!
 }

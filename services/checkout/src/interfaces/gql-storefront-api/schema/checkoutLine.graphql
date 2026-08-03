@@ -332,16 +332,13 @@ input CheckoutLineReplaceInput {
 
 enum CheckoutLinePurchaseType {
   ONE_TIME
-  SUBSCRIPTION
 }
 
 input CheckoutLinePurchaseInput {
   type: CheckoutLinePurchaseType!
-  sellingPlanId: ID
 }
 
 """Purchase mode captured in the committed checkout snapshot."""
 type CheckoutLinePurchase {
   type: CheckoutLinePurchaseType!
-  sellingPlanId: ID
 }

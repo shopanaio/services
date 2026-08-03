@@ -34,3 +34,15 @@ type ReviewContentVoteSetPayload {
   vote: ReviewContentVote
   userErrors: [ReviewUserError!]!
 }
+
+"""Input for removing the current viewer's reaction from review content."""
+input ReviewContentVoteRemoveInput {
+  contentId: ID!
+}
+
+"""Result of removing the current viewer's reaction."""
+type ReviewContentVoteRemovePayload {
+  content: ReviewContent
+  removedVoteId: ID
+  userErrors: [ReviewUserError!]!
+}

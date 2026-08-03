@@ -10,6 +10,7 @@ extend type Product @key(fields: "id") {
     rating: Int
     verifiedOnly: Boolean = false
     withMediaOnly: Boolean = false
+    sort: ReviewSort = NEWEST
   ): ReviewConnection!
 
   """Published review aggregates for this product."""
@@ -30,6 +31,7 @@ extend type Product @key(fields: "id") {
     last: Int
     before: Cursor
     answered: Boolean
+    sort: ProductQuestionSort = NEWEST
   ): ProductQuestionConnection!
 
   """Published question and answer aggregates for this product."""
@@ -44,6 +46,7 @@ extend type ProductVariant @key(fields: "id") {
     after: Cursor
     last: Int
     before: Cursor
+    sort: ReviewSort = NEWEST
   ): ReviewConnection!
 
   questions(
@@ -51,6 +54,7 @@ extend type ProductVariant @key(fields: "id") {
     after: Cursor
     last: Int
     before: Cursor
+    sort: ProductQuestionSort = NEWEST
   ): ProductQuestionConnection!
 }
 
@@ -66,6 +70,7 @@ extend type Customer @key(fields: "id") {
     after: Cursor
     last: Int
     before: Cursor
+    sort: ReviewSort = NEWEST
   ): ReviewConnection!
 
   productQuestions(
@@ -73,6 +78,7 @@ extend type Customer @key(fields: "id") {
     after: Cursor
     last: Int
     before: Cursor
+    sort: ProductQuestionSort = NEWEST
   ): ProductQuestionConnection!
 
   reviewRequests(

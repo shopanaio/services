@@ -1,3 +1,4 @@
+"""The lifecycle state of an order visible to its customer."""
 enum OrderStatus {
   DRAFT
   ACTIVE
@@ -5,119 +6,378 @@ enum OrderStatus {
   CANCELLED
 }
 
+"""The delivery method selected for an order delivery group."""
+enum OrderDeliveryMethodType {
+  LOCAL
+  NONE
+  PICK_UP
+  PICKUP_POINT
+  RETAIL
+  SHIPPING
+}
+
+"""The customer interaction model of the selected payment method."""
+enum OrderPaymentFlow {
+  ONLINE
+  OFFLINE
+  ON_DELIVERY
+}
+
+"""Customer-selected reason for cancelling an order."""
+enum OrderCancellationReason {
+  CHANGED_MIND
+  DUPLICATE_ORDER
+  INCORRECT_ITEMS
+  INCORRECT_ADDRESS
+  PAYMENT_ISSUE
+  OTHER
+}
+
+"""Customer-selected reason for returning an order line."""
+enum OrderReturnReason {
+  CHANGED_MIND
+  DAMAGED
+  DEFECTIVE
+  INCORRECT_ITEM
+  NOT_AS_DESCRIBED
+  SIZE_OR_FIT
+  OTHER
+}
+
+"""Customer-visible lifecycle of a return request."""
+enum OrderReturnRequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  CANCELLED
+  IN_TRANSIT
+  RECEIVED
+  COMPLETED
+}
+
+"""All monetary calculations captured when the order was placed."""
 type OrderCost {
-  """
-  Total value of items before any discounts.
-  """
   subtotalAmount: Money!
-  """
-  Total discount from both item-level and checkout-level promotions.
-  """
   totalDiscountAmount: Money!
-  """
-  Total tax amount applied to the checkout.
-  """
   totalTaxAmount: Money!
-  """
-  Total shipping cost (only MERCHANT_COLLECTED payments).
-  """
   totalShippingAmount: Money!
-  """
-  Final amount to be paid, including item cost, shipping, and taxes.
-  """
   totalAmount: Money!
 }
 
-type Order {
-  """
-  A globally-unique ID.
-  """
+"""Customer identity snapshot captured by the order."""
+type OrderCustomerIdentity {
+  customer: Customer
+  email: Email
+  phone: String
+  countryCode: CountryCode
+  firstName: String
+  middleName: String
+  lastName: String
+}
+
+"""A promotional code captured when the order was placed."""
+type OrderPromoCode {
+  code: String!
+  discountType: String!
+  value: Decimal!
+  provider: String!
+  conditions: JSON
+  appliedAt: DateTime!
+}
+
+"""Immutable delivery destination captured for an order."""
+type OrderDeliveryAddress implements Node @key(fields: "id") {
   id: ID!
-  """
-  Order status.
-  """
-  status: OrderStatus!
-  """
-  A unique numeric identifier for the order for use by shop owner and customer.
-  """
-  number: BigInt!
-  """
-  Cost breakdown for the order.
-  """
-  cost: OrderCost!
-  """
-  Order items.
-  """
+  address1: String
+  address2: String
+  city: String
+  countryCode: CountryCode
+  provinceCode: String
+  postalCode: String
+}
+
+"""Immutable recipient details captured for an order delivery group."""
+type OrderRecipient {
+  firstName: String
+  middleName: String
+  lastName: String
+  email: Email
+  phone: String
+}
+
+"""Delivery method selected for an order delivery group."""
+type OrderDeliveryMethod {
+  code: String!
+  providerCode: String!
+  type: OrderDeliveryMethodType!
+  paymentModel: String
+}
+
+"""A delivery group and its immutable order snapshot."""
+type OrderDeliveryGroup implements Node @key(fields: "id") {
+  id: ID!
   lines: [OrderLine!]!
+  address: OrderDeliveryAddress
+  recipient: OrderRecipient
+  method: OrderDeliveryMethod
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Payment method selected when the order was placed."""
+type OrderPaymentMethod {
+  code: String!
+  providerCode: String!
+  flow: OrderPaymentFlow!
+}
+
+"""A customer-visible order in the active storefront context."""
+type Order implements Node @key(fields: "id") {
+  id: ID!
+  status: OrderStatus!
+  """Human-readable order number unique within the store."""
+  number: BigInt!
+  channelCode: String
+  localeCode: LocaleCode
+  currencyCode: CurrencyCode!
+  customerIdentity: OrderCustomerIdentity!
+  customerNote: String
+  cost: OrderCost!
+  totalQuantity: Int!
+  lines: [OrderLine!]!
+  appliedPromoCodes: [OrderPromoCode!]!
+  deliveryGroups: [OrderDeliveryGroup!]!
+  paymentMethod: OrderPaymentMethod
+  """Server-evaluated post-order actions available to the current customer."""
+  selfService: OrderSelfService!
+  """Return requests created for this order, newest first."""
+  returnRequests(first: Int = 20, after: Cursor): OrderReturnRequestConnection!
+  placedAt: DateTime
+  closedAt: DateTime
+  expiresAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type OrderLineCost {
-  """
-  The original list price per unit before any discounts.
-  """
   unitCompareAtPrice: Money!
-
-  """
-  The current price per unit before discounts are applied (may differ from compareAt price if on sale).
-  """
   unitPrice: Money!
-
-  """
-  Discount amount applied to a line.
-  """
   discountAmount: Money!
-
-  """
-  Total cost of all units before discounts.
-  """
   subtotalAmount: Money!
-
-  """
-  Total tax amount applied to the checkout line.
-  """
   taxAmount: Money!
-
-  """
-  Total cost of this line (all units), after discounts and taxes.
-  """
   totalAmount: Money!
 }
 
-type OrderLine @key(fields: "id") {
-  """
-  A globally-unique ID.
-  """
+"""Immutable customer-visible snapshot of one purchased line."""
+type OrderLine implements Node @key(fields: "id") {
   id: ID!
-  """
-  Quantity of the item being purchased.
-  """
+  title: String!
+  sku: String
+  imageUrl: URL
   quantity: Int!
-  """
-  Cost breakdown for the order line.
-  """
   cost: OrderLineCost!
-  """
-  ID of the purchasable.
-  """
   purchasableId: ID!
-  """
-  Purchasable snapshot data at the time of adding to checkout.
-  """
   purchasableSnapshot: JSON!
-  """
-  Creation date.
-  """
+  """Current return eligibility after previous returns and policy limits."""
+  returnEligibility: OrderLineReturnEligibility!
   createdAt: DateTime!
-  """
-  Last updated date.
-  """
   updatedAt: DateTime!
+}
+
+type OrderConnection implements Connection {
+  edges: [OrderEdge!]!
+  nodes: [Order!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OrderEdge {
+  cursor: Cursor!
+  node: Order!
+}
+
+"""Availability of one post-order action in the current order state."""
+type OrderSelfServiceAction {
+  available: Boolean!
+  """Stable machine-readable explanation when the action is unavailable."""
+  unavailableReasonCode: String
+  unavailableReason: String
+  expiresAt: DateTime
+}
+
+"""Post-order capabilities evaluated for the authenticated customer."""
+type OrderSelfService {
+  cancel: OrderSelfServiceAction!
+  reorder: OrderSelfServiceAction!
+  requestReturn: OrderSelfServiceAction!
+}
+
+"""Return eligibility for one purchased order line."""
+type OrderLineReturnEligibility {
+  eligible: Boolean!
+  maxQuantity: Int!
+  unavailableReasonCode: String
+  unavailableReason: String
+  expiresAt: DateTime
+}
+
+"""One line requested for return."""
+type OrderReturnRequestLine {
+  orderLine: OrderLine!
+  quantity: Int!
+  reason: OrderReturnReason!
+  note: String
+}
+
+"""A customer-created request to return one or more order lines."""
+type OrderReturnRequest implements Node @key(fields: "id") {
+  id: ID!
+  order: Order!
+  status: OrderReturnRequestStatus!
+  revision: Int!
+  lines: [OrderReturnRequestLine!]!
+  customerNote: String
+  canCancel: Boolean!
+  requestedAt: DateTime!
+  resolvedAt: DateTime
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type OrderReturnRequestConnection implements Connection {
+  edges: [OrderReturnRequestEdge!]!
+  nodes: [OrderReturnRequest!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OrderReturnRequestEdge {
+  cursor: Cursor!
+  node: OrderReturnRequest!
+}
+
+"""Customer-facing post-order mutation error."""
+type OrderUserError implements DisplayableError {
+  field: [String!]
+  message: String!
+  code: String!
+  retryable: Boolean!
+}
+
+input OrderCancelInput {
+  orderId: ID!
+  expectedOrderUpdatedAt: DateTime!
+  idempotencyKey: String!
+  reason: OrderCancellationReason!
+  note: String
+}
+
+type OrderCancelPayload {
+  order: Order
+  userErrors: [OrderUserError!]!
+}
+
+"""Optional quantity override for one line copied into a reorder checkout."""
+input OrderReorderLineInput {
+  orderLineId: ID!
+  quantity: Int!
+}
+
+input OrderReorderInput {
+  orderId: ID!
+  idempotencyKey: String!
+  """
+  Lines to copy. When omitted, every currently purchasable order line is used.
+  """
+  lines: [OrderReorderLineInput!]
+}
+
+"""An order line that could not be copied into the new checkout."""
+type OrderReorderSkippedLine {
+  orderLine: OrderLine!
+  code: String!
+  message: String!
+}
+
+type OrderReorderPayload {
+  checkout: Checkout
+  skippedLines: [OrderReorderSkippedLine!]!
+  userErrors: [OrderUserError!]!
+}
+
+input OrderReturnRequestLineInput {
+  orderLineId: ID!
+  quantity: Int!
+  reason: OrderReturnReason!
+  note: String
+}
+
+input OrderReturnRequestCreateInput {
+  orderId: ID!
+  expectedOrderUpdatedAt: DateTime!
+  idempotencyKey: String!
+  lines: [OrderReturnRequestLineInput!]!
+  customerNote: String
+}
+
+type OrderReturnRequestCreatePayload {
+  order: Order
+  returnRequest: OrderReturnRequest
+  userErrors: [OrderUserError!]!
+}
+
+input OrderReturnRequestCancelInput {
+  returnRequestId: ID!
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+type OrderReturnRequestCancelPayload {
+  returnRequest: OrderReturnRequest
+  userErrors: [OrderUserError!]!
+}
+
+type Query {
+  """
+  Returns an order owned by the authenticated customer.
+
+  Customer ownership and store scope are resolved from trusted storefront
+  context. An inaccessible order is returned as null.
+  """
+  order(id: ID!): Order
+
+  """Returns a return request owned by the authenticated customer."""
+  orderReturnRequest(id: ID!): OrderReturnRequest
+}
+
+type Mutation {
+  """Cancels an eligible order owned by the authenticated customer."""
+  orderCancel(input: OrderCancelInput!): OrderCancelPayload!
+
+  """Creates a new checkout from currently purchasable lines of an order."""
+  orderReorder(input: OrderReorderInput!): OrderReorderPayload!
+
+  """Creates a return request for eligible quantities of purchased lines."""
+  orderReturnRequestCreate(
+    input: OrderReturnRequestCreateInput!
+  ): OrderReturnRequestCreatePayload!
+
+  """Cancels a return request while its current state permits cancellation."""
+  orderReturnRequestCancel(
+    input: OrderReturnRequestCancelInput!
+  ): OrderReturnRequestCancelPayload!
 }
 
 extend type Customer @key(fields: "id") {
   id: ID! @external
-  """
-  List of the customer's orders.
-  """
-  orders: [Order!]!
+  """Orders owned by this authenticated customer, newest first by default."""
+  orders(
+    first: Int = 20
+    after: Cursor
+    statuses: [OrderStatus!]
+  ): OrderConnection!
+}
+
+extend type Checkout @key(fields: "id") {
+  id: ID! @external
 }

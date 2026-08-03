@@ -28,6 +28,22 @@ extend type Category @key(fields: "id") {
 
 type Query {
   """
+  Returns published products from the GLOBAL listing scope.
+
+  The result uses the locale, currency, market, channel, and publication rules
+  from the active storefront context. Facets configured for SEARCH scope are
+  exposed because this request has no category context. The default sort is
+  NEWEST; MANUAL and RELEVANCE are not valid for this entry point.
+  """
+  products(
+    """Number of products to return; must be between 1 and 100."""
+    first: Int = 20
+    after: Cursor
+    filters: [ListingFilterInput!]
+    sort: ListingSort = NEWEST
+  ): ProductConnection!
+
+  """
   Search published products.
 
   Search uses the locale and currency from the active storefront context. The
@@ -147,22 +163,22 @@ enum ListingSort {
   """Search relevance. Available when a query is active in any scope."""
   RELEVANCE
 
-  """Published date descending. Available in category and query contexts."""
+  """Published date descending. Available in global, category, and query contexts."""
   NEWEST
 
-  """Creation date descending. Available in category and query contexts."""
+  """Creation date descending. Available in global, category, and query contexts."""
   CREATED_AT
 
-  """Localized title ascending. Available in category and query contexts."""
+  """Localized title ascending. Available in global, category, and query contexts."""
   TITLE_ASC
 
-  """Localized title descending. Available in category and query contexts."""
+  """Localized title descending. Available in global, category, and query contexts."""
   TITLE_DESC
 
-  """Storefront price ascending. Available in category and query contexts."""
+  """Storefront price ascending. Available in global, category, and query contexts."""
   PRICE_ASC
 
-  """Storefront price descending. Available in category and query contexts."""
+  """Storefront price descending. Available in global, category, and query contexts."""
   PRICE_DESC
 }
 

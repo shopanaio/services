@@ -14,6 +14,7 @@ interface ReviewContent implements Node {
   metrics: ReviewContentMetrics!
   translations: [ReviewContentTranslation!]!
   viewerEngagement: ReviewContentViewerEngagement!
+  viewerCapabilities: ReviewContentViewerCapabilities!
 }
 
 """Privacy-safe author snapshot rendered with storefront content."""
@@ -39,6 +40,18 @@ type ReviewContentMetrics {
 type ReviewContentViewerEngagement {
   vote: ReviewContentVoteType
   hasReported: Boolean!
+}
+
+"""
+Actions the current storefront viewer may perform on this content.
+
+Ownership, moderation state, and the configured edit window are already
+applied, so storefront clients do not need to reproduce authorization rules.
+"""
+type ReviewContentViewerCapabilities {
+  canUpdate: Boolean!
+  canDelete: Boolean!
+  editableUntil: DateTime
 }
 
 type ReviewContentTranslation implements Node @key(fields: "id") {
@@ -121,4 +134,17 @@ input ReviewContentSubmissionInput {
   author: ReviewSubmissionAuthorInput
   """Customer-authored body text, limited to 5,000 characters."""
   body: String!
+}
+
+"""Customer-editable text fields shared by reviews, questions, and answers."""
+input ReviewContentEditInput {
+  title: String
+  body: String
+  locale: LocaleCode
+}
+
+"""Optimistic input used to delete content owned by the current customer."""
+input ReviewContentDeleteInput {
+  id: ID!
+  expectedRevision: Int!
 }
