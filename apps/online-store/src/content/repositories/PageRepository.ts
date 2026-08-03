@@ -1,19 +1,43 @@
+import { and, eq, inArray, isNotNull, lte, sql } from "drizzle-orm";
 import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNotNull,
-  lte,
-  sql,
-} from "drizzle-orm";
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { BaseRepository } from "./BaseRepository.js";
 import {
+  pageListView,
   pages,
   type NewPageModel,
   type PageModel,
 } from "./models/index.js";
 import type { OnlineStoreScope, PageRecord } from "./types.js";
+import { createGlobalIdWhereFieldMapper } from "./global-id-where-mappers.js";
+
+export const pageRelayQuery = createRelayQuery(
+  createQuery(pageListView)
+    .include(["id"])
+    .mapWhereField(
+      "id",
+      createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStorePage),
+    )
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "onlineStorePage", tieBreaker: "id" },
+);
+
+export type PageRelayInput = InferRelayInput<typeof pageRelayQuery>;
+
+export interface PageConnectionResult {
+  readonly edges: ReadonlyArray<{
+    readonly cursor: string;
+    readonly nodeId: string;
+  }>;
+  readonly pageInfo: PageInfo;
+  readonly totalCount: number;
+}
 
 export interface CreatePageInput {
   readonly handle: string;
@@ -82,13 +106,42 @@ export class PageRepository extends BaseRepository {
     return rows[0] ? mapPage(rows[0]) : null;
   }
 
-  async list(scope: OnlineStoreScope): Promise<readonly PageRecord[]> {
-    const rows = await this.connection
-      .select()
-      .from(pages)
-      .where(this.pageScope(scope))
-      .orderBy(asc(pages.createdAt), asc(pages.id));
-    return Object.freeze(rows.map(mapPage));
+  async getConnection(
+    scope: OnlineStoreScope,
+    args: PageRelayInput,
+    locale: string,
+  ): Promise<PageConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+    const mergedWhere: PageRelayInput["where"] = {
+      _and: [
+        { installationId: { _eq: scope.installationId } },
+        { storeId: { _eq: scope.storeId } },
+        { deletedAt: { _is: null } },
+        { locale: { _eq: locale } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const input: PageRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      pageRelayQuery.execute(this.connection, input),
+      pageRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({
+        cursor,
+        nodeId: node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 
   async getByIds(

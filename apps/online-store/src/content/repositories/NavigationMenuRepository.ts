@@ -1,14 +1,45 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
+import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { BaseRepository } from "./BaseRepository.js";
 import {
+  navigationMenuListView,
   navigationMenus,
   type NavigationMenuModel,
   type NewNavigationMenuModel,
 } from "./models/index.js";
-import type {
-  NavigationMenuRecord,
-  OnlineStoreScope,
-} from "./types.js";
+import type { NavigationMenuRecord, OnlineStoreScope } from "./types.js";
+import { createGlobalIdWhereFieldMapper } from "./global-id-where-mappers.js";
+
+export const navigationMenuRelayQuery = createRelayQuery(
+  createQuery(navigationMenuListView)
+    .include(["id"])
+    .mapWhereField(
+      "id",
+      createGlobalIdWhereFieldMapper(GlobalIdEntity.OnlineStoreNavigationMenu),
+    )
+    .maxLimit(100)
+    .defaultLimit(20),
+  { name: "onlineStoreNavigationMenu", tieBreaker: "id" },
+);
+
+export type NavigationMenuRelayInput = InferRelayInput<
+  typeof navigationMenuRelayQuery
+>;
+
+export interface NavigationMenuConnectionResult {
+  readonly edges: ReadonlyArray<{
+    readonly cursor: string;
+    readonly nodeId: string;
+  }>;
+  readonly pageInfo: PageInfo;
+  readonly totalCount: number;
+}
 
 export interface CreateNavigationMenuInput {
   readonly handle: string;
@@ -59,15 +90,40 @@ export class NavigationMenuRepository extends BaseRepository {
     return rows[0] ? mapMenu(rows[0]) : null;
   }
 
-  async list(
+  async getConnection(
     scope: OnlineStoreScope,
-  ): Promise<readonly NavigationMenuRecord[]> {
-    const rows = await this.connection
-      .select()
-      .from(navigationMenus)
-      .where(this.menuScope(scope))
-      .orderBy(asc(navigationMenus.createdAt), asc(navigationMenus.id));
-    return Object.freeze(rows.map(mapMenu));
+    args: NavigationMenuRelayInput,
+  ): Promise<NavigationMenuConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+    const mergedWhere: NavigationMenuRelayInput["where"] = {
+      _and: [
+        { installationId: { _eq: scope.installationId } },
+        { storeId: { _eq: scope.storeId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const input: NavigationMenuRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      navigationMenuRelayQuery.execute(this.connection, input),
+      navigationMenuRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({
+        cursor,
+        nodeId: node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 
   async getByIds(

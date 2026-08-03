@@ -78,27 +78,6 @@ input OnlineStorePageDeleteInput {
   expectedRevision: Int
 }
 
-input OnlineStorePageWhereInput {
-  handleContains: String
-  isPublished: Boolean
-}
-
-enum OnlineStorePageOrderField {
-  HANDLE
-  CREATED_AT
-  UPDATED_AT
-}
-
-enum OnlineStoreSortDirection {
-  ASC
-  DESC
-}
-
-input OnlineStorePageOrderByInput {
-  field: OnlineStorePageOrderField!
-  direction: OnlineStoreSortDirection!
-}
-
 type OnlineStorePageConnection {
   edges: [OnlineStorePageEdge!]!
   pageInfo: PageInfo!

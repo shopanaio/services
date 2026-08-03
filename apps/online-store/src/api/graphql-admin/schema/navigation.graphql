@@ -87,23 +87,6 @@ input OnlineStoreNavigationMenuItemDeleteInput {
   expectedRevision: Int
 }
 
-input OnlineStoreNavigationMenuWhereInput {
-  handleContains: String
-  nameContains: String
-}
-
-enum OnlineStoreNavigationMenuOrderField {
-  HANDLE
-  NAME
-  CREATED_AT
-  UPDATED_AT
-}
-
-input OnlineStoreNavigationMenuOrderByInput {
-  field: OnlineStoreNavigationMenuOrderField!
-  direction: OnlineStoreSortDirection!
-}
-
 type OnlineStoreNavigationMenuConnection {
   edges: [OnlineStoreNavigationMenuEdge!]!
   pageInfo: PageInfo!
