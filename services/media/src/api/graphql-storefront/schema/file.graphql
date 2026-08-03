@@ -24,7 +24,7 @@ input ImageTransformInput {
 }
 
 """An image resource with URL, dimensions, and transformation options."""
-type Image {
+type Image @key(fields: "id") {
   altText: String
   height: Int
   id: ID
