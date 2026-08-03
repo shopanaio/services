@@ -2,7 +2,7 @@
 # external-video, and 3D-model fields are selected through inline fragments on
 # the concrete Media implementations.
 extend interface Media {
-  id: ID! @external
+  id: ID!
 }
 
 """An ordered media item registered on a product."""

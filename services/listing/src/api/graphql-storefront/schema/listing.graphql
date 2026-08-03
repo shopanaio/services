@@ -26,7 +26,7 @@ extend type Category @key(fields: "id") {
 
 # ---- Listing entry points ------------------------------------------------------
 
-extend type Query {
+type Query {
   """
   Search published products.
 
@@ -97,7 +97,7 @@ Exactly one field must be provided. Different filter kinds are combined with
 AND. Repeated values of the same filter are combined with OR. Variant facets,
 price, and availability are evaluated against the same variant.
 """
-input ListingFilterInput @oneOf {
+input ListingFilterInput {
   facet: FacetFilterInput
   vendorId: ID
   price: PriceRangeFilterInput

@@ -671,21 +671,6 @@ enum CountryCode {
   NC
 
   """
-  Marshall Islands
-  """
-  MH
-
-  """
-  Micronesia
-  """
-  FM
-
-  """
-  Palau
-  """
-  PW
-
-  """
   Maldives
   """
   MV
@@ -1002,8 +987,54 @@ enum CountryCode {
   """
   VG
 
-  """
-  US Virgin Islands
-  """
+  AC
+  AI
+  AN
+  BL
+  BQ
+  BV
+  CC
+  CK
+  CX
+  FK
+  GF
+  GI
+  GP
+  GS
+  HK
+  HM
+  IO
+  KI
+  KY
+  LY
+  MF
+  MO
+  MQ
+  MS
+  NF
+  NR
+  NU
+  PF
+  PM
+  PN
+  RE
+  SH
+  SJ
+  SO
+  ST
+  SX
+  TA
+  TC
+  TF
+  TK
+  TV
+  TW
+  UM
+  WF
+  YT
+  ZZ
+  MH
+  FM
+  PW
   VI
 }

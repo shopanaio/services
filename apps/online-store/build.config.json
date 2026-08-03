@@ -5,6 +5,13 @@
   "graphql": {
     "admin": [
       "src/api/graphql-admin/schema/**/*.graphql"
+    ],
+    "storefront": [
+      "src/api/graphql-storefront/schema/**/*.graphql",
+      "../../packages/storefront-graphql/graphql/foundation.graphql",
+      "../../packages/shared-references/graphql/shared-currency.graphql",
+      "../../packages/shared-references/graphql/shared-locale.graphql",
+      "../../packages/shared-references/graphql/shared-units.graphql"
     ]
   },
   "migrations": {
@@ -17,6 +24,26 @@
     {
       "include": "src/api/graphql-admin/schema/**/*.graphql",
       "outDir": "dist/graphql/admin"
+    },
+    {
+      "include": "src/api/graphql-storefront/schema/**/*.graphql",
+      "outDir": "dist/graphql/storefront"
+    },
+    {
+      "include": "../../packages/storefront-graphql/graphql/*.graphql",
+      "outDir": "dist/graphql/storefront"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/shared-currency*.graphql",
+      "outDir": "dist/graphql/storefront"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/shared-locale*.graphql",
+      "outDir": "dist/graphql/storefront"
+    },
+    {
+      "include": "../../packages/shared-references/graphql/shared-units*.graphql",
+      "outDir": "dist/graphql/storefront"
     },
     {
       "include": "migrations/**/*",

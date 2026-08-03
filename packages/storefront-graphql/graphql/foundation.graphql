@@ -331,4 +331,8 @@ enum CountryCode {
   ZM
   ZW
   ZZ
+  MH
+  FM
+  PW
+  VI
 }

@@ -7,7 +7,14 @@
  */
 
 import { buildSubgraphSchema, printSubgraphSchema } from "@apollo/subgraph";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from "fs";
 import { glob } from "glob";
 import { gql } from "graphql-tag";
 import { join } from "path";
@@ -98,7 +105,11 @@ async function findGraphQLFiles(servicePath: string, patterns: string[]): Promis
 }
 
 async function exportSubgraph(config: SubgraphConfig): Promise<boolean> {
+  const outputDir = join(federationDir, "schema");
+  const outputPath = join(outputDir, `${config.name}.graphql`);
+
   if (!existsSync(config.servicePath)) {
+    if (existsSync(outputPath)) unlinkSync(outputPath);
     console.warn(`⚠️  ${config.name}: service not found`);
     return false;
   }
@@ -106,6 +117,7 @@ async function exportSubgraph(config: SubgraphConfig): Promise<boolean> {
   const schemaFiles = await findGraphQLFiles(config.servicePath, config.patterns);
 
   if (schemaFiles.length === 0) {
+    if (existsSync(outputPath)) unlinkSync(outputPath);
     console.warn(`⚠️  ${config.name}: no schema files`);
     return false;
   }
@@ -118,15 +130,13 @@ async function exportSubgraph(config: SubgraphConfig): Promise<boolean> {
     const schema = buildSubgraphSchema(modules);
     const sdl = printSubgraphSchema(schema);
 
-    const outputDir = join(federationDir, "schema");
     mkdirSync(outputDir, { recursive: true });
-
-    const outputPath = join(outputDir, `${config.name}.graphql`);
     writeFileSync(outputPath, sdl, "utf-8");
 
     console.log(`✅ ${config.name} (${schemaFiles.length} files)`);
     return true;
   } catch (error: any) {
+    if (existsSync(outputPath)) unlinkSync(outputPath);
     console.error(`❌ ${config.name}: ${error.message}`);
     return false;
   }
@@ -139,6 +149,10 @@ export async function exportSchemas() {
   console.log("📋 Exporting subgraph schemas\n");
 
   const subgraphs = discoverSubgraphs();
+  const schemaDir = join(federationDir, "schema");
+
+  rmSync(schemaDir, { recursive: true, force: true });
+  mkdirSync(schemaDir, { recursive: true });
 
   let success = 0;
   let failed = 0;

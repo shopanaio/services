@@ -15,6 +15,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "fs";
 import { glob } from "glob";
@@ -172,6 +173,10 @@ async function main() {
   console.log("📋 Exporting subgraph schemas\n");
 
   const allResults: SubgraphResult[] = [];
+  const schemaDir = join(FEDERATION_ROOT, "schema");
+
+  rmSync(schemaDir, { recursive: true, force: true });
+  mkdirSync(schemaDir, { recursive: true });
 
   // Discover and process all services and hosted Apps.
   for (const root of [
