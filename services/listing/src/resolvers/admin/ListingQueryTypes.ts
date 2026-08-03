@@ -1,7 +1,7 @@
 export const DEFAULT_LISTING_PAGE_SIZE = 20;
 export const MAX_LISTING_PAGE_SIZE = 100;
 
-export type ListingScopeKind = "SEARCH" | "CATEGORY";
+export type ListingScopeKind = "GLOBAL" | "CATEGORY";
 export type ListingSortBy =
   | "MANUAL"
   | "RELEVANCE"

@@ -125,6 +125,9 @@ test.describe('Listing API automatic indexing', () => {
 
     const colorRedFilter = facetValueInput(snapshot.facets, facets[0].facetSlug, 'red');
     const sizeMFilter = facetValueInput(snapshot.facets, facets[1].facetSlug, 'm');
+    const globalFilteredProducts = nextProducts.filter(
+      (_product, index) => nextDefinitions[index].options[facets[0].sourceSlug] === 'red',
+    );
     const filteredProducts = nextProducts.filter(
       (_product, index) => nextDefinitions[index].options[facets[0].sourceSlug] === 'red'
         && nextDefinitions[index].options[facets[1].sourceSlug] === 'm',
@@ -142,6 +145,12 @@ test.describe('Listing API automatic indexing', () => {
         [facets[1].facetSlug]: ['m'],
       },
       facets: [colorRedFilter, sizeMFilter],
+    });
+
+    await expectGlobalListingSnapshot(api, {
+      facets: [colorRedFilter],
+      orderBy: { by: 'NAME', direction: 'asc' },
+      productIds: globalFilteredProducts.map((product) => product.id),
     });
 
     await expectSearchListingSnapshot(api, {
@@ -1464,7 +1473,7 @@ async function expectSearchListingSnapshot(
       first: 50,
       locale: 'en',
       currency: 'USD',
-      scope: { kind: 'SEARCH' },
+      scope: { kind: 'GLOBAL' },
       query: expected.query,
       facets: expected.facets,
       orderBy: { by: 'RELEVANCE' },
@@ -1486,6 +1495,32 @@ async function expectSearchListingSnapshot(
     startCursor: cursors[0] ?? null,
     endCursor: cursors.at(-1) ?? null,
   });
+}
+
+async function expectGlobalListingSnapshot(
+  api: Api,
+  expected: {
+    facets: ApiListingProductFilter[];
+    orderBy: { by: 'NAME'; direction: 'asc' };
+    productIds: string[];
+  },
+): Promise<void> {
+  const { data } = await api.admin.query('listing-api/Listing', {
+    variables: {
+      first: 50,
+      locale: 'en',
+      currency: 'USD',
+      scope: { kind: 'GLOBAL' },
+      facets: expected.facets,
+      orderBy: expected.orderBy,
+    },
+  });
+  const listing = data.listingQuery.listing;
+
+  expect(listing.totalCount).toBe(expected.productIds.length);
+  expect(listing.edges.map((edge) => edge.node.id).sort()).toEqual(
+    [...expected.productIds].sort(),
+  );
 }
 
 async function readListingSnapshot(

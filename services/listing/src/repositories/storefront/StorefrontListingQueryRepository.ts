@@ -581,7 +581,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return scope.manualSortScopeId ?? scope.categoryId;
-      case "search":
+      case "global":
         throw new StorefrontRepositoryValidationError(
           "Manual sort requires category scope"
         );

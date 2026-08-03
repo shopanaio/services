@@ -20,6 +20,9 @@ scalar DateTime
 """An arbitrary-precision signed decimal number."""
 scalar Decimal
 
+"""An email address."""
+scalar Email
+
 """A string containing HTML code."""
 scalar HTML
 

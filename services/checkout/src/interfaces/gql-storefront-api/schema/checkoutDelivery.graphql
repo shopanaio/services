@@ -131,6 +131,12 @@ input CheckoutDeliveryRecipientsAddInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   List of recipients to be added for delivery groups.
   """
@@ -146,6 +152,12 @@ input CheckoutDeliveryRecipientsUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   List of updates for recipients.
   """
@@ -160,6 +172,12 @@ input CheckoutDeliveryRecipientsRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Identifiers of delivery groups whose recipients should be removed.
@@ -199,6 +217,12 @@ input CheckoutDeliveryAddressesAddInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   List of delivery addresses to be added.
   """
@@ -229,6 +253,12 @@ input CheckoutDeliveryAddressesUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   List of updates for delivery addresses.
   """
@@ -243,6 +273,12 @@ input CheckoutDeliveryAddressesRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Identifiers of delivery addresses to be removed.
@@ -259,6 +295,12 @@ input CheckoutDeliveryMethodUpdateInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Identifier of the delivery group for which the delivery method is selected.
@@ -329,6 +371,11 @@ input CheckoutDeliveryAddressInput {
   lastName: String
 
   """
+  Phone number for delivery.
+  """
+  phone: String
+
+  """
   Data associated with the delivery address.
   """
   data: JSON
@@ -342,6 +389,21 @@ type CheckoutDeliveryAddress {
   Unique identifier for the delivery address.
   """
   id: ID
+
+  """Recipient first name captured with this destination."""
+  firstName: String
+
+  """Recipient middle name captured with this destination."""
+  middleName: String
+
+  """Recipient last name captured with this destination."""
+  lastName: String
+
+  """Contact email captured with this destination."""
+  email: Email
+
+  """Contact phone captured with this destination."""
+  phone: String
 
   """
   Primary address line.

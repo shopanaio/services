@@ -694,7 +694,7 @@ async function expectPaginatedSearchListing(
               after,
               locale: 'en',
               currency: 'USD',
-              scope: { kind: 'SEARCH' },
+              scope: { kind: 'GLOBAL' },
               query: expected.query,
               facets: expected.facets,
               orderBy: expected.orderBy,

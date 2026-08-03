@@ -205,26 +205,20 @@ function normalizeListingScope(
   scope: ListingScopeInput | null,
   query: string | null | undefined
 ): StorefrontListingScope {
-  const kind = scope?.kind ?? (query?.trim() ? "SEARCH" : null);
+  const kind = scope?.kind ?? (query?.trim() ? "GLOBAL" : null);
   const categoryId = scope?.categoryId ?? null;
 
   if (!kind) {
     throw new ListingResolverInputError(
-      "Listing scope requires CATEGORY or a non-empty search query",
+      "Listing scope requires GLOBAL, CATEGORY, or a non-empty search query",
       ["scope"]
     );
   }
 
   switch (kind) {
-    case "SEARCH":
+    case "GLOBAL":
       assertNoScopeIds(categoryId);
-      if (!query?.trim()) {
-        throw new ListingResolverInputError(
-          "SEARCH listing scope requires a non-empty query",
-          ["query"]
-        );
-      }
-      return { kind: "search" };
+      return { kind: "global" };
     case "CATEGORY":
       if (!categoryId) {
         throw new ListingResolverInputError(
@@ -301,7 +295,7 @@ function normalizePageSize(args: ListingQueryArgs): number {
 function assertNoScopeIds(categoryId: string | null): void {
   if (categoryId) {
     throw new ListingResolverInputError(
-      "SEARCH listing scope does not accept scope IDs",
+      "GLOBAL listing scope does not accept scope IDs",
       ["scope"]
     );
   }

@@ -92,7 +92,7 @@ function scopeIdFor(scope: StorefrontListingScope): string {
   switch (scope.kind) {
     case "category":
       return scope.categoryId;
-    case "search":
+    case "global":
       return ZERO_UUID;
   }
 }

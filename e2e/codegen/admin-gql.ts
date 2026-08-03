@@ -8663,7 +8663,7 @@ export type ApiListingQueryNodesArgs = {
 };
 
 export type ApiListingScopeInput = {
-  /** Category global ID. Required when kind is CATEGORY. */
+  /** Category global ID. Required for CATEGORY and forbidden for GLOBAL. */
   categoryId?: InputMaybe<Scalars['ID']['input']>;
   /** Scope kind for the listing request. */
   kind: ListingScopeKind;
@@ -8671,7 +8671,7 @@ export type ApiListingScopeInput = {
 
 export type ListingScopeKind =
   | 'CATEGORY'
-  | 'SEARCH';
+  | 'GLOBAL';
 
 export type ApiListingSearchMutation = {
   __typename?: 'ListingSearchMutation';

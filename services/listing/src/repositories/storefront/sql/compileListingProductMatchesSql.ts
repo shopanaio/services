@@ -384,7 +384,7 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
           AND p.value_key = ${request.scopeId}
       )`)}
     )`;
-  } else if (request.scopeKind === "search") {
+  } else if (request.scopeKind === "global") {
     scopeBitmap = compilePublishedProductBitmapSql(request);
   } else {
     return emptyRoaringBitmapSql();

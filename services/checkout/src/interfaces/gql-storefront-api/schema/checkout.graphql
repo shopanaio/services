@@ -74,6 +74,15 @@ type Checkout implements Node @key(fields: "id") {
   """
   id: ID!
 
+  """Canonical sales channel used by pricing and eligibility rules."""
+  channelCode: String!
+
+  """Locale used by checkout calculation and customer-facing messages."""
+  localeCode: LocaleCode!
+
+  """Display and settlement currency of this checkout snapshot."""
+  currencyCode: CurrencyCode!
+
   """Optimistic concurrency version of the committed checkout."""
   version: Int!
 
@@ -111,13 +120,17 @@ type Checkout implements Node @key(fields: "id") {
   """
   customerNote: String
 
+  """Billing address used by payment providers and the resulting order."""
+  billingAddress: CheckoutBillingAddress
+
   """
   Quantity of the item being purchased.
   """
   totalQuantity: Int!
 
   """
-  List of items in the checkout (paginated).
+  Ordered root items in the checkout. Bundle components are exposed through
+  CheckoutLine.children.
   """
   lines: [CheckoutLine!]!
 
@@ -191,7 +204,7 @@ input CheckoutCreateInput {
   """
   Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru")
   """
-  localeCode: String!
+  localeCode: LocaleCode!
   """
   Display currency code for all items. ISO 4217 (3 letters, e.g., "USD", "EUR")
   """
@@ -226,29 +239,24 @@ type CheckoutIssue {
   retryable: Boolean!
 }
 
-type CheckoutFieldError {
-  """
-  The field that caused the error.
-  """
-  field: String!
-  """
-  The error message.
-  """
+"""A customer-facing checkout mutation error safe to display in storefronts."""
+type CheckoutUserError implements DisplayableError {
+  """Path to the input field associated with the error, when available."""
+  field: [String!]
+  """Human-readable error message."""
   message: String!
+  """Stable machine-readable error code."""
+  code: String!
+  """Whether retrying the same request may succeed without changing input."""
+  retryable: Boolean!
 }
 
-"""
-Payload returned after creating a checkout.
-"""
-type CheckoutCreatePayload {
-  """
-  The newly created checkout.
-  """
+"""Uniform result returned by every mutation that changes a checkout."""
+type CheckoutMutationPayload {
+  """The committed checkout snapshot, or null when the mutation failed."""
   checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
+  """Validation, concurrency, and business errors produced by the operation."""
+  userErrors: [CheckoutUserError!]!
 }
 
 type Query {
@@ -256,150 +264,173 @@ type Query {
   Get a checkout by its ID.
   """
   checkout(id: ID!): Checkout
+
+  """
+  Returns the latest durable result of a checkout placement.
+
+  This query is suitable for restoring state after a payment-provider redirect
+  and for polling asynchronous payment completion.
+  """
+  checkoutPlacement(id: ID!): PlaceOrderPayload
 }
 
 type Mutation {
   """
   Creates a new checkout.
   """
-  checkoutCreate(input: CheckoutCreateInput!): Checkout!
+  checkoutCreate(input: CheckoutCreateInput!): CheckoutMutationPayload!
 
   """
   Adds an item to an existing checkout.
   """
-  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutLinesAddPayload!
+  checkoutLinesAdd(input: CheckoutLinesAddInput!): CheckoutMutationPayload!
 
   """
   Updates the quantity of a specific checkout item.
   """
   checkoutLinesUpdate(
     input: CheckoutLinesUpdateInput!
-  ): CheckoutLinesUpdatePayload!
+  ): CheckoutMutationPayload!
 
   """
   Replaces one checkout line with another by merging quantities and removing the source line.
   """
   checkoutLinesReplace(
     input: CheckoutLinesReplaceInput!
-  ): CheckoutLinesReplacePayload!
+  ): CheckoutMutationPayload!
 
   """
   Removes a single item from the checkout.
   """
   checkoutLinesDelete(
     input: CheckoutLinesDeleteInput!
-  ): CheckoutLinesDeletePayload!
+  ): CheckoutMutationPayload!
 
   """
   Clears all items from a checkout.
   """
   checkoutLinesClear(
     input: CheckoutLinesClearInput!
-  ): CheckoutLinesClearPayload!
+  ): CheckoutMutationPayload!
 
   """
   Updates customer identification data associated with the checkout
-  (email, customerId and if necessary country/language for calculations).
+  while authenticated customer ownership is resolved from trusted context.
   """
   checkoutCustomerIdentityUpdate(
     input: CheckoutCustomerIdentityUpdateInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Updates the customer note attached to the checkout (delivery instructions, etc.).
   """
-  checkoutCustomerNoteUpdate(input: CheckoutCustomerNoteUpdateInput!): Checkout!
+  checkoutCustomerNoteUpdate(
+    input: CheckoutCustomerNoteUpdateInput!
+  ): CheckoutMutationPayload!
 
   """
   Updates the language/locale of the checkout (affects localization and formatting).
   """
-  checkoutLanguageCodeUpdate(input: CheckoutLanguageCodeUpdateInput!): Checkout!
+  checkoutLanguageCodeUpdate(
+    input: CheckoutLanguageCodeUpdateInput!
+  ): CheckoutMutationPayload!
 
   """
   Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR").
   """
-  checkoutCurrencyCodeUpdate(input: CheckoutCurrencyCodeUpdateInput!): Checkout!
+  checkoutCurrencyCodeUpdate(
+    input: CheckoutCurrencyCodeUpdateInput!
+  ): CheckoutMutationPayload!
+
+  """Sets, replaces, or clears the billing address for the checkout."""
+  checkoutBillingAddressUpdate(
+    input: CheckoutBillingAddressUpdateInput!
+  ): CheckoutMutationPayload!
 
   """
   Adds one or more delivery addresses to the checkout (supports multi-shipping).
   """
   checkoutDeliveryAddressesAdd(
     input: CheckoutDeliveryAddressesAddInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Updates previously added delivery addresses (e.g., correcting postal code or city).
   """
   checkoutDeliveryAddressesUpdate(
     input: CheckoutDeliveryAddressesUpdateInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Removes one or more delivery addresses previously attached to the checkout.
   """
   checkoutDeliveryAddressesRemove(
     input: CheckoutDeliveryAddressesRemoveInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Selects or changes the delivery method for the entire checkout or specific address.
   """
   checkoutDeliveryMethodUpdate(
     input: CheckoutDeliveryMethodUpdateInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Adds recipients to delivery groups.
   """
   checkoutDeliveryRecipientsAdd(
     input: CheckoutDeliveryRecipientsAddInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Updates recipients for delivery groups.
   """
   checkoutDeliveryRecipientsUpdate(
     input: CheckoutDeliveryRecipientsUpdateInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Removes recipients from delivery groups.
   """
   checkoutDeliveryRecipientsRemove(
     input: CheckoutDeliveryRecipientsRemoveInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Applies a promo code/coupon to the checkout.
   """
-  checkoutPromoCodeAdd(input: CheckoutPromoCodeAddInput!): Checkout!
+  checkoutPromoCodeAdd(
+    input: CheckoutPromoCodeAddInput!
+  ): CheckoutMutationPayload!
 
   """
   Removes a previously applied promo code/coupon from the checkout.
   """
-  checkoutPromoCodeRemove(input: CheckoutPromoCodeRemoveInput!): Checkout!
+  checkoutPromoCodeRemove(
+    input: CheckoutPromoCodeRemoveInput!
+  ): CheckoutMutationPayload!
 
   """
   Creates a new checkout tag.
   """
-  checkoutTagCreate(input: CheckoutTagCreateInput!): Checkout!
+  checkoutTagCreate(input: CheckoutTagCreateInput!): CheckoutMutationPayload!
 
   """
   Updates a checkout tag.
   """
-  checkoutTagUpdate(input: CheckoutTagUpdateInput!): Checkout!
+  checkoutTagUpdate(input: CheckoutTagUpdateInput!): CheckoutMutationPayload!
 
   """
   Deletes a checkout tag.
   """
-  checkoutTagDelete(input: CheckoutTagDeleteInput!): Checkout!
+  checkoutTagDelete(input: CheckoutTagDeleteInput!): CheckoutMutationPayload!
 
   """
   Selects or changes the payment method for the checkout.
   """
   checkoutPaymentMethodUpdate(
     input: CheckoutPaymentMethodUpdateInput!
-  ): Checkout!
+  ): CheckoutMutationPayload!
 
   """
   Places a committed checkout through the durable order placement workflow.
@@ -417,6 +448,12 @@ input CheckoutCustomerIdentityUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   Customer's email address. If specified, will be linked to the checkout.
   """
@@ -432,12 +469,6 @@ input CheckoutCustomerIdentityUpdateInput {
   ISO 3166-1 alpha-2.
   """
   countryCode: CountryCode
-
-  """
-  Customer identifier in external/internal system.
-  Used to link the checkout with an existing customer.
-  """
-  customerId: ID
 
   """
   First name of the customer.
@@ -464,6 +495,12 @@ input CheckoutCustomerNoteUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   Text of the customer note (delivery instructions, etc.).
   Empty value clears the note.
@@ -479,6 +516,12 @@ input CheckoutLanguageCodeUpdateInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
@@ -496,10 +539,61 @@ input CheckoutCurrencyCodeUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """
   Currency code according to ISO 4217 (e.g., "USD", "EUR").
   """
   currencyCode: CurrencyCode!
+}
+
+"""Billing address captured independently from delivery destinations."""
+type CheckoutBillingAddress {
+  firstName: String
+  middleName: String
+  lastName: String
+  companyName: String
+  address1: String
+  address2: String
+  city: String
+  countryCode: CountryCode
+  provinceCode: String
+  postalCode: String
+  email: Email
+  phone: String
+  data: JSON
+}
+
+"""Input fields for a checkout billing address."""
+input CheckoutBillingAddressInput {
+  firstName: String
+  middleName: String
+  lastName: String
+  companyName: String
+  address1: String
+  address2: String
+  city: String
+  countryCode: CountryCode
+  provinceCode: String
+  postalCode: String
+  email: Email
+  phone: String
+  data: JSON
+}
+
+"""Input for replacing or clearing the checkout billing address."""
+input CheckoutBillingAddressUpdateInput {
+  checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+  """New address. Passing null clears the current billing address."""
+  billingAddress: CheckoutBillingAddressInput
 }
 
 """
@@ -510,6 +604,12 @@ input CheckoutPromoCodeAddInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Text code of the coupon/promo code.
@@ -525,6 +625,12 @@ input CheckoutPromoCodeRemoveInput {
   Identifier of the checkout on which the operation is performed.
   """
   checkoutId: ID!
+
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 
   """
   Text code of the coupon/promo code to be cancelled.
@@ -554,6 +660,10 @@ input CheckoutTagCreateInput {
   Checkout identifier.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   Tag configuration.
   """
@@ -568,6 +678,10 @@ input CheckoutTagUpdateInput {
   Checkout identifier.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   Tag identifier (global ID).
   """
@@ -590,6 +704,10 @@ input CheckoutTagDeleteInput {
   Checkout identifier.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   Tag identifier (global ID).
   """

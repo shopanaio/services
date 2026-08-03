@@ -25,6 +25,9 @@ enum ChildPriceType {
   OVERRIDE
 }
 
+"""The catalog entity purchased by a checkout line."""
+union Purchasable = ProductVariant
+
 """
 Price adjustment configuration applied to a child line item.
 """
@@ -88,6 +91,9 @@ type CheckoutLine implements Node @key(fields: "id") {
   """
   children: [CheckoutLine!]!
 
+  """Parent bundle line. Null for a root checkout line."""
+  parent: CheckoutLine
+
   """
   Exact component item selected for this child line. Null for root lines.
   """
@@ -97,6 +103,15 @@ type CheckoutLine implements Node @key(fields: "id") {
   ID of the purchasable.
   """
   purchasableId: ID!
+
+  """Federated catalog object represented by purchasableId."""
+  purchasable: Purchasable!
+
+  """Purchase mode and selected selling plan captured for this line."""
+  purchase: CheckoutLinePurchase!
+
+  """Customer-visible checkout attributes captured for this line."""
+  attributes: JSON!
   """
   Optional tag assigned to this checkout line.
   """
@@ -201,6 +216,10 @@ input CheckoutLinesAddInput {
   ID of the checkout.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   List of checkout items to add.
   """
@@ -215,6 +234,10 @@ input CheckoutLinesUpdateInput {
   ID of the checkout.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   List of checkout items to update.
   """
@@ -244,6 +267,10 @@ input CheckoutLinesDeleteInput {
   ID of the checkout.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   IDs of the lines to remove.
   """
@@ -258,34 +285,10 @@ input CheckoutLinesClearInput {
   ID of the checkout to clear.
   """
   checkoutId: ID!
-}
-
-"""
-Payload returned after adding an item to the checkout.
-"""
-type CheckoutLinesAddPayload {
-  """
-  The updated checkout.
-  """
-  checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
-}
-
-"""
-Payload returned after updating a checkout item's quantity.
-"""
-type CheckoutLinesUpdatePayload {
-  """
-  The updated checkout.
-  """
-  checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
 }
 
 """
@@ -298,6 +301,10 @@ input CheckoutLinesReplaceInput {
   ID of the checkout.
   """
   checkoutId: ID!
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
   """
   List of replacement operations to apply.
   """
@@ -323,54 +330,18 @@ input CheckoutLineReplaceInput {
   quantity: Int
 }
 
-"""
-Payload returned after replacing one checkout line with another.
-"""
-type CheckoutLinesReplacePayload {
-  """
-  The updated checkout.
-  """
-  checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
-}
-
-"""
-Payload returned after removing an item from the checkout.
-"""
-type CheckoutLinesDeletePayload {
-  """
-  The updated checkout.
-  """
-  checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
-}
-
-"""
-Payload returned after clearing all items from the checkout.
-"""
-type CheckoutLinesClearPayload {
-  """
-  The updated (now empty) checkout.
-  """
-  checkout: Checkout
-  """
-  List of field-specific or general errors.
-  """
-  errors: [CheckoutFieldError!]
-}
-
 enum CheckoutLinePurchaseType {
   ONE_TIME
   SUBSCRIPTION
 }
 
 input CheckoutLinePurchaseInput {
+  type: CheckoutLinePurchaseType!
+  sellingPlanId: ID
+}
+
+"""Purchase mode captured in the committed checkout snapshot."""
+type CheckoutLinePurchase {
   type: CheckoutLinePurchaseType!
   sellingPlanId: ID
 }

@@ -1,7 +1,6 @@
 # ---- Types of a parent subgraph ----
 
 scalar BigInt
-scalar Email
 
 """A canonical storefront customer owned by the Customers subgraph."""
 type Customer @key(fields: "id", resolvable: false) {
@@ -10,5 +9,10 @@ type Customer @key(fields: "id", resolvable: false) {
 
 """An image owned and resolved by the Media subgraph."""
 type MediaImage @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+"""A purchasable product variant owned by the Catalog subgraph."""
+type ProductVariant @key(fields: "id", resolvable: false) {
   id: ID!
 }

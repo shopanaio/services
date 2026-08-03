@@ -94,3 +94,47 @@ type ReviewReplyEdge {
   cursor: Cursor!
   node: ReviewReply!
 }
+
+"""One detailed rating value supplied for an active product criterion."""
+input ReviewRatingValueInput {
+  criterionId: ID!
+  """Rating from 1 through 5."""
+  value: Int!
+}
+
+"""One media attachment submitted with a review."""
+input ReviewMediaCreateInput {
+  mediaId: ID!
+  """Zero-based display position. Defaults to the input list position."""
+  sortIndex: Int
+  caption: String
+}
+
+"""Input for a customer or guest product-review submission."""
+input ReviewCreateInput {
+  """Shared text, locale, guest identity, and idempotency metadata."""
+  content: ReviewContentSubmissionInput!
+  productId: ID!
+  variantId: ID
+  """
+  Order associated with the review. Ownership and eligibility are validated by
+  the service and cannot be used to self-assign verified-purchase status.
+  """
+  orderId: ID
+  """Order line associated with the reviewed product or variant."""
+  orderLineId: ID
+  """Optional review title, limited to 150 characters."""
+  title: String
+  """Overall rating from 1 through 5."""
+  rating: Int!
+  """Detailed values for the product's active rating criteria."""
+  ratings: [ReviewRatingValueInput!]
+  """Review media in storefront display order."""
+  media: [ReviewMediaCreateInput!]
+}
+
+"""Result of submitting a product review."""
+type ReviewCreatePayload {
+  review: Review
+  userErrors: [ReviewUserError!]!
+}

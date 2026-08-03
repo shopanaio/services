@@ -10,6 +10,54 @@ type Query {
 }
 
 type Mutation {
-  """Reserved for storefront review, question, vote, and report commands."""
-  _reviews: Boolean
+  """
+  Submits a product review in the active storefront context.
+
+  The authenticated customer is resolved from trusted request context. Guest
+  submission is available only when enabled by reviewStoreConfiguration.
+  Verification and moderation state are always determined by the service.
+  """
+  reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
+
+  """
+  Submits a product question in the active storefront context.
+
+  The authenticated customer is resolved from trusted request context. Guest
+  submission is available only when enabled by reviewStoreConfiguration.
+  """
+  productQuestionCreate(
+    input: ProductQuestionCreateInput!
+  ): ProductQuestionCreatePayload!
+
+  """
+  Adds a customer answer to an existing product question.
+
+  Customer answers must be enabled by reviewStoreConfiguration. Official and
+  accepted-answer state cannot be assigned through the Storefront API.
+  """
+  productQuestionAnswerCreate(
+    input: ProductQuestionAnswerCreateInput!
+  ): ProductQuestionAnswerCreatePayload!
+
+  """
+  Sets the current viewer's LIKE or DISLIKE vote on storefront review content.
+
+  Repeating the same vote is idempotent. Setting the opposite type replaces the
+  previous vote. Customer or anonymous visitor identity is resolved from
+  trusted storefront request context.
+  """
+  reviewContentVoteSet(
+    input: ReviewContentVoteSetInput!
+  ): ReviewContentVoteSetPayload!
+
+  """
+  Reports storefront review content for moderation.
+
+  A viewer may have only one active report for the same content. Customer or
+  anonymous visitor identity is resolved from trusted storefront request
+  context and cannot be supplied as a GraphQL argument.
+  """
+  reviewContentReportCreate(
+    input: ReviewContentReportCreateInput!
+  ): ReviewContentReportCreatePayload!
 }

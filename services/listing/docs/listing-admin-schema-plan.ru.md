@@ -227,9 +227,10 @@ query CategoryListing($categoryId: ID!, $first: Int!) {
 
 `ListingScopeInput`:
 
-- `SEARCH`: `categoryId` должен отсутствовать, `query` должен
-  быть непустой строкой;
-- `CATEGORY`: `categoryId` обязателен.
+- `GLOBAL`: `categoryId` должен отсутствовать, `query` опционален;
+- `CATEGORY`: `categoryId` обязателен, `query` опционален;
+- `RELEVANCE` требует непустой `query`, остальные business-сортировки работают
+  независимо от наличия query.
 
 `ListingProductFilter`:
 
@@ -350,7 +351,7 @@ extend type ListingQuery {
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
-  SEARCH
+  GLOBAL
   CATEGORY
 }
 
@@ -358,7 +359,7 @@ input ListingScopeInput {
   """Scope kind for the listing request."""
   kind: ListingScopeKind!
 
-  """Category global ID. Required when kind is CATEGORY."""
+  """Category global ID. Required for CATEGORY and forbidden for GLOBAL."""
   categoryId: ID
 }
 

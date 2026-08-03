@@ -63,6 +63,12 @@ input CheckoutPaymentMethodUpdateInput {
   """
   checkoutId: ID!
 
+  """Checkout.version expected by the client."""
+  expectedCheckoutVersion: Int!
+
+  """Client-generated opaque key used to safely replay this mutation."""
+  idempotencyKey: String!
+
   """Opaque handle returned by the current checkout snapshot."""
   methodHandle: String!
 
@@ -141,12 +147,21 @@ type PlaceOrderPaymentFailure {
 
 """Result of the durable place-order workflow."""
 type PlaceOrderPayload {
-  placementId: ID!
-  orderId: ID!
-  status: PlaceOrderStatus!
+  """Durable placement identifier used by Query.checkoutPlacement."""
+  placementId: ID
+  """Checkout snapshot committed by this placement."""
+  checkoutId: ID
+  """Checkout.version captured by this placement."""
+  checkoutVersion: Int
+  """Checkout.resultRevision captured by this placement."""
+  resultRevision: String
+  orderId: ID
+  status: PlaceOrderStatus
   paymentCollectionId: ID
   paymentSessionId: ID
   paymentOperationId: ID
   customerAction: PlaceOrderCustomerAction
   paymentFailure: PlaceOrderPaymentFailure
+  """Validation, stale-snapshot, and business errors produced before placement."""
+  userErrors: [CheckoutUserError!]!
 }

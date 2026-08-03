@@ -18,3 +18,19 @@ type ReviewContentVoteEdge {
   cursor: Cursor!
   node: ReviewContentVote!
 }
+
+"""Input for setting the current viewer's reaction to review content."""
+input ReviewContentVoteSetInput {
+  """Review, reply, product question, or question answer to vote on."""
+  contentId: ID!
+  type: ReviewContentVoteType!
+}
+
+"""Result of setting or replacing the current viewer's vote."""
+type ReviewContentVoteSetPayload {
+  """Updated content with refreshed metrics and viewer engagement."""
+  content: ReviewContent
+  """The current viewer's resulting vote."""
+  vote: ReviewContentVote
+  userErrors: [ReviewUserError!]!
+}

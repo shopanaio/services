@@ -118,3 +118,27 @@ type ReviewModerationSignalEdge {
   cursor: Cursor!
   node: ReviewModerationSignal!
 }
+
+"""Input for reporting storefront review content to moderation."""
+input ReviewContentReportCreateInput {
+  """Review, reply, product question, or question answer being reported."""
+  contentId: ID!
+  reason: ReviewContentReportReason!
+  """
+  Additional customer-provided context, limited to 2,000 characters. Details
+  are required when reason is OTHER.
+  """
+  details: String
+}
+
+"""Result of submitting a storefront content report."""
+type ReviewContentReportCreatePayload {
+  """Reported content with refreshed viewer engagement."""
+  content: ReviewContent
+  """
+  The viewer's active report. An existing active report is returned when the
+  same logical submission is safely retried.
+  """
+  report: ReviewContentReport
+  userErrors: [ReviewUserError!]!
+}

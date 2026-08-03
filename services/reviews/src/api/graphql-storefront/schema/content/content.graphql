@@ -78,3 +78,47 @@ type ReviewContentEdge {
   cursor: Cursor!
   node: ReviewContent!
 }
+
+"""A customer-facing mutation error safe to display in a storefront."""
+type ReviewUserError implements DisplayableError {
+  """Path to the invalid input field, when available."""
+  field: [String!]
+  """Human-readable error message."""
+  message: String!
+  """Stable machine-readable error code."""
+  code: String
+}
+
+"""
+Guest identity supplied for a storefront content submission.
+
+Authenticated customer identity is always taken from trusted request context;
+when a customer is authenticated this input is ignored.
+"""
+input ReviewSubmissionAuthorInput {
+  """Public display name shown alongside the submitted content."""
+  displayName: String!
+  """Contact email required for guest submissions and never exposed publicly."""
+  email: Email
+}
+
+"""Shared text and request metadata for customer-authored content."""
+input ReviewContentSubmissionInput {
+  """
+  Client-generated opaque key used to safely replay the submission.
+  The key must be unique within the active store.
+  """
+  idempotencyKey: String!
+  """
+  Submission locale. When omitted, the locale from trusted storefront context
+  is used.
+  """
+  locale: LocaleCode
+  """
+  Guest author details. Required for a guest request and optional for an
+  authenticated customer request.
+  """
+  author: ReviewSubmissionAuthorInput
+  """Customer-authored body text, limited to 5,000 characters."""
+  body: String!
+}

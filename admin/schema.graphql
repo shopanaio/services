@@ -7355,7 +7355,7 @@ enum FacetValueCandidateType @join__type(graph: LISTING_ADMIN)  {
 }
 
 enum ListingScopeKind @join__type(graph: LISTING_ADMIN)  {
-  SEARCH @join__enumValue(graph: LISTING_ADMIN) 
+  GLOBAL @join__enumValue(graph: LISTING_ADMIN)
   CATEGORY @join__enumValue(graph: LISTING_ADMIN) 
 }
 
@@ -11865,7 +11865,7 @@ input ListingScopeInput @join__type(graph: LISTING_ADMIN)  {
   """
   kind: ListingScopeKind!
   """
-  Category global ID. Required when kind is CATEGORY.
+  Category global ID. Required for CATEGORY and forbidden for GLOBAL.
   """
   categoryId: ID
 }

@@ -82,3 +82,36 @@ type ProductQuestionAnswerEdge {
   cursor: Cursor!
   node: ProductQuestionAnswer!
 }
+
+"""Input for a customer or guest product-question submission."""
+input ProductQuestionCreateInput {
+  """Shared text, locale, guest identity, and idempotency metadata."""
+  content: ReviewContentSubmissionInput!
+  productId: ID!
+  variantId: ID
+}
+
+"""Result of submitting a product question."""
+type ProductQuestionCreatePayload {
+  productQuestion: ProductQuestion
+  userErrors: [ReviewUserError!]!
+}
+
+"""Input for an authenticated customer answer to a product question."""
+input ProductQuestionAnswerCreateInput {
+  productQuestionId: ID!
+  """Revision returned by ProductQuestion.revision."""
+  expectedRevision: Int!
+  """
+  Shared text, locale, and idempotency metadata. Guest author data is rejected
+  because storefront question answers require an authenticated customer.
+  """
+  content: ReviewContentSubmissionInput!
+}
+
+"""Result of adding a customer answer to a product question."""
+type ProductQuestionAnswerCreatePayload {
+  productQuestion: ProductQuestion
+  answer: ProductQuestionAnswer
+  userErrors: [ReviewUserError!]!
+}
