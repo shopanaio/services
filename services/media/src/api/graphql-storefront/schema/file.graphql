@@ -1,18 +1,3 @@
-"""A web address."""
-scalar URL
-
-"""A JSON value."""
-scalar JSON
-
-"""
-An object with an ID field to support global identification, in accordance
-with the Relay specification.
-"""
-interface Node {
-  """A globally unique ID."""
-  id: ID!
-}
-
 """The part of the image that should remain after cropping."""
 enum CropRegion {
   BOTTOM
@@ -46,16 +31,6 @@ type Image {
   thumbhash: String
   url(transform: ImageTransformInput): URL!
   width: Int
-
-  originalSrc: URL! @deprecated(reason: "Use `url` instead.")
-  src: URL! @deprecated(reason: "Use `url` instead.")
-  transformedSrc(
-    crop: CropRegion
-    maxHeight: Int
-    maxWidth: Int
-    preferredContentType: ImageContentType
-    scale: Int = 1
-  ): URL! @deprecated(reason: "Use `url(transform:)` instead.")
 }
 
 """
@@ -92,9 +67,8 @@ enum MediaPresentationFormat {
 }
 
 """A media presentation."""
-type MediaPresentation implements Node @key(fields: "id") {
+type MediaPresentation {
   asJson(format: MediaPresentationFormat!): JSON
-  id: ID! @deprecated(reason: "This field is no longer used.")
 }
 
 """A common set of fields for media content associated with products."""
@@ -139,7 +113,6 @@ type Video implements Media & Node @key(fields: "id") {
 type ExternalVideo implements Media & Node @key(fields: "id") {
   alt: String
   embedUrl: URL!
-  embeddedUrl: URL! @deprecated(reason: "Use `embedUrl` instead.")
   host: MediaHost!
   id: ID!
   mediaContentType: MediaContentType!
