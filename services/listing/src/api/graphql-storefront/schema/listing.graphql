@@ -1,0 +1,231 @@
+# ---- Catalog entity references ------------------------------------------------
+
+extend type Product @key(fields: "id") {
+  id: ID! @external
+}
+
+extend type Category @key(fields: "id") {
+  id: ID! @external
+
+  """
+  Products published in this category.
+
+  When query is provided, text search is applied inside the category scope.
+  The contextual default sort is MANUAL.
+  """
+  products(
+    first: Int = 20
+    after: String
+    query: String
+    filters: [ListingFilterInput!]
+    sort: ListingSort
+  ): ProductConnection!
+}
+
+# ---- Listing entry points ------------------------------------------------------
+
+extend type Query {
+  """
+  Search published products.
+
+  Search uses the locale and currency from the active storefront context. The
+  contextual default sort is RELEVANCE.
+  """
+  searchProducts(
+    query: String!
+    first: Int = 20
+    after: String
+    filters: [ListingFilterInput!]
+    sort: ListingSort
+  ): ProductConnection!
+}
+
+# ---- Relay connection ----------------------------------------------------------
+
+"""
+A Relay connection containing products from one canonical listing request.
+"""
+type ProductConnection {
+  """A list of product edges."""
+  edges: [ProductEdge!]!
+
+  """The products contained in the returned edges."""
+  nodes: [Product!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """The exact number of products matching every active filter."""
+  totalCount: Int!
+
+  """
+  Filters calculated over the complete matched result set, not only this page.
+
+  Each count uses target-filter isolation: selections from the filter being
+  counted are excluded while every other filter remains active.
+  """
+  filters: [Filter!]!
+
+  """The effective sort selected for this request."""
+  sort: ListingSort!
+
+  """Sorts valid for the current category or search context."""
+  availableSorts: [ListingSort!]!
+}
+
+type ProductEdge {
+  """An opaque cursor for this product in the current listing."""
+  cursor: String!
+
+  """The product at the end of the edge."""
+  node: Product!
+}
+
+# ---- Filtering -----------------------------------------------------------------
+
+"""
+One structured listing predicate.
+
+Exactly one field must be provided. Different filter kinds are combined with
+AND. Repeated values of the same filter are combined with OR. Variant facets,
+price, and availability are evaluated against the same variant.
+"""
+input ListingFilterInput {
+  facet: FacetFilterInput
+  vendorId: ID
+  price: PriceRangeFilterInput
+  availability: Availability
+}
+
+input FacetFilterInput {
+  """Public facet handle, for example `color` or `material`."""
+  facet: String!
+
+  """Public facet value handle, for example `blue` or `cotton`."""
+  value: String!
+}
+
+"""
+Price bounds in decimal major units and in the storefront context currency.
+For example, 19.99 represents nineteen currency units and ninety-nine cents.
+"""
+input PriceRangeFilterInput {
+  min: Decimal
+  max: Decimal
+}
+
+"""
+Variant-witness availability used by the canonical listing algebra.
+
+A product containing both available and unavailable variants can match both
+states. Every other active variant filter remains applied to the witness.
+"""
+enum Availability {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+# ---- Sorting -------------------------------------------------------------------
+
+"""
+Deterministic storefront product sorting.
+
+Availability placement is controlled by listing/search policy and is not
+reversed by the selected product sort.
+"""
+enum ListingSort {
+  """Merchant-defined category order. Available in category scope."""
+  MANUAL
+
+  """Search relevance. Available when a search query is active."""
+  RELEVANCE
+
+  """Published date descending, then product creation date descending."""
+  NEWEST
+
+  """Product creation date descending."""
+  CREATED_AT
+
+  TITLE_ASC
+  TITLE_DESC
+  PRICE_ASC
+  PRICE_DESC
+}
+
+# ---- Available filters ---------------------------------------------------------
+
+"""
+A filter available for the current result set.
+
+The input of each FilterValue is a JSON object matching ListingFilterInput and
+can be passed unchanged into the filters argument of the next request.
+"""
+type Filter {
+  """Stable public identifier within the storefront listing contract."""
+  id: String!
+
+  label: String!
+  type: FilterType!
+
+  """Preferred visual representation of filter values."""
+  presentation: FilterPresentation
+
+  """The selection behavior configured for this filter."""
+  selectionMode: FilterSelectionMode!
+
+  """Selectable values and reusable inputs for this filter."""
+  values: [FilterValue!]!
+}
+
+enum FilterType {
+  BOOLEAN
+  LIST
+  PRICE_RANGE
+}
+
+enum FilterPresentation {
+  TEXT
+  SWATCH
+  IMAGE
+}
+
+enum FilterSelectionMode {
+  SINGLE
+  MULTIPLE
+  RANGE
+}
+
+type FilterValue {
+  """Stable identifier within the parent filter."""
+  id: String!
+
+  label: String!
+
+  """
+  Number of distinct matching products after target-filter isolation.
+  Selected values remain present when their count is zero.
+  """
+  count: Int!
+
+  selected: Boolean!
+
+  """
+  A JSON object matching ListingFilterInput that can be reused in filters.
+  """
+  input: JSON!
+
+  swatch: FilterValueSwatch
+}
+
+type FilterValueSwatch {
+  type: FilterValueSwatchType!
+  colorOne: Color
+  colorTwo: Color
+  imageUrl: URL
+}
+
+enum FilterValueSwatchType {
+  COLOR
+  GRADIENT
+  IMAGE
+}
