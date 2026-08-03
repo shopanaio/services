@@ -1,0 +1,37 @@
+type Review implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewMedia implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewReply implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRating {
+  value: Int!
+}
+
+type ReviewConnection {
+  edges: [ReviewEdge!]!
+  nodes: [Review!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewEdge {
+  cursor: String!
+  node: Review!
+}
+
+type ReviewReplyConnection {
+  edges: [ReviewReplyEdge!]!
+  nodes: [ReviewReply!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewReplyEdge {
+  cursor: String!
+  node: ReviewReply!
+}

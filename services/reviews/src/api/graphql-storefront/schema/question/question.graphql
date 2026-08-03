@@ -1,0 +1,33 @@
+type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+}
+
+type ProductQuestionAnswer implements Node & ReviewContent @key(fields: "id") {
+  id: ID!
+}
+
+type ProductQuestionSubscription implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ProductQuestionConnection {
+  edges: [ProductQuestionEdge!]!
+  nodes: [ProductQuestion!]!
+  pageInfo: PageInfo!
+}
+
+type ProductQuestionEdge {
+  cursor: String!
+  node: ProductQuestion!
+}
+
+type ProductQuestionAnswerConnection {
+  edges: [ProductQuestionAnswerEdge!]!
+  nodes: [ProductQuestionAnswer!]!
+  pageInfo: PageInfo!
+}
+
+type ProductQuestionAnswerEdge {
+  cursor: String!
+  node: ProductQuestionAnswer!
+}

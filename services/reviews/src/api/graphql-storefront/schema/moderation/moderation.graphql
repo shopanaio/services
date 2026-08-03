@@ -1,0 +1,19 @@
+type ReviewContentReport implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewModerationCase implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewModerationEvent implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewContentRevision implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewModerationSignal implements Node @key(fields: "id") {
+  id: ID!
+}

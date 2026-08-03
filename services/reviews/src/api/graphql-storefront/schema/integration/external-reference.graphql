@@ -1,0 +1,14 @@
+type ReviewContentExternalReference implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewContentExternalReferenceConnection {
+  edges: [ReviewContentExternalReferenceEdge!]!
+  nodes: [ReviewContentExternalReference!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewContentExternalReferenceEdge {
+  cursor: String!
+  node: ReviewContentExternalReference!
+}

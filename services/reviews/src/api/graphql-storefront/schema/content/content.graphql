@@ -1,0 +1,22 @@
+interface ReviewContent implements Node {
+  id: ID!
+}
+
+type ReviewContentTranslation implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewContentPublication implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewContentConnection {
+  edges: [ReviewContentEdge!]!
+  nodes: [ReviewContent!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewContentEdge {
+  cursor: String!
+  node: ReviewContent!
+}

@@ -1,0 +1,14 @@
+type ReviewContentVote implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewContentVoteConnection {
+  edges: [ReviewContentVoteEdge!]!
+  nodes: [ReviewContentVote!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewContentVoteEdge {
+  cursor: String!
+  node: ReviewContentVote!
+}

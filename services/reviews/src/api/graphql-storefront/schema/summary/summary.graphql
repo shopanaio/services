@@ -1,0 +1,29 @@
+type ReviewRatingBreakdown {
+  rating1Count: Int!
+  rating2Count: Int!
+  rating3Count: Int!
+  rating4Count: Int!
+  rating5Count: Int!
+}
+
+type ProductReviewSummary {
+  reviewCount: Int!
+  verifiedReviewCount: Int!
+  mediaReviewCount: Int!
+  averageRating: Float!
+  ratingBreakdown: ReviewRatingBreakdown!
+}
+
+type ProductRatingCriterionSummary {
+  reviewCount: Int!
+  averageRating: Float!
+  ratingBreakdown: ReviewRatingBreakdown!
+}
+
+type ProductQuestionSummary {
+  questionCount: Int!
+  answeredQuestionCount: Int!
+  unansweredQuestionCount: Int!
+  answerCount: Int!
+  officialAnswerCount: Int!
+}

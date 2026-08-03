@@ -1,0 +1,19 @@
+type Product @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type ProductVariant @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type Category @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type Customer @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type File @key(fields: "id", resolvable: false) {
+  id: ID!
+}

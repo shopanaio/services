@@ -1,0 +1,22 @@
+type ReviewStoreConfiguration implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRatingCriterion implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRatingCriterionAssignment implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRatingCriterionConnection {
+  edges: [ReviewRatingCriterionEdge!]!
+  nodes: [ReviewRatingCriterion!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewRatingCriterionEdge {
+  cursor: String!
+  node: ReviewRatingCriterion!
+}

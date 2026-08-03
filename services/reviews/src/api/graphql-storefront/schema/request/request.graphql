@@ -1,0 +1,18 @@
+type ReviewRequest implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRequestEvent implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type ReviewRequestConnection {
+  edges: [ReviewRequestEdge!]!
+  nodes: [ReviewRequest!]!
+  pageInfo: PageInfo!
+}
+
+type ReviewRequestEdge {
+  cursor: String!
+  node: ReviewRequest!
+}
