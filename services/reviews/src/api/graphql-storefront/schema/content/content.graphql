@@ -67,7 +67,7 @@ type ReviewContentPublication implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-type ReviewContentConnection {
+type ReviewContentConnection implements Connection {
   edges: [ReviewContentEdge!]!
   nodes: [ReviewContent!]!
   pageInfo: PageInfo!
@@ -75,6 +75,6 @@ type ReviewContentConnection {
 }
 
 type ReviewContentEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewContent!
 }

@@ -7,7 +7,7 @@ type ReviewContentVote implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-type ReviewContentVoteConnection {
+type ReviewContentVoteConnection implements Connection {
   edges: [ReviewContentVoteEdge!]!
   nodes: [ReviewContentVote!]!
   pageInfo: PageInfo!
@@ -15,6 +15,6 @@ type ReviewContentVoteConnection {
 }
 
 type ReviewContentVoteEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewContentVote!
 }

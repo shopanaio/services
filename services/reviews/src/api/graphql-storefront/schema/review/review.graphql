@@ -25,9 +25,9 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   media: [ReviewMedia!]!
   replies(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewReplyConnection!
 }
 
@@ -71,7 +71,7 @@ type ReviewRating {
 }
 
 """A Relay connection to product reviews."""
-type ReviewConnection {
+type ReviewConnection implements Connection {
   edges: [ReviewEdge!]!
   nodes: [Review!]!
   pageInfo: PageInfo!
@@ -79,11 +79,11 @@ type ReviewConnection {
 }
 
 type ReviewEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Review!
 }
 
-type ReviewReplyConnection {
+type ReviewReplyConnection implements Connection {
   edges: [ReviewReplyEdge!]!
   nodes: [ReviewReply!]!
   pageInfo: PageInfo!
@@ -91,6 +91,6 @@ type ReviewReplyConnection {
 }
 
 type ReviewReplyEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewReply!
 }

@@ -7,12 +7,12 @@ extend interface Media {
 
 """An ordered media item registered on a product."""
 type ProductMediaEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Media!
 }
 
 """A Relay connection to the media registered on a product."""
-type ProductMediaConnection {
+type ProductMediaConnection implements Connection {
   edges: [ProductMediaEdge!]!
   nodes: [Media!]!
   pageInfo: PageInfo!
@@ -21,12 +21,12 @@ type ProductMediaConnection {
 
 """An ordered media item registered on a category."""
 type CategoryMediaEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Media!
 }
 
 """A Relay connection to the media registered on a category."""
-type CategoryMediaConnection {
+type CategoryMediaConnection implements Connection {
   edges: [CategoryMediaEdge!]!
   nodes: [Media!]!
   pageInfo: PageInfo!
@@ -35,12 +35,12 @@ type CategoryMediaConnection {
 
 """An ordered media item selected for a particular product variant."""
 type ProductVariantMediaEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Media!
 }
 
 """A Relay connection to media selected for a particular product variant."""
-type ProductVariantMediaConnection {
+type ProductVariantMediaConnection implements Connection {
   edges: [ProductVariantMediaEdge!]!
   nodes: [Media!]!
   pageInfo: PageInfo!

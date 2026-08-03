@@ -8,6 +8,7 @@
     ],
     "storefront": [
       "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "../../packages/storefront-graphql/graphql/foundation.graphql",
       "../../packages/shared-references/graphql/**/*.graphql"
     ]
   },
@@ -18,6 +19,10 @@
     },
     {
       "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
+      "outDir": "dist/schema/storefront"
+    },
+    {
+      "include": "../../packages/storefront-graphql/graphql/foundation.graphql",
       "outDir": "dist/schema/storefront"
     },
     {

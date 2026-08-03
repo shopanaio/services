@@ -11,25 +11,25 @@ type Product implements Node @key(fields: "id") {
   primaryCategory: Category
   categories(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): CategoryConnection!
   options: [ProductOption!]!
   features: [ProductFeature!]!
   featureGroups: [ProductFeatureGroup!]!
   media(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductMediaConnection!
   featuredMedia: Media
   variants(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductVariantConnection!
   variantBySelectedOptions(
     selectedOptions: [SelectedOptionInput!]!
@@ -66,9 +66,9 @@ type ProductVariant implements Node @key(fields: "id") {
   dimensions: Dimensions
   media(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductVariantMediaConnection!
   featuredMedia: Media
   createdAt: DateTime!
@@ -137,7 +137,7 @@ type ProductPriceRange {
 }
 
 """A Relay connection to product variants."""
-type ProductVariantConnection {
+type ProductVariantConnection implements Connection {
   edges: [ProductVariantEdge!]!
   nodes: [ProductVariant!]!
   pageInfo: PageInfo!
@@ -145,6 +145,6 @@ type ProductVariantConnection {
 }
 
 type ProductVariantEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ProductVariant!
 }

@@ -24,9 +24,9 @@ type Query {
   """Returns published categories using Relay cursor pagination."""
   categories(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): CategoryConnection!
 
 }

@@ -17,7 +17,7 @@ extend type Category @key(fields: "id") {
   products(
     """Number of products to return; must be between 1 and 100."""
     first: Int = 20
-    after: String
+    after: Cursor
     query: String
     filters: [ListingFilterInput!]
     sort: ListingSort
@@ -38,7 +38,7 @@ type Query {
     query: String!
     """Number of products to return; must be between 1 and 100."""
     first: Int = 20
-    after: String
+    after: Cursor
     filters: [ListingFilterInput!]
     sort: ListingSort
   ): ProductConnection!
@@ -49,7 +49,7 @@ type Query {
 """
 A Relay connection containing products from one canonical listing request.
 """
-type ProductConnection {
+type ProductConnection implements Connection {
   """A list of product edges."""
   edges: [ProductEdge!]!
 
@@ -82,7 +82,7 @@ type ProductConnection {
 
 type ProductEdge {
   """An opaque cursor for this product in the current listing."""
-  cursor: String!
+  cursor: Cursor!
 
   """The product at the end of the edge."""
   node: Product!

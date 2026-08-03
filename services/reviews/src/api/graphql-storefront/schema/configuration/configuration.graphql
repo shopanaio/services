@@ -61,7 +61,7 @@ type ReviewRatingCriterionAssignment implements Node @key(fields: "id") {
 }
 
 """A Relay connection to rating criteria applicable in the current context."""
-type ReviewRatingCriterionConnection {
+type ReviewRatingCriterionConnection implements Connection {
   edges: [ReviewRatingCriterionEdge!]!
   nodes: [ReviewRatingCriterion!]!
   pageInfo: PageInfo!
@@ -69,6 +69,6 @@ type ReviewRatingCriterionConnection {
 }
 
 type ReviewRatingCriterionEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewRatingCriterion!
 }

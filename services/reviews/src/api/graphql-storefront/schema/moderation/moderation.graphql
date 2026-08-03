@@ -59,7 +59,7 @@ type ReviewModerationSignal implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-type ReviewContentReportConnection {
+type ReviewContentReportConnection implements Connection {
   edges: [ReviewContentReportEdge!]!
   nodes: [ReviewContentReport!]!
   pageInfo: PageInfo!
@@ -67,11 +67,11 @@ type ReviewContentReportConnection {
 }
 
 type ReviewContentReportEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewContentReport!
 }
 
-type ReviewModerationCaseConnection {
+type ReviewModerationCaseConnection implements Connection {
   edges: [ReviewModerationCaseEdge!]!
   nodes: [ReviewModerationCase!]!
   pageInfo: PageInfo!
@@ -79,11 +79,11 @@ type ReviewModerationCaseConnection {
 }
 
 type ReviewModerationCaseEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewModerationCase!
 }
 
-type ReviewModerationEventConnection {
+type ReviewModerationEventConnection implements Connection {
   edges: [ReviewModerationEventEdge!]!
   nodes: [ReviewModerationEvent!]!
   pageInfo: PageInfo!
@@ -91,11 +91,11 @@ type ReviewModerationEventConnection {
 }
 
 type ReviewModerationEventEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewModerationEvent!
 }
 
-type ReviewContentRevisionConnection {
+type ReviewContentRevisionConnection implements Connection {
   edges: [ReviewContentRevisionEdge!]!
   nodes: [ReviewContentRevision!]!
   pageInfo: PageInfo!
@@ -103,11 +103,11 @@ type ReviewContentRevisionConnection {
 }
 
 type ReviewContentRevisionEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewContentRevision!
 }
 
-type ReviewModerationSignalConnection {
+type ReviewModerationSignalConnection implements Connection {
   edges: [ReviewModerationSignalEdge!]!
   nodes: [ReviewModerationSignal!]!
   pageInfo: PageInfo!
@@ -115,6 +115,6 @@ type ReviewModerationSignalConnection {
 }
 
 type ReviewModerationSignalEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewModerationSignal!
 }

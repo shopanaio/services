@@ -18,9 +18,9 @@ type ProductQuestion implements Node & ReviewContent @key(fields: "id") {
   variant: ProductVariant
   answers(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductQuestionAnswerConnection!
   viewerSubscription: ProductQuestionSubscription
 }
@@ -59,7 +59,7 @@ type ProductQuestionSubscription implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-type ProductQuestionConnection {
+type ProductQuestionConnection implements Connection {
   edges: [ProductQuestionEdge!]!
   nodes: [ProductQuestion!]!
   pageInfo: PageInfo!
@@ -67,11 +67,11 @@ type ProductQuestionConnection {
 }
 
 type ProductQuestionEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ProductQuestion!
 }
 
-type ProductQuestionAnswerConnection {
+type ProductQuestionAnswerConnection implements Connection {
   edges: [ProductQuestionAnswerEdge!]!
   nodes: [ProductQuestionAnswer!]!
   pageInfo: PageInfo!
@@ -79,6 +79,6 @@ type ProductQuestionAnswerConnection {
 }
 
 type ProductQuestionAnswerEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ProductQuestionAnswer!
 }

@@ -28,7 +28,7 @@ type Currency {
   symbol: String!
 }
 
-type MarketConnection {
+type MarketConnection implements Connection {
   edges: [MarketEdge!]!
   nodes: [Market!]!
   pageInfo: PageInfo!
@@ -36,7 +36,7 @@ type MarketConnection {
 }
 
 type MarketEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Market!
 }
 

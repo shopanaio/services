@@ -1,25 +1,7 @@
 # ---- Types of a parent subgraph ----
 
 scalar BigInt
-scalar DateTime
-scalar Decimal
 scalar Email
-scalar JSON
-
-interface Node {
-  id: ID!
-}
-
-type Money {
-  """
-  The amount of money
-  """
-  amount: Decimal! @shareable
-  """
-  The currency code
-  """
-  currencyCode: CurrencyCode! @shareable
-}
 
 """A canonical storefront customer owned by the Customers subgraph."""
 type Customer @key(fields: "id", resolvable: false) {

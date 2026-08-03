@@ -17,9 +17,9 @@ type ReviewRequest implements Node @key(fields: "id") {
   expiresAt: DateTime
   events(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewRequestEventConnection!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -33,7 +33,7 @@ type ReviewRequestEvent implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
-type ReviewRequestConnection {
+type ReviewRequestConnection implements Connection {
   edges: [ReviewRequestEdge!]!
   nodes: [ReviewRequest!]!
   pageInfo: PageInfo!
@@ -41,11 +41,11 @@ type ReviewRequestConnection {
 }
 
 type ReviewRequestEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewRequest!
 }
 
-type ReviewRequestEventConnection {
+type ReviewRequestEventConnection implements Connection {
   edges: [ReviewRequestEventEdge!]!
   nodes: [ReviewRequestEvent!]!
   pageInfo: PageInfo!
@@ -53,6 +53,6 @@ type ReviewRequestEventConnection {
 }
 
 type ReviewRequestEventEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewRequestEvent!
 }

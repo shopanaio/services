@@ -53,7 +53,7 @@ type OnlineStoreOpenGraphMetadata {
 }
 
 """A Relay connection containing published Online Store pages."""
-type OnlineStorePageConnection {
+type OnlineStorePageConnection implements Connection {
   edges: [OnlineStorePageEdge!]!
   nodes: [OnlineStorePage!]!
   pageInfo: PageInfo!
@@ -61,6 +61,6 @@ type OnlineStorePageConnection {
 }
 
 type OnlineStorePageEdge {
-  cursor: String!
+  cursor: Cursor!
   node: OnlineStorePage!
 }

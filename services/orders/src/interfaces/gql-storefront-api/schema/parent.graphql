@@ -1,23 +1,4 @@
 # ---- Types of a parent subgraph ----
 
-interface Node {
-  id: ID!
-}
-
 scalar BigInt
-scalar JSON
-scalar DateTime
-scalar Cursor
-scalar Decimal
 scalar Email
-
-type Money {
-  """
-  The amount of money
-  """
-  amount: Decimal! @shareable
-  """
-  The currency code
-  """
-  currencyCode: CurrencyCode! @shareable
-}

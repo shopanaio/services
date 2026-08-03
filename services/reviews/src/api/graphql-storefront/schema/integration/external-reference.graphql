@@ -13,7 +13,7 @@ type ReviewContentExternalReference implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-type ReviewContentExternalReferenceConnection {
+type ReviewContentExternalReferenceConnection implements Connection {
   edges: [ReviewContentExternalReferenceEdge!]!
   nodes: [ReviewContentExternalReference!]!
   pageInfo: PageInfo!
@@ -21,6 +21,6 @@ type ReviewContentExternalReferenceConnection {
 }
 
 type ReviewContentExternalReferenceEdge {
-  cursor: String!
+  cursor: Cursor!
   node: ReviewContentExternalReference!
 }

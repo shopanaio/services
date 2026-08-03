@@ -12,8 +12,8 @@ type Store implements Node @key(fields: "id") {
   brand: StoreBrand!
   markets(
     first: Int = 20
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): MarketConnection!
 }

@@ -9,9 +9,9 @@ type OnlineStoreNavigationMenu implements Node @key(fields: "id") {
   """Top-level menu items in merchant-defined order."""
   items(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): OnlineStoreNavigationMenuItemConnection!
 }
 
@@ -37,9 +37,9 @@ type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
   """Direct children in merchant-defined order."""
   children(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): OnlineStoreNavigationMenuItemConnection!
 }
 
@@ -78,7 +78,7 @@ type OnlineStoreNavigationTarget {
 }
 
 """A Relay connection containing navigation menus."""
-type OnlineStoreNavigationMenuConnection {
+type OnlineStoreNavigationMenuConnection implements Connection {
   edges: [OnlineStoreNavigationMenuEdge!]!
   nodes: [OnlineStoreNavigationMenu!]!
   pageInfo: PageInfo!
@@ -86,12 +86,12 @@ type OnlineStoreNavigationMenuConnection {
 }
 
 type OnlineStoreNavigationMenuEdge {
-  cursor: String!
+  cursor: Cursor!
   node: OnlineStoreNavigationMenu!
 }
 
 """A Relay connection containing one ordered level of a menu tree."""
-type OnlineStoreNavigationMenuItemConnection {
+type OnlineStoreNavigationMenuItemConnection implements Connection {
   edges: [OnlineStoreNavigationMenuItemEdge!]!
   nodes: [OnlineStoreNavigationMenuItem!]!
   pageInfo: PageInfo!
@@ -99,6 +99,6 @@ type OnlineStoreNavigationMenuItemConnection {
 }
 
 type OnlineStoreNavigationMenuItemEdge {
-  cursor: String!
+  cursor: Cursor!
   node: OnlineStoreNavigationMenuItem!
 }

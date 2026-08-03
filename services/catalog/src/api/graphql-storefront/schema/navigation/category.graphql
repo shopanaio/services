@@ -10,15 +10,15 @@ type Category implements Node @key(fields: "id") {
   ancestors: [Category!]!
   children(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): CategoryConnection!
   media(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): CategoryMediaConnection!
   featuredMedia: Media
   publishedAt: DateTime!
@@ -27,7 +27,7 @@ type Category implements Node @key(fields: "id") {
 }
 
 """A Relay connection to categories."""
-type CategoryConnection {
+type CategoryConnection implements Connection {
   edges: [CategoryEdge!]!
   nodes: [Category!]!
   pageInfo: PageInfo!
@@ -36,6 +36,6 @@ type CategoryConnection {
 
 """A category and its opaque position in a category connection."""
 type CategoryEdge {
-  cursor: String!
+  cursor: Cursor!
   node: Category!
 }

@@ -8,9 +8,9 @@ extend type Query {
   """Returns published Online Store pages using Relay cursor pagination."""
   onlineStorePages(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): OnlineStorePageConnection!
 
   """Returns an Online Store navigation menu by its global Relay ID."""
@@ -24,8 +24,8 @@ extend type Query {
   """Returns Online Store navigation menus using Relay cursor pagination."""
   onlineStoreNavigationMenus(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): OnlineStoreNavigationMenuConnection!
 }

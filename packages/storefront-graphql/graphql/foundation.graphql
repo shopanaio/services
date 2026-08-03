@@ -11,6 +11,9 @@ extend schema
 """A CSS color represented as a hexadecimal string."""
 scalar Color
 
+"""An opaque cursor used for pagination."""
+scalar Cursor
+
 """An ISO 8601-encoded date and time string."""
 scalar DateTime
 
@@ -43,12 +46,18 @@ interface DisplayableError {
   message: String!
 }
 
+"""Shared fields exposed by every Relay-style connection."""
+interface Connection {
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
 """Returns information about pagination in a connection."""
 type PageInfo @shareable {
-  endCursor: String
+  endCursor: Cursor
   hasNextPage: Boolean!
   hasPreviousPage: Boolean!
-  startCursor: String
+  startCursor: Cursor
 }
 
 """A precise monetary value with its associated currency."""

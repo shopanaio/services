@@ -4,9 +4,9 @@ extend type Product @key(fields: "id") {
   """Published reviews for this product."""
   reviews(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
     rating: Int
     verifiedOnly: Boolean = false
     withMediaOnly: Boolean = false
@@ -18,17 +18,17 @@ extend type Product @key(fields: "id") {
   """Rating criteria applicable to this product in display order."""
   reviewRatingCriteria(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewRatingCriterionConnection!
 
   """Published questions for this product."""
   questions(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
     answered: Boolean
   ): ProductQuestionConnection!
 
@@ -41,16 +41,16 @@ extend type ProductVariant @key(fields: "id") {
 
   reviews(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewConnection!
 
   questions(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductQuestionConnection!
 }
 
@@ -63,23 +63,23 @@ extend type Customer @key(fields: "id") {
 
   reviews(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewConnection!
 
   productQuestions(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ProductQuestionConnection!
 
   reviewRequests(
     first: Int
-    after: String
+    after: Cursor
     last: Int
-    before: String
+    before: Cursor
   ): ReviewRequestConnection!
 }
 
