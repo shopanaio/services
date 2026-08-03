@@ -1,29 +1,19 @@
 type Store implements Node @key(fields: "id") {
   id: ID!
-}
-
-type Locale implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type StoreConnection {
-  edges: [StoreEdge!]!
-  nodes: [Store!]!
-  pageInfo: PageInfo!
-}
-
-type StoreEdge {
-  cursor: String!
-  node: Store!
-}
-
-type LocaleConnection {
-  edges: [LocaleEdge!]!
-  nodes: [Locale!]!
-  pageInfo: PageInfo!
-}
-
-type LocaleEdge {
-  cursor: String!
-  node: Locale!
+  handle: String!
+  name: String!
+  description: String
+  email: String
+  timezone: String!
+  defaultLocale: LocaleCode!
+  defaultCurrency: CurrencyCode!
+  contact: StoreContact
+  address: StoreAddress
+  brand: StoreBrand!
+  markets(
+    first: Int = 20
+    after: String
+    last: Int
+    before: String
+  ): MarketConnection!
 }

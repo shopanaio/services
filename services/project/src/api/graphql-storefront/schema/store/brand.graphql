@@ -1,9 +1,12 @@
-type StoreBrand implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type StoreBrandSocialLink implements Node @key(fields: "id") {
-  id: ID!
+type StoreBrand {
+  logo: File
+  squareLogo: File
+  coverImage: File
+  primaryColor: Color!
+  secondaryColor: Color!
+  slogan: String
+  shortDescription: String
+  socialLinks: [StoreSocialLink!]!
 }
 
 type StoreSocialLink {

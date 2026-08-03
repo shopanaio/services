@@ -1,14 +1,15 @@
-type StoreAddress implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type StorePhone implements Node @key(fields: "id") {
-  id: ID!
-}
-
-type StoreContactDetails {
+type StoreContact {
   name: String!
-  slug: String!
   email: String
   phoneNumbers: [String!]!
+}
+
+type StoreAddress {
+  companyName: String
+  countryCode: CountryCode!
+  address1: String
+  address2: String
+  city: String
+  province: String
+  postalCode: String
 }

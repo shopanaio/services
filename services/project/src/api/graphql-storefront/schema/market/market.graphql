@@ -1,27 +1,52 @@
 type Market implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
+  name: String!
+  countries: [Country!]!
+  languages: [Language!]!
+  currencies: [Currency!]!
+  defaultCountry: Country
+  defaultLanguage: Language!
+  defaultCurrency: Currency!
+  timezone: String!
+  taxIncluded: Boolean!
 }
 
-type MarketCountry {
-  countryCode: CountryCode!
-  isPrimary: Boolean!
+type Country {
+  code: CountryCode!
+  name: String!
 }
 
-type MarketLocale {
-  localeCode: LocaleCode!
+type Language {
+  code: LocaleCode!
+  name: String!
 }
 
-type MarketCurrency {
-  currencyCode: CurrencyCode!
+type Currency {
+  code: CurrencyCode!
+  name: String!
+  symbol: String!
 }
 
 type MarketConnection {
   edges: [MarketEdge!]!
   nodes: [Market!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type MarketEdge {
   cursor: String!
   node: Market!
+}
+
+type Localization {
+  store: Store!
+  market: Market!
+  country: Country!
+  language: Language!
+  currency: Currency!
+  availableCountries: [Country!]!
+  availableLanguages: [Language!]!
+  availableCurrencies: [Currency!]!
 }
