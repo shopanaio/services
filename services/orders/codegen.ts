@@ -25,6 +25,7 @@ const config: CodegenConfig = {
     },
     "./src/interfaces/gql-storefront-api/types.ts": {
       schema: [
+        "../../packages/storefront-graphql/graphql/foundation.graphql",
         "../../packages/shared-references/graphql/*.graphql",
         "src/interfaces/gql-storefront-api/schema/*.graphql",
       ],
@@ -39,6 +40,8 @@ const config: CodegenConfig = {
           DateTime: "string",
           Decimal: "string",
           BigInt: "number",
+          Cursor: "string",
+          URL: "string",
           JSON: "unknown",
           CurrencyCode: "string",
         },
