@@ -59,9 +59,9 @@ type CheckoutLine implements Node @key(fields: "id") {
   sku: String
 
   """
-  Image URL of the purchasable.
+  Image of the purchasable resolved by the Media subgraph.
   """
-  imageSrc: String
+  image: MediaImage
 
   """
   Quantity of the item being purchased.

@@ -1,7 +1,7 @@
 type StoreBrand {
-  logo: File
-  squareLogo: File
-  coverImage: File
+  logo: MediaImage
+  squareLogo: MediaImage
+  coverImage: MediaImage
   primaryColor: Color!
   secondaryColor: Color!
   slogan: String

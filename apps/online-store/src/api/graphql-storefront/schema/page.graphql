@@ -42,14 +42,12 @@ type OnlineStoreSEO {
 type OnlineStoreOpenGraphMetadata {
   title: String
   description: String
+  """Social preview image resolved by the Media subgraph."""
+  image: MediaImage
+}
 
-  """
-  Global media ID selected as the social preview image.
-
-  The ID can be resolved through the storefront media entity API once that
-  entity is exposed by the Media subgraph.
-  """
-  imageId: ID
+type MediaImage @key(fields: "id", resolvable: false) {
+  id: ID!
 }
 
 """A Relay connection containing published Online Store pages."""

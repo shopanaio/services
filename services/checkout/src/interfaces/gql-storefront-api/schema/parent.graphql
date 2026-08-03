@@ -7,3 +7,8 @@ scalar Email
 type Customer @key(fields: "id", resolvable: false) {
   id: ID!
 }
+
+"""An image owned and resolved by the Media subgraph."""
+type MediaImage @key(fields: "id", resolvable: false) {
+  id: ID!
+}

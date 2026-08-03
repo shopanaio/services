@@ -49,7 +49,6 @@ enum OnlineStoreNavigationTargetType {
   PAGE
   PRODUCT
   CATEGORY
-  COLLECTION
 }
 
 """A normalized, frontend-ready navigation destination."""
@@ -64,9 +63,8 @@ type OnlineStoreNavigationTarget {
   """
   Referenced federated Node when the resource is public and resolvable.
 
-  This can resolve to OnlineStorePage, Product, Category, or a future
-  storefront Collection entity. It is null for URL targets and unavailable
-  resources.
+  This can resolve to OnlineStorePage, Product, or Category. It is null for
+  URL targets and unavailable resources.
   """
   resource: Node
 

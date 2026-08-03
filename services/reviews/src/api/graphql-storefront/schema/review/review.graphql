@@ -34,7 +34,7 @@ type Review implements Node & ReviewContent @key(fields: "id") {
 type ReviewMedia implements Node @key(fields: "id") {
   id: ID!
   review: Review!
-  file: File!
+  media: Media!
   sortIndex: Int!
   caption: String
   status: ReviewContentStatus!

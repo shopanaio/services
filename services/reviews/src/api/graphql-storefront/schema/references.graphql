@@ -83,6 +83,6 @@ extend type Customer @key(fields: "id") {
   ): ReviewRequestConnection!
 }
 
-extend type File @key(fields: "id", resolvable: false) {
-  id: ID! @external
+extend interface Media {
+  id: ID!
 }
