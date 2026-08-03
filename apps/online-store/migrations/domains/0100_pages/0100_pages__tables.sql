@@ -40,8 +40,11 @@ CREATE TABLE "app_shopana_online_store"."page_translations" (
   "body_text" text,
   "body_html" text,
   "body_json" jsonb,
-  "seo_title" varchar(255),
-  "seo_description" text,
+  "seo_title" varchar(70),
+  "seo_description" varchar(160),
+  "og_title" varchar(95),
+  "og_description" text,
+  "og_image_id" uuid,
   CONSTRAINT "page_translations_pkey" PRIMARY KEY ("page_id", "locale"),
   CONSTRAINT "page_translations_page_id_pages_id_fk"
     FOREIGN KEY ("page_id")

@@ -14,14 +14,16 @@ import type {
 
 export interface CreateNavigationMenuItemInput {
   readonly parentId?: string | null;
-  readonly lexoRank: string;
+  readonly afterItemId?: string | null;
+  readonly beforeItemId?: string | null;
   readonly target: NavigationItemTarget;
   readonly openInNewTab?: boolean;
 }
 
 export interface UpdateNavigationMenuItemInput {
   readonly parentId?: string | null;
-  readonly lexoRank?: string;
+  readonly afterItemId?: string | null;
+  readonly beforeItemId?: string | null;
   readonly target?: NavigationItemTarget;
   readonly openInNewTab?: boolean;
   readonly expectedRevision?: number;
@@ -124,8 +126,11 @@ export class NavigationMenuItemRepository extends BaseRepository {
   deleteSubtree(
     scope: OnlineStoreScope,
     itemId: string,
+    expectedRevision?: number,
   ): Promise<boolean> {
-    return this.txManager.run(() => this.deleteInTransaction(scope, itemId));
+    return this.txManager.run(() =>
+      this.deleteInTransaction(scope, itemId, expectedRevision),
+    );
   }
 
   private async createInTransaction(
@@ -146,7 +151,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
       menuId,
       storeId: scope.storeId,
       parentId: input.parentId ?? null,
-      lexoRank: input.lexoRank,
+      lexoRank: temporaryRank(),
       targetType: target.targetType,
       targetId: target.targetId,
       url: target.url,
@@ -159,7 +164,15 @@ export class NavigationMenuItemRepository extends BaseRepository {
       .insert(navigationMenuItems)
       .values(insert)
       .returning();
-    return mapItem(requiredRow(rows[0]));
+    const created = requiredRow(rows[0]);
+    await this.reorderSiblings(scope, {
+      menuId,
+      parentId: input.parentId ?? null,
+      itemId: created.id,
+      afterItemId: input.afterItemId,
+      beforeItemId: input.beforeItemId,
+    });
+    return this.findById(scope, created.id);
   }
 
   private async updateInTransaction(
@@ -173,18 +186,26 @@ export class NavigationMenuItemRepository extends BaseRepository {
 
     item = await this.findById(scope, itemId);
     if (!item) return null;
-    if (input.parentId === itemId) return null;
-    if (input.parentId) {
-      const parent = await this.findById(scope, input.parentId);
+    const oldParentId = item.parentId;
+    const nextParentId =
+      input.parentId === undefined ? item.parentId : input.parentId;
+    const shouldReorder =
+      oldParentId !== nextParentId ||
+      input.afterItemId !== undefined ||
+      input.beforeItemId !== undefined;
+    if (nextParentId === itemId) return null;
+    if (nextParentId) {
+      const parent = await this.findById(scope, nextParentId);
       if (!parent || parent.menuId !== item.menuId) return null;
+      if (await this.parentCreatesCycle(scope, itemId, parent.id)) return null;
     }
 
     const target = input.target ? normalizeTarget(input.target) : undefined;
     const rows = await this.connection
       .update(navigationMenuItems)
       .set({
-        parentId: input.parentId,
-        lexoRank: input.lexoRank,
+        parentId: nextParentId,
+        lexoRank: shouldReorder ? temporaryRank() : undefined,
         targetType: target?.targetType,
         targetId: target?.targetId,
         url: target?.url,
@@ -201,12 +222,25 @@ export class NavigationMenuItemRepository extends BaseRepository {
         ),
       )
       .returning();
-    return rows[0] ? mapItem(rows[0]) : null;
+    if (!rows[0]) return null;
+    if (!shouldReorder) return this.findById(scope, itemId);
+    if (oldParentId !== nextParentId) {
+      await this.rebalanceSiblings(scope, item.menuId, oldParentId);
+    }
+    await this.reorderSiblings(scope, {
+      menuId: item.menuId,
+      parentId: nextParentId,
+      itemId,
+      afterItemId: input.afterItemId,
+      beforeItemId: input.beforeItemId,
+    });
+    return this.findById(scope, itemId);
   }
 
   private async deleteInTransaction(
     scope: OnlineStoreScope,
     itemId: string,
+    expectedRevision?: number,
   ): Promise<boolean> {
     const item = await this.findById(scope, itemId);
     if (!item) return false;
@@ -214,9 +248,97 @@ export class NavigationMenuItemRepository extends BaseRepository {
 
     const rows = await this.connection
       .delete(navigationMenuItems)
-      .where(this.itemOwnership(scope, itemId))
+      .where(
+        and(
+          this.itemOwnership(scope, itemId),
+          expectedRevision === undefined
+            ? undefined
+            : eq(navigationMenuItems.revision, expectedRevision),
+        ),
+      )
       .returning({ id: navigationMenuItems.id });
-    return rows.length > 0;
+    if (rows.length === 0) return false;
+    await this.rebalanceSiblings(scope, item.menuId, item.parentId);
+    return true;
+  }
+
+  private async parentCreatesCycle(
+    scope: OnlineStoreScope,
+    itemId: string,
+    candidateParentId: string,
+  ): Promise<boolean> {
+    let currentId: string | null = candidateParentId;
+    while (currentId) {
+      if (currentId === itemId) return true;
+      const current = await this.findById(scope, currentId);
+      currentId = current?.parentId ?? null;
+    }
+    return false;
+  }
+
+  private async reorderSiblings(
+    scope: OnlineStoreScope,
+    input: {
+      readonly menuId: string;
+      readonly parentId: string | null;
+      readonly itemId: string;
+      readonly afterItemId?: string | null;
+      readonly beforeItemId?: string | null;
+    },
+  ): Promise<void> {
+    const siblings = (
+      await this.listChildren(scope, input.menuId, input.parentId)
+    ).filter(({ id }) => id !== input.itemId);
+    const ids = siblings.map(({ id }) => id);
+    const afterIndex = input.afterItemId
+      ? ids.indexOf(input.afterItemId)
+      : -1;
+    const beforeIndex = input.beforeItemId
+      ? ids.indexOf(input.beforeItemId)
+      : -1;
+
+    if (input.afterItemId && afterIndex < 0) {
+      throw operationError("NAVIGATION_AFTER_ITEM_INVALID");
+    }
+    if (input.beforeItemId && beforeIndex < 0) {
+      throw operationError("NAVIGATION_BEFORE_ITEM_INVALID");
+    }
+    if (
+      input.afterItemId &&
+      input.beforeItemId &&
+      beforeIndex !== afterIndex + 1
+    ) {
+      throw operationError("NAVIGATION_PLACEMENT_INVALID");
+    }
+
+    const insertionIndex = input.beforeItemId
+      ? beforeIndex
+      : input.afterItemId
+        ? afterIndex + 1
+        : ids.length;
+    ids.splice(insertionIndex, 0, input.itemId);
+    await this.assignRanks(scope, ids);
+  }
+
+  private async rebalanceSiblings(
+    scope: OnlineStoreScope,
+    menuId: string,
+    parentId: string | null,
+  ): Promise<void> {
+    const siblings = await this.listChildren(scope, menuId, parentId);
+    await this.assignRanks(scope, siblings.map(({ id }) => id));
+  }
+
+  private async assignRanks(
+    scope: OnlineStoreScope,
+    itemIds: readonly string[],
+  ): Promise<void> {
+    for (const [index, itemId] of itemIds.entries()) {
+      await this.connection
+        .update(navigationMenuItems)
+        .set({ lexoRank: rankForIndex(index) })
+        .where(this.itemOwnership(scope, itemId));
+    }
   }
 
   private async lockOwnedMenu(scope: OnlineStoreScope, menuId: string) {
@@ -259,4 +381,16 @@ function requiredRow(
 
 function now(): string {
   return new Date().toISOString();
+}
+
+function temporaryRank(): string {
+  return "0000000000000000";
+}
+
+function rankForIndex(index: number): string {
+  return String((index + 1) * 1024).padStart(16, "0");
+}
+
+function operationError(code: string): Error & { code: string } {
+  return Object.assign(new Error(code), { code });
 }

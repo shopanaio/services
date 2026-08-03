@@ -35,7 +35,7 @@ type ProductPriceRange {
 """
 Rich text content in multiple formats.
 """
-type RichText {
+type RichText @shareable {
   """Plain text content."""
   text: String!
 

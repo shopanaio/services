@@ -1,0 +1,146 @@
+"""A navigation menu owned by an Online Store installation."""
+type OnlineStoreNavigationMenu implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  name: String!
+  revision: Int!
+  items: [OnlineStoreNavigationMenuItem!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+enum OnlineStoreNavigationTargetType {
+  URL
+  PAGE
+  PRODUCT
+  CATEGORY
+  COLLECTION
+}
+
+type OnlineStoreNavigationTarget {
+  type: OnlineStoreNavigationTargetType!
+  id: ID
+  url: String
+}
+
+"""A localized item in a navigation menu tree."""
+type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
+  id: ID!
+  menu: OnlineStoreNavigationMenu!
+  parent: OnlineStoreNavigationMenuItem
+  children: [OnlineStoreNavigationMenuItem!]!
+  label: String!
+  target: OnlineStoreNavigationTarget!
+  openInNewTab: Boolean!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input OnlineStoreNavigationMenuCreateInput {
+  handle: String!
+  name: String!
+}
+
+input OnlineStoreNavigationMenuUpdateInput {
+  id: ID!
+  handle: String
+  name: String
+  expectedRevision: Int
+}
+
+input OnlineStoreNavigationMenuDeleteInput {
+  id: ID!
+  expectedRevision: Int
+}
+
+input OnlineStoreNavigationTargetInput {
+  type: OnlineStoreNavigationTargetType!
+  id: ID
+  url: String
+}
+
+input OnlineStoreNavigationMenuItemCreateInput {
+  menuId: ID!
+  parentId: ID
+  label: String!
+  afterItemId: ID
+  beforeItemId: ID
+  target: OnlineStoreNavigationTargetInput!
+  openInNewTab: Boolean
+}
+
+input OnlineStoreNavigationMenuItemUpdateInput {
+  id: ID!
+  parentId: ID
+  label: String
+  afterItemId: ID
+  beforeItemId: ID
+  target: OnlineStoreNavigationTargetInput
+  openInNewTab: Boolean
+  expectedRevision: Int
+}
+
+input OnlineStoreNavigationMenuItemDeleteInput {
+  id: ID!
+  expectedRevision: Int
+}
+
+input OnlineStoreNavigationMenuWhereInput {
+  handleContains: String
+  nameContains: String
+}
+
+enum OnlineStoreNavigationMenuOrderField {
+  HANDLE
+  NAME
+  CREATED_AT
+  UPDATED_AT
+}
+
+input OnlineStoreNavigationMenuOrderByInput {
+  field: OnlineStoreNavigationMenuOrderField!
+  direction: OnlineStoreSortDirection!
+}
+
+type OnlineStoreNavigationMenuConnection {
+  edges: [OnlineStoreNavigationMenuEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OnlineStoreNavigationMenuEdge {
+  node: OnlineStoreNavigationMenu!
+  cursor: String!
+}
+
+type OnlineStoreNavigationMenuCreatePayload {
+  navigationMenu: OnlineStoreNavigationMenu
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStoreNavigationMenuUpdatePayload {
+  navigationMenu: OnlineStoreNavigationMenu
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStoreNavigationMenuDeletePayload {
+  deletedNavigationMenuId: ID
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStoreNavigationMenuItemCreatePayload {
+  navigationMenuItem: OnlineStoreNavigationMenuItem
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStoreNavigationMenuItemUpdatePayload {
+  navigationMenuItem: OnlineStoreNavigationMenuItem
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStoreNavigationMenuItemDeletePayload {
+  deletedNavigationMenuItemId: ID
+  userErrors: [GenericUserError!]!
+}

@@ -22,6 +22,9 @@ export interface UpsertPageTranslationInput {
   readonly bodyJson?: Record<string, unknown> | null;
   readonly seoTitle?: string | null;
   readonly seoDescription?: string | null;
+  readonly ogTitle?: string | null;
+  readonly ogDescription?: string | null;
+  readonly ogImageId?: string | null;
 }
 
 export interface UpsertNavigationMenuItemTranslationInput {
@@ -108,6 +111,9 @@ export class TranslationRepository extends BaseRepository {
         bodyJson: input.bodyJson ?? null,
         seoTitle: input.seoTitle ?? null,
         seoDescription: input.seoDescription ?? null,
+        ogTitle: input.ogTitle ?? null,
+        ogDescription: input.ogDescription ?? null,
+        ogImageId: input.ogImageId ?? null,
       })
       .onConflictDoUpdate({
         target: [pageTranslations.pageId, pageTranslations.locale],
@@ -118,6 +124,9 @@ export class TranslationRepository extends BaseRepository {
           bodyJson: input.bodyJson ?? null,
           seoTitle: input.seoTitle ?? null,
           seoDescription: input.seoDescription ?? null,
+          ogTitle: input.ogTitle ?? null,
+          ogDescription: input.ogDescription ?? null,
+          ogImageId: input.ogImageId ?? null,
         },
       })
       .returning();

@@ -12,9 +12,14 @@
   },
   "dependencies": {
     "@shopana/app-sdk": "workspace:*",
+    "@shopana/shared-context": "workspace:*",
+    "@shopana/shared-graphql-guid": "workspace:*",
     "@shopana/shared-kernel": "workspace:*",
     "@shopana/shared-references": "*",
-    "drizzle-orm": "^0.45.1"
+    "@shopana/type-resolver": "workspace:*",
+    "dataloader": "^2.2.3",
+    "drizzle-orm": "^0.45.1",
+    "graphql": "^16.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.7.4",

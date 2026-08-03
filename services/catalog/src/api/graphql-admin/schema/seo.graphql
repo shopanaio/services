@@ -1,5 +1,5 @@
 """SEO and Open Graph metadata."""
-type Seo {
+type Seo @shareable {
   """SEO title for search engines (max 70 chars)."""
   seoTitle: String
 

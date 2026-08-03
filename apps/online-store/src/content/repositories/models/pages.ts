@@ -74,8 +74,11 @@ export const pageTranslations = onlineStoreSchema.table(
     bodyText: text("body_text"),
     bodyHtml: text("body_html"),
     bodyJson: jsonb("body_json").$type<Record<string, unknown>>(),
-    seoTitle: varchar("seo_title", { length: 255 }),
-    seoDescription: text("seo_description"),
+    seoTitle: varchar("seo_title", { length: 70 }),
+    seoDescription: varchar("seo_description", { length: 160 }),
+    ogTitle: varchar("og_title", { length: 95 }),
+    ogDescription: text("og_description"),
+    ogImageId: uuid("og_image_id"),
   },
   (table) => [
     primaryKey({ columns: [table.pageId, table.locale] }),

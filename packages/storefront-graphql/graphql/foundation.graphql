@@ -5,7 +5,7 @@
 extend schema
   @link(
     url: "https://specs.apollo.dev/federation/v2.7"
-    import: ["@shareable"]
+    import: ["@external", "@key", "@shareable"]
   )
 
 """A CSS color represented as a hexadecimal string."""

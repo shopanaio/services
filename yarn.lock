@@ -7345,6 +7345,7 @@ __metadata:
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-references": "npm:*"
     "@shopana/shared-service-api": "npm:*"
+    "@shopana/storefront-graphql": "workspace:*"
     "@shopana/type-resolver": "npm:*"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.14.14"
@@ -8136,7 +8137,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/shared-references@npm:*, @shopana/shared-references@workspace:packages/shared-references":
+"@shopana/shared-references@npm:*, @shopana/shared-references@workspace:*, @shopana/shared-references@workspace:packages/shared-references":
   version: 0.0.0-use.local
   resolution: "@shopana/shared-references@workspace:packages/shared-references"
   dependencies:
@@ -8175,7 +8176,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/storefront-graphql@workspace:packages/storefront-graphql":
+"@shopana/storefront-graphql@workspace:*, @shopana/storefront-graphql@workspace:packages/storefront-graphql":
   version: 0.0.0-use.local
   resolution: "@shopana/storefront-graphql@workspace:packages/storefront-graphql"
   dependencies:

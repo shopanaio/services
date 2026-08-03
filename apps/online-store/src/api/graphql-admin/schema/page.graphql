@@ -1,0 +1,126 @@
+"""Rich text content in multiple formats."""
+type RichText @shareable {
+  text: String!
+  html: String!
+  json: JSON!
+}
+
+"""Input for rich text content."""
+input RichTextInput {
+  text: String!
+  html: String!
+  json: JSON!
+}
+
+"""SEO and Open Graph metadata."""
+type Seo @shareable {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImage: File
+}
+
+"""Input for SEO and Open Graph metadata."""
+input SeoInput {
+  seoTitle: String
+  seoDescription: String
+  ogTitle: String
+  ogDescription: String
+  ogImageId: ID
+}
+
+extend type File @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
+
+enum OnlineStorePageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+"""A localized content page owned by an Online Store installation."""
+type OnlineStorePage implements Node @key(fields: "id") {
+  id: ID!
+  handle: String!
+  title: String!
+  body: RichText
+  seo: Seo
+  templateSuffix: String
+  publishedAt: DateTime
+  isPublished: Boolean!
+  revision: Int!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  deletedAt: DateTime
+}
+
+input OnlineStorePageCreateInput {
+  handle: String!
+  title: String!
+  body: RichTextInput
+  seo: SeoInput
+  templateSuffix: String
+  publish: Boolean
+}
+
+input OnlineStorePageUpdateInput {
+  handle: String
+  title: String
+  body: RichTextInput
+  seo: SeoInput
+  templateSuffix: String
+  status: OnlineStorePageStatus
+}
+
+input OnlineStorePageDeleteInput {
+  id: ID!
+  expectedRevision: Int
+}
+
+input OnlineStorePageWhereInput {
+  handleContains: String
+  isPublished: Boolean
+}
+
+enum OnlineStorePageOrderField {
+  HANDLE
+  CREATED_AT
+  UPDATED_AT
+}
+
+enum OnlineStoreSortDirection {
+  ASC
+  DESC
+}
+
+input OnlineStorePageOrderByInput {
+  field: OnlineStorePageOrderField!
+  direction: OnlineStoreSortDirection!
+}
+
+type OnlineStorePageConnection {
+  edges: [OnlineStorePageEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type OnlineStorePageEdge {
+  node: OnlineStorePage!
+  cursor: String!
+}
+
+type OnlineStorePageCreatePayload {
+  page: OnlineStorePage
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStorePageUpdatePayload {
+  page: OnlineStorePage
+  userErrors: [GenericUserError!]!
+}
+
+type OnlineStorePageDeletePayload {
+  deletedPageId: ID
+  userErrors: [GenericUserError!]!
+}

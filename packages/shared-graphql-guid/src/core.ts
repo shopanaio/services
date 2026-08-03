@@ -199,6 +199,9 @@ export enum GlobalIdEntity {
   HeadlessStorefrontConnection = "HeadlessStorefrontConnection",
   StorefrontCredential = "StorefrontCredential",
   SmtpConnection = "SmtpConnection",
+  OnlineStorePage = "OnlineStorePage",
+  OnlineStoreNavigationMenu = "OnlineStoreNavigationMenu",
+  OnlineStoreNavigationMenuItem = "OnlineStoreNavigationMenuItem",
   // Project
   Store = "Store",
 }
