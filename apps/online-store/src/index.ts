@@ -4,7 +4,7 @@ import { OnlineStoreApp } from "./OnlineStoreApp.js";
 
 export { onlineStoreManifest } from "../app.manifest.js";
 export { OnlineStoreApp } from "./OnlineStoreApp.js";
-export * from "./content/repositories/models/index.js";
+export * from "./content/repositories/index.js";
 
 export default defineApp({
   manifest: onlineStoreManifest,

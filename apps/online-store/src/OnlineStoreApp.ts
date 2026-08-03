@@ -3,9 +3,14 @@ import type {
   AppRuntimeHealth,
   ShopanaApp,
 } from "@shopana/app-sdk";
+import { OnlineStoreRepository } from "./content/repositories/index.js";
 
 export class OnlineStoreApp implements ShopanaApp {
-  constructor(private readonly host: AppHostContext) {}
+  readonly repository: OnlineStoreRepository;
+
+  constructor(private readonly host: AppHostContext) {
+    this.repository = OnlineStoreRepository.create(host.databaseClient);
+  }
 
   register(): void {
     this.host.broker.registerWorkflow("install", { run: () => undefined });
