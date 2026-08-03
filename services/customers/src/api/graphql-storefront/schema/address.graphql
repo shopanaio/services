@@ -1,4 +1,9 @@
-"""A mailing address owned by the current customer."""
+"""
+A normalized international mailing address owned by the current customer.
+
+The core contract contains only portable postal fields. Delivery- and
+payment-provider extensions belong to their respective checkout addresses.
+"""
 type CustomerAddress {
   """Globally unique customer address ID."""
   id: ID!
@@ -6,45 +11,59 @@ type CustomerAddress {
   firstName: String
   """Recipient's last name."""
   lastName: String
+  """Recipient name formatted for the active storefront locale."""
+  name: String!
+  """Company or organization associated with the address."""
+  company: String
   """Primary street address or post office box."""
   address1: String
   """Apartment, suite, unit, or other secondary address information."""
   address2: String
   """City, town, village, or locality."""
   city: String
+  """Localized region, state, or province name."""
+  province: String
   """Region, state, or province code."""
-  zoneCode: String
-  """ISO 3166 territory or country code."""
-  territoryCode: String
+  provinceCode: String
+  """Localized country or territory name."""
+  country: String
+  """ISO 3166-1 alpha-2 country or territory code."""
+  countryCode: CountryCode
   """Postal or ZIP code."""
   zip: String
   """Recipient phone number, preferably in E.164 format."""
-  phoneNumber: String
+  phone: String
+  """Address lines formatted for the active storefront locale."""
+  formatted: [String!]!
+  """Compact city, region, and country representation."""
+  formattedArea: String
 }
 
 """
-Minimal mailing address input shared by create and update operations.
-Field requirements and normalization rules will be refined with the address flow.
+Portable international mailing-address input shared by create and update
+operations. Country-specific requirements are validated using countryCode.
 """
 input CustomerAddressInput {
   """Recipient's first name."""
   firstName: String
   """Recipient's last name."""
   lastName: String
+  """Company or organization associated with the address."""
+  company: String
   """Primary street address or post office box."""
   address1: String
   """Apartment, suite, unit, or other secondary address information."""
   address2: String
   """City, town, village, or locality."""
   city: String
+  """ISO 3166-1 alpha-2 country or territory code."""
+  countryCode: CountryCode
   """Region, state, or province code."""
-  zoneCode: String
-  """ISO 3166 territory or country code."""
-  territoryCode: String
+  provinceCode: String
   """Postal or ZIP code."""
   zip: String
   """Recipient phone number, preferably in E.164 format."""
-  phoneNumber: String
+  phone: String
 }
 
 """Result of creating a customer address."""

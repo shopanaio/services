@@ -551,37 +551,46 @@ input CheckoutCurrencyCodeUpdateInput {
   currencyCode: CurrencyCode!
 }
 
-"""Billing address captured independently from delivery destinations."""
+"""
+A normalized international billing address captured independently from
+delivery destinations. Payment-provider-specific fields belong to data.
+"""
 type CheckoutBillingAddress {
   firstName: String
-  middleName: String
   lastName: String
-  companyName: String
+  name: String!
+  company: String
   address1: String
   address2: String
   city: String
-  countryCode: CountryCode
+  province: String
   provinceCode: String
-  postalCode: String
-  email: Email
+  country: String
+  countryCode: CountryCode
+  zip: String
   phone: String
+  """Payment-provider-specific billing-address extension data."""
   data: JSON
+  formatted: [String!]!
+  formattedArea: String
 }
 
-"""Input fields for a checkout billing address."""
+"""
+Portable international postal fields for a checkout billing address.
+Payment-provider-specific fields belong to data.
+"""
 input CheckoutBillingAddressInput {
   firstName: String
-  middleName: String
   lastName: String
-  companyName: String
+  company: String
   address1: String
   address2: String
   city: String
   countryCode: CountryCode
   provinceCode: String
-  postalCode: String
-  email: Email
+  zip: String
   phone: String
+  """Payment-provider-specific billing-address extension data."""
   data: JSON
 }
 

@@ -324,7 +324,23 @@ input CheckoutDeliveryDestinationInput {
   address: CheckoutDeliveryAddressInput!
 }
 
+"""
+Portable international postal fields for a checkout delivery address.
+
+Carrier-specific fields such as a Nova Poshta settlement, warehouse, or branch
+identifier belong to data and are validated by the selected delivery option's
+customerInputContract.
+"""
 input CheckoutDeliveryAddressInput {
+  """Recipient's first name."""
+  firstName: String
+
+  """Recipient's last name."""
+  lastName: String
+
+  """Company or organization receiving the delivery."""
+  company: String
+
   """
   Primary address line.
   """
@@ -351,24 +367,9 @@ input CheckoutDeliveryAddressInput {
   provinceCode: String
 
   """
-  Postal code.
+  Postal or ZIP code.
   """
-  postalCode: String
-
-  """
-  Email address for this delivery address.
-  """
-  email: Email
-
-  """
-  First name for delivery.
-  """
-  firstName: String
-
-  """
-  Last name for delivery.
-  """
-  lastName: String
+  zip: String
 
   """
   Phone number for delivery.
@@ -376,13 +377,14 @@ input CheckoutDeliveryAddressInput {
   phone: String
 
   """
-  Data associated with the delivery address.
+  Carrier-specific address extension data. The shape is defined by the
+  selected delivery option's customerInputContract.
   """
   data: JSON
 }
 
 """
-Delivery address associated with a checkout.
+A normalized international delivery address associated with a checkout.
 """
 type CheckoutDeliveryAddress {
   """
@@ -393,14 +395,14 @@ type CheckoutDeliveryAddress {
   """Recipient first name captured with this destination."""
   firstName: String
 
-  """Recipient middle name captured with this destination."""
-  middleName: String
-
   """Recipient last name captured with this destination."""
   lastName: String
 
-  """Contact email captured with this destination."""
-  email: Email
+  """Recipient name formatted for the active storefront locale."""
+  name: String!
+
+  """Company or organization receiving the delivery."""
+  company: String
 
   """Contact phone captured with this destination."""
   phone: String
@@ -420,10 +422,16 @@ type CheckoutDeliveryAddress {
   """
   city: String
 
+  """Localized country or territory name."""
+  country: String
+
   """
   Country code (ISO 3166-1 alpha-2).
   """
   countryCode: CountryCode
+
+  """Localized region, state, or province name."""
+  province: String
 
   """
   Province code.
@@ -431,12 +439,18 @@ type CheckoutDeliveryAddress {
   provinceCode: String
 
   """
-  Postal code.
+  Postal or ZIP code.
   """
-  postalCode: String
+  zip: String
 
   """
-  Data associated with the delivery address.
+  Carrier-specific address extension data.
   """
   data: JSON
+
+  """Address lines formatted for the active storefront locale."""
+  formatted: [String!]!
+
+  """Compact city, region, and country representation."""
+  formattedArea: String
 }
