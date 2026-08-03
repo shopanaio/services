@@ -1,5 +1,4 @@
 import { asc, eq, inArray } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   OrderReadPort,
   OrderReadPortRow,
@@ -11,7 +10,6 @@ import type {
   OrderPromoCode,
   OrderDeliveryGroup,
 } from "@src/application/read/orderReadRepository";
-import type { Database } from "@src/infrastructure/db/database";
 import {
   orderAppliedDiscounts,
   orderDeliveryAddresses,
@@ -24,17 +22,9 @@ import {
   orderSelectedPaymentMethods,
 } from "@src/repositories/models/index";
 import { coerceToDate } from "@src/utils/date";
+import { BaseRepository } from "@src/repositories/BaseRepository";
 
-export class OrderReadRepository implements OrderReadPort {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
-
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
-
+export class OrderReadRepository extends BaseRepository implements OrderReadPort {
   async findById(id: string): Promise<OrderReadPortRow | null> {
     const [row] = await this.connection
       .select({
@@ -84,7 +74,6 @@ export class OrderReadRepository implements OrderReadPort {
       created_at: coerceToDate(order.createdAt),
       updated_at: coerceToDate(order.updatedAt),
       deleted_at: order.deletedAt == null ? null : coerceToDate(order.deletedAt),
-      projected_version: order.projectedVersion,
     };
   }
 

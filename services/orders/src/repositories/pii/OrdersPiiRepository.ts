@@ -1,11 +1,10 @@
 import { sql } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
-import type { Database } from "@src/infrastructure/db/database";
 import {
   orderDeliveryAddresses,
   orderRecipients,
   ordersPiiRecords,
 } from "@src/repositories/models/index";
+import { BaseRepository } from "@src/repositories/BaseRepository";
 
 export type OrderContactPII = {
   storeId: string;
@@ -44,16 +43,7 @@ export type RecipientPII = {
   metadata?: Record<string, unknown> | null;
 };
 
-export class OrdersPiiRepository {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
-
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
-
+export class OrdersPiiRepository extends BaseRepository {
   async upsertOrderContacts(input: OrderContactPII): Promise<void> {
     const values = {
       storeId: input.storeId,

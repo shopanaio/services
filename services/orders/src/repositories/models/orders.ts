@@ -18,28 +18,6 @@ const auditColumns = () => ({
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const orderStreams = ordersSchema.table("order_streams", {
-  streamId: text("stream_id").primaryKey(),
-  version: bigint("version", { mode: "bigint" }).notNull(),
-  ...auditColumns(),
-});
-
-export const orderEvents = ordersSchema.table(
-  "order_events",
-  {
-    streamId: text("stream_id").notNull().references(() => orderStreams.streamId, { onDelete: "cascade" }),
-    version: bigint("version", { mode: "bigint" }).notNull(),
-    eventType: text("event_type").notNull(),
-    data: jsonb("data").$type<Record<string, unknown>>().notNull(),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.streamId, table.version] }),
-    index("order_events_stream_version_idx").on(table.streamId, table.version),
-  ],
-);
-
 export const orders = ordersSchema.table(
   "orders",
   {
@@ -63,7 +41,7 @@ export const orders = ordersSchema.table(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    projectedVersion: bigint("projected_version", { mode: "bigint" }).notNull().default(0n),
+    checkoutSnapshot: jsonb("checkout_snapshot").$type<Record<string, unknown>>().notNull(),
     ...auditColumns(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
@@ -99,7 +77,6 @@ export const orderItems = ordersSchema.table(
     unitImageUrl: text("unit_image_url"),
     unitSnapshot: jsonb("unit_snapshot").$type<Record<string, unknown> | null>(),
     metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    projectedVersion: bigint("projected_version", { mode: "bigint" }).notNull().default(0n),
     ...auditColumns(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },

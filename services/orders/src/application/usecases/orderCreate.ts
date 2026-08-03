@@ -2,25 +2,12 @@ import {
   UseCase,
   type UseCaseDependencies,
 } from "@src/application/usecases/useCase";
-import type { CreateOrderCommand } from "@src/domain/order/commands";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
-import {
-  OrderEventsContractVersion,
-  type OrderCreated,
-} from "@src/domain/order/events";
-import type {
-  AppliedDiscount,
-  OrderUnitSnapshot,
-} from "@src/domain/order/evolve";
 import { Money } from "@shopana/shared-money";
 import { deserializeCheckout, type CheckoutDto } from "@shopana/checkout-sdk";
 import { v7 as uuidv7 } from "uuid";
-import { orderDecider } from "@src/domain/order/decider";
-import {
-  runOrderCreateProjectionContext,
-  setOrderCreateProjectionContext,
-  type OrderCreateProjectionContextData,
-} from "@src/application/usecases/orderCreateProjectionContext";
+import type { OrderCreateData } from "@src/repositories/order/OrderRepository";
+import type { Repository } from "@src/repositories/Repository";
 
 /** Checkout aggregate reconstructed from the immutable placement snapshot. */
 type Checkout = ReturnType<typeof deserializeCheckout>;
@@ -45,7 +32,9 @@ function toMoneyOrNumber(value: number | { amountMinor(): bigint; currency(): { 
   return toMoney(value);
 }
 
-export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {}
+export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {
+  repository: Repository;
+}
 
 export interface CreateOrderFromCheckoutPlacementInput {
   orderId: string;
@@ -57,22 +46,16 @@ export interface CreateOrderFromCheckoutPlacementInput {
   checkout: CheckoutDto;
 }
 
-interface OrderCreationIdentity {
-  orderId: string;
-  storeId: string;
-  credentialId: string;
-  userId: string | null;
-  idempotencyKey: string;
-  requireOrderIdMatch: boolean;
-}
-
 export class CreateOrderUseCase extends UseCase<
   CreateOrderFromCheckoutPlacementInput,
   string
 > {
   constructor(deps: CreateOrderUseCaseDependencies) {
     super(deps);
+    this.repository = deps.repository;
   }
+
+  private readonly repository: Repository;
 
   async execute(
     input: CreateOrderFromCheckoutPlacementInput,
@@ -81,81 +64,47 @@ export class CreateOrderUseCase extends UseCase<
     if (checkout.id !== input.checkoutId || checkout.storeId !== input.storeId) {
       throw new Error("Checkout placement snapshot does not belong to the requested store");
     }
-    return runOrderCreateProjectionContext(async () => {
-      return this.executeWithProjectionContext(checkout, {
-        orderId: input.orderId,
-        storeId: input.storeId,
-        credentialId: input.credentialId,
-        userId: input.userId,
-        idempotencyKey: input.idempotencyKey,
-        requireOrderIdMatch: true,
-      });
-    });
+    this.validateCheckout(checkout);
+    return this.repository.txManager.run(() => this.createInTransaction(checkout, input));
   }
 
-  private async executeWithProjectionContext(
+  private async createInTransaction(
     checkoutAggregate: Checkout,
-    identity: OrderCreationIdentity,
+    input: CreateOrderFromCheckoutPlacementInput,
   ): Promise<string> {
-    const id = identity.orderId;
-    const streamId = this.streamNames.buildOrderStreamNameFromId(id);
+    const id = input.orderId;
 
-    this.validateCheckout(checkoutAggregate);
-
-    // Idempotency: return existing order if key previously used
-    const idemHit = await this.idempotencyRepository.get(
-      identity.storeId,
-      identity.idempotencyKey,
+    const idemHit = await this.repository.idempotency.get(
+      input.storeId,
+      input.idempotencyKey,
     );
     if (idemHit?.id) {
-      if (identity.requireOrderIdMatch && idemHit.id !== id) {
+      if (idemHit.id !== id) {
         throw new Error("Order placement idempotency key belongs to another order");
       }
       return idemHit.id;
     }
 
-    const { state } = await this.loadOrderState(id);
-    if (state.exists) {
-      if (
-        state.storeId === identity.storeId &&
-        state.idempotencyKey === identity.idempotencyKey
-      ) {
-        return id;
-      }
+    if (await this.repository.order.exists(id)) {
       throw new Error("Order placement identifier belongs to another order");
     }
 
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
-      identity.storeId,
+      input.storeId,
     );
 
     // Build order business data (independent from audit snapshot)
     // Flatten hierarchical lines (parent + children) into a flat array
     const orderLines = this.flattenCheckoutLines(checkoutAggregate.lines);
 
-    const deliveryAddressRefs = this.populateProjectionContext(
+    const relations = this.buildRelations(
       id,
-      identity.storeId,
+      input.storeId,
       checkoutAggregate
     );
 
-    // Build delivery groups payload for event with references to PII (addressId)
-    const deliveryGroupsForEvent = checkoutAggregate.deliveryGroups.map(
-      (g) => ({
-        id: g.id,
-        orderLineIds: g.checkoutLines.map((cl) => cl.id),
-        deliveryAddressId: deliveryAddressRefs.get(g.id) ?? null,
-        deliveryCost: g.shippingCost?.amount
-          ? {
-              amount: toMoney(g.shippingCost.amount),
-              paymentModel: g.shippingCost.paymentModel,
-            }
-          : null,
-      })
-    );
-
-    const appliedDiscounts: AppliedDiscount[] =
+    const appliedDiscounts: OrderCreateData["appliedDiscounts"] =
       checkoutAggregate.appliedPromoCodes.map((p) => ({
         code: p.code,
         appliedAt: new Date(p.appliedAt),
@@ -164,70 +113,50 @@ export class CreateOrderUseCase extends UseCase<
         provider: p.provider,
       }));
 
-    const command: CreateOrderCommand = {
-      type: "order.create",
-      data: {
-        // Core context
-        currencyCode:
-          checkoutAggregate.currencyCode ?? checkoutSnapshot.currencyCode,
-        idempotencyKey: identity.idempotencyKey,
-        salesChannel: checkoutAggregate.salesChannel ?? null,
-        externalSource: checkoutAggregate.externalSource ?? null,
-        externalId: checkoutAggregate.externalId ?? null,
-        localeCode: checkoutAggregate.localeCode ?? null,
+    await this.repository.order.create({
+      id,
+      storeId: input.storeId,
+      userId: input.userId,
+      idempotencyKey: input.idempotencyKey,
+      currencyCode: checkoutAggregate.currencyCode ?? checkoutSnapshot.currencyCode,
+      salesChannel: checkoutAggregate.salesChannel ?? null,
+      externalSource: checkoutAggregate.externalSource ?? null,
+      externalId: checkoutAggregate.externalId ?? null,
+      localeCode: checkoutAggregate.localeCode ?? null,
+      subtotalAmount: toMoney(checkoutAggregate.cost.subtotalAmount),
+      totalDiscountAmount: toMoney(checkoutAggregate.cost.totalDiscountAmount),
+      totalTaxAmount: toMoney(checkoutAggregate.cost.totalTaxAmount),
+      totalShippingAmount: toMoney(checkoutAggregate.cost.totalShippingAmount),
+      totalAmount: toMoney(checkoutAggregate.cost.totalAmount),
+      checkoutSnapshot,
+      lines: orderLines,
+      deliveryGroups: checkoutAggregate.deliveryGroups.map((group) => ({
+        id: group.id,
+        orderLineIds: group.checkoutLines.map((line) => line.id),
+      })),
+      appliedDiscounts,
+      ...relations,
+      createdAt: checkoutSnapshot.capturedAt,
+    });
 
-        // Totals
-        subtotalAmount: toMoney(checkoutAggregate.cost.subtotalAmount),
-        totalDiscountAmount: toMoney(checkoutAggregate.cost.totalDiscountAmount),
-        totalTaxAmount: toMoney(checkoutAggregate.cost.totalTaxAmount),
-        totalShippingAmount: toMoney(checkoutAggregate.cost.totalShippingAmount),
-        totalAmount: toMoney(checkoutAggregate.cost.totalAmount),
-
-        // Customer (no PII in events)
-        customerId: checkoutAggregate.customerIdentity.customer?.id ?? null,
-        customerCountryCode: checkoutAggregate.customerIdentity.countryCode,
-
-        // Order business state
-        lines: orderLines,
-        deliveryGroups: deliveryGroupsForEvent,
-        appliedDiscounts,
-
-        // Snapshot for audit
-        checkoutSnapshot,
-      },
-      metadata: {
-        aggregateId: id,
-        apiKey: identity.credentialId,
-        contractVersion: OrderEventsContractVersion,
-        now: new Date(),
-        storeId: identity.storeId,
-        userId: identity.userId ?? undefined,
-        idempotencyKey: identity.idempotencyKey,
-      },
-    };
-
-    const events = orderDecider.decide(command, state);
-    const eventsToAppend = (
-      Array.isArray(events) ? events : [events]
-    ) as OrderCreated[];
-
-    await this.appendToStream(
-      streamId,
-      eventsToAppend,
-      "STREAM_DOES_NOT_EXIST"
-    );
-
-    // NOTE: PII has been persisted into orders.orders_pii_records and
-    // orders.order_delivery_addresses. Only references (deliveryAddressId)
-    // are kept in event payloads for safe, GDPR-compliant event sourcing.
     return id;
   }
 
-  private populateProjectionContext(
+  private buildRelations(
     orderId: string,
     storeId: string,
     checkoutAggregate: Checkout
-  ): Map<string, string> {
+  ): Pick<
+    OrderCreateData,
+    | "contact"
+    | "deliveryAddresses"
+    | "recipients"
+    | "deliveryGroupMappings"
+    | "deliveryMethods"
+    | "selectedDeliveryMethods"
+    | "paymentMethods"
+    | "selectedPaymentMethod"
+  > {
     const deliveryGroups = checkoutAggregate.deliveryGroups.filter(
       (group) => group.deliveryAddress
     );
@@ -245,22 +174,19 @@ export class CreateOrderUseCase extends UseCase<
       countryCode: checkoutAggregate.customerIdentity.countryCode ?? null,
       metadata: null,
       expiresAt: null,
-    } satisfies OrderCreateProjectionContextData["contact"];
+    } satisfies OrderCreateData["contact"];
 
-    const deliveryAddressRefs = new Map<string, string>();
-    const deliveryAddresses: OrderCreateProjectionContextData["deliveryAddresses"] = [];
-    const recipients: OrderCreateProjectionContextData["recipients"] = [];
-    const deliveryGroupMappings: OrderCreateProjectionContextData["deliveryGroupMappings"] = [];
-    const deliveryMethods: OrderCreateProjectionContextData["deliveryMethods"] = [];
-    const selectedDeliveryMethods: OrderCreateProjectionContextData["selectedDeliveryMethods"] = [];
+    const deliveryAddresses: OrderCreateData["deliveryAddresses"] = [];
+    const recipients: OrderCreateData["recipients"] = [];
+    const deliveryGroupMappings: OrderCreateData["deliveryGroupMappings"] = [];
+    const deliveryMethods: OrderCreateData["deliveryMethods"] = [];
+    const selectedDeliveryMethods: OrderCreateData["selectedDeliveryMethods"] = [];
 
     for (const group of deliveryGroups) {
       const address = group.deliveryAddress!;
 
       const addrId = uuidv7();
       const recipientId = uuidv7();
-
-      deliveryAddressRefs.set(group.id, addrId);
 
       deliveryAddresses.push({
         id: addrId,
@@ -315,7 +241,7 @@ export class CreateOrderUseCase extends UseCase<
       }
     }
 
-    setOrderCreateProjectionContext(orderId, {
+    return {
       contact,
       deliveryAddresses,
       recipients,
@@ -324,9 +250,7 @@ export class CreateOrderUseCase extends UseCase<
       selectedDeliveryMethods,
       paymentMethods: [], // TODO: Add when payment methods are available in checkout
       selectedPaymentMethod: null,
-    });
-
-    return deliveryAddressRefs;
+    };
   }
 
   /**
@@ -413,21 +337,8 @@ export class CreateOrderUseCase extends UseCase<
    */
   private flattenCheckoutLines(
     lines: Checkout["lines"],
-    parentLineId: string | null = null
-  ): Array<{
-    lineId: string;
-    quantity: number;
-    unit: OrderUnitSnapshot;
-    tag: { id: string; slug: string; isUnique: boolean } | null;
-    parentLineId: string | null;
-  }> {
-    const result: Array<{
-      lineId: string;
-      quantity: number;
-      unit: OrderUnitSnapshot;
-      tag: { id: string; slug: string; isUnique: boolean } | null;
-      parentLineId: string | null;
-    }> = [];
+  ): OrderCreateData["lines"][number][] {
+    const result: OrderCreateData["lines"][number][] = [];
 
     for (const line of lines) {
       // Add the current line
@@ -442,20 +353,12 @@ export class CreateOrderUseCase extends UseCase<
           sku: line.sku ?? null,
           imageUrl: line.imageSrc ?? null,
           snapshot: (line.purchasable as Record<string, unknown> | null) ?? null,
-        } satisfies OrderUnitSnapshot,
-        tag: line.tag
-          ? {
-              id: line.tag.id,
-              slug: line.tag.slug,
-              isUnique: line.tag.isUnique,
-            }
-          : null,
-        parentLineId,
+        },
       });
 
       // Recursively add children with current line as parent
       if (line.children && line.children.length > 0) {
-        result.push(...this.flattenCheckoutLines(line.children, line.id));
+        result.push(...this.flattenCheckoutLines(line.children));
       }
     }
 

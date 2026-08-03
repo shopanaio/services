@@ -8,7 +8,7 @@ import {
  * Snapshot of a Checkout captured at Order creation time for audit/disputes.
  *
  * Purpose:
- * - Persist in orders event store to rebuild customer-visible context
+ * - Persist with the order to rebuild customer-visible context
  *   without calling the checkout service.
  * - Excludes processing/business fields that live in Order domain.
  */
@@ -52,7 +52,7 @@ export type CheckoutLineSnapshot = Readonly<{
 }>;
 
 /**
- * Purchasable unit snapshot copied from checkout event payloads.
+ * Purchasable unit snapshot copied from the checkout placement payload.
  */
 export type CheckoutUnitSnapshot = Readonly<{
   /** Final unit price at checkout time */

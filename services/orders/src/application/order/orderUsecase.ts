@@ -1,11 +1,9 @@
-import type { EventStorePort } from "@src/application/ports/eventStorePort";
-import type { StreamNamePolicyPort } from "@src/application/ports/streamNamePort";
 import type { Logger } from "pino";
 
 import { CreateOrderUseCase } from "@src/application/usecases/orderCreate";
 import { GetOrderByIdUseCase } from "@src/application/usecases/orderGetById";
 import { OrderReadRepository } from "@src/application/read/orderReadRepository";
-import type { IdempotencyRepository } from "@src/infrastructure/idempotency/idempotencyRepository";
+import type { Repository } from "@src/repositories/Repository";
 
 export class OrderUsecase {
   // Order use cases
@@ -13,29 +11,23 @@ export class OrderUsecase {
   public readonly getOrderById: GetOrderByIdUseCase;
 
   constructor(deps: {
-    eventStore: EventStorePort;
-    streamNames: StreamNamePolicyPort;
     logger?: Logger;
     orderReadRepository: OrderReadRepository;
-    idempotencyRepository: IdempotencyRepository;
+    repository: Repository;
   }) {
     const baseDeps = {
-      eventStore: deps.eventStore,
-      streamNames: deps.streamNames,
       logger: deps.logger,
-      idempotencyRepository: deps.idempotencyRepository,
     };
 
     // Initialize order use cases
     this.createOrder = new CreateOrderUseCase({
       ...baseDeps,
+      repository: deps.repository,
     });
 
-    this.getOrderById = new GetOrderByIdUseCase(
-      {
-        orderReadRepository: deps.orderReadRepository,
-      },
-      baseDeps
-    );
+    this.getOrderById = new GetOrderByIdUseCase({
+      ...baseDeps,
+      orderReadRepository: deps.orderReadRepository,
+    });
   }
 }

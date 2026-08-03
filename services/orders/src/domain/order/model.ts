@@ -1,27 +1,25 @@
-import type { OrderState } from "@src/domain/order/decider";
+export type OrderRecord = Readonly<{
+  id: string;
+  storeId: string;
+  currencyCode: string;
+}>;
 
 export class Order {
-  private readonly state: OrderState;
-  private readonly id: string;
+  private constructor(private readonly record: OrderRecord) {}
 
-  private constructor(id: string, state: OrderState) {
-    this.id = id;
-    this.state = state;
-  }
-
-  static fromAggregate(id: string, state: OrderState): Order {
-    return new Order(id, state);
+  static fromRecord(record: OrderRecord): Order {
+    return new Order(record);
   }
 
   getId(): string {
-    return this.id;
+    return this.record.id;
   }
 
-  getprojectId(): string {
-    return this.state.storeId;
+  getStoreId(): string {
+    return this.record.storeId;
   }
 
   getCurrencyCode(): string {
-    return this.state.currencyCode;
+    return this.record.currencyCode;
   }
 }

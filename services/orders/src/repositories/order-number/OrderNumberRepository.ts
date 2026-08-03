@@ -1,19 +1,8 @@
 import { sql } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
-import type { OrderNumberPort } from "@src/application/ports/orderNumberPort";
-import type { Database } from "@src/infrastructure/db/database";
 import { orderNumberCounters } from "@src/repositories/models/index";
+import { BaseRepository } from "@src/repositories/BaseRepository";
 
-export class OrderNumberRepository implements OrderNumberPort {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
-
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
-
+export class OrderNumberRepository extends BaseRepository {
   async reserve(storeId: string): Promise<number> {
     const [row] = await this.connection
       .insert(orderNumberCounters)

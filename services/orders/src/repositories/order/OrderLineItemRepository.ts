@@ -1,23 +1,16 @@
 import { asc, eq } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
 import type {
   OrderLineItemsReadPort,
   OrderLineItemReadPortRow,
 } from "@src/application/read/orderLineItemsReadRepository";
-import type { Database } from "@src/infrastructure/db/database";
 import { orderItems } from "@src/repositories/models/index";
 import { coerceToDate } from "@src/utils/date";
+import { BaseRepository } from "@src/repositories/BaseRepository";
 
-export class OrderLineItemsReadRepositoryPort implements OrderLineItemsReadPort {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
-
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
-
+export class OrderLineItemRepository
+  extends BaseRepository
+  implements OrderLineItemsReadPort
+{
   async findByOrderId(orderId: string): Promise<OrderLineItemReadPortRow[]> {
     const rows = await this.connection
       .select()
@@ -42,7 +35,6 @@ export class OrderLineItemsReadRepositoryPort implements OrderLineItemsReadPort 
       tax_amount: row.taxAmount,
       total_amount: row.totalAmount,
       metadata: row.metadata,
-      projected_version: row.projectedVersion,
       created_at: coerceToDate(row.createdAt),
       updated_at: coerceToDate(row.updatedAt),
       deleted_at: row.deletedAt == null ? null : coerceToDate(row.deletedAt),

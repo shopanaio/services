@@ -1,9 +1,19 @@
 import { Module } from '@nestjs/common';
-import { BrokerModule } from '@shopana/shared-kernel';
+import { BrokerModule, DATABASE_CLIENT, type DatabaseClient } from '@shopana/shared-kernel';
 import { OrdersNestService } from './orders.nest-service';
+import { createDatabase } from './infrastructure/db/database.js';
+import { Repository } from './repositories/Repository.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'order' })],
-  providers: [OrdersNestService],
+  providers: [
+    {
+      provide: Repository,
+      inject: [DATABASE_CLIENT],
+      useFactory: (client: DatabaseClient) => Repository.create({ db: createDatabase(client) }),
+    },
+    OrdersNestService,
+  ],
+  exports: [Repository],
 })
 export class OrdersModule {}

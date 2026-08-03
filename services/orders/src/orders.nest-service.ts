@@ -1,15 +1,13 @@
-import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import {
-  DATABASE_CLIENT,
   InjectBroker,
   ServiceBroker,
-  type DatabaseClient,
 } from '@shopana/shared-kernel';
 import 'reflect-metadata';
 import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
 import { v7 as uuidv7 } from 'uuid';
-import { createDatabase } from './infrastructure/db/database.js';
+import { Repository } from './repositories/Repository.js';
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -19,11 +17,11 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker('order') private readonly broker: ServiceBroker,
-    @Inject(DATABASE_CLIENT) private readonly databaseClient: DatabaseClient,
+    private readonly repository: Repository,
   ) {}
 
   async onModuleInit() {
-    this.app = App.create(createDatabase(this.databaseClient));
+    this.app = App.create(this.repository);
 
     this.broker.register('createOrderFromCheckoutPlacement', async (params: any) => {
       return this.app.orderUsecase.createOrder.execute(params);

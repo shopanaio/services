@@ -3,8 +3,6 @@ import {
   OrderLineItemsReadRepository,
 } from "@src/application/read/orderLineItemsReadRepository";
 import { Money } from "@shopana/shared-money";
-import { OrderState } from "@src/domain/order/evolve";
-import { OrderReadModelAdapter } from "./orderReadModelAdapter";
 
 export type OrderDeliveryAddressRow = {
   id: string;
@@ -83,7 +81,6 @@ export type OrderReadPortRow = {
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;
-  projected_version: bigint;
 };
 
 export interface OrderReadPort {
@@ -226,7 +223,6 @@ export type OrderReadView = {
   grandTotal: Money;
   status: string;
   expiresAt: Date | null;
-  projectedVersion: bigint;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
@@ -431,7 +427,6 @@ export class OrderReadRepository {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       deletedAt: row.deleted_at,
-      projectedVersion: row.projected_version,
       appliedPromoCodes: appliedPromoCodes,
       deliveryGroups,
       deliveryAddresses,
@@ -444,14 +439,4 @@ export class OrderReadRepository {
     };
   }
 
-  /**
-   * Returns order data in OrderState domain model format
-   * Uses the same data source as findById, but returns OrderState
-   */
-  async findByIdAsOrderState(id: string): Promise<OrderState | null> {
-    const readView = await this.findById(id);
-    if (!readView) return null;
-
-    return OrderReadModelAdapter.toOrderState(readView);
-  }
 }

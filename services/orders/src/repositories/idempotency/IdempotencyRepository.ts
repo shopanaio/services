@@ -1,7 +1,6 @@
 import { and, eq, gt, lte, sql } from "drizzle-orm";
-import type { TransactionManager } from "@shopana/shared-kernel";
-import type { Database } from "@src/infrastructure/db/database";
 import { idempotency } from "@src/repositories/models/index";
+import { BaseRepository } from "@src/repositories/BaseRepository";
 
 export type IdempotencyRecord = {
   storeId: string;
@@ -12,16 +11,7 @@ export type IdempotencyRecord = {
   expiresAt: Date;
 };
 
-export class IdempotencyRepository {
-  constructor(
-    private readonly db: Database,
-    private readonly txManager: TransactionManager<Database>,
-  ) {}
-
-  private get connection(): Database {
-    return this.txManager.getConnection() as Database;
-  }
-
+export class IdempotencyRepository extends BaseRepository {
   async get(storeId: string, idempotencyKey: string): Promise<{ id: string } | null> {
     const [row] = await this.connection
       .select({ response: idempotency.response })

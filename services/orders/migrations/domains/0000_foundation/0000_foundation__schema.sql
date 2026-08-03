@@ -1,26 +1,6 @@
 -- Up Migration
 CREATE SCHEMA IF NOT EXISTS "orders";
 
-CREATE TABLE "orders"."order_streams" (
-  "stream_id" text PRIMARY KEY,
-  "version" bigint NOT NULL CHECK ("version" >= 0),
-  "created_at" timestamptz NOT NULL DEFAULT now(),
-  "updated_at" timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE "orders"."order_events" (
-  "stream_id" text NOT NULL REFERENCES "orders"."order_streams" ("stream_id") ON DELETE CASCADE,
-  "version" bigint NOT NULL CHECK ("version" > 0),
-  "event_type" text NOT NULL,
-  "data" jsonb NOT NULL,
-  "metadata" jsonb NOT NULL,
-  "created_at" timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY ("stream_id", "version")
-);
-
-CREATE INDEX "order_events_stream_version_idx"
-  ON "orders"."order_events" ("stream_id", "version");
-
 CREATE TABLE "orders"."orders" (
   "id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
@@ -42,7 +22,7 @@ CREATE TABLE "orders"."orders" (
   "closed_at" timestamptz,
   "expires_at" timestamptz,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
-  "projected_version" bigint NOT NULL DEFAULT 0 CHECK ("projected_version" >= 0),
+  "checkout_snapshot" jsonb NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   "deleted_at" timestamptz,
@@ -76,7 +56,6 @@ CREATE TABLE "orders"."order_items" (
   "unit_image_url" text,
   "unit_snapshot" jsonb,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
-  "projected_version" bigint NOT NULL DEFAULT 0 CHECK ("projected_version" >= 0),
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   "deleted_at" timestamptz

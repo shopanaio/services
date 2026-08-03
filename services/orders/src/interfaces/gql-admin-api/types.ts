@@ -1086,7 +1086,6 @@ export type ApiOrder = {
   customerStatistic: ApiOrderCustomerStatistic;
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   discountTotal: Maybe<Scalars['BigInt']['output']>;
-  events: Array<ApiOrderEvent>;
   grandTotal: Scalars['BigInt']['output'];
   id: Scalars['ID']['output'];
   labels: Array<ApiLabel>;
@@ -1132,20 +1131,6 @@ export type ApiOrderDeliveryAddress = {
   postalCode: Maybe<Scalars['String']['output']>;
   provinceCode: Maybe<Scalars['String']['output']>;
 };
-
-export type ApiOrderEvent = {
-  __typename?: 'OrderEvent';
-  createdAt: Scalars['DateTime']['output'];
-  data: Maybe<Scalars['JSON']['output']>;
-  eventType: ApiOrderEventType;
-  id: Scalars['String']['output'];
-  metadata: Maybe<Scalars['JSON']['output']>;
-  performedBy: ApiOrderActor;
-};
-
-export enum ApiOrderEventType {
-  OrderCreated = 'ORDER_CREATED'
-}
 
 export type ApiOrderLine = {
   __typename?: 'OrderLine';
@@ -1355,13 +1340,11 @@ export type ApiResolversTypes = {
   Label: ResolverTypeWrapper<ApiLabel>;
   LocaleCode: ApiLocaleCode;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
-  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversTypes['OrderActor'], events: Array<ApiResolversTypes['OrderEvent']> }>;
+  Order: ResolverTypeWrapper<Omit<ApiOrder, 'createdBy'> & { createdBy: ApiResolversTypes['OrderActor'] }>;
   OrderActor: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['OrderActor']>;
   OrderCustomerIdentity: ResolverTypeWrapper<ApiOrderCustomerIdentity>;
   OrderCustomerStatistic: ResolverTypeWrapper<ApiOrderCustomerStatistic>;
   OrderDeliveryAddress: ResolverTypeWrapper<ApiOrderDeliveryAddress>;
-  OrderEvent: ResolverTypeWrapper<Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversTypes['OrderActor'] }>;
-  OrderEventType: ApiOrderEventType;
   OrderLine: ResolverTypeWrapper<ApiOrderLine>;
   OrderQuery: ResolverTypeWrapper<Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversTypes['Order']>, orders: ApiResolversTypes['OrdersOutput'] }>;
   OrderStatus: ApiOrderStatus;
@@ -1394,12 +1377,11 @@ export type ApiResolversParentTypes = {
   JSON: Scalars['JSON']['output'];
   Label: ApiLabel;
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
-  Order: Omit<ApiOrder, 'createdBy' | 'events'> & { createdBy: ApiResolversParentTypes['OrderActor'], events: Array<ApiResolversParentTypes['OrderEvent']> };
+  Order: Omit<ApiOrder, 'createdBy'> & { createdBy: ApiResolversParentTypes['OrderActor'] };
   OrderActor: ApiResolversUnionTypes<ApiResolversParentTypes>['OrderActor'];
   OrderCustomerIdentity: ApiOrderCustomerIdentity;
   OrderCustomerStatistic: ApiOrderCustomerStatistic;
   OrderDeliveryAddress: ApiOrderDeliveryAddress;
-  OrderEvent: Omit<ApiOrderEvent, 'performedBy'> & { performedBy: ApiResolversParentTypes['OrderActor'] };
   OrderLine: ApiOrderLine;
   OrderQuery: Omit<ApiOrderQuery, 'order' | 'orders'> & { order: Maybe<ApiResolversParentTypes['Order']>, orders: ApiResolversParentTypes['OrdersOutput'] };
   OrdersInput: ApiOrdersInput;
@@ -1468,7 +1450,6 @@ export type ApiOrderResolvers<ContextType = GraphQLContext, ParentType extends A
   customerStatistic: Resolver<ApiResolversTypes['OrderCustomerStatistic'], ParentType, ContextType>;
   deletedAt: Resolver<Maybe<ApiResolversTypes['DateTime']>, ParentType, ContextType>;
   discountTotal: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
-  events: Resolver<Array<ApiResolversTypes['OrderEvent']>, ParentType, ContextType>;
   grandTotal: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   labels: Resolver<Array<ApiResolversTypes['Label']>, ParentType, ContextType>;
@@ -1515,16 +1496,6 @@ export type ApiOrderDeliveryAddressResolvers<ContextType = GraphQLContext, Paren
   lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiOrderEventResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['OrderEvent'] = ApiResolversParentTypes['OrderEvent']> = {
-  createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
-  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  eventType: Resolver<ApiResolversTypes['OrderEventType'], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  metadata: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
-  performedBy: Resolver<ApiResolversTypes['OrderActor'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -1601,7 +1572,6 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   OrderCustomerIdentity: ApiOrderCustomerIdentityResolvers<ContextType>;
   OrderCustomerStatistic: ApiOrderCustomerStatisticResolvers<ContextType>;
   OrderDeliveryAddress: ApiOrderDeliveryAddressResolvers<ContextType>;
-  OrderEvent: ApiOrderEventResolvers<ContextType>;
   OrderLine: ApiOrderLineResolvers<ContextType>;
   OrderQuery: ApiOrderQueryResolvers<ContextType>;
   OrdersOutput: ApiOrdersOutputResolvers<ContextType>;

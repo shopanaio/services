@@ -5,10 +5,6 @@ enum OrderStatus {
   CANCELLED
 }
 
-enum OrderEventType {
-  ORDER_CREATED
-}
-
 union OrderActor = User | ApiKey
 
 type OrderCustomerIdentity {
@@ -37,8 +33,6 @@ type Order {
   customerStatistic: OrderCustomerStatistic!
   adminNote: String
   customerNote: String
-  # Order Logs
-  events: [OrderEvent!]!
   # Tags
   tags: [Tag!]!
   labels: [Label!]!
@@ -81,15 +75,6 @@ type OrderCustomerStatistic {
   totalRevenue: Int!
   totalGuestOrders: Int!
   totalAuthorizedOrders: Int!
-}
-
-type OrderEvent {
-  id: String!
-  performedBy: OrderActor!
-  eventType: OrderEventType!
-  data: JSON
-  metadata: JSON
-  createdAt: DateTime!
 }
 
 input OrdersInput {
