@@ -47,6 +47,39 @@ export interface FileConnectionResult {
 // ---- Types ----
 
 export type FileProvider = "S3" | "YOUTUBE" | "VIMEO" | "URL" | "LOCAL";
+export type MediaType =
+  | "IMAGE"
+  | "VIDEO"
+  | "EXTERNAL_VIDEO"
+  | "MODEL_3D"
+  | "GENERIC_FILE";
+export type MediaProcessingStatus =
+  | "PENDING"
+  | "PROCESSING"
+  | "READY"
+  | "FAILED";
+
+function inferMediaType(data: {
+  provider: FileProvider;
+  mimeType?: string | null;
+  ext?: string | null;
+}): MediaType {
+  if (data.provider === "YOUTUBE" || data.provider === "VIMEO") {
+    return "EXTERNAL_VIDEO";
+  }
+
+  const mimeType = data.mimeType?.toLowerCase() ?? "";
+  if (mimeType.startsWith("image/")) return "IMAGE";
+  if (mimeType.startsWith("video/")) return "VIDEO";
+  if (mimeType.startsWith("model/")) return "MODEL_3D";
+
+  const ext = data.ext?.toLowerCase() ?? "";
+  if (["glb", "gltf", "usdz", "obj", "fbx"].includes(ext)) {
+    return "MODEL_3D";
+  }
+
+  return "GENERIC_FILE";
+}
 
 export interface CreateFileInput {
   id?: string;
@@ -60,6 +93,12 @@ export interface CreateFileInput {
   height?: number | null;
   durationMs?: number | null;
   altText?: string | null;
+  mediaType?: MediaType;
+  previewFileId?: string | null;
+  thumbhash?: string | null;
+  processingStatus?: MediaProcessingStatus;
+  processingError?: string | null;
+  processedAt?: string | null;
   sourceUrl?: string | null;
   idempotencyKey?: string | null;
   isProcessed?: boolean;
@@ -71,6 +110,12 @@ export interface UpdateFileInput {
   originalName?: string | null;
   meta?: Record<string, unknown> | null;
   isProcessed?: boolean;
+  mediaType?: MediaType;
+  previewFileId?: string | null;
+  thumbhash?: string | null;
+  processingStatus?: MediaProcessingStatus;
+  processingError?: string | null;
+  processedAt?: string | null;
 }
 
 // ---- Repository ----
@@ -143,6 +188,8 @@ export class FileRepository {
     }
 
     const id = data.id ?? crypto.randomUUID();
+    const processingStatus =
+      data.processingStatus ?? (data.isProcessed ? "READY" : "PENDING");
 
     const newFile: NewFile = {
       id,
@@ -157,9 +204,17 @@ export class FileRepository {
       height: data.height ?? null,
       durationMs: data.durationMs ?? null,
       altText: data.altText ?? null,
+      mediaType: data.mediaType ?? inferMediaType(data),
+      previewFileId: data.previewFileId ?? null,
+      thumbhash: data.thumbhash ?? null,
+      processingStatus,
+      processingError: data.processingError ?? null,
+      processedAt:
+        data.processedAt ??
+        (processingStatus === "READY" ? new Date().toISOString() : null),
       sourceUrl: data.sourceUrl ?? null,
       idempotencyKey: data.idempotencyKey ?? null,
-      isProcessed: data.isProcessed ?? false,
+      isProcessed: processingStatus === "READY",
       meta: data.meta ?? null,
     };
 
@@ -187,6 +242,30 @@ export class FileRepository {
     }
     if (data.isProcessed !== undefined) {
       updateData.isProcessed = data.isProcessed;
+      updateData.processingStatus = data.isProcessed ? "READY" : "PENDING";
+      updateData.processingError = null;
+      updateData.processedAt = data.isProcessed
+        ? new Date().toISOString()
+        : null;
+    }
+    if (data.mediaType !== undefined) updateData.mediaType = data.mediaType;
+    if (data.previewFileId !== undefined) {
+      updateData.previewFileId = data.previewFileId;
+    }
+    if (data.thumbhash !== undefined) updateData.thumbhash = data.thumbhash;
+    if (data.processingStatus !== undefined) {
+      updateData.processingStatus = data.processingStatus;
+      updateData.isProcessed = data.processingStatus === "READY";
+      if (data.processedAt === undefined) {
+        updateData.processedAt =
+          data.processingStatus === "READY" ? new Date().toISOString() : null;
+      }
+    }
+    if (data.processingError !== undefined) {
+      updateData.processingError = data.processingError;
+    }
+    if (data.processedAt !== undefined) {
+      updateData.processedAt = data.processedAt;
     }
 
     const result = await this.db

@@ -10,6 +10,13 @@ export * from "./buckets";
 // Files (base table)
 export * from "./files";
 
+// Prepared video and 3D delivery sources
+export * from "./mediaSources";
+
+// CDN delivery profiles and routing rules
+export * from "./cdnConfigurations";
+export * from "./cdnRoutingRules";
+
 // File Back References (usage tracking)
 export * from "./fileBackRefs";
 

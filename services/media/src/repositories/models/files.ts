@@ -9,6 +9,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
@@ -31,6 +32,22 @@ export const files = mediaSchema.table(
     height: integer("height"),
     durationMs: integer("duration_ms"),
     altText: varchar("alt_text", { length: 255 }),
+    mediaType: varchar("media_type", { length: 32 })
+      .notNull()
+      .default("GENERIC_FILE"),
+    previewFileId: uuid("preview_file_id").references(
+      (): AnyPgColumn => files.id,
+      { onDelete: "set null" }
+    ),
+    thumbhash: text("thumbhash"),
+    processingStatus: varchar("processing_status", { length: 32 })
+      .notNull()
+      .default("PENDING"),
+    processingError: text("processing_error"),
+    processedAt: timestamp("processed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     sourceUrl: text("source_url"),
     idempotencyKey: varchar("idempotency_key", { length: 255 }),
     isProcessed: boolean("is_processed").notNull().default(false),
@@ -50,6 +67,10 @@ export const files = mediaSchema.table(
     index("idx_files_provider")
       .on(table.assetGroupId, table.provider)
       .where(sql`deleted_at IS NULL`),
+    index("idx_files_media_type")
+      .on(table.assetGroupId, table.mediaType)
+      .where(sql`deleted_at IS NULL`),
+    index("idx_files_preview_file").on(table.previewFileId),
     index("idx_files_created_at")
       .on(table.assetGroupId, sql`${table.createdAt} DESC`)
       .where(sql`deleted_at IS NULL`),
