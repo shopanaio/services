@@ -1,0 +1,128 @@
+"""How the resolved component configurator should be presented."""
+enum ProductComponentDisplayStyle {
+  ACCORDION
+  TABS
+  FLAT
+  WIZARD
+}
+
+"""
+One item selected in a product component configuration.
+
+The list supplied to ProductVariant.componentConfiguration is the complete
+selection state. For an item that references a product, variantId identifies
+the concrete allowed variant selected by the buyer. For an item that already
+references a concrete variant, variantId may be omitted.
+"""
+input ProductComponentSelectionInput {
+  itemId: ID!
+  variantId: ID
+  quantity: Int!
+}
+
+"""
+A presentation-ready component configuration for one product variant.
+
+Catalog has already applied visibility, required-state, selection, and price
+dependency rules. Storefront clients must render this projection instead of
+interpreting component rules themselves.
+"""
+type ProductComponentConfiguration {
+  id: ID!
+
+  """The presentation selected by the merchant for this configurator."""
+  displayStyle: ProductComponentDisplayStyle!
+
+  """
+  Effective groups in display order. Groups hidden by backend rules, including
+  groups without any effective visible items, are omitted.
+  """
+  groups: [ProductComponentGroup!]!
+
+  """Sum of totalPrice for all selected component items."""
+  componentsSubtotal: Money!
+
+  """
+  Price of one configured parent variant including all selected components.
+  Discounts, shipping, and taxes are applied later by checkout.
+  """
+  totalPrice: Money!
+}
+
+"""A presentation-ready component group after backend rule evaluation."""
+type ProductComponentGroup {
+  id: ID!
+
+  """Localized display title resolved by Catalog."""
+  title: String!
+
+  """Whether the effective group state requires at least one selection."""
+  required: Boolean!
+
+  """Effective minimum number of selected items."""
+  minSelection: Int
+
+  """Effective maximum number of selected items."""
+  maxSelection: Int
+
+  """
+  Effective visible items in display order. Hidden items are omitted rather
+  than returned for the storefront to evaluate.
+  """
+  items: [ProductComponentItem!]!
+}
+
+"""
+A presentation-ready component item with a concrete merchandise variant and
+prices already calculated in the active storefront currency.
+"""
+type ProductComponentItem {
+  id: ID!
+
+  """
+  Localized display title. Catalog applies the component title override first,
+  then falls back to the resolved variant or product title.
+  """
+  title: String!
+
+  """Referenced published product."""
+  product: Product!
+
+  """
+  Concrete published variant resolved for this state. A product-backed item
+  uses the selected allowed variant or a backend-selected default.
+  """
+  variant: ProductVariant!
+
+  """
+  Effective media after applying the item override and merchandise fallback.
+  """
+  featuredMedia: Media
+
+  """Whether this item is selected in the resolved state."""
+  selected: Boolean!
+
+  """Whether backend dependency rules require this item."""
+  required: Boolean!
+
+  """Whether the resolved merchandise variant can currently be purchased."""
+  availableForSale: Boolean!
+
+  """Resolved quantity. Zero means the item is not selected."""
+  quantity: Int!
+
+  """Effective minimum quantity when the item is selected."""
+  minQuantity: Int!
+
+  """Effective maximum quantity, or null when no maximum is configured."""
+  maxQuantity: Int
+
+  """
+  Final price for one item unit after all component price rules have been
+  evaluated in the active storefront currency.
+  """
+  unitPrice: Money!
+
+  """Final unitPrice multiplied by quantity."""
+  totalPrice: Money!
+}

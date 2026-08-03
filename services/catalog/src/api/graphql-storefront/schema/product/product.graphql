@@ -71,6 +71,16 @@ type ProductVariant implements Node @key(fields: "id") {
     before: Cursor
   ): ProductVariantMediaConnection!
   featuredMedia: Media
+  componentConfiguration(
+    """
+    Complete current component selection.
+
+    When omitted, merchant-defined default selections are applied. An explicit
+    empty list means that no items are selected. Catalog evaluates dependency
+    rules and returns a presentation-ready configuration for this state.
+    """
+    selections: [ProductComponentSelectionInput!]
+  ): ProductComponentConfiguration
   createdAt: DateTime!
   updatedAt: DateTime!
 }
