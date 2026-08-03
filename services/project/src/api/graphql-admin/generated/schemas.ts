@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreDeleteInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
+import { AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, PriceAdjustmentOperation, PriceAdjustmentValueType, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreDeleteInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -30,6 +30,10 @@ export const CurrencyTrailingZeroDisplaySchema = z.nativeEnum(CurrencyTrailingZe
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
+
+export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
+
+export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const StoreStatusSchema = z.nativeEnum(StoreStatus);
 

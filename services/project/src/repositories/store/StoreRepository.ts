@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { PageInfo } from "@shopana/drizzle-query";
 import { Transactional, ReadOnly } from "@shopana/shared-kernel";
 import { BaseRepository } from "../BaseRepository.js";
@@ -234,6 +234,16 @@ export class StoreRepository extends BaseRepository {
 
     if (!result) return null;
     return this.loadIntegrations(result);
+  }
+
+  @ReadOnly()
+  async getByIds(ids: readonly string[]): Promise<Store[]> {
+    if (ids.length === 0) return [];
+    const results = await this.connection
+      .select()
+      .from(store)
+      .where(and(inArray(store.id, [...ids]), isNull(store.deletedAt)));
+    return Promise.all(results.map((item) => this.loadIntegrations(item)));
   }
 
   @ReadOnly()

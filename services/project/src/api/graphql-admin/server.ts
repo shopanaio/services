@@ -140,7 +140,7 @@ export async function startServer(serverConfig: ServerConfig) {
         }
 
         // Create fresh loaders per request for proper batching within request scope
-        const loaders = new Loader(request.adminContext);
+        const loaders = new Loader(kernel!.repository, request.adminContext);
 
         const ctx = new ServiceContext({
           requestId: request.id as string,

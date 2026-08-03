@@ -1,4 +1,8 @@
-import type { AdminContextClaims } from "@shopana/shared-context";
+import type {
+  AdminContextClaims,
+  ContextStore as StorefrontStore,
+  ContextStorefrontAccess,
+} from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
 import type { Loader } from "../loaders/Loader.js";
 import type { Store } from "../repositories/index.js";
@@ -26,6 +30,8 @@ export interface ServiceContextOptions {
   storeName?: string;
   user?: ContextUser;
   adminContext?: AdminContextClaims;
+  storefrontStore?: StorefrontStore;
+  storefrontAccess?: ContextStorefrontAccess;
   locale?: string;
 }
 
@@ -46,6 +52,10 @@ export class ServiceContext {
   readonly locale?: string;
   /** Verified authorization claims issued by the Admin Gateway */
   readonly adminContext?: AdminContextClaims;
+  /** Store identity verified by the Storefront Gateway. */
+  readonly storefrontStore?: StorefrontStore;
+  /** Storefront credential and permission claims verified by the gateway. */
+  readonly storefrontAccess?: ContextStorefrontAccess;
 
   private _user?: ContextUser;
 
@@ -56,6 +66,8 @@ export class ServiceContext {
     this.storeName = options.storeName;
     this.locale = options.locale;
     this.adminContext = options.adminContext;
+    this.storefrontStore = options.storefrontStore;
+    this.storefrontAccess = options.storefrontAccess;
     this._user = options.user;
   }
 

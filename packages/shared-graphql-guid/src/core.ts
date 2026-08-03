@@ -204,6 +204,7 @@ export enum GlobalIdEntity {
   OnlineStoreNavigationMenuItem = "OnlineStoreNavigationMenuItem",
   // Project
   Store = "Store",
+  Market = "Market",
 }
 
 /**

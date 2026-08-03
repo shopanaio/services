@@ -16,6 +16,7 @@ import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import type { FastifyInstance } from "fastify";
 import { Kernel } from "./kernel/Kernel.js";
 import { startServer } from "./api/graphql-admin/server.js";
+import { startStorefrontServer } from "./api/graphql-storefront/server.js";
 
 const { service } = getServiceConfig("project");
 
@@ -24,6 +25,7 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ProjectNestService.name);
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
+  private storefrontGraphqlServer: FastifyInstance | null = null;
 
   constructor(
     @InjectBroker('project') private readonly broker: ServiceBroker,
@@ -38,12 +40,20 @@ export class ProjectNestService implements OnModuleInit, OnModuleDestroy {
       port: service.ports?.admin_graphql ?? 0,
     });
 
+    this.storefrontGraphqlServer = await startStorefrontServer({
+      port: service.ports?.storefront_graphql ?? 0,
+    });
+
     this.logger.log("Project service started");
   }
 
   async onModuleDestroy() {
     if (this.graphqlServer) {
       await this.graphqlServer.close();
+    }
+
+    if (this.storefrontGraphqlServer) {
+      await this.storefrontGraphqlServer.close();
     }
 
     if (this.kernel) {

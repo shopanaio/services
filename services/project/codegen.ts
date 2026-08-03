@@ -9,12 +9,12 @@ const sharedEnumValues = {
 
 const config: CodegenConfig = {
   overwrite: true,
-  schema: [
-    "../../packages/shared-references/graphql/*.graphql",
-    "src/api/graphql-admin/schema/*.graphql",
-  ],
   generates: {
     "src/api/graphql-admin/generated/types.ts": {
+      schema: [
+        "../../packages/shared-references/graphql/*.graphql",
+        "src/api/graphql-admin/schema/*.graphql",
+      ],
       plugins: ["typescript", "typescript-resolvers"],
       config: {
         useIndexSignature: true,
@@ -30,6 +30,10 @@ const config: CodegenConfig = {
       },
     },
     "src/api/graphql-admin/generated/schemas.ts": {
+      schema: [
+        "../../packages/shared-references/graphql/*.graphql",
+        "src/api/graphql-admin/schema/*.graphql",
+      ],
       plugins: ["typescript-validation-schema"],
       config: {
         schema: "zod",
@@ -46,6 +50,28 @@ const config: CodegenConfig = {
           DateTime: "z.string()",
           Email: "z.string().email()",
           JSON: "z.record(z.unknown())",
+        },
+        enumValues: sharedEnumValues,
+      },
+    },
+    "src/resolvers/storefront/generated/types.ts": {
+      schema: [
+        "../../packages/storefront-graphql/graphql/foundation.graphql",
+        "../../packages/shared-references/graphql/shared-currency.graphql",
+        "../../packages/shared-references/graphql/shared-locale.graphql",
+        "../../packages/shared-references/graphql/shared-units.graphql",
+        "src/api/graphql-storefront/schema/**/*.graphql",
+      ],
+      plugins: ["typescript", "typescript-resolvers"],
+      config: {
+        useIndexSignature: true,
+        federation: true,
+        contextType: "../../../context/types.js#ServiceContext",
+        avoidOptionals: {
+          field: true,
+          inputValue: false,
+          object: false,
+          defaultValue: false,
         },
         enumValues: sharedEnumValues,
       },
