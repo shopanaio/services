@@ -15,12 +15,6 @@ type Product implements Node @key(fields: "id") {
     last: Int
     before: String
   ): CategoryConnection!
-  collections(
-    first: Int
-    after: String
-    last: Int
-    before: String
-  ): CollectionConnection!
   options: [ProductOption!]!
   features: [ProductFeature!]!
   featureGroups: [ProductFeatureGroup!]!

@@ -33,20 +33,6 @@ type CategoryMediaConnection {
   totalCount: Int!
 }
 
-"""An ordered media item registered on a collection."""
-type CollectionMediaEdge {
-  cursor: String!
-  node: Media!
-}
-
-"""A Relay connection to the media registered on a collection."""
-type CollectionMediaConnection {
-  edges: [CollectionMediaEdge!]!
-  nodes: [Media!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
 """An ordered media item selected for a particular product variant."""
 type ProductVariantMediaEdge {
   cursor: String!

@@ -21,9 +21,6 @@ type Category implements Node @key(fields: "id") {
     before: String
   ): CategoryMediaConnection!
   featuredMedia: Media
-  defaultProductSort: CatalogProductSort!
-  defaultProductSortDirection: CatalogSortDirection!
-  productsCount: Int!
   publishedAt: DateTime!
   createdAt: DateTime!
   updatedAt: DateTime!
