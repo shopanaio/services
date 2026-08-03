@@ -1,0 +1,12 @@
+type StoreBrand implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type StoreBrandSocialLink implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type StoreSocialLink {
+  platform: String!
+  url: URL!
+}

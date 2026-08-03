@@ -1,0 +1,27 @@
+type Market implements Node @key(fields: "id") {
+  id: ID!
+}
+
+type MarketCountry {
+  countryCode: CountryCode!
+  isPrimary: Boolean!
+}
+
+type MarketLocale {
+  localeCode: LocaleCode!
+}
+
+type MarketCurrency {
+  currencyCode: CurrencyCode!
+}
+
+type MarketConnection {
+  edges: [MarketEdge!]!
+  nodes: [Market!]!
+  pageInfo: PageInfo!
+}
+
+type MarketEdge {
+  cursor: String!
+  node: Market!
+}
