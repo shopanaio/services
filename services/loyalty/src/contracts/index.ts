@@ -1,4 +1,5 @@
 export * from "./types.js";
+export * from "./policy.js";
 export * from "./events.js";
 export * from "./handlers.js";
 
@@ -22,6 +23,7 @@ export type {
   LoyaltyCheckoutMoney,
   LoyaltyProgramSnapshot,
   LoyaltyRedemptionQuote,
+  LoyaltyRedemptionIneligibilityCode,
   LoyaltyRedemptionRejectionCode,
   QuoteCheckoutLoyaltyRedemptionParams,
   QuoteCheckoutLoyaltyRedemptionResult,

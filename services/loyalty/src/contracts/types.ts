@@ -31,6 +31,7 @@ export type LoyaltyEligibleSpendBasis =
   | "AFTER_PRODUCT_DISCOUNTS"
   | "AFTER_ALL_DISCOUNTS";
 export type LoyaltyModifierStackingMode = "HIGHEST" | "ADD" | "MULTIPLY";
+export type LoyaltyProgramEligibilityType = "ALL" | "SEGMENTS";
 export type LoyaltySegmentMatchMode = "ANY" | "ALL";
 export type LoyaltyAccountStatus =
   | "ACTIVE"
@@ -90,12 +91,25 @@ export type LoyaltyCatalogSelector =
       ids: readonly string[];
     }>;
 
-export interface LoyaltyProgramEligibilityV1 {
+interface LoyaltyProgramEligibilityBaseV1 {
   channelCodes: readonly string[];
-  segmentMatchMode: LoyaltySegmentMatchMode;
-  segmentIds: readonly string[];
   excludedSegmentIds: readonly string[];
 }
+
+export type LoyaltyProgramEligibilityV1 =
+  | Readonly<
+      LoyaltyProgramEligibilityBaseV1 & {
+        type: "ALL";
+        segmentIds: readonly [];
+      }
+    >
+  | Readonly<
+      LoyaltyProgramEligibilityBaseV1 & {
+        type: "SEGMENTS";
+        segmentMatchMode: LoyaltySegmentMatchMode;
+        segmentIds: readonly string[];
+      }
+    >;
 
 export interface LoyaltyEarningModifierV1 {
   id: string;

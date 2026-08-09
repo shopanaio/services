@@ -44,6 +44,27 @@ transaction records the exact `program_version_id` and policy snapshot used for
 calculation. New policy takes effect through a new version; historical ledger
 records are never recalculated.
 
+### Eligibility policy
+
+Program eligibility uses an explicit audience discriminator:
+
+- `ALL` allows every customer after channel and excluded-segment checks;
+- `SEGMENTS` requires `ANY` or `ALL` of the configured included segments;
+- excluded segments always take precedence over a positive audience match.
+
+Every create or publish path must call `createLoyaltyProgramRulesV1`, reject a
+policy with semantic validation issues, and persist only the returned canonical
+rules. Earning and redemption paths must both call
+`evaluateLoyaltyProgramEligibility`; they must not implement independent match
+logic. Channel codes and segment IDs are evaluated from the immutable customer
+eligibility snapshot carried by Checkout or Orders.
+
+Cross-service references must be checked while editing a draft and immediately
+before publication. Reconciliation state such as `VALID` or `STALE` is mutable
+operational data and must be stored outside the immutable `rules` JSON. A stale
+reference must never be removed from an already published policy or historical
+calculation snapshot.
+
 ## Event contracts
 
 Loyalty consumes:

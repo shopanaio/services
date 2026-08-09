@@ -156,6 +156,11 @@ export interface LoyaltyRedemptionQuote {
   basedOnCustomerEligibilityRevision: string;
 }
 
+export type LoyaltyRedemptionIneligibilityCode =
+  | "CHANNEL_NOT_ELIGIBLE"
+  | "REQUIRED_SEGMENT_MISSING"
+  | "EXCLUDED_SEGMENT_MATCHED";
+
 export type LoyaltyRedemptionRejectionCode =
   | "CUSTOMER_REQUIRED"
   | "PROGRAM_NOT_FOUND"
@@ -176,7 +181,11 @@ export type QuoteCheckoutLoyaltyRedemptionResult =
   | Readonly<{ status: "QUOTED"; quote: LoyaltyRedemptionQuote }>
   | Readonly<{
       status: "NOT_APPLICABLE";
-      code: "CUSTOMER_REQUIRED" | "PROGRAM_NOT_FOUND" | "NO_AVAILABLE_POINTS";
+      code:
+        | "CUSTOMER_REQUIRED"
+        | "PROGRAM_NOT_FOUND"
+        | "NO_AVAILABLE_POINTS"
+        | LoyaltyRedemptionIneligibilityCode;
       retryable: false;
     }>
   | Readonly<{

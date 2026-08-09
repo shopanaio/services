@@ -23,6 +23,7 @@ export type {
   LoyaltyCheckoutMoney,
   LoyaltyProgramSnapshot,
   LoyaltyRedemptionQuote,
+  LoyaltyRedemptionIneligibilityCode,
   LoyaltyRedemptionRejectionCode,
   QuoteCheckoutLoyaltyRedemptionParams,
   QuoteCheckoutLoyaltyRedemptionResult,

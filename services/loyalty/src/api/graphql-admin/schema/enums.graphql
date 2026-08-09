@@ -44,6 +44,11 @@ enum LoyaltyModifierStackingMode {
   MULTIPLY
 }
 
+enum LoyaltyProgramEligibilityType {
+  ALL
+  SEGMENTS
+}
+
 enum LoyaltySegmentMatchMode {
   ANY
   ALL

@@ -73,8 +73,10 @@ type LoyaltyProgramRules {
 }
 
 type LoyaltyProgramEligibility {
+  type: LoyaltyProgramEligibilityType!
   channelCodes: [String!]!
-  segmentMatchMode: LoyaltySegmentMatchMode!
+  """Present only for SEGMENTS eligibility."""
+  segmentMatchMode: LoyaltySegmentMatchMode
   segmentIds: [ID!]!
   excludedSegmentIds: [ID!]!
 }
@@ -187,10 +189,13 @@ input LoyaltyProgramRulesInput {
 }
 
 input LoyaltyProgramEligibilityInput {
+  type: LoyaltyProgramEligibilityType!
   channelCodes: [String!]!
-  segmentMatchMode: LoyaltySegmentMatchMode = ANY
-  segmentIds: [ID!]!
-  excludedSegmentIds: [ID!]!
+  """Required for SEGMENTS and forbidden for ALL."""
+  segmentMatchMode: LoyaltySegmentMatchMode
+  """Must be empty for ALL and non-empty for SEGMENTS."""
+  segmentIds: [ID!]! = []
+  excludedSegmentIds: [ID!]! = []
 }
 
 input LoyaltyProgramEarningRulesInput {
