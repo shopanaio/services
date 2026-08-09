@@ -18,6 +18,14 @@ type Product implements Node @key(fields: "id") {
   options: [ProductOption!]!
   features: [ProductFeature!]!
   featureGroups: [ProductFeatureGroup!]!
+  """
+  Fully prepared comparison for this product in the current storefront context.
+
+  Catalog selects every product and concrete variant available for comparison,
+  applies the server-defined order and limit, and resolves the complete matrix.
+  The storefront provides no comparison inputs and only renders the result.
+  """
+  comparison: ProductComparison
   media(
     first: Int
     after: Cursor

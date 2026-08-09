@@ -1,15 +1,4 @@
-extend type Product {
-  """
-  Fully prepared comparison for this product in the current storefront context.
-
-  Catalog selects every product and concrete variant available for comparison,
-  applies the server-defined order and limit, and resolves the complete matrix.
-  The storefront provides no comparison inputs and only renders the result.
-  """
-  comparison: ProductComparison
-}
-
-extend type Customer @key(fields: "id") {
+type Customer @key(fields: "id") {
   id: ID! @external
 
   """
@@ -32,6 +21,9 @@ type CustomerProductComparisons {
 
   """Number of returned category matrices."""
   totalCount: Int!
+
+  """Number of comparison columns across all returned category matrices."""
+  itemCount: Int!
 }
 
 """
@@ -115,6 +107,12 @@ type ProductComparisonColumn {
 
   """Whether the concrete variant can currently be purchased."""
   availableForSale: Boolean!
+
+  """
+  Whether this exact variant is persisted in the authenticated customer's
+  comparison selection. Always false when no authenticated customer exists.
+  """
+  savedForComparison: Boolean!
 }
 
 """A localized section of prepared comparison rows."""
