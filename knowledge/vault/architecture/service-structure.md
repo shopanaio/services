@@ -21,6 +21,7 @@ Architecture documentation for the Shopana e-commerce platform.
 | [[architecture/request-flow]] | Request handling, inter-service communication |
 | [[architecture/service-boundaries]] | Service ownership, bounded contexts |
 | [[architecture/multi-tenancy]] | Data isolation, store resolution |
+| [[architecture/product-recommendations]] | Related Products, Frequently Bought Together, recommendation ranking |
 | [[architecture/configuration]] | Centralized YAML config, ENV substitution |
 | [[architecture/scalability]] | Scaling strategies, fault tolerance |
 
