@@ -1,25 +1,92 @@
+"""Storefront-visible state of the customer's store account."""
+enum CustomerAccountStatus {
+  """A checkout-created profile that is not linked to an IAM principal."""
+  GUEST
+  """A profile for which account enrollment has been initiated."""
+  INVITED
+  """A profile linked to a registered IAM principal."""
+  REGISTERED
+}
+
+"""An ISO 8601 calendar date in YYYY-MM-DD form."""
+scalar Date
+
 """
 The canonical storefront customer entity owned by the Customers service.
 
-Other storefront subgraphs reference and extend this entity by its global ID.
+Authentication credentials, sessions, verification challenges, and linked
+identity providers are owned by IAM and deliberately do not appear here.
 """
 type Customer @key(fields: "id") {
   """Globally unique customer ID."""
   id: ID!
-  """Customer's first name, if the profile has been completed."""
+  """Revision used for optimistic concurrency on customer-owned writes."""
+  revision: Int!
+  """Store-account enrollment state."""
+  accountStatus: CustomerAccountStatus!
+
+  prefix: String
   firstName: String
-  """Customer's last name, if the profile has been completed."""
+  middleName: String
   lastName: String
+  suffix: String
   """Display name derived from available profile and contact information."""
   displayName: String!
-  """Authenticated customer's email address and its marketing consent."""
+  """Customer-selected BCP 47 locale."""
+  preferredLocale: String
+  dateOfBirth: Date
+  """Customer-provided gender value."""
+  gender: String
+  companyName: String
+  jobTitle: String
+
+  """Authenticated customer's email projection and verification state."""
   emailAddress: CustomerEmailAddress
-  """Authenticated customer's phone number."""
+  """Authenticated customer's phone projection and verification state."""
   phoneNumber: CustomerPhoneNumber
-  """The customer's default mailing address, when one has been selected."""
-  defaultAddress: CustomerAddress
-  """Mailing addresses owned by the customer."""
-  addresses: [CustomerAddress!]!
+
+  """Default address used for physical fulfillment."""
+  defaultShippingAddress: CustomerAddress
+  """Default address used for billing and tax calculations."""
+  defaultBillingAddress: CustomerAddress
+
+  """One address owned by the customer; inaccessible IDs return null."""
+  address(id: ID!): CustomerAddress
+  """Customer addresses in deterministic creation order."""
+  addresses(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CustomerAddressConnection!
+
+  """Current marketing preferences for every configured channel."""
+  marketingConsents: [CustomerMarketingConsent!]!
+
+  """Customer-owned tax identifiers."""
+  taxIdentifiers(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CustomerTaxIdentifierConnection!
+  """Merchant-approved tax exemptions visible to this customer."""
+  taxExemptions(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CustomerTaxExemptionConnection!
+
+  """One privacy request owned by the customer; inaccessible IDs return null."""
+  dataRequest(id: ID!): CustomerDataRequest
+  """Auditable privacy requests created by the customer."""
+  dataRequests(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CustomerDataRequestConnection!
 
   """
   Wishlist collections owned by the authenticated customer.
@@ -29,71 +96,51 @@ type Customer @key(fields: "id") {
   entries can be requested in either direction.
   """
   wishlists(
-    """Number of wishlists to return from the start of the selected range."""
     first: Int
-    """Return wishlists after this opaque cursor."""
     after: Cursor
-    """Number of wishlists to return from the end of the selected range."""
     last: Int
-    """Return wishlists before this opaque cursor."""
     before: Cursor
   ): CustomerWishlistConnection!
 
-  """
-  The customer's primary wishlist, or null when no wishlist has been created.
-
-  The first wishlist created for a customer becomes the default. The default
-  wishlist can be renamed but cannot be deleted.
-  """
+  """The customer's primary wishlist, when one has been created."""
   defaultWishlist: CustomerWishlist
 
-  """
-  Returns one wishlist owned by the authenticated customer.
+  """One wishlist owned by the customer; inaccessible IDs return null."""
+  wishlist(id: ID!): CustomerWishlist
 
-  The ID must be a CustomerWishlist global ID belonging to the current
-  customer and store. Missing, foreign, and inaccessible wishlists all return
-  null so that ownership information is not disclosed.
-  """
-  wishlist(
-    """Global ID of the wishlist to return."""
-    id: ID!
-  ): CustomerWishlist
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 """
-Minimal personal profile input for the initial storefront contract.
-Additional customer-editable fields can be added when their behavior is defined.
+Customer-editable, non-authentication profile fields. Email and phone changes
+use IAM verification workflows and arrive here as verified projections.
 """
 input CustomerUpdateInput {
-  """New first name. Omit to leave it unchanged."""
+  expectedRevision: Int!
+  idempotencyKey: String!
+  prefix: String
   firstName: String
-  """New last name. Omit to leave it unchanged."""
+  middleName: String
   lastName: String
+  suffix: String
+  preferredLocale: String
+  dateOfBirth: Date
+  gender: String
+  companyName: String
+  jobTitle: String
 }
 
 """Result of updating the authenticated customer's profile."""
 type CustomerUpdatePayload {
-  """The updated customer, or null when the update could not be applied."""
   customer: Customer
-  """User-facing validation or business errors produced by the operation."""
   userErrors: [CustomerUserError!]!
 }
 
-"""
-A customer-facing validation, ownership, dependency, or business error.
-
-Wishlist operations use stable codes including NOT_FOUND,
-WISHLIST_NAME_TAKEN, PRODUCT_NOT_FOUND, PRODUCT_NOT_PUBLISHED, and
-CATALOG_UNAVAILABLE. Missing and foreign wishlist resources deliberately share
-the NOT_FOUND code.
-"""
+"""A customer-facing validation, ownership, dependency, or business error."""
 type CustomerUserError implements DisplayableError {
-  """Path to the input field associated with the error, when available."""
   field: [String!]
-  """Human-readable error message safe to show to the customer."""
   message: String!
-  """Stable machine-readable error code."""
   code: String!
-  """Whether retrying the operation may succeed without changing its input."""
   retryable: Boolean!
 }

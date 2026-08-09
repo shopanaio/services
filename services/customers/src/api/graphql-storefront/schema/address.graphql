@@ -1,91 +1,127 @@
-"""
-A normalized international mailing address owned by the current customer.
+"""Server-side normalization and validation state for an address."""
+enum CustomerAddressValidationStatus {
+  UNVALIDATED
+  VALID
+  INVALID
+}
 
-The core contract contains only portable postal fields. Delivery- and
-payment-provider extensions belong to their respective checkout addresses.
-"""
-type CustomerAddress {
-  """Globally unique customer address ID."""
+enum CustomerAddressDefaultType {
+  SHIPPING
+  BILLING
+}
+
+"""A normalized international mailing address owned by the current customer."""
+type CustomerAddress implements Node @key(fields: "id") {
   id: ID!
-  """Recipient's first name."""
+  label: String
+  prefix: String
   firstName: String
-  """Recipient's last name."""
+  middleName: String
   lastName: String
-  """Recipient name formatted for the active storefront locale."""
+  suffix: String
   name: String!
-  """Company or organization associated with the address."""
   company: String
-  """Primary street address or post office box."""
-  address1: String
-  """Apartment, suite, unit, or other secondary address information."""
+  address1: String!
   address2: String
-  """City, town, village, or locality."""
-  city: String
-  """Localized region, state, or province name."""
+  city: String!
   province: String
-  """Region, state, or province code."""
   provinceCode: String
-  """Localized country or territory name."""
   country: String
-  """ISO 3166-1 alpha-2 country or territory code."""
-  countryCode: CountryCode
-  """Postal or ZIP code."""
+  countryCode: CountryCode!
   zip: String
-  """Recipient phone number, preferably in E.164 format."""
   phone: String
-  """Address lines formatted for the active storefront locale."""
+  isDefaultShipping: Boolean!
+  isDefaultBilling: Boolean!
+  validationStatus: CustomerAddressValidationStatus!
+  validatedAt: DateTime
   formatted: [String!]!
-  """Compact city, region, and country representation."""
   formattedArea: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
-"""
-Portable international mailing-address input shared by create and update
-operations. Country-specific requirements are validated using countryCode.
-"""
+type CustomerAddressConnection implements Connection {
+  edges: [CustomerAddressEdge!]!
+  nodes: [CustomerAddress!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerAddressEdge {
+  cursor: Cursor!
+  node: CustomerAddress!
+}
+
+"""Portable international mailing-address values."""
 input CustomerAddressInput {
-  """Recipient's first name."""
+  label: String
+  prefix: String
   firstName: String
-  """Recipient's last name."""
+  middleName: String
   lastName: String
-  """Company or organization associated with the address."""
+  suffix: String
   company: String
-  """Primary street address or post office box."""
-  address1: String
-  """Apartment, suite, unit, or other secondary address information."""
+  address1: String!
   address2: String
-  """City, town, village, or locality."""
-  city: String
-  """ISO 3166-1 alpha-2 country or territory code."""
-  countryCode: CountryCode
-  """Region, state, or province code."""
+  city: String!
+  countryCode: CountryCode!
   provinceCode: String
-  """Postal or ZIP code."""
   zip: String
-  """Recipient phone number, preferably in E.164 format."""
   phone: String
 }
 
-"""Result of creating a customer address."""
+input CustomerAddressCreateInput {
+  address: CustomerAddressInput!
+  defaultShipping: Boolean = false
+  defaultBilling: Boolean = false
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+input CustomerAddressUpdateInput {
+  addressId: ID!
+  address: CustomerAddressInput!
+  defaultShipping: Boolean
+  defaultBilling: Boolean
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+input CustomerAddressDeleteInput {
+  addressId: ID!
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+"""Atomically sets or clears either customer address default."""
+input CustomerAddressDefaultSetInput {
+  """Null clears the selected default."""
+  addressId: ID
+  """One or both defaults to assign or clear."""
+  defaults: [CustomerAddressDefaultType!]!
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
 type CustomerAddressCreatePayload {
-  """The created address, or null when creation failed."""
   customerAddress: CustomerAddress
-  """User-facing validation or business errors produced by the operation."""
+  customer: Customer
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of updating a customer address."""
 type CustomerAddressUpdatePayload {
-  """The updated address, or null when the update failed."""
   customerAddress: CustomerAddress
-  """User-facing validation or business errors produced by the operation."""
+  customer: Customer
   userErrors: [CustomerUserError!]!
 }
 
-"""Result of deleting a customer address."""
 type CustomerAddressDeletePayload {
-  """ID of the deleted address, or null when no address was deleted."""
   deletedAddressId: ID
-  """User-facing validation or business errors produced by the operation."""
+  customer: Customer
+  userErrors: [CustomerUserError!]!
+}
+
+type CustomerAddressDefaultSetPayload {
+  customer: Customer
   userErrors: [CustomerUserError!]!
 }

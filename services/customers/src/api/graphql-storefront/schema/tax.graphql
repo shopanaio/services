@@ -1,0 +1,109 @@
+enum CustomerTaxIdentifierStatus {
+  UNVERIFIED
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum CustomerTaxExemptionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+"""A customer-provided tax identifier whose status is controlled by Shopana."""
+type CustomerTaxIdentifier implements Node @key(fields: "id") {
+  id: ID!
+  identifierType: String!
+  countryCode: CountryCode
+  value: String!
+  status: CustomerTaxIdentifierStatus!
+  isPrimary: Boolean!
+  verifiedAt: DateTime
+  validFrom: Date
+  validTo: Date
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CustomerTaxIdentifierConnection implements Connection {
+  edges: [CustomerTaxIdentifierEdge!]!
+  nodes: [CustomerTaxIdentifier!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTaxIdentifierEdge {
+  cursor: Cursor!
+  node: CustomerTaxIdentifier!
+}
+
+"""A merchant-approved tax exemption. Customers cannot grant exemptions."""
+type CustomerTaxExemption implements Node @key(fields: "id") {
+  id: ID!
+  code: String!
+  countryCode: CountryCode
+  regionCode: String
+  reason: String
+  status: CustomerTaxExemptionStatus!
+  certificateFile: GenericFile
+  validFrom: Date
+  validTo: Date
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CustomerTaxExemptionConnection implements Connection {
+  edges: [CustomerTaxExemptionEdge!]!
+  nodes: [CustomerTaxExemption!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerTaxExemptionEdge {
+  cursor: Cursor!
+  node: CustomerTaxExemption!
+}
+
+input CustomerTaxIdentifierCreateInput {
+  identifierType: String!
+  countryCode: CountryCode
+  value: String!
+  isPrimary: Boolean = false
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+input CustomerTaxIdentifierUpdateInput {
+  taxIdentifierId: ID!
+  identifierType: String
+  countryCode: CountryCode
+  value: String
+  isPrimary: Boolean
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+input CustomerTaxIdentifierDeleteInput {
+  taxIdentifierId: ID!
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+type CustomerTaxIdentifierCreatePayload {
+  taxIdentifier: CustomerTaxIdentifier
+  customer: Customer
+  userErrors: [CustomerUserError!]!
+}
+
+type CustomerTaxIdentifierUpdatePayload {
+  taxIdentifier: CustomerTaxIdentifier
+  customer: Customer
+  userErrors: [CustomerUserError!]!
+}
+
+type CustomerTaxIdentifierDeletePayload {
+  deletedTaxIdentifierId: ID
+  customer: Customer
+  userErrors: [CustomerUserError!]!
+}

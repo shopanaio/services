@@ -1,0 +1,65 @@
+enum CustomerDataRequestType {
+  ACCESS
+  EXPORT
+  CORRECTION
+  ERASURE
+}
+
+enum CustomerDataRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+"""A customer-created, auditable privacy workflow."""
+type CustomerDataRequest implements Node @key(fields: "id") {
+  id: ID!
+  type: CustomerDataRequestType!
+  status: CustomerDataRequestStatus!
+  """Customer-provided details for a correction request, when applicable."""
+  correctionDetails: JSON
+  resultFile: GenericFile
+  rejectionReason: String
+  requestedAt: DateTime!
+  dueAt: DateTime
+  startedAt: DateTime
+  finishedAt: DateTime
+  updatedAt: DateTime!
+}
+
+type CustomerDataRequestConnection implements Connection {
+  edges: [CustomerDataRequestEdge!]!
+  nodes: [CustomerDataRequest!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CustomerDataRequestEdge {
+  cursor: Cursor!
+  node: CustomerDataRequest!
+}
+
+input CustomerDataRequestCreateInput {
+  type: CustomerDataRequestType!
+  """Required only for CORRECTION and rejected for all other request types."""
+  correctionDetails: JSON
+  idempotencyKey: String!
+}
+
+input CustomerDataRequestCancelInput {
+  dataRequestId: ID!
+  expectedUpdatedAt: DateTime!
+  idempotencyKey: String!
+}
+
+type CustomerDataRequestCreatePayload {
+  dataRequest: CustomerDataRequest
+  userErrors: [CustomerUserError!]!
+}
+
+type CustomerDataRequestCancelPayload {
+  dataRequest: CustomerDataRequest
+  userErrors: [CustomerUserError!]!
+}

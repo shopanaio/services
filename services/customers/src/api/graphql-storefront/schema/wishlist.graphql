@@ -127,10 +127,14 @@ input WishlistCreateInput {
   locale-independent lowercase conversion.
   """
   name: String!
+  """Makes retries return the original result instead of creating a duplicate."""
+  idempotencyKey: String!
 }
 
 """Values used to rename a customer wishlist."""
 input WishlistUpdateInput {
+  """Global ID of the wishlist to rename."""
+  id: ID!
   """
   New customer-visible wishlist name.
 
@@ -140,6 +144,26 @@ input WishlistUpdateInput {
   locale-independent lowercase conversion.
   """
   name: String!
+  """Timestamp observed by the client before editing the wishlist."""
+  expectedUpdatedAt: DateTime!
+  idempotencyKey: String!
+}
+
+input WishlistDeleteInput {
+  id: ID!
+  expectedUpdatedAt: DateTime!
+  idempotencyKey: String!
+}
+
+input WishlistProductAddInput {
+  productId: ID!
+  wishlistId: ID
+  idempotencyKey: String!
+}
+
+input WishlistProductRemoveInput {
+  itemId: ID!
+  idempotencyKey: String!
 }
 
 """Result of creating a customer wishlist."""

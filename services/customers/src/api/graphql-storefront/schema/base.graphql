@@ -1,118 +1,79 @@
 type Query {
   """
   Returns the customer associated with the authenticated storefront session.
-  The customer identity is resolved from trusted request context rather than
-  from a customer ID or access token supplied as a GraphQL argument.
+  Identity and store ownership are resolved only from trusted request context.
   """
   customer: Customer
 }
 
 type Mutation {
-  """
-  Updates personal profile fields for the authenticated customer.
-  Authentication and customer ownership are resolved from storefront context.
-  """
+  """Updates non-authentication profile fields for the current customer."""
   customerUpdate(input: CustomerUpdateInput!): CustomerUpdatePayload!
 
-  """
-  Creates a mailing address owned by the authenticated customer.
-  The new address can optionally become the customer's default address.
-  """
+  """Creates a mailing address owned by the current customer."""
   customerAddressCreate(
-    """Address values to store."""
-    address: CustomerAddressInput!
-    """Whether the new address should become the default address."""
-    defaultAddress: Boolean = false
+    input: CustomerAddressCreateInput!
   ): CustomerAddressCreatePayload!
 
-  """
-  Updates a mailing address owned by the authenticated customer.
-  The operation must reject addresses belonging to another customer.
-  """
+  """Updates a mailing address owned by the current customer."""
   customerAddressUpdate(
-    """Global ID of the customer address to update."""
-    addressId: ID!
-    """Address fields to replace or update."""
-    address: CustomerAddressInput
-    """Whether the address should become the default address."""
-    defaultAddress: Boolean
+    input: CustomerAddressUpdateInput!
   ): CustomerAddressUpdatePayload!
 
-  """
-  Deletes a mailing address owned by the authenticated customer.
-  The operation must reject addresses belonging to another customer.
-  """
+  """Deletes a mailing address owned by the current customer."""
   customerAddressDelete(
-    """Global ID of the customer address to delete."""
-    addressId: ID!
+    input: CustomerAddressDeleteInput!
   ): CustomerAddressDeletePayload!
 
-  """
-  Subscribes the authenticated customer's verified email address to marketing.
-  """
-  customerEmailMarketingSubscribe: CustomerEmailMarketingSubscribePayload!
+  """Atomically sets or clears shipping and billing address defaults."""
+  customerAddressDefaultSet(
+    input: CustomerAddressDefaultSetInput!
+  ): CustomerAddressDefaultSetPayload!
 
-  """
-  Unsubscribes the authenticated customer's email address from marketing.
-  """
-  customerEmailMarketingUnsubscribe: CustomerEmailMarketingUnsubscribePayload!
+  """Transitions one customer-selectable marketing consent channel."""
+  customerMarketingConsentUpdate(
+    input: CustomerMarketingConsentUpdateInput!
+  ): CustomerMarketingConsentUpdatePayload!
 
-  """
-  Creates a wishlist for the authenticated customer.
+  """Creates an auditable privacy request for the current customer."""
+  customerDataRequestCreate(
+    input: CustomerDataRequestCreateInput!
+  ): CustomerDataRequestCreatePayload!
 
-  Customer and store ownership are derived only from trusted storefront
-  context. The first wishlist created for the customer becomes the default.
-  """
-  wishlistCreate(
-    """Values for the new wishlist."""
-    input: WishlistCreateInput!
-  ): WishlistCreatePayload!
+  """Cancels a pending privacy request owned by the current customer."""
+  customerDataRequestCancel(
+    input: CustomerDataRequestCancelInput!
+  ): CustomerDataRequestCancelPayload!
 
-  """
-  Renames a wishlist owned by the authenticated customer.
+  """Creates an unverified tax identifier for the current customer."""
+  customerTaxIdentifierCreate(
+    input: CustomerTaxIdentifierCreateInput!
+  ): CustomerTaxIdentifierCreatePayload!
 
-  Missing and foreign wishlist IDs produce the same NOT_FOUND user error.
-  The default wishlist may be renamed.
-  """
-  wishlistUpdate(
-    """Global ID of the wishlist to rename."""
-    id: ID!
-    """New values for the wishlist."""
-    input: WishlistUpdateInput!
-  ): WishlistUpdatePayload!
+  """Updates a customer-owned tax identifier and resets its verification."""
+  customerTaxIdentifierUpdate(
+    input: CustomerTaxIdentifierUpdateInput!
+  ): CustomerTaxIdentifierUpdatePayload!
 
-  """
-  Deletes a non-default wishlist owned by the authenticated customer.
+  """Deletes a customer-owned tax identifier."""
+  customerTaxIdentifierDelete(
+    input: CustomerTaxIdentifierDeleteInput!
+  ): CustomerTaxIdentifierDeletePayload!
 
-  Its items are deleted with it. The default wishlist cannot be deleted.
-  Missing and foreign wishlist IDs produce the same NOT_FOUND user error.
-  """
-  wishlistDelete(
-    """Global ID of the wishlist to delete."""
-    id: ID!
-  ): WishlistDeletePayload!
+  """Creates a wishlist for the authenticated customer."""
+  wishlistCreate(input: WishlistCreateInput!): WishlistCreatePayload!
 
-  """
-  Adds a published product to one of the authenticated customer's wishlists.
+  """Renames a wishlist owned by the authenticated customer."""
+  wishlistUpdate(input: WishlistUpdateInput!): WishlistUpdatePayload!
 
-  When wishlistId is omitted, the existing default wishlist is used or a new
-  default wishlist named `Wishlist` is created. Repeating the operation for a
-  product already in the selected wishlist returns the existing item.
-  """
-  wishlistProductAdd(
-    """Global ID of the published Catalog product to save."""
-    productId: ID!
-    """Target wishlist global ID; omit to use the default wishlist."""
-    wishlistId: ID
-  ): WishlistProductAddPayload!
+  """Deletes a non-default wishlist owned by the authenticated customer."""
+  wishlistDelete(input: WishlistDeleteInput!): WishlistDeletePayload!
 
-  """
-  Removes a saved product item owned by the authenticated customer.
+  """Adds a published product to a customer-owned wishlist."""
+  wishlistProductAdd(input: WishlistProductAddInput!): WishlistProductAddPayload!
 
-  Missing and foreign item IDs produce the same NOT_FOUND user error.
-  """
+  """Removes a saved product item owned by the authenticated customer."""
   wishlistProductRemove(
-    """Global ID of the wishlist item to remove."""
-    itemId: ID!
+    input: WishlistProductRemoveInput!
   ): WishlistProductRemovePayload!
 }

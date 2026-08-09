@@ -1,0 +1,4 @@
+# Media-owned generic file referenced by a Customers privacy or tax record.
+extend type GenericFile @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}
