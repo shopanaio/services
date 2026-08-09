@@ -1,0 +1,1439 @@
+openapi: 3.0.3
+info:
+  title: Shopana IAM Application Authentication API
+  version: 1.0.0
+  description: |
+    Machine-readable contract for application-scoped OAuth 2.1, OpenID Connect,
+    application-user authentication, and session management.
+
+    Every realm is isolated by `applicationId`. Availability of password,
+    email verification, email OTP, and social-provider operations depends on
+    that application's effective authentication policy. Unknown and disabled
+    operations intentionally return `404`.
+
+    OAuth authorization-code flows require PKCE S256 and exactly one `resource`
+    equal to the immutable resource configured for the application. The same
+    resource must be sent when exchanging and refreshing tokens.
+  contact:
+    name: Shopana IAM
+  x-runtime-versions:
+    better-auth: 1.6.23
+    better-auth-oauth-provider: 1.6.23
+servers:
+  - url: https://iam.example.com
+    description: Replace with IAM_PUBLIC_BASE_URL
+tags:
+  - name: Discovery
+  - name: OAuth
+  - name: Password authentication
+  - name: Email OTP
+  - name: Social authentication
+  - name: Sessions
+
+paths:
+  /.well-known/oauth-authorization-server/auth/applications/{applicationId}:
+    get:
+      tags: [Discovery]
+      operationId: getApplicationOAuthAuthorizationServerMetadata
+      summary: Get RFC 8414 authorization-server metadata
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: OAuth authorization-server metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationServerMetadata"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/.well-known/oauth-authorization-server:
+    get:
+      tags: [Discovery]
+      operationId: getIssuerRelativeApplicationOAuthMetadata
+      summary: Get issuer-relative authorization-server metadata
+      description: The canonical RFC 8414 external URL is the root well-known path above.
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: OAuth authorization-server metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationServerMetadata"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/.well-known/openid-configuration:
+    get:
+      tags: [Discovery]
+      operationId: getApplicationOpenIdConfiguration
+      summary: Get OpenID Provider metadata
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: OpenID Provider metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenIdProviderMetadata"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/jwks:
+    get:
+      tags: [Discovery]
+      operationId: getApplicationJsonWebKeySet
+      summary: Get application public signing keys
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: JSON Web Key Set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JsonWebKeySet"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/authorize:
+    get:
+      tags: [OAuth]
+      operationId: authorizeApplicationOAuthClient
+      summary: Start an OAuth authorization-code flow
+      description: |
+        Browser navigation endpoint. A successful request redirects to the
+        configured login/consent flow or directly to the client's redirect URI.
+        `resource` is mandatory at the IAM boundary even though the underlying
+        provider models it as optional.
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [code]
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+            maxLength: 512
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: scope
+          in: query
+          required: true
+          description: Space-separated subset of the supported scopes.
+          schema:
+            type: string
+            example: openid profile email offline_access
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: nonce
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: code_challenge
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [S256]
+        - name: resource
+          in: query
+          required: true
+          description: Exact immutable application resource/audience.
+          schema:
+            type: string
+            example: urn:shopana:application:00000000-0000-0000-0000-000000000000
+        - name: prompt
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [none, consent, login, create, select_account, "login consent", "select_account consent"]
+      responses:
+        "302":
+          description: Continue authentication or return the authorization result
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                format: uri
+        "400":
+          $ref: "#/components/responses/OAuthError"
+        "403":
+          $ref: "#/components/responses/OAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/consent:
+    post:
+      tags: [OAuth]
+      operationId: submitApplicationOAuthConsent
+      summary: Submit consent for an authenticated application user
+      description: Session-bound continuation used by the hosted OAuth flow.
+      x-internal-flow: true
+      security:
+        - applicationSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [accept]
+              properties:
+                accept:
+                  type: boolean
+                scope:
+                  type: string
+                oauth_query:
+                  type: string
+      responses:
+        "200":
+          description: Consent processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthRedirectResponse"
+        "401":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/continue:
+    post:
+      tags: [OAuth]
+      operationId: continueApplicationOAuthAuthorization
+      summary: Continue a session-bound OAuth flow
+      x-internal-flow: true
+      security:
+        - applicationSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                selected:
+                  type: boolean
+                created:
+                  type: boolean
+                postLogin:
+                  type: boolean
+                oauth_query:
+                  type: string
+      responses:
+        "200":
+          description: Authorization flow continued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthRedirectResponse"
+        "401":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/token:
+    post:
+      tags: [OAuth]
+      operationId: exchangeApplicationOAuthToken
+      summary: Exchange an authorization code or refresh token
+      description: |
+        Accepts `authorization_code` and `refresh_token` only. Confidential
+        clients authenticate with HTTP Basic or form credentials. Public clients
+        send `client_id` without a secret. `resource` is required for both grants.
+      security:
+        - {}
+        - oauthClientBasic: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/OAuthTokenRequest"
+      responses:
+        "200":
+          description: Token response
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthTokenResponse"
+        "400":
+          $ref: "#/components/responses/OAuthError"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/introspect:
+    post:
+      tags: [OAuth]
+      operationId: introspectApplicationOAuthToken
+      summary: Introspect an access or refresh token
+      security:
+        - oauthClientBasic: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/OAuthTokenInspectionRequest"
+      responses:
+        "200":
+          description: RFC 7662 token state; inactive responses expose no internal reason.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthIntrospectionResponse"
+        "400":
+          $ref: "#/components/responses/OAuthError"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/revoke:
+    post:
+      tags: [OAuth]
+      operationId: revokeApplicationOAuthToken
+      summary: Revoke an access or refresh token
+      security:
+        - oauthClientBasic: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/OAuthTokenInspectionRequest"
+      responses:
+        "200":
+          description: Revocation accepted; body is empty.
+        "400":
+          $ref: "#/components/responses/OAuthError"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/userinfo:
+    get:
+      tags: [OAuth]
+      operationId: getApplicationOpenIdUserInfo
+      summary: Get OpenID Connect UserInfo
+      security:
+        - accessToken: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Claims allowed by the granted scopes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenIdUserInfo"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        "403":
+          $ref: "#/components/responses/OAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+    post:
+      tags: [OAuth]
+      operationId: postApplicationOpenIdUserInfo
+      summary: Get OpenID Connect UserInfo using POST
+      security:
+        - accessToken: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Claims allowed by the granted scopes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenIdUserInfo"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        "403":
+          $ref: "#/components/responses/OAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/oauth2/end-session:
+    get:
+      tags: [OAuth]
+      operationId: endApplicationOpenIdSession
+      summary: Perform RP-initiated logout
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+        - name: id_token_hint
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: client_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: post_logout_redirect_uri
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Logout completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirect_uri:
+                    type: string
+                    format: uri
+                  message:
+                    type: string
+        "302":
+          description: Redirect to the registered post-logout URI
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/sign-up/email:
+    post:
+      tags: [Password authentication]
+      operationId: signUpApplicationUserWithPassword
+      summary: Create an application user with email and password
+      description: Available only when password signup and registration are enabled.
+      x-feature-condition: passwordSignUpAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordSignUpRequest"
+      responses:
+        "200":
+          description: User created; a session cookie is set when auto-signin is allowed.
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/ApplicationSessionSetCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationAuthenticationResponse"
+        "400":
+          $ref: "#/components/responses/InvalidSignUp"
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/sign-in/email:
+    post:
+      tags: [Password authentication]
+      operationId: signInApplicationUserWithPassword
+      summary: Sign in an application user with email and password
+      x-feature-condition: passwordSignInAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordSignInRequest"
+      responses:
+        "200":
+          description: User authenticated and application session created
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/ApplicationSessionSetCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationAuthenticationResponse"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/request-password-reset:
+    post:
+      tags: [Password authentication]
+      operationId: requestApplicationUserPasswordReset
+      summary: Request a password-reset message
+      description: Always returns a generic response to prevent account enumeration.
+      x-feature-condition: passwordResetAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+                redirectTo:
+                  type: string
+                  format: uri
+      responses:
+        "202":
+          $ref: "#/components/responses/GenericAuthenticationMessageAccepted"
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/reset-password:
+    post:
+      tags: [Password authentication]
+      operationId: resetApplicationUserPassword
+      summary: Complete a password reset
+      x-feature-condition: passwordResetAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token, newPassword]
+              properties:
+                token:
+                  type: string
+                  maxLength: 1024
+                newPassword:
+                  type: string
+                  minLength: 10
+                  maxLength: 128
+                  format: password
+      responses:
+        "200":
+          description: Password changed and all user sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "400":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/send-verification-email:
+    post:
+      tags: [Password authentication]
+      operationId: sendApplicationUserVerificationEmail
+      summary: Request an email-verification message
+      description: Always returns a generic response to prevent account enumeration.
+      x-feature-condition: emailVerificationEnabled
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+                callbackURL:
+                  type: string
+                  format: uri
+      responses:
+        "202":
+          $ref: "#/components/responses/GenericAuthenticationMessageAccepted"
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/verify-email:
+    get:
+      tags: [Password authentication]
+      operationId: verifyApplicationUserEmail
+      summary: Verify an application user's email
+      x-feature-condition: emailVerificationEnabled
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: callbackURL
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uri
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, user]
+                properties:
+                  status:
+                    type: boolean
+                  user:
+                    $ref: "#/components/schemas/ApplicationUser"
+        "302":
+          description: Redirect to callbackURL when it was supplied
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/email-otp/send-verification-otp:
+    post:
+      tags: [Email OTP]
+      operationId: requestApplicationUserSignInOtp
+      summary: Request a six-digit email sign-in code
+      description: Only `type=sign-in` is accepted at the IAM public boundary.
+      x-feature-condition: emailOtpSignInAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, type]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+                type:
+                  type: string
+                  enum: [sign-in]
+      responses:
+        "202":
+          description: Generic acceptance response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericMessageResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        "503":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/sign-in/email-otp:
+    post:
+      tags: [Email OTP]
+      operationId: signInApplicationUserWithEmailOtp
+      summary: Sign in with a six-digit email code
+      description: May create a user only when OTP signup and registration are enabled.
+      x-feature-condition: emailOtpSignInAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 320
+                otp:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+                name:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                image:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: User authenticated and application session created
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/ApplicationSessionSetCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationAuthenticationResponse"
+        "401":
+          description: Invalid email or code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+              example:
+                error: invalid_code
+                error_description: Email or code is invalid
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/sign-in/social:
+    post:
+      tags: [Social authentication]
+      operationId: startApplicationUserSocialSignIn
+      summary: Start sign-in with an enabled social provider
+      description: |
+        The signed `oauth_query` comes from the IAM hosted authorization flow.
+        Caller-supplied callback URLs, scopes, ID tokens, and signup overrides
+        are rejected by the IAM boundary.
+      x-feature-condition: enabledSocialProviders.length > 0
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [provider, oauth_query]
+              properties:
+                provider:
+                  type: string
+                  enum: [google, facebook]
+                oauth_query:
+                  type: string
+                  minLength: 32
+                  maxLength: 16384
+      responses:
+        "200":
+          description: Provider authorization URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [redirect, url]
+                properties:
+                  redirect:
+                    type: boolean
+                  url:
+                    type: string
+                    format: uri
+        "302":
+          description: Redirect to the social provider
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "404":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/list-sessions:
+    get:
+      tags: [Sessions]
+      operationId: listApplicationUserSessions
+      summary: List the current application user's active sessions
+      description: Requires an application session created less than ten minutes ago.
+      security:
+        - applicationSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Active application-scoped sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApplicationSession"
+        "401":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "403":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/revoke-session:
+    post:
+      tags: [Sessions]
+      operationId: revokeApplicationUserSession
+      summary: Revoke one session belonging to the current user
+      description: Requires a fresh session; foreign-realm and foreign-user tokens are not revoked.
+      security:
+        - applicationSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Revocation request processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+        "401":
+          $ref: "#/components/responses/ApplicationAuthError"
+        "403":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/sign-out:
+    post:
+      tags: [Sessions]
+      operationId: signOutApplicationUser
+      summary: Revoke the current application session
+      security:
+        - applicationSessionCookie: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      responses:
+        "200":
+          description: Signed out and session cookie cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success]
+                properties:
+                  success:
+                    type: boolean
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+components:
+  parameters:
+    ApplicationId:
+      name: applicationId
+      in: path
+      required: true
+      description: Canonical lowercase UUID of the IAM application realm.
+      schema:
+        type: string
+        format: uuid
+
+  securitySchemes:
+    accessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    oauthClientBasic:
+      type: http
+      scheme: basic
+      description: Confidential OAuth client ID and secret.
+    applicationSessionCookie:
+      type: apiKey
+      in: cookie
+      name: shopana_application_{applicationId}.session_token
+      description: |
+        HttpOnly application-scoped Better Auth cookie. Replace `{applicationId}`
+        with the route application UUID. Browser requests must use credentials.
+
+  headers:
+    ApplicationSessionSetCookie:
+      description: HttpOnly, SameSite=Lax cookie scoped to the application auth base path.
+      schema:
+        type: string
+
+  responses:
+    ApplicationAuthError:
+      description: Application authentication request failed
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApplicationAuthErrorResponse"
+    OAuthError:
+      description: OAuth protocol error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+    RateLimitError:
+      description: Request rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+            minimum: 1
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+    InvalidCredentials:
+      description: Email or password is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+          example:
+            error: invalid_credentials
+            error_description: Email or password is invalid
+    InvalidSignUp:
+      description: Account could not be created
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"
+          example:
+            error: invalid_signup
+            error_description: Account could not be created
+    GenericAuthenticationMessageAccepted:
+      description: Generic acceptance response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/GenericMessageResponse"
+
+  schemas:
+    ApplicationAuthErrorResponse:
+      oneOf:
+        - $ref: "#/components/schemas/ApplicationAuthError"
+        - $ref: "#/components/schemas/BetterAuthError"
+        - $ref: "#/components/schemas/OAuthError"
+
+    ApplicationAuthError:
+      type: object
+      additionalProperties: false
+      required: [error, error_description, request_id]
+      properties:
+        error:
+          type: string
+          example: invalid_request
+        error_description:
+          type: string
+        request_id:
+          type: string
+
+    BetterAuthError:
+      type: object
+      required: [message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    OAuthError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        error_uri:
+          type: string
+          format: uri
+        state:
+          type: string
+
+    GenericMessageResponse:
+      type: object
+      additionalProperties: false
+      required: [status, message]
+      properties:
+        status:
+          type: boolean
+        message:
+          type: string
+
+    StatusResponse:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: boolean
+
+    ApplicationUser:
+      type: object
+      required: [id, email, emailVerified, name, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        applicationId:
+          type: string
+          format: uuid
+          description: Present on application-scoped user responses.
+        email:
+          type: string
+          format: email
+        emailVerified:
+          type: boolean
+        name:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApplicationSession:
+      type: object
+      required: [id, token, userId, expiresAt, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        applicationId:
+          type: string
+          format: uuid
+          description: Present on application-scoped session responses.
+        token:
+          type: string
+          description: Opaque session token accepted by revoke-session.
+        userId:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+          nullable: true
+        userAgent:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ApplicationAuthenticationResponse:
+      type: object
+      required: [user]
+      properties:
+        token:
+          type: string
+          nullable: true
+          description: Opaque application session token.
+        redirect:
+          type: boolean
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        user:
+          $ref: "#/components/schemas/ApplicationUser"
+
+    PasswordSignUpRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          format: password
+          minLength: 10
+          maxLength: 128
+        image:
+          type: string
+          format: uri
+        rememberMe:
+          type: boolean
+          default: true
+
+    PasswordSignInRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+        password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 128
+        rememberMe:
+          type: boolean
+          default: true
+
+    OAuthRedirectResponse:
+      type: object
+      required: [redirect, url]
+      properties:
+        redirect:
+          type: boolean
+        url:
+          type: string
+          format: uri
+
+    OAuthTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [grant_type, resource]
+      properties:
+        grant_type:
+          type: string
+          enum: [authorization_code, refresh_token]
+        client_id:
+          type: string
+          description: Required for public clients; optional with HTTP Basic.
+        client_secret:
+          type: string
+          format: password
+          description: Form authentication alternative for confidential clients.
+        code:
+          type: string
+          description: Required for authorization_code.
+        code_verifier:
+          type: string
+          description: Required for authorization_code PKCE.
+        redirect_uri:
+          type: string
+          format: uri
+          description: Required for authorization_code and must match the initial request.
+        refresh_token:
+          type: string
+          description: Required for refresh_token.
+        resource:
+          type: string
+          description: Exact immutable application resource/audience.
+        scope:
+          type: string
+          description: Optional narrowed scope for refresh.
+
+    OAuthTokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in, scope]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          minimum: 1
+          description: Access-token lifetime in seconds.
+        expires_at:
+          type: integer
+          format: int64
+          description: Provider extension containing the expiration epoch.
+        refresh_token:
+          type: string
+        scope:
+          type: string
+        id_token:
+          type: string
+
+    OAuthTokenInspectionRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        client_id:
+          type: string
+          description: Form alternative to HTTP Basic client authentication.
+        client_secret:
+          type: string
+          format: password
+        token:
+          type: string
+        token_type_hint:
+          type: string
+          enum: [access_token, refresh_token]
+
+    OAuthIntrospectionResponse:
+      type: object
+      required: [active]
+      properties:
+        active:
+          type: boolean
+        scope:
+          type: string
+        client_id:
+          type: string
+        token_type:
+          type: string
+        exp:
+          type: integer
+          format: int64
+        iat:
+          type: integer
+          format: int64
+        nbf:
+          type: integer
+          format: int64
+        sub:
+          type: string
+        aud:
+          type: string
+        iss:
+          type: string
+          format: uri
+        jti:
+          type: string
+        application_id:
+          type: string
+          format: uuid
+        actor_type:
+          type: string
+          enum: [application_user]
+        sid:
+          type: string
+        token_family_id:
+          type: string
+
+    OpenIdUserInfo:
+      type: object
+      required: [sub]
+      properties:
+        sub:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        email_verified:
+          type: boolean
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        given_name:
+          type: string
+          nullable: true
+        family_name:
+          type: string
+          nullable: true
+        picture:
+          type: string
+          format: uri
+          nullable: true
+
+    AuthorizationServerMetadata:
+      type: object
+      required:
+        - issuer
+        - authorization_endpoint
+        - token_endpoint
+        - jwks_uri
+        - introspection_endpoint
+        - revocation_endpoint
+        - scopes_supported
+        - grant_types_supported
+        - response_types_supported
+        - token_endpoint_auth_methods_supported
+        - code_challenge_methods_supported
+      properties:
+        issuer:
+          type: string
+          format: uri
+        authorization_endpoint:
+          type: string
+          format: uri
+        token_endpoint:
+          type: string
+          format: uri
+        jwks_uri:
+          type: string
+          format: uri
+        introspection_endpoint:
+          type: string
+          format: uri
+        revocation_endpoint:
+          type: string
+          format: uri
+        scopes_supported:
+          type: array
+          items:
+            type: string
+            enum: [openid, profile, email, offline_access]
+        grant_types_supported:
+          type: array
+          items:
+            type: string
+            enum: [authorization_code, refresh_token]
+        response_types_supported:
+          type: array
+          items:
+            type: string
+            enum: [code]
+        token_endpoint_auth_methods_supported:
+          type: array
+          items:
+            type: string
+            enum: [none, client_secret_basic, client_secret_post]
+        code_challenge_methods_supported:
+          type: array
+          items:
+            type: string
+            enum: [S256]
+
+    OpenIdProviderMetadata:
+      allOf:
+        - $ref: "#/components/schemas/AuthorizationServerMetadata"
+        - type: object
+          required: [userinfo_endpoint, end_session_endpoint, id_token_signing_alg_values_supported]
+          properties:
+            userinfo_endpoint:
+              type: string
+              format: uri
+            end_session_endpoint:
+              type: string
+              format: uri
+            id_token_signing_alg_values_supported:
+              type: array
+              items:
+                type: string
+
+    JsonWebKeySet:
+      type: object
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            required: [kty, kid, use, alg]
+            properties:
+              kty:
+                type: string
+              kid:
+                type: string
+              use:
+                type: string
+                enum: [sig]
+              alg:
+                type: string
+                enum: [EdDSA]
+              crv:
+                type: string
+              x:
+                type: string

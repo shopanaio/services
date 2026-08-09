@@ -87,6 +87,7 @@ export async function startStorefrontServer(
     "shared-units.graphql",
     "base.graphql",
     "listing.graphql",
+    "recommendations.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(readFileSync(join(schemaDir, file), "utf8")),

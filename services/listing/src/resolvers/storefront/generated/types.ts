@@ -1178,7 +1178,37 @@ export type PriceRangeFilterInput = {
 
 export type Product = {
   __typename?: 'Product';
+  /**
+   * Products that customers frequently bought together with this product.
+   *
+   * Results come from confirmed sales aggregated into the currently published
+   * FREQUENTLY_BOUGHT_TOGETHER ranking snapshot. This field does not imply a
+   * bundle, discount, price guarantee, compatibility claim, or cart mutation.
+   * Clients choose concrete variants and use Checkout APIs for add-to-cart.
+   */
+  frequentlyBoughtTogether: ProductRecommendationConnection;
   id: Scalars['ID']['output'];
+  /**
+   * Merchant-curated and automatically ranked products related to this product.
+   *
+   * Results come from the currently published PRODUCT_RELATED ranking snapshot.
+   * The connection is already ordered for presentation, so clients should render
+   * the returned order unchanged. An empty connection is a valid, cacheable
+   * result and does not trigger a synchronous recommendation calculation.
+   */
+  relatedProducts: ProductRecommendationConnection;
+};
+
+
+export type ProductFrequentlyBoughtTogetherArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type ProductRelatedProductsArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** A Relay connection containing products from one canonical listing request. */
@@ -1215,6 +1245,59 @@ export type ProductEdge = {
   /** The product at the end of the edge. */
   node: Product;
 };
+
+/**
+ * One ranked recommendation and the public provenance needed by storefront
+ * presentation and analytics. Internal scores and ranking features are not part
+ * of the storefront contract.
+ */
+export type ProductRecommendation = {
+  __typename?: 'ProductRecommendation';
+  /** Current federated Product presentation resolved by Catalog. */
+  product: Product;
+  /** Primary source that contributed this recommendation. */
+  source: ProductRecommendationSource;
+};
+
+/**
+ * A forward-only Relay connection over one immutable recommendation snapshot.
+ *
+ * The cursor pins the snapshot generation, so pagination never combines ranks
+ * from two different recommendation builds. Products that are no longer
+ * storefront-eligible are omitted at read time without changing the snapshot.
+ */
+export type ProductRecommendationConnection = Connection & {
+  __typename?: 'ProductRecommendationConnection';
+  /** Recommendation edges in their published display order. */
+  edges: Array<ProductRecommendationEdge>;
+  /** Recommendations contained in the returned edges. */
+  nodes: Array<ProductRecommendation>;
+  /** Information to aid in forward pagination. */
+  pageInfo: PageInfo;
+  /** Number of currently storefront-eligible items in the resolved snapshot. */
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ProductRecommendationEdge = {
+  __typename?: 'ProductRecommendationEdge';
+  /** Opaque cursor tied to the snapshot generation and published rank. */
+  cursor: Scalars['Cursor']['output'];
+  /** The recommendation at the end of the edge. */
+  node: ProductRecommendation;
+};
+
+export enum ProductRecommendationSource {
+  /** Similarity calculated from product content or taxonomy. */
+  ContentSimilarity = 'CONTENT_SIMILARITY',
+  /** Configured cold-start fallback source. */
+  Fallback = 'FALLBACK',
+  /** Association calculated from confirmed sales. */
+  FrequentlyBoughtTogether = 'FREQUENTLY_BOUGHT_TOGETHER',
+  /** Explicit merchant recommendation. */
+  Manual = 'MANUAL',
+  /** Store or category popularity signal. */
+  Popularity = 'POPULARITY'
+}
 
 export type Query = {
   __typename?: 'Query';
@@ -1375,7 +1458,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Connection: ( ProductConnection );
+  Connection: ( ProductConnection ) | ( ProductRecommendationConnection );
   DisplayableError: ( UserError );
   Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue );
 }>;
@@ -1427,6 +1510,10 @@ export type ResolversTypes = ResolversObject<{
   Product: ResolverTypeWrapper<Product>;
   ProductConnection: ResolverTypeWrapper<ProductConnection>;
   ProductEdge: ResolverTypeWrapper<ProductEdge>;
+  ProductRecommendation: ResolverTypeWrapper<ProductRecommendation>;
+  ProductRecommendationConnection: ResolverTypeWrapper<ProductRecommendationConnection>;
+  ProductRecommendationEdge: ResolverTypeWrapper<ProductRecommendationEdge>;
+  ProductRecommendationSource: ProductRecommendationSource;
   Query: ResolverTypeWrapper<{}>;
   RichText: ResolverTypeWrapper<RichText>;
   SwatchType: SwatchType;
@@ -1472,6 +1559,9 @@ export type ResolversParentTypes = ResolversObject<{
   Product: Product;
   ProductConnection: ProductConnection;
   ProductEdge: ProductEdge;
+  ProductRecommendation: ProductRecommendation;
+  ProductRecommendationConnection: ProductRecommendationConnection;
+  ProductRecommendationEdge: ProductRecommendationEdge;
   Query: {};
   RichText: RichText;
   URL: Scalars['URL']['output'];
@@ -1492,7 +1582,7 @@ export interface ColorScalarConfig extends GraphQLScalarTypeConfig<ResolversType
 }
 
 export type ConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Connection'] = ResolversParentTypes['Connection']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'ProductConnection', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'ProductConnection' | 'ProductRecommendationConnection', ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
 }>;
@@ -1628,7 +1718,9 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
 
 export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  frequentlyBoughtTogether?: Resolver<ResolversTypes['ProductRecommendationConnection'], { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, RequireFields<ProductFrequentlyBoughtTogetherArgs, 'first'>>;
 
+  relatedProducts?: Resolver<ResolversTypes['ProductRecommendationConnection'], { __typename: 'Product' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, RequireFields<ProductRelatedProductsArgs, 'first'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1646,6 +1738,26 @@ export type ProductConnectionResolvers<ContextType = ServiceContext, ParentType 
 export type ProductEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductEdge'] = ResolversParentTypes['ProductEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['Cursor'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductRecommendationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductRecommendation'] = ResolversParentTypes['ProductRecommendation']> = ResolversObject<{
+  product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  source?: Resolver<ResolversTypes['ProductRecommendationSource'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductRecommendationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductRecommendationConnection'] = ResolversParentTypes['ProductRecommendationConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ProductRecommendationEdge']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['ProductRecommendation']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductRecommendationEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductRecommendationEdge'] = ResolversParentTypes['ProductRecommendationEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['Cursor'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ProductRecommendation'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1707,6 +1819,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Product?: ProductResolvers<ContextType>;
   ProductConnection?: ProductConnectionResolvers<ContextType>;
   ProductEdge?: ProductEdgeResolvers<ContextType>;
+  ProductRecommendation?: ProductRecommendationResolvers<ContextType>;
+  ProductRecommendationConnection?: ProductRecommendationConnectionResolvers<ContextType>;
+  ProductRecommendationEdge?: ProductRecommendationEdgeResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   RichText?: RichTextResolvers<ContextType>;
   URL?: GraphQLScalarType;
