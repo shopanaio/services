@@ -103,6 +103,81 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(stillAuthenticated.ok(), await stillAuthenticated.text()).toBe(true);
   });
 
+  test('session REST endpoints list and revoke only sessions owned by the current application user', async ({
+    api,
+    request,
+  }) => {
+    const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail('session-management');
+    const [, signupB] = await Promise.all([
+      expectSignUp(request, realms.a, email),
+      expectSignUp(request, realms.b, email),
+    ]);
+    const signinA = await signIn(request, realms.a, email);
+    expect(signinA.ok(), await signinA.text()).toBe(true);
+    const cookieA = applicationCookie(signinA, realms.a);
+    const cookieB = applicationCookie(signupB, realms.b);
+
+    const listA = await request.get(endpoint(realms.a, '/list-sessions'), {
+      headers: { ...jsonHeaders(), cookie: cookieA },
+    });
+    expect(listA.ok(), await listA.text()).toBe(true);
+    const sessionsA = (await listA.json()) as Array<{
+      token: string;
+      userId: string;
+    }>;
+    expect(sessionsA).toHaveLength(2);
+    expect(
+      sessionsA.every(({ token }) => typeof token === 'string' && token.length > 0),
+    ).toBe(true);
+    expect(new Set(sessionsA.map(({ userId }) => userId)).size).toBe(1);
+
+    const listB = await request.get(endpoint(realms.b, '/list-sessions'), {
+      headers: { ...jsonHeaders(), cookie: cookieB },
+    });
+    expect(listB.ok(), await listB.text()).toBe(true);
+    const sessionsB = (await listB.json()) as Array<{ token: string }>;
+    expect(sessionsB).toHaveLength(1);
+
+    const foreignRevoke = await request.post(
+      endpoint(realms.a, '/revoke-session'),
+      {
+        headers: { ...jsonHeaders(), cookie: cookieA },
+        data: { token: sessionsB[0]!.token },
+      },
+    );
+    expect(foreignRevoke.ok(), await foreignRevoke.text()).toBe(true);
+    expect(await foreignRevoke.json()).toEqual({ status: true });
+    expect(await sessionCount(realms.a.applicationId)).toBe(2);
+    expect(await sessionCount(realms.b.applicationId)).toBe(1);
+
+    const revoke = await request.post(endpoint(realms.a, '/revoke-session'), {
+      headers: { ...jsonHeaders(), cookie: cookieA },
+      data: { token: sessionsA[0]!.token },
+    });
+    expect(revoke.ok(), await revoke.text()).toBe(true);
+    expect(await revoke.json()).toEqual({ status: true });
+    expect(await sessionCount(realms.a.applicationId)).toBe(1);
+    expect(await sessionCount(realms.b.applicationId)).toBe(1);
+  });
+
+  test('session REST endpoints require an authenticated application session', async ({
+    api,
+    request,
+  }) => {
+    const realm = await createRealm(api, request);
+    const list = await request.get(endpoint(realm, '/list-sessions'), {
+      headers: jsonHeaders(),
+    });
+    const revoke = await request.post(endpoint(realm, '/revoke-session'), {
+      headers: jsonHeaders(),
+      data: { token: crypto.randomUUID() },
+    });
+
+    expect(list.status()).toBe(401);
+    expect(revoke.status()).toBe(401);
+  });
+
   test('sessions in A and B coexist and revoke independently', async ({
     api,
     request,

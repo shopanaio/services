@@ -51,6 +51,8 @@ const HOSTED_UI_BASE_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
 ];
 
 const SESSION_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
+  exact("GET", "/list-sessions"),
+  exact("POST", "/revoke-session"),
   exact("POST", "/sign-out"),
 ];
 
