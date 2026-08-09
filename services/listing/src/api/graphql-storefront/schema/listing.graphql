@@ -2,6 +2,36 @@
 
 extend type Product @key(fields: "id") {
   id: ID! @external
+
+  """
+  Merchant-curated and automatically ranked products related to this product.
+
+  Results come from the currently published PRODUCT_RELATED ranking snapshot.
+  The connection is already ordered for presentation, so clients should render
+  the returned order unchanged. An empty connection is a valid, cacheable
+  result and does not trigger a synchronous recommendation calculation.
+  """
+  relatedProducts(
+    """Number of recommendations to return; must be between 1 and 100."""
+    first: Int = 12
+    """Continue after an opaque cursor returned by this connection."""
+    after: Cursor
+  ): ProductRecommendationConnection!
+
+  """
+  Products that customers frequently bought together with this product.
+
+  Results come from confirmed sales aggregated into the currently published
+  FREQUENTLY_BOUGHT_TOGETHER ranking snapshot. This field does not imply a
+  bundle, discount, price guarantee, compatibility claim, or cart mutation.
+  Clients choose concrete variants and use Checkout APIs for add-to-cart.
+  """
+  frequentlyBoughtTogether(
+    """Number of recommendations to return; must be between 1 and 100."""
+    first: Int = 3
+    """Continue after an opaque cursor returned by this connection."""
+    after: Cursor
+  ): ProductRecommendationConnection!
 }
 
 extend type Category @key(fields: "id") {
