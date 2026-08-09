@@ -55,8 +55,8 @@ first-party policy. Наличие trusted `Origin`, cookie или `client_id` �
    families.
 4. Не возвращать успех до локальной cache invalidation и подтверждения
    настроенного distributed invalidation transport.
-5. Сохранить безопасный повтор mutation после timeout, transport failure или
-   неизвестного клиенту результата.
+5. Сохранить безопасный повтор targeted revoke и revoke-others после timeout,
+   transport failure или неизвестного клиенту результата.
 6. Не публиковать raw token, cookie, secret, session ID или персональные device
    данные в logs, metrics и audit.
 7. Сохранить существующий hosted/OIDC logout как независимый flow.
@@ -243,11 +243,10 @@ Decoder после strict parse повторно сериализует tuple и
 - для неизвестного, уже удалённого, чужого user или другого realm возвращает
   тот же `204`;
 - не сообщает `revokedCount` и не раскрывает существование ID;
-- при ненулевом DB effect создаёт новый `kind=session` invalidation для trusted
-  ID реально удалённой строки;
-- при нулевом DB effect не переносит caller-provided ID в outbox, а
-  создаёт/переиспользует coalesced `kind=user` retry invalidation текущего
-  `applicationId + userId`.
+- при ненулевом DB effect публикует `kind=session` invalidation для trusted ID
+  реально удалённой строки;
+- при нулевом DB effect публикует `kind=user` invalidation текущего
+  `applicationId + userId`, не перенося caller-provided ID в событие.
 
 Path ID декодируется ровно один раз, имеет ограничение длины и не может содержать
 slash, NUL или control characters. Невалидная форма получает generic `404`, а не
@@ -367,102 +366,43 @@ scope.
 `429` и retriable `503` получают целочисленный `Retry-After`. `204` не содержит
 body и `Content-Type`.
 
-## 7. Transaction, outbox и invalidation
+## 7. Transaction и invalidation
 
-Прямой DB commit с последующим best-effort publish запрещён. Добавляются три
-разделённые persistence сущности:
+Одна IAM transaction:
 
-- immutable `application_auth_security_audit_record` с redacted domain outcome;
-- `application_auth_invalidation_outbox` только для live-state invalidation;
-- `application_auth_audit_delivery_outbox` только для доставки audit record во
-  внешний append-only sink.
-
-Произвольного общего security outbox и polymorphic JSON payload нет. Одна IAM
-transaction:
-
-1. блокирует/проверяет текущую session, когда это требуется;
+1. блокирует и повторно проверяет текущую session, когда это требуется;
 2. удаляет целевые access tokens;
 3. помечает связанные refresh families revoked и отвязывает их от session;
-4. удаляет session rows;
-5. сохраняет redacted audit record и связанную audit-delivery row;
-6. вставляет либо переиспользует durable invalidation outbox event по правилам
-   effect/retry ниже.
+4. удаляет session rows.
 
-Обе outbox таблицы содержат закрытые typed columns, а не JSON с credentials.
-Invalidation row хранит `eventId`, schema version, kind,
-application/user/session binding, `deduplicationKey`, state, created/delivered
-timestamps, attempts, next-attempt time, lease owner/expiry и последнюю stable
-failure category. Audit delivery row ссылается по `recordId` на immutable audit
-record и хранит собственные delivery state/attempt/lease поля. Dependency error
-text не сохраняется. Session ID допустим только для `kind=session` события,
-созданного из реально найденной tenant-scoped DB row; audit и zero-effect retry
-его не получают.
-
-Audit `outcome` означает только результат domain mutation, известный внутри
-transaction: `committed_effect` либо `committed_no_effect`. Он не обозначает
-HTTP status и не меняется из-за post-commit transport failure. Итог HTTP request
-и delivery outcome наблюдаются отдельно в redacted request log/metrics. Поэтому
-commit с последующим `503 invalidation_unavailable` не создаёт ложный audit
-`failed`: mutation остаётся `committed_*`, а invalidation — `pending`.
-
-После commit request path немедленно пытается доставить outbox event через
+После commit request path немедленно публикует invalidation через существующий
 `ApplicationAuthLiveStateInvalidationBus.publishRequired()`:
 
-- targeted revoke с DB effect и logout используют `kind=session`; zero-effect
-  targeted retry использует coalesced `kind=user` без caller target;
-- revoke-others использует `kind=user`;
+- targeted revoke с DB effect и logout используют `kind=session` с trusted ID
+  реально найденной tenant-scoped строки;
+- targeted revoke без DB effect использует `kind=user` без caller-provided target;
+- revoke-others использует `kind=user` независимо от `revokedCount`;
 - local subscribers выполняются до ответа;
 - configured distributed transport должен подтвердить publish;
-- outbox delivery дедуплицируется по event ID, а повторная cache invalidation
-  семантически идемпотентна;
-- request path и background dispatcher используют один delivery primitive;
-- worker атомарно claim-ит due row короткой transaction через
-  `FOR UPDATE SKIP LOCKED`, устанавливает bounded lease, публикует вне DB
-  transaction и затем CAS-переходом помечает ту же lease delivered;
-- истёкшая lease возвращает row в retry; два publisher из-за crash/lease race
-  допустимы, поскольку transport/consumer дедуплицирует `eventId`;
-- если event уже delivered, повторный request считает acknowledgement
-  подтверждённым; если event занят другим worker, request bounded ждёт его state,
-  затем доставляет сам либо возвращает documented `503`;
-- background dispatcher повторяет pending events с bounded exponential backoff и
-  jitter до capped interval;
-- terminal drop запрещён: после порога попыток событие остаётся retryable с
-  capped interval и поднимает alert; ручной quarantine требует отдельной
-  audited operations procedure;
-- at-least-once delivery является нормой, exactly-once не обещается.
+- повторная cache invalidation семантически идемпотентна.
 
-Для mutation с DB effect всегда создаётся новый event ID. Для zero-effect
-targeted retry используется `kind=user`, а deduplication key строится server-side
-из `applicationId + userId + operationKind + fiveMinuteRetryEpoch`; caller target
-в него не входит. В одном пятиминутном окне существует не более одной такой row
-на user/operation. Revoke-others с ненулевым effect всегда создаёт новый user
-event, чтобы новая session, удалённая после предыдущей доставки, не осталась в
-cache; только zero-effect retry может переиспользовать coalesced event.
-
-Delivered invalidation rows удерживаются 24 часа — зафиксированное v1 HTTP retry
-window — и затем удаляются bounded retention job. Audit records живут по
-отдельной audit retention policy; audit-delivery row удаляется только после sink
-acknowledgement и минимального deduplication retention. Pending rows retention
-job не удаляет. Изменение retry window требует совместного изменения retention и
-contract tests.
-
-Если transport не подтвердил доставку, mutation уже могла быть committed. API
+Если transport не подтвердил publish, mutation уже могла быть committed. API
 возвращает `503 invalidation_unavailable`; это documented outcome-unknown, а не
-утверждение об отсутствии mutation. Pending outbox гарантирует последующую
-доставку. Повтор targeted revoke или revoke-others безопасен и применяет
-описанное выше bounded coalescing только при нулевом DB effect, после чего
-ожидает transport acknowledgement соответствующего event.
+утверждение об отсутствии mutation. Targeted revoke и revoke-others можно
+безопасно повторить: zero-effect повтор публикует user-level invalidation и
+снова ожидает transport acknowledgement.
 
 После committed self-logout тот же Bearer уже inactive, поэтому последовательный
-повтор получает `401 invalid_token`, а не `204`. Восстановление доставки в этом
-случае является обязанностью durable background outbox dispatcher и не зависит
-от повторного запроса уже отозванным credential. Два параллельных logout,
-успевших пройти authentication до первого commit, остаются безопасными и могут
-завершиться `204` либо documented `503`.
+повтор получает `401 invalid_token`, а не `204`. Если publish не был подтверждён,
+удалённые session и tokens остаются неактивными в primary database, а stale
+validation cache других реплик исчезает не позднее существующего hard TTL в 30
+секунд. Два параллельных logout, успевших пройти authentication до первого
+commit, остаются безопасными и могут завершиться `204` либо documented `503`.
 
-Так устраняется окно между DB commit и publish. В production отсутствие
-настроенного distributed transport является startup/configuration error; local
-transport допустим только в development/E2E.
+Production требует настроенный distributed transport как startup/configuration
+invariant; local transport допустим только в development/E2E. Гарантия v1 —
+синхронная попытка доставки с acknowledgement либо ограниченная 30 секундами
+eventual convergence через существующий validation cache TTL.
 
 ## 8. Repository и schema
 
@@ -472,7 +412,6 @@ transport допустим только в development/E2E.
   `revokeOtherSessions` semantics;
 - выделить единый internal mutation primitive, принимающий только trusted
   `applicationId`, `userId`, `currentSessionId` и optional target ID;
-- включить audit/outbox insert в ту же transaction;
 - добавить cursor list operation без нового параллельного session repository.
 
 Все SQL predicates содержат `applicationId + userId`; lookup только по
@@ -484,9 +423,6 @@ transport допустим только в development/E2E.
 (application_id, user_id, updated_at DESC, id DESC)
 ```
 
-Добавить отдельные indexes/constraints для due pending delivery, lease recovery,
-уникального event/record ID и partial unique deduplication key. DB constraints
-запрещают session binding для `kind=user` и требуют её для `kind=session`.
 Миграции создаются IAM migration workflow через `shopana-cli`. Backfill и
 compatibility layer не создаются.
 
@@ -597,14 +533,11 @@ List не создаёт security audit record: его observability огран�
 logs/metrics, чтобы не увеличивать объём персональных access records без
 отдельной retention policy.
 
-Mutation audit записывается durable в той же transaction, что и revoke. Delivery
-во внешний append-only sink выполняется только через отдельный
-`application_auth_audit_delivery_outbox` и не может потеряться при падении
-процесса после commit. Audit dispatcher использует тот же claim/lease/CAS
-protocol, но не смешивает rows или transport с invalidation dispatcher. Audit
-consumer дедуплицирует по record ID. HTTP success ожидает local/distributed
-invalidation acknowledgement, но не внешний audit sink: для audit достаточно
-durable audit record и pending delivery row в committed transaction.
+Mutation audit передаётся после commit через существующий
+`ApplicationAuthAuditService`. Audit delivery остаётся non-blocking и не меняет
+HTTP result; failure записывается существующим redacted log и отдельным failure
+counter. HTTP success ожидает local/distributed invalidation acknowledgement,
+но не внешний audit sink.
 
 Разрешённые поля:
 
@@ -620,9 +553,9 @@ client secret и dependency error text.
 
 Структурированные logs содержат endpoint name, method, status, outcome,
 application ID и request ID. Metrics содержат endpoint/outcome/status и latency;
-user, client, session, IP, Origin и User-Agent запрещены как labels. Успешный
-outbox retry и delivery failure имеют отдельные counters без tenant-sensitive
-payload.
+user, client, session, IP, Origin и User-Agent запрещены как labels. Invalidation
+transport failure и audit delivery failure имеют отдельные counters без
+tenant-sensitive payload.
 
 ## 13. Тестовый план
 
@@ -672,13 +605,12 @@ payload.
 - logout отзывает все families текущего `sid`, но не другие sessions/realms;
 - старые access и refresh tokens становятся inactive;
 - повторные targeted/revoke-others и параллельные logout безопасны;
-- последовательный logout тем же уже отозванным Bearer получает `401`, а pending
-  invalidation доставляет background outbox;
+- последовательный logout тем же уже отозванным Bearer получает `401`, а stale
+  validation cache после неподтверждённого publish ограничен hard TTL 30 секунд;
 - targeted unknown ID возвращает `204` и не раскрывает существование;
-- zero-effect targeted retry создаёт bounded coalesced user invalidation, не
-  сохраняет caller target и не создаёт больше одной row на retry epoch;
-- revoke-others с новым DB effect создаёт новый event даже внутри прежнего retry
-  epoch, а zero-effect повтор может переиспользовать доставленный event;
+- zero-effect targeted retry публикует user invalidation без caller target;
+- revoke-others публикует user invalidation и при ненулевом, и при нулевом DB
+  effect;
 - `revokedCount` считает sessions, не tokens.
 
 ### 13.4. Cookie
@@ -690,26 +622,19 @@ payload.
 - `Secure`, `HttpOnly`, `SameSite`, path, expiry и имена совпадают у hosted и
   REST logout.
 
-### 13.5. Outbox, audit и failures
+### 13.5. Invalidation, audit и failures
 
-- revoke, immutable redacted audit record, audit-delivery row и invalidation row
-  атомарны;
-- rollback не оставляет частичный token cleanup или outbox event;
+- session/access/refresh mutation полностью commit-ится либо rollback-ится;
 - transport failure после commit возвращает documented
   `503 invalidation_unavailable`;
-- pending dispatcher доставляет event после восстановления;
-- HTTP retry targeted/revoke-others при уже удалённой session повторно
-  обеспечивает invalidation;
-- duplicate at-least-once event безопасен;
-- два dispatcher instance не теряют row при `SKIP LOCKED`, lease expiry и crash
-  между publish/CAS; duplicate delivery сохраняет один semantic effect;
-- poison event не удаляется после порога attempts, переходит на capped retry и
-  поднимает alert; retention не удаляет pending rows;
+- HTTP retry targeted/revoke-others при уже удалённой session повторно публикует
+  user invalidation;
+- повторная доставка invalidation безопасна;
 - request не возвращает success до local dispatch и distributed ack;
-- post-commit invalidation failure оставляет audit outcome `committed_*`, HTTP
-  получает `503`, а delivery остаётся `pending`;
-- audit delivery использует отдельную таблицу/dispatcher, не содержит запрещённых
-  полей и дедуплицируется по record ID;
+- при post-commit invalidation failure HTTP получает `503`, mutation остаётся
+  committed, а stale validation cache ограничен hard TTL 30 секунд;
+- audit delivery не содержит запрещённых полей, остаётся non-blocking, а failure
+  учитывается отдельным counter;
 - pre-auth и authenticated limiter fallback сохраняют logout, ограничивают
   invalid traffic и возвращают корректные `429/503`.
 
@@ -746,17 +671,14 @@ payload.
 Критерий выхода: capability matrix и все boundary schemas зафиксированы
 executable tests.
 
-### Этап 2. Repository, migration и outbox
+### Этап 2. Repository и migration
 
 1. Добавить cursor list query и composite index.
-2. Объединить revoke primitives с transactional audit record, отдельными
-   audit-delivery и invalidation outbox rows.
-3. Добавить shared claim/lease/CAS primitive, два typed dispatcher, bounded
-   zero-effect deduplication, retry и retention.
-4. Добавить repository isolation/concurrency tests.
+2. Объединить revoke primitives в единый application-scoped transaction contract.
+3. Добавить repository isolation/concurrency tests.
 
-Критерий выхода: revoke, audit и pending invalidation либо commit вместе, либо
-полностью rollback.
+Критерий выхода: session/access/refresh изменения либо commit вместе, либо
+полностью rollback; текущая Bearer session повторно проверяется в transaction.
 
 ### Этап 3. REST plugin
 
@@ -770,14 +692,14 @@ executable tests.
 
 ### Этап 4. Operations и E2E
 
-1. Подключить production distributed outbox delivery.
-2. Добавить audit sink, metrics и alerts для pending/failed delivery.
+1. Подключить production distributed invalidation transport.
+2. Добавить audit sink, metrics и alerts для failed delivery.
 3. Обновить reverse-proxy/public-boundary documentation.
 4. Выполнить один целевой Playwright spec и HTTP/repository contract tests через
    `shopana-cli`.
 
-Критерий выхода: полный positive/negative/failure matrix проходит, pending
-outbox наблюдаем и восстанавливается после transport outage.
+Критерий выхода: полный positive/negative/failure matrix проходит, transport
+outage наблюдаем, а stale validation cache ограничен документированным TTL.
 
 ## 15. Зафиксированные решения
 
@@ -793,15 +715,14 @@ outbox наблюдаем и восстанавливается после trans
 - Pagination: weakly consistent keyset, без snapshot promise.
 - Device contract: parsed UA + nullable raw UA/IP + timestamps, без GeoIP.
 - Cookie match читается до revoke; mismatch не очищается.
-- Invalidation и audit delivery: отдельные typed outbox таблицы, общий
-  claim/lease/CAS protocol, at-least-once delivery без terminal drop.
-- Audit outcome описывает committed domain effect; HTTP/delivery outcome
-  наблюдается отдельно.
-- Zero-effect targeted retry: coalesced user invalidation без caller session ID.
+- Invalidation: существующий `publishRequired()` после commit; success только
+  после local dispatch и distributed acknowledgement.
+- Audit delivery: существующий non-blocking `ApplicationAuthAuditService`.
+- Zero-effect targeted retry: user invalidation без caller session ID.
 - Rate limit: bounded pre-auth aggregate до runtime/crypto/DB плюс authenticated
   per-user operation buckets.
 - Transport failure после commit: `503` с documented outcome unknown;
-  targeted/revoke-others допускают безопасный retry, self-logout
-  восстанавливается durable dispatcher.
+  targeted/revoke-others допускают безопасный retry, а после self-logout stale
+  validation cache ограничен hard TTL 30 секунд.
 - OIDC end-session и hosted logout остаются отдельным browser flow.
 - Backward compatibility и backfill не создаются.
