@@ -79,3 +79,16 @@ CREATE TYPE "catalog"."bulk_edit_cancel_reason" AS ENUM (
   'SUPERSEDED',
   'SYSTEM'
 );
+
+CREATE TYPE "catalog"."comparison_value_type" AS ENUM (
+  'BOOLEAN',
+  'DECIMAL',
+  'ENUM',
+  'INTEGER',
+  'TEXT'
+);
+
+CREATE TYPE "catalog"."comparison_cardinality" AS ENUM (
+  'SINGLE',
+  'MULTIPLE'
+);

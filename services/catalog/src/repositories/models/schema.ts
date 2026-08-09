@@ -26,6 +26,16 @@ export const componentTargetKindEnum = catalogSchema.enum(
   ["CONFIGURATION", "GROUP", "ITEM"],
 );
 
+export const comparisonValueTypeEnum = catalogSchema.enum(
+  "comparison_value_type",
+  ["BOOLEAN", "DECIMAL", "ENUM", "INTEGER", "TEXT"],
+);
+
+export const comparisonCardinalityEnum = catalogSchema.enum(
+  "comparison_cardinality",
+  ["SINGLE", "MULTIPLE"],
+);
+
 export const localeCodeEnum = catalogSchema.enum(
   "locale_code",
   LOCALE_CODES as [string, ...string[]],

@@ -57,6 +57,10 @@ export const productFeature = catalogSchema.table(
       table.productId,
       table.slug
     ),
+    unique("product_feature_product_id_id_uniq").on(
+      table.productId,
+      table.id
+    ),
   ]
 );
 
@@ -80,6 +84,10 @@ export const productFeatureValue = catalogSchema.table(
     unique("product_feature_value_feature_id_slug_uniq").on(
       table.featureId,
       table.slug
+    ),
+    unique("product_feature_value_feature_id_id_uniq").on(
+      table.featureId,
+      table.id
     ),
   ]
 );

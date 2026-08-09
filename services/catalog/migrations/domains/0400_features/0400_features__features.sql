@@ -26,7 +26,9 @@ CREATE TABLE "catalog"."product_feature" (
   CONSTRAINT "product_feature_product_id_index_uniq"
     UNIQUE ("product_id", "index"),
   CONSTRAINT "product_feature_product_id_slug_uniq"
-    UNIQUE ("product_id", "slug")
+    UNIQUE ("product_id", "slug"),
+  CONSTRAINT "product_feature_product_id_id_uniq"
+    UNIQUE ("product_id", "id")
 );
 
 CREATE INDEX "product_feature_sort_idx"

@@ -22,6 +22,9 @@ export * from "./options";
 // Features
 export * from "./features";
 
+// Product comparison profiles and feature mappings
+export * from "./comparison";
+
 // Media links
 export * from "./media";
 

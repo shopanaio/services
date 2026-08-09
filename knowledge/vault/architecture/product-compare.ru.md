@@ -1,0 +1,274 @@
+---
+tags: [architecture, catalog, comparison, storefront, product-features]
+related: [architecture/overview, architecture/multi-tenancy, listing/facets-architecture]
+---
+
+# Архитектура Product Compare
+
+## Статус и границы
+
+Документ фиксирует canonical Catalog-модель для сравнения продуктов. Проект
+работает с clean database: compatibility tables, backfill, dual-read и
+dual-write отсутствуют.
+
+Catalog владеет:
+
+- product-local features и их локализованными значениями;
+- comparison profiles, группами, полями и enum options;
+- назначением comparison profile категории;
+- явным mapping локальной feature в canonical comparison field;
+- нормализованным значением локального feature value.
+
+Catalog не хранит пользовательский список выбранных продуктов. Guest selection
+может храниться в URL/local storage. Persisted и shared comparison lists должны
+принадлежать customer/preferences bounded context, когда он появится. Цена,
+наличие и variant state остаются текущими contextual данными pricing/inventory,
+а не snapshot внутри comparison schema.
+
+## Главный инвариант
+
+`ProductFeature` остаётся уникальной внутри продукта. Её `slug`, имя, группа и
+values не являются межпродуктовой semantic identity.
+
+Разные локальные features связываются с одной строкой сравнения через стабильный
+`comparison_field.id`:
+
+```text
+Product A / display-diagonal ─┐
+Product B / screen-size ──────┼──> ComparisonField / screen-size
+Product C / display ──────────┘
+```
+
+Storefront никогда не объединяет features автоматически по slug или
+переведённому имени. Такое совпадение может использоваться Admin только как
+подсказка, которую merchant должен подтвердить явным binding.
+
+## Physical model
+
+```text
+comparison_profile
+  ├── comparison_group
+  │     └── comparison_field
+  │            └── comparison_field_option        (только ENUM)
+  └── category_comparison_profile
+
+product
+  └── product_feature                              (product-local)
+        └── product_feature_value                  (product-local)
+              │
+              ├── comparison_feature_binding      feature -> field
+              └── comparison_feature_value_binding value -> normalized value
+
+product + comparison_field
+  └── comparison_field_not_applicable              explicit N/A
+```
+
+Все store-scoped таблицы содержат `store_id`. Как и в остальных Catalog
+domains, `store_id` является tenant scope, но не входит в PK/FK. Scripts и
+repositories обязаны брать его из trusted `ServiceContext` и проверять owner
+entities в том же store.
+
+## Comparison profile
+
+`comparison_profile` задаёт совместимый класс товаров, например
+`smartphones`, `laptops` или `televisions`. Это не копия category:
+
+- несколько категорий могут использовать один профиль;
+- категория получает не более одного прямого профиля;
+- профиль можно временно выключить через `enabled` без удаления конфигурации;
+- stable identity — UUIDv7 `id`; mutable `handle` используется только для
+  управления и публичных friendly references.
+
+`comparison_group` задаёт presentation groups, а `comparison_field` — строки
+матрицы. Порядок детерминирован через уникальные `sort_index` внутри owner.
+
+### Effective profile продукта
+
+Для product-level compare effective profile определяется только через primary
+category:
+
+1. прямой profile primary category;
+2. ближайший назначенный profile среди её ancestors;
+3. profile отсутствует — structured comparison для продукта недоступен.
+
+Непервичные категории не участвуют в выборе профиля. Это исключает
+неоднозначность, когда продукт одновременно состоит в нескольких категориях.
+
+Изменение primary category или category-profile assignment не перепривязывает
+features автоматически. Management script должен проверить существующие
+bindings и либо отклонить несовместимое изменение, либо выполнить явный
+transactional remap.
+
+## Comparison fields
+
+`comparison_field.value_type` принимает:
+
+| Type | Canonical storage |
+| --- | --- |
+| `BOOLEAN` | `boolean_value` |
+| `DECIMAL` | `decimal_value numeric(38,12)` |
+| `ENUM` | `field_option_id` |
+| `INTEGER` | `integer_value bigint` |
+| `TEXT` | trimmed non-empty `text_value` |
+
+`cardinality` принимает `SINGLE` или `MULTIPLE`. Для `SINGLE` одна локальная
+feature может иметь не более одного нормализованного value binding. Остальные
+локальные values могут существовать, но не участвуют в canonical comparison.
+
+`canonical_unit` допустим только для `DECIMAL` и `INTEGER`. В нём хранится
+стабильный registry code (`mm`, `g`, `byte`, `Hz` и т. п.), а не локализованная
+подпись. Конвертация выполняется до записи normalized value. Storefront
+форматирует canonical value в locale-aware display unit, но equality и
+`differs` вычисляются только по canonical data.
+
+Изменение `canonical_unit` запрещено, пока поле содержит normalized bindings.
+Сначала values должны быть явно удалены или перенормализованы. Это предотвращает
+тихую смену смысла уже сохранённых чисел.
+
+## Feature binding
+
+`comparison_feature_binding` связывает одну product-local leaf feature с одним
+canonical field.
+
+DB invariants:
+
+- feature должна принадлежать указанному product;
+- group feature (`is_group = true`) связывать нельзя;
+- feature может иметь только один comparison field;
+- один product не может связать две features с одним field;
+- field должен принадлежать указанному profile;
+- удаление локальной feature каскадно удаляет её binding;
+- удаление canonical field запрещено, пока существуют product bindings.
+
+Binding может быть подготовлен до назначения категории, но publish/update
+script обязан проверить, что `binding.profile_id` совпадает с effective profile
+продукта. Binding из другого профиля не публикуется в comparison matrix.
+
+## Value normalization
+
+`comparison_feature_value_binding` связывает локальный
+`product_feature_value` с normalized value. `value_type` продублирован намеренно
+и composite FK гарантирует его совпадение с типом canonical field.
+
+CHECK constraint разрешает ровно один payload:
+
+```text
+BOOLEAN -> boolean_value
+DECIMAL -> decimal_value
+ENUM    -> field_option_id
+INTEGER -> integer_value
+TEXT    -> text_value
+```
+
+Для `ENUM` разные локальные values могут ссылаться на один canonical option:
+
+```text
+"OLED Display" ─┐
+"AMOLED" ───────┼──> option / oled
+"Organic LED" ──┘
+```
+
+Оригинальное localized name остаётся presentation/provenance source. Equality,
+filters и differences используют normalized option/value.
+
+Нормализация является write-time обязанностью Catalog management script.
+Storefront query не парсит строки `6.1 inch` и не угадывает единицы.
+
+## Missing и Not Applicable
+
+Эти состояния семантически различаются:
+
+- `VALUE` — есть feature binding и normalized value;
+- `MISSING` — field применим, но binding/value отсутствует;
+- `NOT_APPLICABLE` — существует явная запись
+  `comparison_field_not_applicable`;
+- `UNAVAILABLE` — contextual/runtime источник временно не дал значение и в
+  configuration tables не сохраняется.
+
+Один `(product_id, field_id)` не может одновременно иметь feature binding и
+`NOT_APPLICABLE`. Integrity triggers проверяют обе стороны перехода.
+
+## Category assignment и совместимость
+
+`category_comparison_profile` задаёт один прямой profile категории. Удаление
+категории каскадно удаляет назначение. Удаление profile запрещено, пока он
+назначен категории или используется bindings/explicit N/A; caller сначала
+должен удалить зависимости явным management flow.
+
+Products с одинаковым effective profile имеют `FULL` compatibility. Для разных
+profiles storefront может вернуть `COMMON_ONLY`, но общие поля должны быть
+определены отдельным cross-profile policy/read model; совпадение `handle` само
+по себе не доказывает semantic identity.
+
+## Storefront read contract
+
+Будущий comparison query должен быть presentation-ready aggregate:
+
+```text
+input product/variant IDs
+  -> validate publication and storefront context
+  -> resolve primary category and effective profile
+  -> load ordered groups and fields
+  -> load feature/value mappings in batch
+  -> join current price, availability and selected variant state
+  -> emit rows with stable cell order and explicit status
+```
+
+Query должен использовать DataLoader/batch repositories и возвращать одну
+матрицу, а не заставлять client сопоставлять несколько `Product.features`.
+Static profile/mapping data можно cache-ировать с `store_id` в key. Contextual
+price и availability нельзя cache-ировать без market/channel/currency context.
+
+System/header values — product title, media, current price, availability и CTA
+— не моделируются как `ProductFeature`. Их поставляют owning domains через
+storefront composition. Variant-specific weight, dimensions, price и selected
+options должны относиться к явно выбранному variant; storefront не выбирает
+«первый доступный» variant молча.
+
+## Write contracts
+
+Management operations должны быть transactional и валидировать весь aggregate
+до записи:
+
+1. profile/group/field owner и `store_id`;
+2. уникальность handle и sort order;
+3. field type, cardinality и canonical unit;
+4. leaf feature и product ownership;
+5. совпадение binding profile с effective product profile перед publication;
+6. enum option принадлежит тому же field;
+7. normalized payload соответствует field type;
+8. `SINGLE` cardinality;
+9. взаимное исключение binding и explicit `NOT_APPLICABLE`.
+
+DB constraints являются последней линией защиты, но не заменяют semantic
+validation и понятные user errors в scripts.
+
+Integrity triggers сериализуют конкурентные изменения по стабильным entity
+IDs: записи normalized values берут exclusive lock локальной feature и shared
+lock canonical field, а semantic update field — exclusive lock того же field.
+Это гарантирует `SINGLE`, запрет смены populated `canonical_unit` и перехода
+bound leaf feature в group даже при параллельных management transactions.
+
+## Migration layout
+
+Canonical clean-DB baseline:
+
+```text
+0000_foundation/0001_foundation__types.sql
+  comparison_value_type
+  comparison_cardinality
+
+0400_features/
+  composite uniqueness required by product-local binding FKs
+
+0450_comparison/
+  0450_comparison__profiles.sql
+  0451_comparison__fields.sql
+  0452_comparison__translations.sql
+  0453_comparison__category_relations.sql
+  0454_comparison__feature_bindings.sql
+  0455_comparison__integrity.sql
+```
+
+IDs создаются как UUIDv7 в application scripts. Baseline не содержит backfill,
+legacy mapping, dual-read или compatibility views.
