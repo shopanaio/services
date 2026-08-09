@@ -67,6 +67,38 @@ export {
   CustomersCheckoutActionNames,
   CustomersCheckoutActions,
 } from "./customers.js";
+
+// Loyalty service account and checkout actions
+export * as Loyalty from "./loyalty.js";
+export {
+  LoyaltyActionNames,
+  LoyaltyActions,
+  LoyaltyCheckoutActionNames,
+  LoyaltyCheckoutActions,
+} from "./loyalty.js";
+export type {
+  CommitCheckoutLoyaltyRedemptionParams,
+  CommitCheckoutLoyaltyRedemptionResult,
+  ExpireCheckoutLoyaltyRedemptionsParams,
+  ExpireCheckoutLoyaltyRedemptionsResult,
+  GetCustomerLoyaltyAccountParams,
+  GetCustomerLoyaltyAccountResult,
+  LoyaltyAccountBalanceSnapshot,
+  LoyaltyAccountSnapshot,
+  LoyaltyCheckoutContext,
+  LoyaltyCheckoutMoney,
+  LoyaltyProgramSnapshot,
+  LoyaltyRedemptionQuote,
+  LoyaltyRedemptionRejectionCode,
+  QuoteCheckoutLoyaltyRedemptionParams,
+  QuoteCheckoutLoyaltyRedemptionResult,
+  ReleaseCheckoutLoyaltyRedemptionParams,
+  ReleaseCheckoutLoyaltyRedemptionResult,
+  ReserveCheckoutLoyaltyRedemptionParams,
+  ReserveCheckoutLoyaltyRedemptionResult,
+  ReverseCheckoutLoyaltyRedemptionParams,
+  ReverseCheckoutLoyaltyRedemptionResult,
+} from "./loyalty.js";
 export type {
   CustomerCheckoutIneligibilityReason,
   ResolveCheckoutBuyerEligibilityParams,

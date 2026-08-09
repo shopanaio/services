@@ -1,0 +1,247 @@
+type LoyaltyMoney {
+  amountMinor: BigInt!
+  currencyCode: CurrencyCode!
+}
+
+type LoyaltyProgram implements Node @key(fields: "id") {
+  id: ID!
+  code: String!
+  name: String!
+  status: LoyaltyProgramStatus!
+  isDefault: Boolean!
+  defaultCurrencyCode: CurrencyCode!
+  pointsSingular: String!
+  pointsPlural: String!
+  revision: Int!
+  metadata: JSON!
+  activeVersion: LoyaltyProgramVersion
+  versions: [LoyaltyProgramVersion!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  archivedAt: DateTime
+}
+
+type LoyaltyProgramVersion implements Node @key(fields: "id") {
+  id: ID!
+  program: LoyaltyProgram!
+  version: Int!
+  status: LoyaltyProgramVersionStatus!
+  revision: Int!
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  earningEnabled: Boolean!
+  redemptionEnabled: Boolean!
+  activationDelaySeconds: Int!
+  pointsExpiryDays: Int
+  earnPoints: BigInt!
+  earnAmountMinor: BigInt!
+  minimumEligibleAmountMinor: BigInt!
+  redeemPoints: BigInt!
+  redeemAmountMinor: BigInt!
+  minimumRedeemPoints: BigInt!
+  maximumRedeemPointsPerOrder: BigInt
+  maximumOrderPercentageBps: Int!
+  roundingMode: LoyaltyRoundingMode!
+  refundPolicy: LoyaltyRefundPolicy!
+  debtPolicy: LoyaltyDebtPolicy!
+  restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy!
+  rulesSchemaVersion: Int!
+  rules: LoyaltyProgramRules!
+  tiers: [LoyaltyTier!]!
+  createdById: ID
+  publishedById: ID
+  createdAt: DateTime!
+  publishedAt: DateTime
+}
+
+type LoyaltyTier implements Node @key(fields: "id") {
+  id: ID!
+  programVersion: LoyaltyProgramVersion!
+  code: String!
+  name: String!
+  rank: Int!
+  qualificationPoints: BigInt
+  qualificationSpend: LoyaltyMoney
+  benefits: JSON!
+  createdAt: DateTime!
+}
+
+type LoyaltyProgramRules {
+  schemaVersion: Int!
+  eligibility: LoyaltyProgramEligibility!
+  earning: LoyaltyProgramEarningRules!
+}
+
+type LoyaltyProgramEligibility {
+  channelCodes: [String!]!
+  segmentMatchMode: LoyaltySegmentMatchMode!
+  segmentIds: [ID!]!
+  excludedSegmentIds: [ID!]!
+}
+
+type LoyaltyProgramEarningRules {
+  eligibleSpendBasis: LoyaltyEligibleSpendBasis!
+  excludedSelectors: [LoyaltyCatalogSelector!]!
+  modifierStackingMode: LoyaltyModifierStackingMode!
+  modifiers: [LoyaltyEarningModifier!]!
+}
+
+type LoyaltyCatalogSelector {
+  type: LoyaltyCatalogSelectorType!
+  ids: [ID!]!
+}
+
+type LoyaltyEarningModifier {
+  id: ID!
+  title: String!
+  priority: Int!
+  multiplierBps: Int!
+  selector: LoyaltyCatalogSelector!
+  segmentIds: [ID!]!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+type LoyaltyProgramConnection {
+  edges: [LoyaltyProgramEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyProgramEdge {
+  node: LoyaltyProgram!
+  cursor: String!
+}
+
+input LoyaltyProgramWhereInput {
+  ids: [ID!]
+  statuses: [LoyaltyProgramStatus!]
+  isDefault: Boolean
+  search: String
+}
+
+input LoyaltyProgramCreateInput {
+  code: String!
+  name: String!
+  defaultCurrencyCode: CurrencyCode!
+  pointsSingular: String!
+  pointsPlural: String!
+  isDefault: Boolean = false
+  metadata: JSON
+  idempotencyKey: String!
+}
+
+input LoyaltyProgramUpdateInput {
+  programId: ID!
+  expectedRevision: Int!
+  name: String
+  status: LoyaltyProgramStatus
+  isDefault: Boolean
+  pointsSingular: String
+  pointsPlural: String
+  metadata: JSON
+  idempotencyKey: String!
+}
+
+input LoyaltyProgramVersionCreateInput {
+  programId: ID!
+  expectedProgramRevision: Int!
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  earningEnabled: Boolean = true
+  redemptionEnabled: Boolean = true
+  activationDelaySeconds: Int = 0
+  pointsExpiryDays: Int
+  earnPoints: BigInt!
+  earnAmountMinor: BigInt!
+  minimumEligibleAmountMinor: BigInt = "0"
+  redeemPoints: BigInt!
+  redeemAmountMinor: BigInt!
+  minimumRedeemPoints: BigInt = "1"
+  maximumRedeemPointsPerOrder: BigInt
+  maximumOrderPercentageBps: Int = 10000
+  roundingMode: LoyaltyRoundingMode = DOWN
+  refundPolicy: LoyaltyRefundPolicy = PROPORTIONAL
+  debtPolicy: LoyaltyDebtPolicy = TRACK_DEBT
+  restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy = ORIGINAL_EXPIRY
+  rulesSchemaVersion: Int = 1
+  rules: LoyaltyProgramRulesInput!
+  tiers: [LoyaltyTierInput!]
+  idempotencyKey: String!
+}
+
+input LoyaltyTierInput {
+  code: String!
+  name: String!
+  rank: Int!
+  qualificationPoints: BigInt
+  qualificationSpendMinor: BigInt
+  qualificationCurrencyCode: CurrencyCode
+  benefits: JSON
+}
+
+input LoyaltyProgramRulesInput {
+  schemaVersion: Int = 1
+  eligibility: LoyaltyProgramEligibilityInput!
+  earning: LoyaltyProgramEarningRulesInput!
+}
+
+input LoyaltyProgramEligibilityInput {
+  channelCodes: [String!]!
+  segmentMatchMode: LoyaltySegmentMatchMode = ANY
+  segmentIds: [ID!]!
+  excludedSegmentIds: [ID!]!
+}
+
+input LoyaltyProgramEarningRulesInput {
+  eligibleSpendBasis: LoyaltyEligibleSpendBasis!
+  excludedSelectors: [LoyaltyCatalogSelectorInput!]!
+  modifierStackingMode: LoyaltyModifierStackingMode = HIGHEST
+  modifiers: [LoyaltyEarningModifierInput!]!
+}
+
+input LoyaltyCatalogSelectorInput {
+  type: LoyaltyCatalogSelectorType!
+  """Must be empty for ALL and non-empty for every specific selector type."""
+  ids: [ID!]!
+}
+
+input LoyaltyEarningModifierInput {
+  id: ID!
+  title: String!
+  priority: Int!
+  """10000 equals a 1x multiplier."""
+  multiplierBps: Int!
+  selector: LoyaltyCatalogSelectorInput!
+  segmentIds: [ID!]!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input LoyaltyProgramVersionPublishInput {
+  programVersionId: ID!
+  expectedRevision: Int!
+  effectiveFrom: DateTime!
+  effectiveTo: DateTime
+  idempotencyKey: String!
+}
+
+type LoyaltyProgramCreatePayload {
+  program: LoyaltyProgram
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyProgramUpdatePayload {
+  program: LoyaltyProgram
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyProgramVersionCreatePayload {
+  programVersion: LoyaltyProgramVersion
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyProgramVersionPublishPayload {
+  programVersion: LoyaltyProgramVersion
+  userErrors: [LoyaltyUserError!]!
+}

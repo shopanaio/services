@@ -1,0 +1,38 @@
+{
+  "name": "@shopana/loyalty-service",
+  "version": "0.0.1",
+  "description": "Enterprise loyalty programs, points ledger, tiers, and checkout redemption contracts",
+  "private": true,
+  "type": "module",
+  "main": "dist/loyalty.module.js",
+  "exports": {
+    ".": {
+      "types": "./src/loyalty.module.ts",
+      "import": "./dist/loyalty.module.js",
+      "source": "./src/loyalty.module.ts"
+    },
+    "./contracts": {
+      "types": "./src/contracts/index.ts",
+      "import": "./dist/contracts/index.js",
+      "source": "./src/contracts/index.ts"
+    }
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@shopana/broker-types": "workspace:*",
+    "@shopana/events": "workspace:*",
+    "graphql": "^16.9.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/typescript": "^4.0.8",
+    "@shopana/build-tools": "workspace:*",
+    "@types/node": "^20.14.14",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

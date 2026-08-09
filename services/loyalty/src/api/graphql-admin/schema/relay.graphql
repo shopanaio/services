@@ -1,0 +1,26 @@
+"""A globally identifiable Loyalty entity."""
+interface Node {
+  id: ID!
+}
+
+"""Relay pagination metadata."""
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+"""A user-facing validation, authorization, or business error."""
+interface UserError {
+  message: String!
+  field: [String!]
+  code: String
+}
+
+type LoyaltyUserError implements UserError {
+  message: String!
+  field: [String!]
+  code: String
+  retryable: Boolean!
+}

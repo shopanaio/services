@@ -1,0 +1,4 @@
+# Customers owns identity and PII; Loyalty stores only its stable Customer ID.
+extend type Customer implements Node @key(fields: "id", resolvable: false) {
+  id: ID! @external
+}

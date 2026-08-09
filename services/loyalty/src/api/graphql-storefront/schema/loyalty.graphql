@@ -1,0 +1,98 @@
+"""A customer-visible summary of a Loyalty program."""
+type StorefrontLoyaltyProgram {
+  id: ID!
+  code: String!
+  name: String!
+  pointsSingular: String!
+  pointsPlural: String!
+  termsRevision: String!
+}
+
+"""The authenticated Customer's account in one store Loyalty program."""
+type StorefrontLoyaltyAccount implements Node @key(fields: "id") {
+  id: ID!
+  program: StorefrontLoyaltyProgram!
+  status: StorefrontLoyaltyAccountStatus!
+  balance: StorefrontLoyaltyBalance!
+  tier: StorefrontLoyaltyTier
+  expiringPoints(first: Int = 20): [StorefrontExpiringLoyaltyPoints!]!
+  transactions(
+    first: Int = 20
+    after: Cursor
+  ): StorefrontLoyaltyTransactionConnection!
+}
+
+enum StorefrontLoyaltyAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+type StorefrontLoyaltyBalance {
+  pendingPoints: UnsignedInt64!
+  availablePoints: UnsignedInt64!
+  reservedPoints: UnsignedInt64!
+  debtPoints: UnsignedInt64!
+  revision: String!
+}
+
+type StorefrontLoyaltyTier {
+  code: String!
+  name: String!
+  rank: Int!
+  benefits: JSON!
+  effectiveFrom: DateTime!
+  effectiveTo: DateTime
+}
+
+type StorefrontExpiringLoyaltyPoints {
+  points: UnsignedInt64!
+  expiresAt: DateTime!
+}
+
+enum StorefrontLoyaltyTransactionDirection {
+  CREDIT
+  DEBIT
+}
+
+enum StorefrontLoyaltyTransactionType {
+  EARNED
+  ACTIVATED
+  REDEEMED
+  EXPIRED
+  REVERSED
+  RESTORED
+  ADJUSTED
+}
+
+type StorefrontLoyaltyTransaction implements Node @key(fields: "id") {
+  id: ID!
+  type: StorefrontLoyaltyTransactionType!
+  direction: StorefrontLoyaltyTransactionDirection!
+  points: UnsignedInt64!
+  description: String!
+  occurredAt: DateTime!
+  effectiveAt: DateTime!
+  expiresAt: DateTime
+}
+
+type StorefrontLoyaltyTransactionConnection implements Connection {
+  edges: [StorefrontLoyaltyTransactionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type StorefrontLoyaltyTransactionEdge {
+  node: StorefrontLoyaltyTransaction!
+  cursor: Cursor!
+}
+
+extend type Customer @key(fields: "id") {
+  id: ID! @external
+
+  """The default active Loyalty account for the authenticated customer."""
+  loyaltyAccount: StorefrontLoyaltyAccount
+
+  """All Loyalty accounts visible to the authenticated customer in this store."""
+  loyaltyAccounts: [StorefrontLoyaltyAccount!]!
+}

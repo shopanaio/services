@@ -297,6 +297,20 @@ export interface CustomerDeletedEvent
     }
   > {}
 
+export interface CustomerMergedEvent
+  extends DomainEvent<
+    "customerMerged",
+    {
+      schemaVersion: 1;
+      storeId: string;
+      mergeId: string;
+      mergeRevision: number;
+      sourceCustomerId: string;
+      targetCustomerId: string;
+      completedAt: string;
+    }
+  > {}
+
 export type CustomerUpdatedReason =
   | "profile"
   | "contact"
@@ -457,6 +471,70 @@ export interface VariantDeletedEvent
     }
   > {}
 
+/**
+ * Orders-owned immutable earning facts. Loyalty selects the applicable program
+ * version and calculates points; Orders never calculates a points amount.
+ */
+export const OrderRewardEventTypes = {
+  eligible: "orderRewardEligible",
+  reversed: "orderRewardReversed",
+} as const;
+
+export interface OrderRewardEligibleEvent
+  extends DomainEvent<
+    "orderRewardEligible",
+    {
+      schemaVersion: 1;
+      orderId: string;
+      orderRevision: number;
+      storeId: string;
+      customerId: string;
+      currencyCode: string;
+      eligibleAmountMinor: string;
+      eligibleAt: string;
+      pricingQuoteId: string;
+      pricingQuoteRevision: string;
+      lines: readonly {
+        orderLineId: string;
+        productId: string;
+        variantId: string;
+        categoryIds: readonly string[];
+        tagIds: readonly string[];
+        featureIds: readonly string[];
+        optionValueIds: readonly string[];
+        quantity: number;
+        eligibleAmountMinor: string;
+      }[];
+    }
+  > {}
+
+/**
+ * Orders-owned correction facts for refunds, cancellation, or an amended order.
+ * Each source revision describes only the newly reversed eligible amount.
+ */
+export interface OrderRewardReversedEvent
+  extends DomainEvent<
+    "orderRewardReversed",
+    {
+      schemaVersion: 1;
+      orderId: string;
+      orderRevision: number;
+      storeId: string;
+      customerId: string;
+      currencyCode: string;
+      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+      sourceId: string;
+      sourceRevision: number;
+      eligibleAmountMinor: string;
+      reversedAt: string;
+      lines: readonly {
+        orderLineId: string;
+        quantity: number;
+        eligibleAmountMinor: string;
+      }[];
+    }
+  > {}
+
 export interface OrderCreatedEvent
   extends DomainEvent<
     "orderCreated",
@@ -477,6 +555,122 @@ export interface OrderCompletedEvent
       orderId: string;
       storeId: string;
       completedAt: string;
+    }
+  > {}
+
+export const LoyaltyEventTypes = {
+  pointsEarned: "loyaltyPointsEarned",
+  pointsActivated: "loyaltyPointsActivated",
+  pointsReserved: "loyaltyPointsReserved",
+  pointsRedeemed: "loyaltyPointsRedeemed",
+  pointsReleased: "loyaltyPointsReleased",
+  pointsExpired: "loyaltyPointsExpired",
+  pointsReversed: "loyaltyPointsReversed",
+  pointsRestored: "loyaltyPointsRestored",
+  pointsAdjusted: "loyaltyPointsAdjusted",
+} as const;
+
+interface LoyaltyPointsEventPayload {
+  schemaVersion: 1;
+  storeId: string;
+  programId: string;
+  programVersionId: string | null;
+  accountId: string;
+  customerId: string;
+  transactionId: string;
+  points: string;
+  occurredAt: string;
+}
+
+export interface LoyaltyPointsEarnedEvent
+  extends DomainEvent<
+    "loyaltyPointsEarned",
+    LoyaltyPointsEventPayload & {
+      orderId: string;
+      orderRevision: number;
+      activationAt: string;
+      expiresAt: string | null;
+    }
+  > {}
+
+export interface LoyaltyPointsActivatedEvent
+  extends DomainEvent<
+    "loyaltyPointsActivated",
+    LoyaltyPointsEventPayload & { lotIds: readonly string[] }
+  > {}
+
+export interface LoyaltyPointsReservedEvent
+  extends DomainEvent<
+    "loyaltyPointsReserved",
+    LoyaltyPointsEventPayload & {
+      reservationId: string;
+      checkoutId: string;
+      checkoutVersion: number;
+      discountAmountMinor: string;
+      currencyCode: string;
+      expiresAt: string;
+    }
+  > {}
+
+export interface LoyaltyPointsRedeemedEvent
+  extends DomainEvent<
+    "loyaltyPointsRedeemed",
+    LoyaltyPointsEventPayload & {
+      reservationId: string;
+      checkoutId: string;
+      orderId: string;
+      orderRevision: number;
+      discountAmountMinor: string;
+      currencyCode: string;
+    }
+  > {}
+
+export interface LoyaltyPointsReleasedEvent
+  extends DomainEvent<
+    "loyaltyPointsReleased",
+    LoyaltyPointsEventPayload & {
+      reservationId: string;
+      checkoutId: string;
+      reasonCode: string;
+    }
+  > {}
+
+export interface LoyaltyPointsExpiredEvent
+  extends DomainEvent<
+    "loyaltyPointsExpired",
+    LoyaltyPointsEventPayload & { lotIds: readonly string[] }
+  > {}
+
+export interface LoyaltyPointsReversedEvent
+  extends DomainEvent<
+    "loyaltyPointsReversed",
+    LoyaltyPointsEventPayload & {
+      orderId: string;
+      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+      sourceId: string;
+      debtPoints: string;
+    }
+  > {}
+
+export interface LoyaltyPointsRestoredEvent
+  extends DomainEvent<
+    "loyaltyPointsRestored",
+    LoyaltyPointsEventPayload & {
+      reservationId: string;
+      orderId: string;
+      sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
+      sourceId: string;
+      expiresAt: string | null;
+    }
+  > {}
+
+export interface LoyaltyPointsAdjustedEvent
+  extends DomainEvent<
+    "loyaltyPointsAdjusted",
+    LoyaltyPointsEventPayload & {
+      direction: "CREDIT" | "DEBIT";
+      reasonCode: string;
+      actorId: string;
     }
   > {}
 
@@ -516,6 +710,7 @@ export type ShopanaEvent =
   | ApplicationUserCreatedEvent
   | CustomerCreatedEvent
   | CustomerDeletedEvent
+  | CustomerMergedEvent
   | CustomerUpdatedEvent
   | ReviewRatingCriterionCreatedEvent
   | ReviewCreatedEvent
@@ -534,6 +729,17 @@ export type ShopanaEvent =
   | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent
+  | OrderRewardEligibleEvent
+  | OrderRewardReversedEvent
+  | LoyaltyPointsEarnedEvent
+  | LoyaltyPointsActivatedEvent
+  | LoyaltyPointsReservedEvent
+  | LoyaltyPointsRedeemedEvent
+  | LoyaltyPointsReleasedEvent
+  | LoyaltyPointsExpiredEvent
+  | LoyaltyPointsReversedEvent
+  | LoyaltyPointsRestoredEvent
+  | LoyaltyPointsAdjustedEvent
   | StoreCreatedEvent
   | StoreDeletedEvent
   | FileHardDeletedEvent

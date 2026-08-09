@@ -1,0 +1,150 @@
+enum LoyaltyProgramStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum LoyaltyProgramVersionStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  RETIRED
+}
+
+enum LoyaltyRoundingMode {
+  DOWN
+  NEAREST
+  UP
+}
+
+enum LoyaltyRefundPolicy {
+  PROPORTIONAL
+  FULL_REVERSAL
+}
+
+enum LoyaltyDebtPolicy {
+  TRACK_DEBT
+  REJECT_REVERSAL
+}
+
+enum LoyaltyRestoredPointsExpiryPolicy {
+  ORIGINAL_EXPIRY
+  RESET_FROM_RESTORE
+}
+
+enum LoyaltyEligibleSpendBasis {
+  AFTER_PRODUCT_DISCOUNTS
+  AFTER_ALL_DISCOUNTS
+}
+
+enum LoyaltyModifierStackingMode {
+  HIGHEST
+  ADD
+  MULTIPLY
+}
+
+enum LoyaltySegmentMatchMode {
+  ANY
+  ALL
+}
+
+enum LoyaltyCatalogSelectorType {
+  ALL
+  PRODUCT
+  VARIANT
+  CATEGORY
+  TAG
+  FEATURE
+  OPTION_VALUE
+}
+
+enum LoyaltyAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  MERGED
+}
+
+enum LoyaltyBalanceBucket {
+  PENDING
+  AVAILABLE
+  RESERVED
+  DEBT
+}
+
+enum LoyaltyTransactionKind {
+  EARN_PENDING
+  ACTIVATE
+  RESERVE
+  RELEASE
+  REDEEM
+  EXPIRE
+  REVERSE_EARN
+  RESTORE_REDEEM
+  ADJUST_CREDIT
+  ADJUST_DEBIT
+  MERGE_TRANSFER
+  DEBT_RECOVERY
+}
+
+enum LoyaltyTransactionSource {
+  ORDER
+  CHECKOUT
+  REFUND
+  EXPIRATION
+  ADMIN
+  MERGE
+  IMPORT
+  SYSTEM
+}
+
+enum LoyaltyActorType {
+  ADMIN_USER
+  CUSTOMER
+  SERVICE
+  SYSTEM
+}
+
+enum LoyaltyLotAllocationType {
+  REDEEM
+  EXPIRE
+  REVERSE
+  MERGE
+}
+
+enum LoyaltyReservationStatus {
+  ACTIVE
+  COMMITTED
+  RELEASED
+  EXPIRED
+  REVERSED
+}
+
+enum LoyaltyReservationEventType {
+  CREATED
+  COMMITTED
+  RELEASED
+  EXPIRED
+  REVERSED
+}
+
+enum LoyaltyTierMembershipStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum LoyaltyTierMembershipEventType {
+  QUALIFIED
+  UPGRADED
+  DOWNGRADED
+  RENEWED
+  EXPIRED
+  REVOKED
+}
+
+enum LoyaltyPointsAdjustmentDirection {
+  CREDIT
+  DEBIT
+}

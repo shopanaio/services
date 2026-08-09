@@ -1,0 +1,83 @@
+type LoyaltyTransaction implements Node @key(fields: "id") {
+  id: ID!
+  account: LoyaltyAccount!
+  program: LoyaltyProgram!
+  programVersion: LoyaltyProgramVersion
+  kind: LoyaltyTransactionKind!
+  source: LoyaltyTransactionSource!
+  sourceId: String
+  sourceRevision: String
+  idempotencyKey: String!
+  requestHash: String!
+  correlationId: String
+  causationId: String
+  eventId: String
+  workflowId: String
+  actorType: LoyaltyActorType!
+  actorId: ID
+  reasonCode: String!
+  description: String
+  occurredAt: DateTime!
+  effectiveAt: DateTime!
+  metadata: JSON!
+  entries: [LoyaltyLedgerEntry!]!
+  lotAllocations: [LoyaltyLotAllocation!]!
+  createdAt: DateTime!
+}
+
+type LoyaltyLedgerEntry implements Node @key(fields: "id") {
+  id: ID!
+  transaction: LoyaltyTransaction!
+  account: LoyaltyAccount!
+  bucket: LoyaltyBalanceBucket!
+  pointsDelta: BigInt!
+  sequence: Int!
+  createdAt: DateTime!
+}
+
+type LoyaltyPointLot implements Node @key(fields: "id") {
+  id: ID!
+  account: LoyaltyAccount!
+  program: LoyaltyProgram!
+  originEntry: LoyaltyLedgerEntry!
+  pointsIssued: BigInt!
+  remainingPoints: BigInt!
+  activatedAt: DateTime!
+  expiresAt: DateTime
+  allocations: [LoyaltyLotAllocation!]!
+  createdAt: DateTime!
+}
+
+type LoyaltyLotAllocation implements Node @key(fields: "id") {
+  id: ID!
+  lot: LoyaltyPointLot!
+  debitEntry: LoyaltyLedgerEntry!
+  transaction: LoyaltyTransaction!
+  allocationType: LoyaltyLotAllocationType!
+  points: BigInt!
+  createdAt: DateTime!
+}
+
+type LoyaltyTransactionConnection {
+  edges: [LoyaltyTransactionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyTransactionEdge {
+  node: LoyaltyTransaction!
+  cursor: String!
+}
+
+input LoyaltyTransactionWhereInput {
+  ids: [ID!]
+  accountIds: [ID!]
+  programIds: [ID!]
+  kinds: [LoyaltyTransactionKind!]
+  sources: [LoyaltyTransactionSource!]
+  sourceId: String
+  orderId: ID
+  checkoutId: ID
+  occurredFrom: DateTime
+  occurredTo: DateTime
+}

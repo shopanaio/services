@@ -1,0 +1,125 @@
+type LoyaltyAccount implements Node @key(fields: "id") {
+  id: ID!
+  program: LoyaltyProgram!
+  customerId: ID!
+  customer: Customer
+  status: LoyaltyAccountStatus!
+  revision: Int!
+  balance: LoyaltyAccountBalance!
+  tierMembership: LoyaltyTierMembership
+  mergedIntoAccount: LoyaltyAccount
+  suspendedReason: String
+  openedAt: DateTime!
+  suspendedAt: DateTime
+  closedAt: DateTime
+  updatedAt: DateTime!
+  expiringPoints(first: Int = 20): [LoyaltyExpiringPoints!]!
+  transactions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyTransactionWhereInput
+  ): LoyaltyTransactionConnection!
+}
+
+type LoyaltyAccountBalance {
+  pendingPoints: BigInt!
+  availablePoints: BigInt!
+  reservedPoints: BigInt!
+  debtPoints: BigInt!
+  lifetimeEarnedPoints: BigInt!
+  lifetimeRedeemedPoints: BigInt!
+  lifetimeExpiredPoints: BigInt!
+  lifetimeAdjustedPoints: BigInt!
+  revision: Int!
+  updatedAt: DateTime!
+}
+
+type LoyaltyExpiringPoints {
+  lotId: ID!
+  points: BigInt!
+  expiresAt: DateTime!
+}
+
+type LoyaltyTierMembership implements Node @key(fields: "id") {
+  id: ID!
+  account: LoyaltyAccount!
+  tier: LoyaltyTier!
+  status: LoyaltyTierMembershipStatus!
+  evaluationPeriodStartedAt: DateTime!
+  evaluationPeriodEndedAt: DateTime!
+  qualifiedAt: DateTime!
+  effectiveFrom: DateTime!
+  effectiveTo: DateTime
+  revision: Int!
+  events: [LoyaltyTierMembershipEvent!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type LoyaltyTierMembershipEvent implements Node @key(fields: "id") {
+  id: ID!
+  account: LoyaltyAccount!
+  membership: LoyaltyTierMembership!
+  previousTier: LoyaltyTier
+  tier: LoyaltyTier!
+  eventType: LoyaltyTierMembershipEventType!
+  evaluationRevision: String!
+  reasonCode: String!
+  occurredAt: DateTime!
+  metadata: JSON!
+  createdAt: DateTime!
+}
+
+type LoyaltyAccountConnection {
+  edges: [LoyaltyAccountEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyAccountEdge {
+  node: LoyaltyAccount!
+  cursor: String!
+}
+
+input LoyaltyAccountWhereInput {
+  ids: [ID!]
+  programIds: [ID!]
+  customerIds: [ID!]
+  statuses: [LoyaltyAccountStatus!]
+  minimumAvailablePoints: BigInt
+  hasDebt: Boolean
+  tierIds: [ID!]
+}
+
+input LoyaltyAccountStatusUpdateInput {
+  accountId: ID!
+  expectedRevision: Int!
+  status: LoyaltyAccountStatus!
+  reason: String!
+  idempotencyKey: String!
+}
+
+input LoyaltyPointsAdjustInput {
+  accountId: ID!
+  expectedBalanceRevision: Int!
+  direction: LoyaltyPointsAdjustmentDirection!
+  points: BigInt!
+  reasonCode: String!
+  description: String!
+  expiresAt: DateTime
+  metadata: JSON
+  idempotencyKey: String!
+}
+
+type LoyaltyAccountStatusUpdatePayload {
+  account: LoyaltyAccount
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyPointsAdjustPayload {
+  account: LoyaltyAccount
+  transaction: LoyaltyTransaction
+  userErrors: [LoyaltyUserError!]!
+}

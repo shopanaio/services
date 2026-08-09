@@ -198,6 +198,17 @@ services:
       <<: *db_default
       schema: null
 
+  # Contract-only until resolvers, repositories, handlers, and workflows land.
+  loyalty:
+    enabled: false
+    ports:
+      admin_graphql: 10025
+      storefront_graphql: 10026
+      metrics: 3044
+    db:
+      <<: *db_default
+      schema: null
+
 # ═══════════════════════════════════════════════════════════════════
 # WORKFLOWS (DBOS Transact)
 # ═══════════════════════════════════════════════════════════════════

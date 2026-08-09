@@ -37,6 +37,7 @@ Before creating implementation plans or making code/documentation changes, revie
 | delivery  | Shipping providers (Nova Poshta, Meest)                 |
 | events    | Event persistence and dispatch                          |
 | iam       | Identity and access management                          |
+| loyalty   | Loyalty programs, points ledger, tiers, and redemption  |
 | media     | File storage and media assets                           |
 | orders    | Order processing and fulfillment                        |
 | payments  | Payment providers integration                           |

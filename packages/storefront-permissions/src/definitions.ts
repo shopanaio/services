@@ -76,6 +76,15 @@ export const StorefrontPermissionDefinitions = {
       "Update the authenticated customer's profile, addresses, and marketing preferences.",
     risk: "HIGH",
   },
+  LOYALTY_READ: {
+    handle: "storefront.loyalty.read",
+    resource: "loyalty",
+    action: "read",
+    label: "Read loyalty",
+    description:
+      "View the authenticated customer's loyalty programs, points balances, tiers, expirations, and transaction history.",
+    risk: "HIGH",
+  },
   ORDER_READ: {
     handle: "storefront.order.read",
     resource: "order",
@@ -137,6 +146,7 @@ export const STOREFRONT_PERMISSIONS = Object.freeze({
   CHECKOUT_WRITE: StorefrontPermissionDefinitions.CHECKOUT_WRITE.handle,
   CUSTOMER_READ: StorefrontPermissionDefinitions.CUSTOMER_READ.handle,
   CUSTOMER_WRITE: StorefrontPermissionDefinitions.CUSTOMER_WRITE.handle,
+  LOYALTY_READ: StorefrontPermissionDefinitions.LOYALTY_READ.handle,
   ORDER_READ: StorefrontPermissionDefinitions.ORDER_READ.handle,
   ORDER_WRITE: StorefrontPermissionDefinitions.ORDER_WRITE.handle,
   REVIEWS_READ: StorefrontPermissionDefinitions.REVIEWS_READ.handle,

@@ -1,0 +1,78 @@
+type LoyaltyReservation implements Node @key(fields: "id") {
+  id: ID!
+  account: LoyaltyAccount!
+  program: LoyaltyProgram!
+  checkoutId: ID!
+  checkoutVersion: Int!
+  quoteId: ID!
+  quoteRevision: String!
+  points: BigInt!
+  discount: LoyaltyMoney!
+  status: LoyaltyReservationStatus!
+  idempotencyKey: String!
+  requestHash: String!
+  expiresAt: DateTime!
+  orderId: ID
+  orderRevision: Int
+  committedAt: DateTime
+  releasedAt: DateTime
+  expiredAt: DateTime
+  reversedAt: DateTime
+  revision: Int!
+  events: [LoyaltyReservationEvent!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type LoyaltyReservationEvent implements Node @key(fields: "id") {
+  id: ID!
+  reservation: LoyaltyReservation!
+  eventType: LoyaltyReservationEventType!
+  previousStatus: LoyaltyReservationStatus
+  status: LoyaltyReservationStatus!
+  transaction: LoyaltyTransaction!
+  eventId: String
+  idempotencyKey: String!
+  reasonCode: String!
+  actorType: LoyaltyActorType!
+  actorId: ID
+  occurredAt: DateTime!
+  metadata: JSON!
+  createdAt: DateTime!
+}
+
+type LoyaltyReservationConnection {
+  edges: [LoyaltyReservationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyReservationEdge {
+  node: LoyaltyReservation!
+  cursor: String!
+}
+
+input LoyaltyReservationWhereInput {
+  ids: [ID!]
+  accountIds: [ID!]
+  programIds: [ID!]
+  checkoutId: ID
+  orderId: ID
+  statuses: [LoyaltyReservationStatus!]
+  expiresBefore: DateTime
+  createdFrom: DateTime
+  createdTo: DateTime
+}
+
+input LoyaltyReservationReleaseInput {
+  reservationId: ID!
+  expectedRevision: Int!
+  reasonCode: String!
+  idempotencyKey: String!
+}
+
+type LoyaltyReservationReleasePayload {
+  reservation: LoyaltyReservation
+  transaction: LoyaltyTransaction
+  userErrors: [LoyaltyUserError!]!
+}

@@ -1,0 +1,81 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@external"
+      "@shareable"
+      "@inaccessible"
+    ]
+  )
+
+type Query {
+  """Loyalty Admin query namespace."""
+  loyaltyQuery: LoyaltyQuery!
+}
+
+type Mutation {
+  """Loyalty Admin mutation namespace."""
+  loyaltyMutation: LoyaltyMutation!
+}
+
+type LoyaltyQuery {
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+
+  program(id: ID!): LoyaltyProgram
+  programs(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyProgramWhereInput
+  ): LoyaltyProgramConnection!
+
+  account(id: ID!): LoyaltyAccount
+  customerAccount(customerId: ID!, programId: ID): LoyaltyAccount
+  accounts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyAccountWhereInput
+  ): LoyaltyAccountConnection!
+
+  transaction(id: ID!): LoyaltyTransaction
+  transactions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyTransactionWhereInput
+  ): LoyaltyTransactionConnection!
+
+  reservation(id: ID!): LoyaltyReservation
+  reservations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyReservationWhereInput
+  ): LoyaltyReservationConnection!
+}
+
+type LoyaltyMutation {
+  programCreate(input: LoyaltyProgramCreateInput!): LoyaltyProgramCreatePayload!
+  programUpdate(input: LoyaltyProgramUpdateInput!): LoyaltyProgramUpdatePayload!
+  programVersionCreate(
+    input: LoyaltyProgramVersionCreateInput!
+  ): LoyaltyProgramVersionCreatePayload!
+  programVersionPublish(
+    input: LoyaltyProgramVersionPublishInput!
+  ): LoyaltyProgramVersionPublishPayload!
+
+  accountStatusUpdate(
+    input: LoyaltyAccountStatusUpdateInput!
+  ): LoyaltyAccountStatusUpdatePayload!
+  pointsAdjust(input: LoyaltyPointsAdjustInput!): LoyaltyPointsAdjustPayload!
+  reservationRelease(
+    input: LoyaltyReservationReleaseInput!
+  ): LoyaltyReservationReleasePayload!
+}

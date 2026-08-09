@@ -1,4 +1,4 @@
-# План REST API управления application-user сессиями в IAM
+# План управления application-user сессиями через Better Auth в IAM
 
 Статус: проектный план
 
@@ -6,723 +6,538 @@
 
 Сервис: `services/iam`
 
-Целевая область: application-scoped user sessions и OAuth token lifecycle
+Целевая область: управление browser sessions пользователей application realm
 
 Связанные документы:
 
 - [План OAuth 2.1 / OpenID Connect для `application_users`](./application-users-oauth-oidc-implementation-plan.ru.md);
 - [Application auth OAuth/OIDC — operations](./application-users-oauth-oidc-integration.md);
-- [План headless OAuth interactions](./application-auth-headless-interactions-plan.ru.md);
-- [План API управления OAuth clients](./application-oauth-client-management-api-plan.ru.md).
+- [План headless OAuth interactions](./application-auth-headless-interactions-plan.ru.md).
 
 ## 1. Резюме решения
 
-IAM предоставляет versioned REST API, через который application user может:
+Управление application-user сессиями выполняет application-scoped экземпляр
+Better Auth. IAM не создает параллельный REST session API, собственную модель
+авторизации для session management или отдельный repository поверх Better Auth.
 
-- просмотреть свои активные сессии внутри одной application realm;
-- отозвать выбранную другую сессию;
-- отозвать все сессии, кроме текущей;
-- завершить текущую Bearer-сессию.
+Публичный контракт использует штатные endpoints Better Auth 1.6.23:
 
-API принадлежит IAM и не является passthrough к Better Auth. Новые exact routes
-регистрируются отдельным Fastify plugin и никогда не передаются в Better Auth
-handler. Существующие OIDC `end_session_endpoint` и hosted logout остаются
-отдельным browser redirect flow без изменения публичного контракта.
+| Метод | Endpoint относительно application `basePath` | Назначение |
+|---|---|---|
+| `GET` | `/list-sessions` | Список активных сессий текущего пользователя |
+| `POST` | `/revoke-session` | Отзыв выбранной сессии по ее Better Auth token |
+| `POST` | `/revoke-other-sessions` | Отзыв всех сессий, кроме текущей |
+| `POST` | `/revoke-sessions` | Отзыв всех сессий текущего пользователя |
+| `POST` | `/sign-out` | Завершение текущей browser session и очистка cookies |
 
-Application OAuth access token является единственным credential. Cookie не
-аутентифицирует REST-запрос и не расширяет его полномочия. Cookie читается только
-перед self-logout, чтобы при точном совпадении с Bearer `sid` очистить browser
-session cookies.
+Полные пути имеют вид:
 
-Управление другими сессиями является отдельной OAuth capability:
+```text
+/auth/applications/:applicationId/list-sessions
+/auth/applications/:applicationId/revoke-session
+/auth/applications/:applicationId/revoke-other-sessions
+/auth/applications/:applicationId/revoke-sessions
+/auth/applications/:applicationId/sign-out
+```
 
-- `POST /logout` требует валидный application-user access token и отзывает только
-  его собственный `sid`;
-- list требует scope `sessions:read`;
-- targeted revoke и revoke-others требуют scope `sessions:write`.
+Все пять routes обслуживаются `auth.handler` Better Auth внутри существующего
+`applicationAuthHttpPlugin`. Отдельный `applicationUserSessionHttpPlugin`, пути
+`/api/v1/me/sessions`, OAuth scopes `sessions:read`/`sessions:write`, cursor и
+Bearer guard не создаются.
 
-Scopes выдаются только через существующий Authorization Code + S256 PKCE flow и
-явный consent. Пропуск consent разрешён только существующей IAM-controlled
-first-party policy. Наличие trusted `Origin`, cookie или `client_id` само по себе
-не предоставляет session-management capability.
+Application OAuth access token не является credential для этих endpoints.
+Операции авторизуются application-scoped Better Auth session cookie. Hosted
+`GET/POST /logout` и OIDC `GET /oauth2/end-session` сохраняются как отдельные
+flows, но завершение session в них также должно делегироваться Better Auth либо
+его application-scoped adapter, а не выполнять независимое удаление.
 
 ## 2. Цели
 
-1. Не допустить cross-application и cross-user чтение или mutation.
-2. Не давать произвольному OAuth client управление сессиями только из-за наличия
-   обычного `openid profile email` access token.
-3. Синхронно отзывать session и все связанные с её `sid` access/refresh token
-   families.
-4. Не возвращать успех до локальной cache invalidation и подтверждения
-   настроенного distributed invalidation transport.
-5. Сохранить безопасный повтор targeted revoke и revoke-others после timeout,
-   transport failure или неизвестного клиенту результата.
-6. Не публиковать raw token, cookie, secret, session ID или персональные device
-   данные в logs, metrics и audit.
-7. Сохранить существующий hosted/OIDC logout как независимый flow.
-8. Ограничивать malformed, invalid и preflight traffic до application runtime,
-   JWT crypto и DB lookup, а не только после успешной аутентификации.
+1. Сделать Better Auth единственным владельцем публичных session-management
+   commands и их authentication semantics.
+2. Гарантировать application и user isolation через отдельный Better Auth
+   runtime и scoped adapter.
+3. При любом удалении application session отзывать связанные OAuth access и
+   refresh token families через adapter lifecycle.
+4. Сохранить штатные cookies, CSRF/origin checks, freshness checks, response
+   shapes и клиентские методы Better Auth.
+5. Публиковать live-state invalidation после успешного session mutation.
+6. Не допускать появления новых Better Auth endpoints в публичном API без
+   явного изменения versioned route manifest.
+7. Не записывать session token, cookie или OAuth token в logs, metrics и audit.
 
 ## 3. Не входит в v1
 
-- platform-admin sessions;
-- сессии другой application realm;
-- изменение OAuth client management через REST;
-- GeoIP, страна, город или приблизительная геолокация;
-- push-уведомления о входе;
+- собственный versioned REST API `/api/v1/me/sessions`;
+- Bearer-authenticated управление browser sessions;
+- OAuth scopes `sessions:read` и `sessions:write`;
+- pagination и signed cursor для списка сессий;
+- преобразование Better Auth session в отдельный device/browser/os DTO;
+- GeoIP и определение местоположения;
 - пользовательские названия устройств;
-- refresh token как API credential;
-- cookie-only REST authentication;
-- backward compatibility, dual read/write и backfill.
+- управление platform-admin sessions;
+- управление сессиями другого application realm или другого пользователя;
+- backward compatibility, dual routes, backfill и compatibility layer.
 
-Stage/production application-auth данных нет. Schema и scope registry меняются
-прямым cutover.
+Stage/production application-auth данных нет. Изменения выполняются прямым
+cutover.
 
-## 4. Публичный REST API
+## 4. Source of truth и границы ответственности
 
-Базовый путь:
+### 4.1. Better Auth
 
-```text
-/auth/applications/:applicationId/api/v1
-```
+Better Auth владеет:
 
-| Метод | Endpoint | OAuth authorization | Успех |
-|---|---|---|---|
-| `GET` | `/me/sessions?limit=25&cursor=...` | `sessions:read` | `200` |
-| `DELETE` | `/me/sessions/:sessionId` | `sessions:write` | `204` |
-| `DELETE` | `/me/sessions` | `sessions:write` | `200` |
-| `POST` | `/logout` | любой активный application-user access token | `204` |
-| `OPTIONS` | только для четырёх exact paths | trusted origin preflight | `204` |
+- чтением и проверкой текущей session из realm-scoped cookie;
+- freshness и authoritative-session middleware;
+- определением текущего `userId` и session token;
+- проверкой принадлежности targeted session текущему пользователю;
+- реализацией `listSessions`, `revokeSession`, `revokeOtherSessions`,
+  `revokeSessions` и `signOut`;
+- очисткой Better Auth cookies при `signOut`;
+- HTTP status и JSON response штатных endpoints;
+- browser client methods и session-update broadcasts.
 
-`HEAD`, произвольные подмаршруты, path normalization aliases и неизвестные
-методы не поддерживаются. Fastify не должен автоматически публиковать `HEAD`.
+В plan и коде используются публичные `auth.api.*`/`auth.handler` contracts.
+Импорт внутренних файлов `better-auth/dist/*` в production-код запрещен.
 
-Общий HTTP envelope является строгим:
+### 4.2. IAM application-scoped adapter
 
-- `GET /me/sessions` принимает только однократные `limit` и `cursor`; остальные
-  endpoints не принимают никаких query parameters;
-- ни один из четырёх endpoints не принимает request body. Наличие ненулевого
-  `Content-Length`, `Transfer-Encoding`, фактических body bytes или
-  `Content-Type` отклоняется как `400 invalid_request` до handler mutation;
-- для non-OPTIONS запроса в `rawHeaders` должен находиться ровно один
-  `Authorization` header. Нельзя полагаться на уже объединённое Fastify/Node
-  значение; duplicate, comma-joined и folded представления получают единый
-  `401 invalid_token`;
-- `OPTIONS` также не принимает query/body и валидируется только как preflight;
-- `Accept` либо отсутствует, либо допускает соответствующий JSON/problem media
-  type или `*/*`; неподдерживаемое значение получает `406` с REST problem;
-- лимиты raw URL, каждого header, общего header block и decoded path parameter
-  задаются в plugin и проверяются до runtime/DB lookup.
+`createScopedDrizzleAdapter()` владеет persistence и tenant isolation:
 
-### 4.1. Session representation
+- каждая операция над `application_session` получает обязательный predicate
+  текущего `applicationId`;
+- Better Auth `userId` никогда не используется вне текущего application realm;
+- удаление session проходит только через adapter deletion lifecycle;
+- перед удалением session adapter удаляет связанные
+  `application_oauth_access_token` и помечает связанные
+  `application_oauth_refresh_token` revoked с `sessionId = null`;
+- session и связанные token mutations выполняются в одной database transaction;
+- после commit публикуется application-auth live-state invalidation;
+- отсутствие либо отключение application/organization/realm закрывает чтение и
+  mutation.
 
-```json
-{
-  "id": "opaque-session-id",
-  "current": true,
-  "ipAddress": "203.0.113.10",
-  "userAgent": "Mozilla/5.0 ...",
-  "device": {
-    "type": "desktop",
-    "vendor": null,
-    "model": null
-  },
-  "browser": {
-    "name": "Chrome",
-    "version": "126.0"
-  },
-  "os": {
-    "name": "macOS",
-    "version": "14.5"
-  },
-  "createdAt": "2026-08-09T10:15:30.000Z",
-  "updatedAt": "2026-08-09T11:15:30.000Z",
-  "expiresAt": "2026-09-08T10:15:30.000Z"
-}
-```
+Better Auth остается владельцем операции, а IAM adapter расширяет ее
+application-specific invariants. `AuthSessionRepository` не вызывается из
+публичных session endpoints и не становится вторым command path.
 
-Контракт:
+### 4.3. HTTP boundary
 
-- все даты — UTC RFC 3339 strings;
-- `ipAddress` и `userAgent` — `string | null`;
-- raw User-Agent перед возвратом ограничивается утверждённой длиной и очищается
-  от control characters;
-- `device.type` — `desktop | mobile | tablet | bot | unknown`;
-- `vendor`, `model`, browser/os `name` и `version` — `string | null`;
-- parser failure никогда не ломает list: возвращается `unknown` и nullable поля;
-- raw session token, access/refresh token, authorization code и client secret
-  никогда не входят в DTO.
+`applicationAuthHttpPlugin` владеет только transport boundary:
 
-User-Agent разбирается на response boundary через exact direct IAM dependency
-`ua-parser-js`. Mapping из parser-specific значений в публичный enum принадлежит
-IAM, поэтому обновление dependency не должно незаметно менять REST contract.
+- canonical application ID и active runtime loading;
+- default-deny route manifest по `(method, normalized pathname)`;
+- trusted origin, CORS, proxy/IP policy, request ID и outer rate limit;
+- безопасное преобразование Fastify request/response в Fetch contract Better
+  Auth без потери multiple `Set-Cookie` headers;
+- лимиты URL, headers и body;
+- redacted logs и metrics.
 
-### 4.2. List
+Plugin не переопределяет успешные response bodies Better Auth и не реализует
+session business logic.
 
-```json
-{
-  "items": [],
-  "pageInfo": {
-    "hasNextPage": false,
-    "nextCursor": null
-  }
-}
-```
+## 5. Публичный контракт Better Auth
 
-Правила:
+Точная версия контракта: `better-auth@1.6.23`.
 
-- `limit` по умолчанию `25`, диапазон `1..100`;
-- неизвестные и повторяющиеся query parameters отклоняются;
-- выбираются только строки с точными predicates
-  `applicationId + userId + expiresAt > now`;
-- сортировка: `(updatedAt DESC, id DESC)`;
-- repository читает `limit + 1` строку;
-- `current` вычисляется только сравнением session ID с проверенным Bearer `sid`;
-- пустая страница возвращает `items: []`, `hasNextPage: false`,
-  `nextCursor: null`.
+### 5.1. `GET /list-sessions`
 
-Pagination является weakly consistent keyset pagination. Persistence boundary
-обязан сохранять invariant `updatedAt` монотонно не уменьшается; его изменение
-назад запрещено repository/adapter contract. Поэтому уже выданная строка не
-дублируется на следующей странице.
-Новая либо обновлённая между запросами строка может переместиться перед cursor и
-не попасть в текущий проход. Snapshot isolation между HTTP-запросами не
-обещается; клиент начинает новый проход для актуального списка.
+Endpoint требует валидную свежую Better Auth session. При текущей конфигурации
+application runtime `freshAge = 10 минут`; более старая session получает штатную
+ошибку `SESSION_NOT_FRESH` и должна пройти существующий re-authentication flow.
 
-### 4.3. Подписанный cursor
+Ответ — штатный массив Better Auth active sessions. IAM не добавляет cursor,
+pagination или отдельный DTO. Точный response schema фиксируется generated
+contract snapshot для установленной версии Better Auth.
 
-Base64url используется только как transport encoding, а не как защита. Wire
-format имеет вид `base64url(payloadBytes).base64url(mac)` без padding. Payload —
-UTF-8 JSON array с фиксированным порядком полей и без whitespace:
+Better Auth session response содержит credential `token`, необходимый штатному
+`revoke-session`. Поэтому ответ является чувствительным:
 
-```text
-["session-cursor", schemaVersion, keyVersion, issuedAtEpochSeconds,
- expiresAtEpochSeconds, updatedAtRfc3339, sessionId]
-```
+- `Cache-Control: no-store` обязателен;
+- token не копируется в telemetry, audit, URL, DOM attributes или local storage;
+- клиент держит значение только в памяти до вызова revoke;
+- UI не показывает token и не использует его как display ID;
+- список доступен только trusted origins и текущей cookie session.
 
-HMAC key выводится из application realm secret с отдельным purpose
-`session-pagination-cursor`. MAC вычисляется над однозначно framed bytes:
+Текущая session определяется клиентом по token текущей session, полученному из
+Better Auth session state. IAM не вводит публичный session ID alias.
 
-```text
-ASCII("shopana:iam:session-cursor:v1") || 0x00 ||
-uuidBytes(applicationId) ||
-u32be(byteLength(userIdUtf8)) || userIdUtf8 ||
-u32be(byteLength(payloadBytes)) || payloadBytes
-```
+### 5.2. `POST /revoke-session`
 
-Таким образом, переменные поля не конкатенируются без length prefix.
-`applicationId` и `userId` входят в MAC context, но не сериализуются в cursor.
-Opaque `sessionId` сохраняется byte-exact и не подвергается Unicode normalization.
-Decoder после strict parse повторно сериализует tuple и требует byte-for-byte
-совпадения с исходным payload, поэтому альтернативные JSON encodings не
-принимаются. Cursor:
-
-- требует `expiresAt = issuedAt + 900` секунд, допускает не более 30 секунд clock
-  skew для `issuedAt` и никогда не живёт дольше текущей key version;
-- имеет жёсткий лимит encoded cursor `2048` bytes, payload `1024` bytes,
-  `sessionId` `512` UTF-8 bytes и `userId` `512` UTF-8 bytes;
-- декодируется в strict schema;
-- проверяет MAC constant-time до использования `updatedAt/sessionId` в query;
-- криптографически привязан к текущим `applicationId` и `userId`;
-- принимает только текущую key version;
-- не содержит raw token или иных credentials.
-
-Истечение TTL или rotation realm key инвалидирует cursor. Клиент получает
-`400 invalid_cursor` и начинает list заново. Malformed, non-canonical, tampered,
-чужой, oversized, expired, выпущенный недопустимо далеко в будущем и cursor
-устаревшей key version имеют одну и ту же публичную ошибку.
-
-### 4.4. Targeted revoke
-
-`DELETE /me/sessions/:sessionId`:
-
-- сравнивает `sessionId` с Bearer `sid` до DB lookup;
-- для текущей session возвращает `409 current_session_requires_logout`;
-- для существующей другой session атомарно удаляет session и связанные с её
-  `sid` access tokens, а все связанные refresh families помечает revoked;
-- для неизвестного, уже удалённого, чужого user или другого realm возвращает
-  тот же `204`;
-- не сообщает `revokedCount` и не раскрывает существование ID;
-- при ненулевом DB effect публикует `kind=session` invalidation для trusted ID
-  реально удалённой строки;
-- при нулевом DB effect публикует `kind=user` invalidation текущего
-  `applicationId + userId`, не перенося caller-provided ID в событие.
-
-Path ID декодируется ровно один раз, имеет ограничение длины и не может содержать
-slash, NUL или control characters. Невалидная форма получает generic `404`, а не
-DB lookup.
-
-### 4.5. Revoke other sessions
-
-`DELETE /me/sessions` атомарно отзывает все sessions и связанные token families
-текущего `applicationId + userId`, кроме проверенного Bearer `sid`.
+Request использует штатное тело Better Auth:
 
 ```json
 {
-  "revokedCount": 3
+  "token": "better-auth-session-token"
 }
 ```
 
-`revokedCount` считает удалённые session rows, а не tokens. Текущая session
-проверяется внутри той же transaction и сохраняется. Повтор возвращает
-`200 { "revokedCount": 0 }` и всё равно обеспечивает user invalidation.
-
-### 4.6. Self logout
-
-`POST /logout` отзывает session из проверенного Bearer claim `sid`. Указание
-session ID в body/query запрещено. Удаление session отзывает все access tokens и
-все refresh families, связанные с этим `sid`, независимо от количества clients
-или token families. Другие sessions и application realms не затрагиваются.
-
-Cookie handling выполняется строго в таком порядке:
-
-1. Валидировать Bearer и зафиксировать `applicationId`, `userId`, `sid`.
-2. До DB mutation передать cookie в application-scoped Better Auth
-   `GET /get-session` через внутренний handler.
-3. Считать cookie совпавшей только при exact match application, user и session
-   ID с Bearer claims.
-4. Malformed, expired, отсутствующую или несовпадающую cookie игнорировать; она
-   не меняет status и authorization результата.
-5. Выполнить revoke transaction и invalidation.
-6. Только при ранее подтверждённом совпадении вернуть clear-cookie headers.
-
-Общий cookie helper используется hosted и REST logout и остаётся единственным
-владельцем имён, `Path`, `HttpOnly`, `SameSite`, `Secure`, `Max-Age=0` и expiry.
-REST logout очищает тот же application-realm cookie set: `session_token`,
-`session_data`, `account_data`, `dont_remember` и безопасно очищаемый logout
-context. Cookie другого realm или несовпадающей browser session не очищается.
-
-## 5. Authentication и authorization
-
-Boundary принимает ровно один `Authorization: Bearer <token>` header. Missing,
-duplicate, malformed, oversized и non-JWT credentials получают одинаковый
-`401 invalid_token`.
-
-`ApplicationTokenValidationService.validateAccessToken()` проверяет:
-
-- compact JWT syntax, approved algorithm, `kid` и application-scoped signature;
-- exact issuer и audience из загруженного active application runtime;
-- `application_id` равный canonical path parameter;
-- `actor_type = application_user`;
-- `client_id = azp`;
-- timestamps;
-- active application, organization, realm, client, user и session;
-- active refresh family, когда token содержит family binding;
-- scope registry и required endpoint scope.
-
-Refresh token, platform-admin token, ID token и token другого realm не могут
-аутентифицировать API.
-
-В protocol scope registry добавляются:
-
-- `sessions:read` — просмотр sessions и device metadata;
-- `sessions:write` — отзыв других sessions.
-
-Scope descriptions являются code-owned и показываются существующими hosted и
-headless consent surfaces. OAuth client не может назначить scope сам себе через
-metadata. `sessions:write` не подразумевает `sessions:read`: клиент запрашивает
-каждую необходимую capability явно.
-
-## 6. Ошибки и headers
-
-Любая REST ошибка имеет `Content-Type: application/problem+json`:
+Better Auth получает authoritative current session, находит target session и
+удаляет ее только если `target.userId === current.userId`. Неизвестный token,
+token другого пользователя и уже удаленная session не раскрываются; штатный
+ответ остается:
 
 ```json
 {
-  "type": "https://shopana.io/problems/invalid-cursor",
-  "title": "Invalid cursor",
-  "status": 400,
-  "detail": "The pagination cursor is invalid.",
-  "code": "invalid_cursor",
-  "requestId": "req-..."
+  "status": true
 }
 ```
 
-`detail` содержит только стабильное generic описание. Stack, SQL, dependency
-message и внутренние IDs не возвращаются.
+UI не предлагает отзывать текущую session через этот endpoint. Для текущей
+session используется `/sign-out`, чтобы Better Auth также очистил cookies.
 
-| Status | Stable codes |
-|---|---|
-| `400` | `invalid_request`, `invalid_limit`, `invalid_cursor` |
-| `401` | `invalid_token` |
-| `403` | `insufficient_scope`, `origin_not_allowed` |
-| `404` | `route_not_found`, `application_unavailable` |
-| `406` | `not_acceptable` |
-| `409` | `current_session_requires_logout` |
-| `429` | `rate_limit_exceeded` |
-| `503` | `rate_limit_unavailable`, `invalidation_unavailable`, `dependency_unavailable` |
+### 5.3. `POST /revoke-other-sessions`
 
-`401` всегда содержит корректный RFC 6750 `WWW-Authenticate: Bearer` с generic
-`error="invalid_token"`. `403 insufficient_scope` содержит
-`error="insufficient_scope"` и требуемый `scope`. Другие `403` не перечисляют
-scope.
+Better Auth получает authoritative current session, загружает активные sessions
+текущего пользователя и удаляет все, token которых не равен token текущей
+session. Штатный ответ:
 
-Все ответы, включая errors, `204` и preflight, получают:
-
-- `Cache-Control: no-store`;
-- `Pragma: no-cache`;
-- `X-Request-ID`.
-
-`429` и retriable `503` получают целочисленный `Retry-After`. `204` не содержит
-body и `Content-Type`.
-
-## 7. Transaction и invalidation
-
-Одна IAM transaction:
-
-1. блокирует и повторно проверяет текущую session, когда это требуется;
-2. удаляет целевые access tokens;
-3. помечает связанные refresh families revoked и отвязывает их от session;
-4. удаляет session rows.
-
-После commit request path немедленно публикует invalidation через существующий
-`ApplicationAuthLiveStateInvalidationBus.publishRequired()`:
-
-- targeted revoke с DB effect и logout используют `kind=session` с trusted ID
-  реально найденной tenant-scoped строки;
-- targeted revoke без DB effect использует `kind=user` без caller-provided target;
-- revoke-others использует `kind=user` независимо от `revokedCount`;
-- local subscribers выполняются до ответа;
-- configured distributed transport должен подтвердить publish;
-- повторная cache invalidation семантически идемпотентна.
-
-Если transport не подтвердил publish, mutation уже могла быть committed. API
-возвращает `503 invalidation_unavailable`; это documented outcome-unknown, а не
-утверждение об отсутствии mutation. Targeted revoke и revoke-others можно
-безопасно повторить: zero-effect повтор публикует user-level invalidation и
-снова ожидает transport acknowledgement.
-
-После committed self-logout тот же Bearer уже inactive, поэтому последовательный
-повтор получает `401 invalid_token`, а не `204`. Если publish не был подтверждён,
-удалённые session и tokens остаются неактивными в primary database, а stale
-validation cache других реплик исчезает не позднее существующего hard TTL в 30
-секунд. Два параллельных logout, успевших пройти authentication до первого
-commit, остаются безопасными и могут завершиться `204` либо documented `503`.
-
-Production требует настроенный distributed transport как startup/configuration
-invariant; local transport допустим только в development/E2E. Гарантия v1 —
-синхронная попытка доставки с acknowledgement либо ограниченная 30 секундами
-eventual convergence через существующий validation cache TTL.
-
-## 8. Repository и schema
-
-Переиспользовать application-scoped `AuthSessionRepository`:
-
-- сохранить существующие transactional `revokeSession` и
-  `revokeOtherSessions` semantics;
-- выделить единый internal mutation primitive, принимающий только trusted
-  `applicationId`, `userId`, `currentSessionId` и optional target ID;
-- добавить cursor list operation без нового параллельного session repository.
-
-Все SQL predicates содержат `applicationId + userId`; lookup только по
-`sessionId` запрещён.
-
-Добавить индекс:
-
-```text
-(application_id, user_id, updated_at DESC, id DESC)
+```json
+{
+  "status": true
+}
 ```
 
-Миграции создаются IAM migration workflow через `shopana-cli`. Backfill и
-compatibility layer не создаются.
+Операция не возвращает `revokedCount`. IAM не меняет response shape.
 
-## 9. Fastify routing и Better Auth boundary
+### 5.4. `POST /revoke-sessions`
 
-Добавить `applicationUserSessionHttpPlugin` sibling существующего
-`applicationAuthHttpPlugin` и зарегистрировать exact routes до публичного
-application-auth catch-all.
+Better Auth удаляет все sessions текущего пользователя, включая текущую.
+Штатный ответ:
+
+```json
+{
+  "status": true
+}
+```
+
+После успеха клиент обязан очистить локальное auth state и перейти в signed-out
+состояние. Этот endpoint не заменяет `/sign-out` для обычной кнопки «Выйти»;
+он используется только для явного действия «Отозвать все сессии».
+
+### 5.5. `POST /sign-out`
+
+Better Auth читает signed session cookie, удаляет текущую session через adapter,
+очищает полный Better Auth session cookie set и возвращает штатный ответ:
+
+```json
+{
+  "success": true
+}
+```
+
+Отсутствующая или уже недействительная cookie обрабатывается идемпотентно в
+соответствии со штатным Better Auth contract. IAM не добавляет Bearer `sid`,
+session ID в body либо дополнительную cookie-matching процедуру.
+
+## 6. Authentication, freshness и CSRF/origin policy
+
+Session endpoints принимают только Better Auth application session:
+
+- cookie имеет application-specific prefix, realm `Path`, `HttpOnly`, `Secure`
+  в production и утвержденный `SameSite`;
+- cookie из другого application realm не проходит signature, name/path и scoped
+  persistence checks;
+- platform session, OAuth access token, refresh token и ID token не дают доступ;
+- bearer plugin не добавляется в application Better Auth composition;
+- `list-sessions` использует штатный Better Auth fresh-session middleware;
+- revoke endpoints используют штатный authoritative sensitive-session
+  middleware и обходят cookie cache;
+- `sign-out` работает только с текущей Better Auth cookie.
+
+Outer HTTP boundary разрешает browser requests только exact trusted origins.
+State-changing POST routes проходят штатные Better Auth origin/CSRF checks;
+отключать их и добавлять bypass для hosted UI запрещено.
+
+Session management не участвует в OAuth consent и не зависит от OAuth client
+scopes. Полномочие следует из интерактивной Better Auth session самого
+application user.
+
+## 7. Route manifest и CORS
+
+В `createEffectiveApplicationAuthRouteManifest()` добавить exact entries:
+
+```text
+GET  /list-sessions
+POST /revoke-session
+POST /revoke-other-sessions
+POST /revoke-sessions
+POST /sign-out
+```
+
+Широкий prefix для session routes запрещен. Все другие Better Auth session,
+admin и plugin endpoints остаются default-deny, пока не появится отдельное
+решение и contract tests.
+
+Для approved trusted origin:
+
+- разрешены только методы и headers, необходимые соответствующему exact route;
+- credentials включены, поскольку authorization выполняется cookie;
+- preflight не вызывает Better Auth mutation;
+- response содержит `Vary: Origin`;
+- raw `Cookie`, session token и body не попадают в preflight logs.
+
+Reverse-proxy external path manifest обновляется теми же пятью exact routes.
+Неизвестный method/path получает `404` до `auth.handler`.
+
+## 8. Transaction, OAuth token cleanup и invalidation
+
+Каждая Better Auth session deletion в application realm проходит единый adapter
+primitive:
+
+1. В transaction выбрать target sessions с predicates
+   `applicationId + Better Auth where`.
+2. Удалить связанные application OAuth access token rows.
+3. Пометить связанные refresh token rows revoked и отвязать `sessionId`.
+4. Удалить target application session rows.
+5. Commit transaction.
+6. Опубликовать invalidation только для trusted IDs фактически выбранных rows.
 
 Требования:
 
-- exact REST route всегда выигрывает у wildcard, включая `POST .../api/v1/logout`;
-- REST plugin имеет собственные body/query/path limits и error handler;
-- Better Auth raw body parser и OAuth error schema не протекают в REST plugin;
-- REST paths отсутствуют в Better Auth versioned route manifest;
-- unknown `/api/v1/*` возвращает REST problem `404`, не Better Auth response;
-- reverse proxy публикует только существующий application-auth wildcard
-  boundary; `/graphql` и внутренние IAM routes остаются закрытыми.
+- token cleanup и session delete не могут частично commit-иться;
+- targeted delete не переносит caller token в invalidation payload;
+- repeated delete безопасен и не создает событие для неизвестной session;
+- `revoke-other-sessions` может вызвать несколько Better Auth deletes, но adapter
+  сохраняет isolation для каждого target; оптимизация bulk delete допускается
+  только через поддерживаемый Better Auth adapter contract;
+- invalidation удаляет локальные cache entries до завершения request и
+  публикуется через настроенный distributed transport;
+- ошибка publish наблюдаема и не откатывает уже committed mutation;
+- hard TTL validation cache остается верхней границей stale acceptance.
 
-Добавить executable route ownership contract на method + normalized pathname,
-чтобы обновление Fastify или Better Auth не изменило handler незаметно.
+Если для обязательного atomic cleanup штатный вызов Better Auth не использует
+adapter transaction, transaction boundary реализуется внутри scoped adapter, а
+не в отдельном HTTP service.
 
-## 10. CORS
+## 9. Schema и repository
 
-При отсутствии `Origin` запрос рассматривается как non-browser Bearer request.
-При наличии `Origin` разрешается только exact match с active application
-`trustedOrigins`. `null`, wildcard, suffix/prefix matching и отражение
-непроверенного Origin запрещены.
+Новая session table и новый session repository не создаются. Используются
+существующие Better Auth модели:
 
-Preflight поддерживает только утверждённые exact route/method пары:
+- `application_session`;
+- `application_oauth_access_token`;
+- `application_oauth_refresh_token`.
 
-- methods: `GET`, `DELETE`, `POST`, `OPTIONS` в зависимости от route;
-- request headers: `Authorization`, `X-Request-ID`; `Content-Type` не разрешён,
-  поскольку REST endpoints v1 не принимают body;
-- credentials: `true`, поскольку matching browser cookie может быть очищена при
-  self-logout;
-- exposed headers: `X-Request-ID`, `Retry-After`, `WWW-Authenticate`.
+Существующие индексы должны покрывать:
 
-Responses добавляют `Vary: Origin`; preflight также добавляет
-`Access-Control-Request-Method` и `Access-Control-Request-Headers`. Preflight не
-использует cookie или Bearer для authentication, но проверяет application,
-trusted origin, exact route, method и headers. CSRF token не требуется, потому
-что mutation авторизуется только явным Bearer header; CORS не считается защитой
-от non-browser caller.
+- `(application_id, token)` для `findSession`/target revoke;
+- `(application_id, user_id)` для `listSessions` и bulk operations;
+- OAuth rows по `(application_id, session_id)` для cleanup.
 
-## 11. Rate limiting
+Если OAuth session lookup не покрыт индексом, миграция добавляет только нужные
+composite indexes через IAM migration workflow. Backfill не создается.
 
-Rate limiting состоит из pre-auth и authenticated уровней. Pre-auth выполняется
-до application runtime loading, JWT verification и DB lookup и использует
-service-level secret с purpose `session-rest-preauth-rate-limit`, не realm secret.
-Он включает bounded local LRU buckets:
+`AuthSessionRepository` может оставаться для platform/admin или внутренних
+не-Better-Auth use cases, но application customer UI не вызывает его для list,
+revoke или sign-out.
 
-| Boundary | Subject | Limit |
-|---|---|---|
-| весь REST plugin instance | один global bucket | 2000/min |
-| canonical application path | `HMAC(applicationId)` | 400/min |
+## 10. Rate limiting
 
-Количество local subjects жёстко ограничено; eviction не сбрасывает global
-bucket. После canonical path parsing тот же application aggregate применяется в
-shared limiter независимо от того, существует application или валиден token.
-После извлечения trusted proxy-aware network address добавляется
-`HMAC(applicationId + networkSubject)` с лимитом `120/min`. Raw address не
-сохраняется и не логируется. Если trusted network subject безопасно определить
-нельзя, запрос остаётся под global/application aggregate и не создаёт
-caller-controlled fallback key. Random credential fingerprint не используется
-как единственная защита, чтобы rotation случайных token строк не обходил лимит.
+Используются два существующих уровня:
 
-Preflight использует application aggregate и отдельный
-`HMAC(applicationId + normalizedOrigin)` bucket `120/min`; oversized/malformed
-Origin отклоняется до создания subject. Exhaustion любого pre-auth bucket
-возвращает generic `429` без раскрытия существования application или token.
+1. `applicationAuthHttpPlugin` ограничивает malformed/unknown traffic до runtime
+   loading и Better Auth crypto/DB work.
+2. Better Auth rate limiter применяет endpoint-specific application runtime
+   policy.
 
-После успешной аутентификации добавляются HMAC-keyed operation buckets через
-существующий `ApplicationAuthRateLimiter`:
+Рекомендуемые authenticated лимиты:
 
-| Operation | Subject | Limit |
-|---|---|---|
-| list | `applicationId + HMAC(userId)` | 60/min |
-| targeted/revoke-others | `applicationId + HMAC(userId)` | 20/min |
-| logout | `applicationId + HMAC(userId)` | 20/min |
+| Endpoint | Лимит на application user |
+|---|---|
+| `list-sessions` | 30/min |
+| `revoke-session` | 20/min |
+| `revoke-other-sessions` | 10/min |
+| `revoke-sessions` | 5/min |
+| `sign-out` | 20/min |
 
-HMAC key authenticated уровня выводится с отдельным purpose
-`session-rest-rate-limit`; raw user, session, IP и token не входят в key.
-Application ID является namespace, но не заменяет HMAC subject. Успешный запрос
-должен пройти оба уровня; authenticated bucket не заменяет pre-auth aggregate.
+Rate-limit key не содержит raw user ID, session token, cookie, IP или User-Agent.
+Logout остается доступен через bounded emergency fallback при отказе shared
+limiter.
 
-При отказе shared limiter:
+## 11. Ошибки и cache headers
 
-- list и revoke mutations используют существующий tighter bounded emergency
-  fallback;
-- logout также остаётся доступен через tighter fallback, чтобы отказ limiter не
-  удерживал пользователя в сессии;
-- pre-auth local global/application buckets продолжают действовать независимо от
-  shared limiter, а shared failure включает tighter bounded network/application
-  fallback без создания неограниченных subjects;
-- exhaustion fallback возвращает `429`, а невозможность безопасно создать
-  fallback — `503 rate_limit_unavailable`.
+Публичные status/body session endpoints принадлежат Better Auth. IAM не
+переписывает их в отдельный `application/problem+json` contract.
+
+Outer boundary может вернуть transport errors до Better Auth:
+
+- `404` для unavailable application или route вне manifest;
+- `403` для untrusted Origin;
+- `413` для oversized body;
+- `429` для outer rate limit;
+- `503` при недоступности обязательного runtime dependency.
+
+Для всех session-management responses обязательны:
+
+- `Cache-Control: no-store`;
+- `Pragma: no-cache`;
+- `X-Request-ID`;
+- отсутствие credential data в error details.
+
+Multiple `Set-Cookie` от Better Auth передаются без объединения. Ошибки adapter,
+SQL и invalidation transport не возвращаются клиенту как raw dependency text.
 
 ## 12. Audit, logs и metrics
 
-Security audit получает действия:
+Mutation audit actions:
 
 - `session_revoke`;
 - `session_revoke_others`;
-- `session_logout`.
+- `session_revoke_all`;
+- `session_sign_out`.
 
-List не создаёт security audit record: его observability ограничена redacted
-logs/metrics, чтобы не увеличивать объём персональных access records без
-отдельной retention policy.
+Audit получает outcome после adapter mutation. Доставка audit остается
+non-blocking и не меняет Better Auth response.
 
-Mutation audit передаётся после commit через существующий
-`ApplicationAuthAuditService`. Audit delivery остаётся non-blocking и не меняет
-HTTP result; failure записывается существующим redacted log и отдельным failure
-counter. HTTP success ожидает local/distributed invalidation acknowledgement,
-но не внешний audit sink.
+Разрешены application/organization IDs, action, stable outcome/reason category,
+request ID и opaque HMAC actor ID. Запрещены:
 
-Разрешённые поля:
+- Better Auth session token и session cookie;
+- session ID;
+- OAuth access/refresh/ID tokens;
+- IP, raw User-Agent и Origin;
+- request body `/revoke-session`;
+- dependency error text.
 
-- opaque HMAC actor ID;
-- application/organization IDs;
-- action, domain outcome `committed_effect | committed_no_effect`, stable reason
-  category;
-- request ID;
-- `revokedCount` для массовой операции.
+Metrics используют только endpoint, status, outcome и latency. Tenant/user/
+session data не используется как label.
 
-Запрещены IP, raw User-Agent, session/token IDs, cursor, Authorization, Cookie,
-client secret и dependency error text.
+## 13. Клиентская интеграция customers
 
-Структурированные logs содержат endpoint name, method, status, outcome,
-application ID и request ID. Metrics содержат endpoint/outcome/status и latency;
-user, client, session, IP, Origin и User-Agent запрещены как labels. Invalidation
-transport failure и audit delivery failure имеют отдельные counters без
-tenant-sensitive payload.
+Customer account UI использует Better Auth client, созданный с base URL текущего
+application realm. Прямые `fetch` wrappers и собственные REST DTO не создаются.
 
-## 13. Тестовый план
+Поток экрана сессий:
 
-Добавить repository/HTTP contract tests и один целевой Playwright e2e spec.
+1. Вызвать `listSessions()`.
+2. Показать безопасные поля session: даты, IP/User-Agent при наличии; token не
+   рендерить и не сохранять.
+3. Для другой session вызвать `revokeSession({ token })`.
+4. Для «Выйти на других устройствах» вызвать `revokeOtherSessions()`.
+5. Для «Отозвать все сессии» вызвать `revokeSessions()`, очистить client auth
+   state и перейти на login.
+6. Для обычного выхода вызвать `signOut()`.
 
-### 13.1. Authentication и authorization
+UI обрабатывает `SESSION_NOT_FRESH` единым существующим re-auth flow. Он не
+пытается заменить Better Auth session OAuth access token либо refresh token.
 
-- обычный token без session scope получает `403 insufficient_scope` на
-  list/revoke, но может завершить собственный `sid` через logout;
-- `sessions:read` не разрешает mutation;
-- `sessions:write` не разрешает list;
-- consent и first-party skip-consent policy выдают только запрошенные approved
-  scopes;
-- token другого application, platform-admin token, ID/refresh token,
-  expired/revoked token и malformed/duplicate Bearer получают `401`;
-- disabled client/application/user/session/family fail closed;
-- exact issuer, audience, actor type и application binding проверяются;
-- malformed/invalid Bearer flood исчерпывает pre-auth bucket до повторных runtime,
-  crypto и DB operations; varying random credentials не обходят application
-  aggregate;
-- bounded local subject registry не растёт от случайных application IDs, а
-  exhaustion не раскрывает существование application.
+## 14. Тестовый план
 
-### 13.2. List и cursor
+### 14.1. Better Auth contract
 
-- возвращаются только active sessions текущих application/user;
-- `current` совпадает только с Bearer `sid`;
-- desktop/mobile/tablet/bot/unknown UA стабильно маппятся;
-- nullable IP/UA и parser failure безопасны;
-- raw UA очищается и ограничивается по длине;
-- pagination не дублирует rows и корректно формирует `limit + 1` page info;
-- изменение `updatedAt` между страницами соответствует документированной weak
-  consistency и не создаёт дубль;
-- malformed, non-canonical JSON, tampered, oversized, expired, future-issued,
-  чужой и старой key version cursor получают одинаковый `400 invalid_cursor`;
-- framing tests доказывают, что разные границы `applicationId/userId/payload` не
-  образуют одинаковый MAC input, а TTL/clock-skew проверяются на границах;
-- duplicate/unknown query parameters и limit вне диапазона отклоняются.
+- route snapshot подтверждает methods, paths, request и response schemas для
+  Better Auth 1.6.23;
+- `list-sessions` возвращает только active sessions текущего user/application;
+- stale session получает `SESSION_NOT_FRESH` на list;
+- revoke routes используют authoritative store read, а не cookie cache;
+- targeted revoke удаляет только session текущего пользователя;
+- foreign/unknown/already-deleted token не раскрывает существование session;
+- revoke-others сохраняет текущую session;
+- revoke-sessions удаляет включая текущую;
+- sign-out удаляет текущую session и передает все clear-cookie headers;
+- platform cookie, OAuth tokens и cookie другого application не авторизуют
+  endpoints.
 
-### 13.3. Mutations и tokens
+### 14.2. Adapter и token lifecycle
 
-- targeted revoke удаляет session/access tokens и отзывает все связанные refresh
-  families;
-- session другого user/realm не изменяется и не раскрывается;
-- текущая session через targeted route получает `409` без DB mutation;
-- revoke-others сохраняет Bearer `sid` и отзывает все остальные families;
-- logout отзывает все families текущего `sid`, но не другие sessions/realms;
-- старые access и refresh tokens становятся inactive;
-- повторные targeted/revoke-others и параллельные logout безопасны;
-- последовательный logout тем же уже отозванным Bearer получает `401`, а stale
-  validation cache после неподтверждённого publish ограничен hard TTL 30 секунд;
-- targeted unknown ID возвращает `204` и не раскрывает существование;
-- zero-effect targeted retry публикует user invalidation без caller target;
-- revoke-others публикует user invalidation и при ненулевом, и при нулевом DB
-  effect;
-- `revokedCount` считает sessions, не tokens.
+- каждая session delete включает exact `applicationId` predicate;
+- access tokens target session удаляются;
+- refresh families target session получают revoked timestamp и `sessionId=null`;
+- session/token mutation полностью commit-ится либо rollback-ится;
+- session другого user/application и его token families не меняются;
+- password reset, hosted logout, OIDC logout и Better Auth session endpoints
+  проходят один deletion lifecycle;
+- invalidation публикуется только после commit и только для реально найденных
+  trusted session IDs;
+- parallel/repeated deletes безопасны;
+- transport failure наблюдаем, committed mutation сохраняется, stale cache
+  ограничен hard TTL.
 
-### 13.4. Cookie
+### 14.3. HTTP security
 
-- matching cookie определяется до revoke и затем очищается полным общим helper;
-- absent, malformed, expired, other-user, other-session и other-realm cookie не
-  очищаются и не меняют mutation result;
-- cookie никогда не заменяет Bearer и не добавляет scope;
-- `Secure`, `HttpOnly`, `SameSite`, path, expiry и имена совпадают у hosted и
-  REST logout.
+- пять exact routes разрешены manifest и обслуживаются Better Auth;
+- unknown method/path и прочие Better Auth management endpoints дают `404` до
+  handler;
+- encoded slash, duplicate slash, dot segment и double encoding не обходят
+  manifest;
+- trusted origin и CORS credentials работают только для exact allowlist;
+- CSRF/origin checks Better Auth не отключены;
+- oversized/malformed JSON отклоняется без mutation;
+- `Set-Cookie` headers не объединяются;
+- все ответы имеют no-store/request ID contract;
+- response/log/audit/metrics не раскрывают session token или cookie.
 
-### 13.5. Invalidation, audit и failures
+### 14.4. Customer UI
 
-- session/access/refresh mutation полностью commit-ится либо rollback-ится;
-- transport failure после commit возвращает documented
-  `503 invalidation_unavailable`;
-- HTTP retry targeted/revoke-others при уже удалённой session повторно публикует
-  user invalidation;
-- повторная доставка invalidation безопасна;
-- request не возвращает success до local dispatch и distributed ack;
-- при post-commit invalidation failure HTTP получает `503`, mutation остаётся
-  committed, а stale validation cache ограничен hard TTL 30 секунд;
-- audit delivery не содержит запрещённых полей, остаётся non-blocking, а failure
-  учитывается отдельным counter;
-- pre-auth и authenticated limiter fallback сохраняют logout, ограничивают
-  invalid traffic и возвращают корректные `429/503`.
-
-### 13.6. HTTP boundary
-
-- exact REST routes обслуживает REST plugin, а не Better Auth wildcard;
-- unknown methods/routes, encoded slash, double decoding и non-canonical
-  application ID отклоняются;
-- body, `Content-Type`, `Transfer-Encoding` и query на mutation routes
-  отклоняются до mutation; list принимает только однократные `limit/cursor`;
-- duplicate/comma-joined Authorization обнаруживается через `rawHeaders`, а
-  неподдерживаемый `Accept` возвращает `406 not_acceptable`;
-- CORS разрешает только exact trusted origins/methods/headers;
-- проверяются `Vary`, allow/expose headers и credentials;
-- проверяются `400/401/403/404/406/409/429/503`, `Retry-After`,
-  `WWW-Authenticate`, `Cache-Control`, `Pragma`, `X-Request-ID`;
-- `204` не содержит body/content type;
-- responses, logs, metrics и audit не содержат credential, cookie, secret,
-  cursor или внутренних ошибок.
+- список не рендерит и не сохраняет session token;
+- revoke вызывает штатный Better Auth client method;
+- revoke-others обновляет список без logout текущего браузера;
+- revoke-all и sign-out очищают client auth state;
+- `SESSION_NOT_FRESH` запускает re-auth flow;
+- network/error retry не переключается на custom IAM session API.
 
 По правилам проекта во время подготовки документа build/test не запускаются.
 Команды реализации, миграций и целевых тестов выполняются через `shopana-cli`.
 
-## 14. Этапы реализации
+## 15. Этапы реализации
 
-### Этап 1. Scope и HTTP contracts
+### Этап 1. Зафиксировать Better Auth contract
 
-1. Расширить code-owned OAuth scope registry и consent presentation.
-2. Добавить strict Zod schemas для params/query/response/problem и raw HTTP
-   envelope contract для headers/body/media types.
-3. Добавить canonical framed signed cursor codec с TTL и UA mapping contract.
-4. Добавить route ownership и pre-auth limiter compatibility tests.
+1. Снять executable route/schema snapshot Better Auth 1.6.23.
+2. Добавить пять exact routes в effective и reverse-proxy manifests.
+3. Зафиксировать cookie, freshness, origin/CSRF и no-store contracts.
 
-Критерий выхода: capability matrix и все boundary schemas зафиксированы
-executable tests.
+Критерий выхода: каждый session endpoint однозначно принадлежит Better Auth, а
+остальные Better Auth routes остаются default-deny.
 
-### Этап 2. Repository и migration
+### Этап 2. Укрепить scoped adapter lifecycle
 
-1. Добавить cursor list query и composite index.
-2. Объединить revoke primitives в единый application-scoped transaction contract.
-3. Добавить repository isolation/concurrency tests.
+1. Сделать session + OAuth token cleanup атомарным внутри adapter transaction.
+2. Проверить индексы для session token/user и OAuth session ID.
+3. Подключить post-commit invalidation и redacted audit hooks.
+4. Удалить application customer session command calls к
+   `AuthSessionRepository`.
 
-Критерий выхода: session/access/refresh изменения либо commit вместе, либо
-полностью rollback; текущая Bearer session повторно проверяется в transaction.
+Критерий выхода: любой Better Auth session delete одинаково отзывает связанные
+OAuth token families без cross-application доступа.
 
-### Этап 3. REST plugin
+### Этап 3. Customer UI
 
-1. Добавить Bearer/scope guard.
-2. Реализовать exact list/revoke/logout routes.
-3. Подключить conditional pre-revoke cookie matching и общий clear helper.
-4. Подключить problem mapper, CORS, headers, pre-auth и authenticated rate limits.
+1. Подключить Better Auth client к application realm.
+2. Реализовать list/revoke/revoke-others/revoke-all/sign-out штатными client
+   methods.
+3. Добавить re-auth flow для `SESSION_NOT_FRESH` и безопасную работу с token
+   только в памяти.
 
-Критерий выхода: ни один REST path не попадает в Better Auth handler, а cookie
-никогда не участвует в authorization.
+Критерий выхода: customers UI не использует custom session REST API и не
+раскрывает session credential.
 
-### Этап 4. Operations и E2E
+### Этап 4. Contract и E2E verification
 
-1. Подключить production distributed invalidation transport.
-2. Добавить audit sink, metrics и alerts для failed delivery.
-3. Обновить reverse-proxy/public-boundary documentation.
-4. Выполнить один целевой Playwright spec и HTTP/repository contract tests через
-   `shopana-cli`.
+1. Добавить Better Auth route/adapter/HTTP contract tests.
+2. Добавить один целевой Playwright customer session-management scenario.
+3. Обновить operational documentation и alerts invalidation/audit failures.
+4. Запустить проверки через `shopana-cli` в рамках реализации.
 
-Критерий выхода: полный positive/negative/failure matrix проходит, transport
-outage наблюдаем, а stale validation cache ограничен документированным TTL.
+Критерий выхода: positive, isolation, failure и credential-redaction matrix
+проходит для всех пяти Better Auth endpoints.
 
-## 15. Зафиксированные решения
+## 16. Зафиксированные решения
 
-- Credential: только application OAuth Bearer access token.
-- List: `sessions:read`.
-- Revoke other sessions: `sessions:write`.
-- Self logout: любой active application-user access token, только собственный
-  Bearer `sid`.
-- «Отозвать все»: все sessions кроме текущей.
-- Session revoke отзывает все access/refresh families данного `sid`.
-- Cursor: canonical framed, versioned, application/user-bound,
-  HMAC-authenticated, TTL 15 минут.
-- Pagination: weakly consistent keyset, без snapshot promise.
-- Device contract: parsed UA + nullable raw UA/IP + timestamps, без GeoIP.
-- Cookie match читается до revoke; mismatch не очищается.
-- Invalidation: существующий `publishRequired()` после commit; success только
-  после local dispatch и distributed acknowledgement.
-- Audit delivery: существующий non-blocking `ApplicationAuthAuditService`.
-- Zero-effect targeted retry: user invalidation без caller session ID.
-- Rate limit: bounded pre-auth aggregate до runtime/crypto/DB плюс authenticated
-  per-user operation buckets.
-- Transport failure после commit: `503` с documented outcome unknown;
-  targeted/revoke-others допускают безопасный retry, а после self-logout stale
-  validation cache ограничен hard TTL 30 секунд.
-- OIDC end-session и hosted logout остаются отдельным browser flow.
+- Owner публичных session commands: Better Auth.
+- Credential: application-scoped Better Auth cookie session.
+- Public API: штатные `listSessions`, `revokeSession`,
+  `revokeOtherSessions`, `revokeSessions`, `signOut`.
+- Custom `/api/v1/me/sessions` API не создается.
+- OAuth scopes для session management не создаются.
+- Customer UI использует Better Auth client, а не прямой custom REST wrapper.
+- List response следует versioned Better Auth contract; pagination отсутствует.
+- Target revoke использует Better Auth session token и никогда его не логирует.
+- Session deletion отзывает связанные application OAuth access/refresh token
+  families внутри scoped adapter transaction.
+- Cross-application isolation обеспечивается runtime + scoped adapter.
+- Hosted logout и OIDC end-session делегируют тому же adapter lifecycle.
+- Route exposure остается exact/default-deny и версионируется вместе с Better
+  Auth composition.
 - Backward compatibility и backfill не создаются.

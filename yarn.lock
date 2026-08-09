@@ -7746,6 +7746,24 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/loyalty-service@workspace:services/loyalty":
+  version: 0.0.0-use.local
+  resolution: "@shopana/loyalty-service@workspace:services/loyalty"
+  dependencies:
+    "@graphql-codegen/cli": "npm:^5.0.2"
+    "@graphql-codegen/typescript": "npm:^4.0.8"
+    "@nestjs/common": "npm:^10.0.0"
+    "@shopana/broker-types": "workspace:*"
+    "@shopana/build-tools": "workspace:*"
+    "@shopana/events": "workspace:*"
+    "@types/node": "npm:^20.14.14"
+    graphql: "npm:^16.9.0"
+    reflect-metadata: "npm:^0.2.2"
+    rxjs: "npm:^7.8.2"
+    typescript: "npm:^5.5.4"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/media-service@npm:0.0.1, @shopana/media-service@workspace:services/media":
   version: 0.0.0-use.local
   resolution: "@shopana/media-service@workspace:services/media"
