@@ -15,6 +15,7 @@ CREATE TABLE "loyalty"."program" (
   "archived_at" timestamptz,
 
   CONSTRAINT "loyalty_program_store_code_unique" UNIQUE ("store_id", "code"),
+  CONSTRAINT "loyalty_program_id_store_unique" UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_program_code_check"
     CHECK ("code" ~ '^[a-z][a-z0-9_-]{1,63}$'),
   CONSTRAINT "loyalty_program_name_check" CHECK (btrim("name") <> ''),
@@ -72,9 +73,14 @@ CREATE TABLE "loyalty"."program_version" (
   "published_at" timestamptz,
 
   CONSTRAINT "loyalty_program_version_program_fk"
-    FOREIGN KEY ("program_id") REFERENCES "loyalty"."program" ("id"),
+    FOREIGN KEY ("program_id", "store_id")
+    REFERENCES "loyalty"."program" ("id", "store_id"),
   CONSTRAINT "loyalty_program_version_number_unique"
     UNIQUE ("program_id", "version"),
+  CONSTRAINT "loyalty_program_version_id_store_unique"
+    UNIQUE ("id", "store_id"),
+  CONSTRAINT "loyalty_program_version_id_program_store_unique"
+    UNIQUE ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_program_version_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_program_version_schedule_check" CHECK (
     ("status" = 'DRAFT' OR "effective_from" IS NOT NULL)

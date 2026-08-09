@@ -12,7 +12,9 @@ CREATE TABLE "loyalty"."tier" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_tier_program_version_fk"
-    FOREIGN KEY ("program_version_id") REFERENCES "loyalty"."program_version" ("id"),
+    FOREIGN KEY ("program_version_id", "store_id")
+    REFERENCES "loyalty"."program_version" ("id", "store_id"),
+  CONSTRAINT "loyalty_tier_id_store_unique" UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_tier_version_code_unique"
     UNIQUE ("program_version_id", "code"),
   CONSTRAINT "loyalty_tier_version_rank_unique"
@@ -46,9 +48,13 @@ CREATE TABLE "loyalty"."tier_membership" (
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_tier_membership_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_tier_fk"
-    FOREIGN KEY ("tier_id") REFERENCES "loyalty"."tier" ("id"),
+    FOREIGN KEY ("tier_id", "store_id")
+    REFERENCES "loyalty"."tier" ("id", "store_id"),
+  CONSTRAINT "loyalty_tier_membership_id_store_unique"
+    UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_evaluation_check"
     CHECK ("evaluation_period_ended_at" > "evaluation_period_started_at"),
   CONSTRAINT "loyalty_tier_membership_effective_check"
@@ -116,13 +122,17 @@ CREATE TABLE "loyalty"."tier_membership_event" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_tier_membership_event_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_event_membership_fk"
-    FOREIGN KEY ("membership_id") REFERENCES "loyalty"."tier_membership" ("id"),
+    FOREIGN KEY ("membership_id", "store_id")
+    REFERENCES "loyalty"."tier_membership" ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_event_previous_tier_fk"
-    FOREIGN KEY ("previous_tier_id") REFERENCES "loyalty"."tier" ("id"),
+    FOREIGN KEY ("previous_tier_id", "store_id")
+    REFERENCES "loyalty"."tier" ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_event_tier_fk"
-    FOREIGN KEY ("tier_id") REFERENCES "loyalty"."tier" ("id"),
+    FOREIGN KEY ("tier_id", "store_id")
+    REFERENCES "loyalty"."tier" ("id", "store_id"),
   CONSTRAINT "loyalty_tier_membership_event_revision_check"
     CHECK ("evaluation_revision" ~ '^[0-9a-f]{64}$'),
   CONSTRAINT "loyalty_tier_membership_event_reason_check" CHECK (btrim("reason_code") <> ''),

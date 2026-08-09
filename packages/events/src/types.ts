@@ -490,6 +490,10 @@ export interface OrderRewardEligibleEvent
       storeId: string;
       customerId: string;
       currencyCode: string;
+      channelCode: string;
+      customerEligibilityRevision: string;
+      segmentIds: readonly string[];
+      segmentMembershipRevision: string;
       eligibleAmountMinor: string;
       eligibleAt: string;
       pricingQuoteId: string;
@@ -570,11 +574,13 @@ export const LoyaltyEventTypes = {
   pointsAdjusted: "loyaltyPointsAdjusted",
 } as const;
 
-interface LoyaltyPointsEventPayload {
+interface LoyaltyPointsEventPayload<
+  TProgramVersionId extends string | null = string,
+> {
   schemaVersion: 1;
   storeId: string;
   programId: string;
-  programVersionId: string | null;
+  programVersionId: TProgramVersionId;
   accountId: string;
   customerId: string;
   transactionId: string;
@@ -667,7 +673,7 @@ export interface LoyaltyPointsRestoredEvent
 export interface LoyaltyPointsAdjustedEvent
   extends DomainEvent<
     "loyaltyPointsAdjusted",
-    LoyaltyPointsEventPayload & {
+    LoyaltyPointsEventPayload<string | null> & {
       direction: "CREDIT" | "DEBIT";
       reasonCode: string;
       actorId: string;

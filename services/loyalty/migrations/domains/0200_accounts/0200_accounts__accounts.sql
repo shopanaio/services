@@ -13,11 +13,17 @@ CREATE TABLE "loyalty"."account" (
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_account_program_fk"
-    FOREIGN KEY ("program_id") REFERENCES "loyalty"."program" ("id"),
+    FOREIGN KEY ("program_id", "store_id")
+    REFERENCES "loyalty"."program" ("id", "store_id"),
   CONSTRAINT "loyalty_account_merged_into_fk"
-    FOREIGN KEY ("merged_into_account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("merged_into_account_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "store_id"),
   CONSTRAINT "loyalty_account_program_customer_unique"
     UNIQUE ("program_id", "customer_id"),
+  CONSTRAINT "loyalty_account_id_store_unique"
+    UNIQUE ("id", "store_id"),
+  CONSTRAINT "loyalty_account_id_program_store_unique"
+    UNIQUE ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_account_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_account_merge_check" CHECK (
     ("status" = 'MERGED' AND "merged_into_account_id" IS NOT NULL

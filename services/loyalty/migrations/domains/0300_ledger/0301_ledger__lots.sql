@@ -10,12 +10,16 @@ CREATE TABLE "loyalty"."point_lot" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_point_lot_program_fk"
-    FOREIGN KEY ("program_id") REFERENCES "loyalty"."program" ("id"),
+    FOREIGN KEY ("program_id", "store_id")
+    REFERENCES "loyalty"."program" ("id", "store_id"),
   CONSTRAINT "loyalty_point_lot_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "program_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_point_lot_origin_entry_fk"
-    FOREIGN KEY ("origin_entry_id") REFERENCES "loyalty"."ledger_entry" ("id"),
+    FOREIGN KEY ("origin_entry_id", "account_id", "store_id")
+    REFERENCES "loyalty"."ledger_entry" ("id", "account_id", "store_id"),
   CONSTRAINT "loyalty_point_lot_origin_entry_unique" UNIQUE ("origin_entry_id"),
+  CONSTRAINT "loyalty_point_lot_id_store_unique" UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_point_lot_points_check" CHECK ("points_issued" > 0),
   CONSTRAINT "loyalty_point_lot_expiry_check"
     CHECK ("expires_at" IS NULL OR "expires_at" > "activated_at")
@@ -36,11 +40,14 @@ CREATE TABLE "loyalty"."lot_allocation" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_lot_allocation_lot_fk"
-    FOREIGN KEY ("lot_id") REFERENCES "loyalty"."point_lot" ("id"),
+    FOREIGN KEY ("lot_id", "store_id")
+    REFERENCES "loyalty"."point_lot" ("id", "store_id"),
   CONSTRAINT "loyalty_lot_allocation_debit_entry_fk"
-    FOREIGN KEY ("debit_entry_id") REFERENCES "loyalty"."ledger_entry" ("id"),
+    FOREIGN KEY ("debit_entry_id", "store_id")
+    REFERENCES "loyalty"."ledger_entry" ("id", "store_id"),
   CONSTRAINT "loyalty_lot_allocation_transaction_fk"
-    FOREIGN KEY ("transaction_id") REFERENCES "loyalty"."transaction" ("id"),
+    FOREIGN KEY ("transaction_id", "store_id")
+    REFERENCES "loyalty"."transaction" ("id", "store_id"),
   CONSTRAINT "loyalty_lot_allocation_entry_lot_unique"
     UNIQUE ("debit_entry_id", "lot_id"),
   CONSTRAINT "loyalty_lot_allocation_points_check" CHECK ("points" > 0)
@@ -59,6 +66,8 @@ DECLARE
   lot_account_id uuid;
   entry_account_id uuid;
   entry_points bigint;
+  entry_transaction_id uuid;
+  allocated_entry_points bigint;
 BEGIN
   SELECT "points_issued", "account_id"
     INTO issued_points, lot_account_id
@@ -66,13 +75,17 @@ BEGIN
    WHERE "id" = NEW."lot_id"
    FOR UPDATE;
 
-  SELECT "account_id", "points_delta"
-    INTO entry_account_id, entry_points
+  SELECT "account_id", "points_delta", "transaction_id"
+    INTO entry_account_id, entry_points, entry_transaction_id
     FROM "loyalty"."ledger_entry"
    WHERE "id" = NEW."debit_entry_id";
 
   IF lot_account_id IS DISTINCT FROM entry_account_id OR entry_points >= 0 THEN
     RAISE EXCEPTION 'Lot allocation must reference a debit entry on the same account';
+  END IF;
+
+  IF entry_transaction_id IS DISTINCT FROM NEW."transaction_id" THEN
+    RAISE EXCEPTION 'Lot allocation transaction must match its debit entry transaction';
   END IF;
 
   SELECT COALESCE(sum("points"), 0)
@@ -82,6 +95,15 @@ BEGIN
 
   IF allocated_points > issued_points THEN
     RAISE EXCEPTION 'Point lot allocation exceeds issued points';
+  END IF;
+
+  SELECT COALESCE(sum("points"), 0)
+    INTO allocated_entry_points
+    FROM "loyalty"."lot_allocation"
+   WHERE "debit_entry_id" = NEW."debit_entry_id";
+
+  IF allocated_entry_points > -entry_points THEN
+    RAISE EXCEPTION 'Lot allocations exceed debit entry points';
   END IF;
 
   RETURN NEW;

@@ -2,6 +2,7 @@ type LoyaltyReservation implements Node @key(fields: "id") {
   id: ID!
   account: LoyaltyAccount!
   program: LoyaltyProgram!
+  programVersion: LoyaltyProgramVersion!
   checkoutId: ID!
   checkoutVersion: Int!
   quoteId: ID!

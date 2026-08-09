@@ -191,7 +191,6 @@ export interface ReserveCheckoutLoyaltyRedemptionParams {
   quote: LoyaltyRedemptionQuote;
   idempotencyKey: string;
   requestHash: string;
-  expiresAt: string;
 }
 
 export type ReserveCheckoutLoyaltyRedemptionResult =
@@ -267,6 +266,7 @@ export interface ReleaseCheckoutLoyaltyRedemptionParams {
     | "ADMIN_REQUEST";
   releasedAt: string;
   idempotencyKey: string;
+  requestHash: string;
 }
 
 export type ReleaseCheckoutLoyaltyRedemptionResult =
@@ -284,8 +284,12 @@ export type ReleaseCheckoutLoyaltyRedemptionResult =
     }>
   | Readonly<{
       status: "REJECTED";
-      code: "RESERVATION_NOT_FOUND" | "RESERVATION_COMMITTED";
-      retryable: false;
+      code:
+        | "RESERVATION_NOT_FOUND"
+        | "RESERVATION_COMMITTED"
+        | "IDEMPOTENCY_CONFLICT";
+      message: string;
+      retryable: boolean;
     }>;
 
 export interface ExpireCheckoutLoyaltyRedemptionsParams {

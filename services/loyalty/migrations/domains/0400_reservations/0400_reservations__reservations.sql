@@ -2,6 +2,7 @@ CREATE TABLE "loyalty"."reservation" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "program_id" uuid NOT NULL,
+  "program_version_id" uuid NOT NULL,
   "account_id" uuid NOT NULL,
   "checkout_id" uuid NOT NULL,
   "checkout_version" integer NOT NULL,
@@ -25,9 +26,16 @@ CREATE TABLE "loyalty"."reservation" (
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_reservation_program_fk"
-    FOREIGN KEY ("program_id") REFERENCES "loyalty"."program" ("id"),
+    FOREIGN KEY ("program_id", "store_id")
+    REFERENCES "loyalty"."program" ("id", "store_id"),
+  CONSTRAINT "loyalty_reservation_program_version_fk"
+    FOREIGN KEY ("program_version_id", "program_id", "store_id")
+    REFERENCES "loyalty"."program_version" ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_reservation_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "program_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "program_id", "store_id"),
+  CONSTRAINT "loyalty_reservation_id_store_unique"
+    UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_reservation_store_idempotency_unique"
     UNIQUE ("store_id", "idempotency_key"),
   CONSTRAINT "loyalty_reservation_checkout_version_check" CHECK ("checkout_version" > 0),
@@ -90,9 +98,11 @@ CREATE TABLE "loyalty"."reservation_event" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_reservation_event_reservation_fk"
-    FOREIGN KEY ("reservation_id") REFERENCES "loyalty"."reservation" ("id"),
+    FOREIGN KEY ("reservation_id", "store_id")
+    REFERENCES "loyalty"."reservation" ("id", "store_id"),
   CONSTRAINT "loyalty_reservation_event_transaction_fk"
-    FOREIGN KEY ("transaction_id") REFERENCES "loyalty"."transaction" ("id"),
+    FOREIGN KEY ("transaction_id", "store_id")
+    REFERENCES "loyalty"."transaction" ("id", "store_id"),
   CONSTRAINT "loyalty_reservation_event_idempotency_unique"
     UNIQUE ("reservation_id", "idempotency_key"),
   CONSTRAINT "loyalty_reservation_event_reason_check" CHECK (btrim("reason_code") <> ''),

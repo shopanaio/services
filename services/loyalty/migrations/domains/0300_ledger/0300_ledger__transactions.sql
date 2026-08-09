@@ -24,11 +24,18 @@ CREATE TABLE "loyalty"."transaction" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_transaction_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "program_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_transaction_program_fk"
-    FOREIGN KEY ("program_id") REFERENCES "loyalty"."program" ("id"),
+    FOREIGN KEY ("program_id", "store_id")
+    REFERENCES "loyalty"."program" ("id", "store_id"),
   CONSTRAINT "loyalty_transaction_program_version_fk"
-    FOREIGN KEY ("program_version_id") REFERENCES "loyalty"."program_version" ("id"),
+    FOREIGN KEY ("program_version_id", "program_id", "store_id")
+    REFERENCES "loyalty"."program_version" ("id", "program_id", "store_id"),
+  CONSTRAINT "loyalty_transaction_id_store_unique"
+    UNIQUE ("id", "store_id"),
+  CONSTRAINT "loyalty_transaction_id_account_store_unique"
+    UNIQUE ("id", "account_id", "store_id"),
   CONSTRAINT "loyalty_transaction_store_idempotency_unique"
     UNIQUE ("store_id", "idempotency_key"),
   CONSTRAINT "loyalty_transaction_idempotency_check"
@@ -69,9 +76,15 @@ CREATE TABLE "loyalty"."ledger_entry" (
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_ledger_entry_transaction_fk"
-    FOREIGN KEY ("transaction_id") REFERENCES "loyalty"."transaction" ("id"),
+    FOREIGN KEY ("transaction_id", "account_id", "store_id")
+    REFERENCES "loyalty"."transaction" ("id", "account_id", "store_id"),
   CONSTRAINT "loyalty_ledger_entry_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "store_id"),
+  CONSTRAINT "loyalty_ledger_entry_id_store_unique"
+    UNIQUE ("id", "store_id"),
+  CONSTRAINT "loyalty_ledger_entry_id_account_store_unique"
+    UNIQUE ("id", "account_id", "store_id"),
   CONSTRAINT "loyalty_ledger_entry_transaction_sequence_unique"
     UNIQUE ("transaction_id", "sequence"),
   CONSTRAINT "loyalty_ledger_entry_points_check" CHECK ("points_delta" <> 0),

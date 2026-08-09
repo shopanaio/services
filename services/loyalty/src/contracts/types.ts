@@ -120,18 +120,33 @@ export interface LoyaltyProgramRulesV1 {
   }>;
 }
 
-export interface LoyaltyCalculationSnapshotV1 {
-  schemaVersion: 1;
-  programVersionId: string;
-  orderId: string;
-  orderRevision: number;
-  currencyCode: string;
+export interface LoyaltyCalculationLineSnapshotV1 {
+  orderLineId: string;
   eligibleAmountMinor: string;
   basePoints: string;
   modifierIds: readonly string[];
   multiplierBps: number;
   roundingMode: LoyaltyRoundingMode;
   awardedPoints: string;
+}
+
+export interface LoyaltyCalculationSnapshotV1 {
+  schemaVersion: 1;
+  programVersionId: string;
+  orderId: string;
+  orderRevision: number;
+  currencyCode: string;
+  channelCode: string;
+  pricingQuoteId: string;
+  pricingQuoteRevision: string;
+  customerEligibilityRevision: string;
+  segmentIds: readonly string[];
+  segmentMembershipRevision: string;
+  eligibleAmountMinor: string;
+  basePoints: string;
+  roundingMode: LoyaltyRoundingMode;
+  awardedPoints: string;
+  lines: readonly LoyaltyCalculationLineSnapshotV1[];
 }
 
 export interface LoyaltyProgramContract {
@@ -277,6 +292,7 @@ export interface LoyaltyReservationContract {
   id: string;
   storeId: string;
   programId: string;
+  programVersionId: string;
   accountId: string;
   checkoutId: string;
   checkoutVersion: number;

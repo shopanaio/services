@@ -21,6 +21,10 @@ work can add providers without changing the public package name.
 - Loyalty exclusively owns conversion rules, balances, reservations, lot
   allocation, expiry, redemption, debt, and points audit history.
 
+All Loyalty-owned foreign keys include `store_id` in their relational contract.
+The database therefore rejects cross-store links even if a future repository
+forgets to apply its tenant filter.
+
 ## Authoritative and projected data
 
 `loyalty.transaction`, `loyalty.ledger_entry`, `loyalty.point_lot`, and
@@ -52,10 +56,16 @@ Loyalty consumes:
 
 Loyalty emits typed earned, activated, reserved, redeemed, released, expired,
 reversed, restored, and adjusted point events through `@shopana/events`.
+Economic events tied to earning, lots, reservations, or redemption require the
+exact published `programVersionId`; only version-independent adjustments may
+carry a null version.
 
 Every event-driven mutation must derive idempotency from the immutable event ID,
 not from delivery attempt. Every direct action accepts an explicit stable
 idempotency key and, where the payload can vary, a canonical request hash.
+Order reward facts also carry immutable channel, customer eligibility, and
+segment membership snapshots so historical calculations never hydrate mutable
+Customers state.
 
 ## Checkout action sequence
 
@@ -68,6 +78,10 @@ idempotency key and, where the payload can vary, a canonical request hash.
 Reservation and commit operations are expected to lock the account, append
 ledger entries, allocate lots, update the balance projection, and write the
 reservation audit event in one PostgreSQL transaction.
+Reservation expiry is owned by Loyalty and is taken from the verified quote;
+Checkout cannot replace or extend it when reserving points.
+Each reservation also persists the exact `program_version_id` selected by that
+quote so later commit, release, reversal, and emitted events remain auditable.
 
 ## API surfaces
 

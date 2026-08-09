@@ -14,9 +14,11 @@ CREATE TABLE "loyalty"."account_balance" (
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_account_balance_account_fk"
-    FOREIGN KEY ("account_id") REFERENCES "loyalty"."account" ("id"),
+    FOREIGN KEY ("account_id", "store_id")
+    REFERENCES "loyalty"."account" ("id", "store_id"),
   CONSTRAINT "loyalty_account_balance_last_transaction_fk"
-    FOREIGN KEY ("last_transaction_id") REFERENCES "loyalty"."transaction" ("id"),
+    FOREIGN KEY ("last_transaction_id", "account_id", "store_id")
+    REFERENCES "loyalty"."transaction" ("id", "account_id", "store_id"),
   CONSTRAINT "loyalty_account_balance_nonnegative_check" CHECK (
     "pending_points" >= 0
     AND "available_points" >= 0
