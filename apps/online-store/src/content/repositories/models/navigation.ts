@@ -76,6 +76,7 @@ export const navigationMenuItems = onlineStoreSchema.table(
       .references(() => navigationMenus.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
     parentId: uuid("parent_id"),
+    handle: varchar("handle", { length: 255 }).notNull(),
     lexoRank: varchar("lexo_rank", { length: 64 }).notNull(),
     targetType: varchar("target_type", { length: 64 }).notNull(),
     targetId: uuid("target_id"),
@@ -107,6 +108,10 @@ export const navigationMenuItems = onlineStoreSchema.table(
       sql`${table.parentId} IS NULL OR ${table.parentId} <> ${table.id}`,
     ),
     check(
+      "navigation_menu_items_handle_not_empty_check",
+      sql`btrim(${table.handle}) <> ''`,
+    ),
+    check(
       "navigation_menu_items_lexo_rank_not_empty_check",
       sql`btrim(${table.lexoRank}) <> ''`,
     ),
@@ -134,6 +139,12 @@ export const navigationMenuItems = onlineStoreSchema.table(
       table.lexoRank,
       table.id,
     ),
+    uniqueIndex("navigation_menu_items_root_handle_key")
+      .on(table.menuId, table.handle)
+      .where(sql`${table.parentId} IS NULL`),
+    uniqueIndex("navigation_menu_items_parent_handle_key")
+      .on(table.menuId, table.parentId, table.handle)
+      .where(sql`${table.parentId} IS NOT NULL`),
     index("navigation_menu_items_target_idx").on(
       table.storeId,
       table.targetType,

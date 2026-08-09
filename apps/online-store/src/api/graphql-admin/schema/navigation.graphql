@@ -27,6 +27,7 @@ type OnlineStoreNavigationTarget {
 """A localized item in a navigation menu tree."""
 type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
   id: ID!
+  handle: String!
   menu: OnlineStoreNavigationMenu!
   parent: OnlineStoreNavigationMenuItem
   children: [OnlineStoreNavigationMenuItem!]!
@@ -64,6 +65,7 @@ input OnlineStoreNavigationTargetInput {
 input OnlineStoreNavigationMenuItemCreateInput {
   menuId: ID!
   parentId: ID
+  handle: String!
   label: String!
   afterItemId: ID
   beforeItemId: ID
@@ -74,6 +76,7 @@ input OnlineStoreNavigationMenuItemCreateInput {
 input OnlineStoreNavigationMenuItemUpdateInput {
   id: ID!
   parentId: ID
+  handle: String
   label: String
   afterItemId: ID
   beforeItemId: ID

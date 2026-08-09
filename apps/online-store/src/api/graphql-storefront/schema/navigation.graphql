@@ -20,6 +20,9 @@ type OnlineStoreNavigationMenuItem implements Node @key(fields: "id") {
   """The globally unique Relay ID of the item."""
   id: ID!
 
+  """Stable handle, unique among items with the same parent."""
+  handle: String!
+
   menu: OnlineStoreNavigationMenu!
   parent: OnlineStoreNavigationMenuItem
 

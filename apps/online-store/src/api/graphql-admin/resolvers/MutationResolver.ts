@@ -271,6 +271,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     readonly input: {
       readonly menuId: string;
       readonly parentId?: string | null;
+      readonly handle: string;
       readonly label: string;
       readonly afterItemId?: string | null;
       readonly beforeItemId?: string | null;
@@ -279,6 +280,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     };
   }) {
     return this.entityPayload("navigationMenuItem", async () => {
+      assertNonEmpty(args.input.handle, "input.handle");
       assertNonEmpty(args.input.label, "input.label");
       const menuId = this.requiredId(
         args.input.menuId,
@@ -290,6 +292,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
           this.scope,
           menuId,
           {
+            handle: args.input.handle,
             parentId: this.optionalId(
               args.input.parentId,
               GlobalIdEntity.OnlineStoreNavigationMenuItem,
@@ -329,6 +332,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     readonly input: {
       readonly id: string;
       readonly parentId?: string | null;
+      readonly handle?: string | null;
       readonly label?: string | null;
       readonly afterItemId?: string | null;
       readonly beforeItemId?: string | null;
@@ -338,6 +342,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
     };
   }) {
     return this.entityPayload("navigationMenuItem", async () => {
+      if (args.input.handle !== undefined) {
+        assertNonEmpty(args.input.handle, "input.handle");
+      }
       if (args.input.label !== undefined) {
         assertNonEmpty(args.input.label, "input.label");
       }
@@ -354,6 +361,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<
           this.scope,
           itemId,
           {
+            ...(hasOwn(args.input, "handle")
+              ? { handle: args.input.handle! }
+              : {}),
             ...(hasOwn(args.input, "parentId")
               ? {
                   parentId: this.optionalId(
@@ -568,6 +578,8 @@ function userMessage(code: string): string {
       return "The navigation menu changed; reload and try again";
     case "ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT":
       return "The navigation item changed; reload and try again";
+    case "ONLINE_STORE_NAVIGATION_ITEM_HANDLE_TAKEN":
+      return "The navigation item handle is already used under this parent";
     case "ONLINE_STORE_NAVIGATION_PARENT_INVALID":
       return "The navigation parent is invalid";
     case "NAVIGATION_AFTER_ITEM_INVALID":

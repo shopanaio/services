@@ -13,6 +13,7 @@ import type {
 } from "./types.js";
 
 export interface CreateNavigationMenuItemInput {
+  readonly handle: string;
   readonly parentId?: string | null;
   readonly afterItemId?: string | null;
   readonly beforeItemId?: string | null;
@@ -21,6 +22,7 @@ export interface CreateNavigationMenuItemInput {
 }
 
 export interface UpdateNavigationMenuItemInput {
+  readonly handle?: string;
   readonly parentId?: string | null;
   readonly afterItemId?: string | null;
   readonly beforeItemId?: string | null;
@@ -147,10 +149,13 @@ export class NavigationMenuItemRepository extends BaseRepository {
     }
 
     const target = normalizeTarget(input.target);
+    const parentId = input.parentId ?? null;
+    await this.assertHandleAvailable(scope, menuId, parentId, input.handle);
     const insert: NewNavigationMenuItemModel = {
       menuId,
       storeId: scope.storeId,
-      parentId: input.parentId ?? null,
+      parentId,
+      handle: input.handle,
       lexoRank: temporaryRank(),
       targetType: target.targetType,
       targetId: target.targetId,
@@ -167,7 +172,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
     const created = requiredRow(rows[0]);
     await this.reorderSiblings(scope, {
       menuId,
-      parentId: input.parentId ?? null,
+      parentId,
       itemId: created.id,
       afterItemId: input.afterItemId,
       beforeItemId: input.beforeItemId,
@@ -199,12 +204,21 @@ export class NavigationMenuItemRepository extends BaseRepository {
       if (!parent || parent.menuId !== item.menuId) return null;
       if (await this.parentCreatesCycle(scope, itemId, parent.id)) return null;
     }
+    const nextHandle = input.handle ?? item.handle;
+    await this.assertHandleAvailable(
+      scope,
+      item.menuId,
+      nextParentId,
+      nextHandle,
+      itemId,
+    );
 
     const target = input.target ? normalizeTarget(input.target) : undefined;
     const rows = await this.connection
       .update(navigationMenuItems)
       .set({
         parentId: nextParentId,
+        handle: input.handle,
         lexoRank: shouldReorder ? temporaryRank() : undefined,
         targetType: target?.targetType,
         targetId: target?.targetId,
@@ -274,6 +288,40 @@ export class NavigationMenuItemRepository extends BaseRepository {
       currentId = current?.parentId ?? null;
     }
     return false;
+  }
+
+  private async assertHandleAvailable(
+    scope: OnlineStoreScope,
+    menuId: string,
+    parentId: string | null,
+    handle: string,
+    excludeItemId?: string,
+  ): Promise<void> {
+    const parentCondition =
+      parentId === null
+        ? sql`${navigationMenuItems.parentId} IS NULL`
+        : eq(navigationMenuItems.parentId, parentId);
+    const rows = await this.connection
+      .select({ id: navigationMenuItems.id })
+      .from(navigationMenuItems)
+      .where(
+        and(
+          this.itemScope(scope),
+          eq(navigationMenuItems.menuId, menuId),
+          parentCondition,
+          eq(navigationMenuItems.handle, handle),
+          excludeItemId
+            ? sql`${navigationMenuItems.id} <> ${excludeItemId}`
+            : undefined,
+        ),
+      )
+      .limit(1);
+    if (rows[0]) {
+      throw operationError(
+        "ONLINE_STORE_NAVIGATION_ITEM_HANDLE_TAKEN",
+        "input.handle",
+      );
+    }
   }
 
   private async reorderSiblings(
@@ -391,6 +439,9 @@ function rankForIndex(index: number): string {
   return String((index + 1) * 1024).padStart(16, "0");
 }
 
-function operationError(code: string): Error & { code: string } {
-  return Object.assign(new Error(code), { code });
+function operationError(
+  code: string,
+  field?: string,
+): Error & { code: string; field?: string } {
+  return Object.assign(new Error(code), { code, field });
 }

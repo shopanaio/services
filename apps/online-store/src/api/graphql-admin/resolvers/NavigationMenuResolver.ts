@@ -96,6 +96,10 @@ export class NavigationMenuItemResolver extends OnlineStoreType<
     );
   }
 
+  async handle() {
+    return this.$get("handle");
+  }
+
   async menu() {
     return new NavigationMenuResolver(await this.$get("menuId"), this.$ctx);
   }
