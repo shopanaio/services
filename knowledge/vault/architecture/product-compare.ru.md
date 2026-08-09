@@ -20,11 +20,11 @@ Catalog владеет:
 - явным mapping product-local variant option в canonical field;
 - нормализованными feature values и option values.
 
-Catalog не хранит пользовательский список. Guest selection может храниться в
-URL/local storage. Persisted selection принадлежит Customers/preferences и
-состоит из единого упорядоченного набора concrete `variant_id`, а не из
-уникальных products. Catalog группирует этот набор по текущей primary category
-только при построении storefront presentation model. Цена,
+Catalog не хранит пользовательский список. Storefront не передаёт произвольный
+набор products или variants в compare read API. Persisted selection принадлежит
+Customers/preferences и состоит из единого упорядоченного набора concrete
+`variant_id`, а не из уникальных products. Catalog группирует этот набор по
+текущей primary category только при построении storefront presentation model. Цена,
 наличие и variant state остаются текущими contextual данными pricing/inventory,
 а не snapshot внутри comparison schema.
 
@@ -219,15 +219,30 @@ profiles storefront может вернуть `COMMON_ONLY`, но общие п�
 
 ## Storefront read contract
 
-Для guest selection `Query.productComparison(variantIds:)` принимает уникальные
-concrete variants. Для authenticated customer Catalog расширяет federation
-entity `Customer` полем `productComparisons`, группирует сохранённые Customers
-variants по текущей primary category и возвращает один `ProductComparison` на
-категорию. Несколько variants одного Product разрешены. Внутри категории
-колонки сохраняют persisted/input order:
+На product page Catalog расширяет `Product` безаргументным полем `comparison`.
+Catalog сам определяет effective comparison profile текущего продукта, применяет
+publication и storefront context, выбирает все доступные для сравнения products
+и concrete variants, применяет deterministic server-defined order и limit и
+возвращает полностью готовую `ProductComparison` matrix. Storefront не передаёт
+product, variant, profile, filters или pagination inputs, не вычисляет
+совместимость и не собирает matrix самостоятельно.
+
+Для authenticated customer Catalog расширяет federation entity `Customer`
+безаргументным полем `productComparisons`. Оно возвращает revision и все готовые
+category matrices. Catalog группирует сохранённые Customers variants по текущей
+primary category и возвращает один `ProductComparison` на категорию. Несколько
+variants одного Product разрешены. Внутри категории колонки сохраняют persisted
+order:
 
 ```text
-input ordered variant IDs or persisted Customer selection
+current Product
+  -> resolve effective profile and storefront context
+  -> select every published product and concrete variant available for comparison
+  -> apply deterministic server-defined order and limit
+  -> build groups, rows and aligned cells
+  -> emit Product.comparison
+
+persisted Customer selection
   -> validate uniqueness, publication, product ownership and storefront context
   -> group by current primary category
   -> resolve effective profile inside each category group
@@ -236,16 +251,18 @@ input ordered variant IDs or persisted Customer selection
   -> load product feature mappings in batch
   -> load selected option/value mappings for each concrete variant
   -> join current variant price, availability and media
-  -> emit a Relay ProductComparisonColumnConnection per category
-  -> emit row cells for exactly the columns in the requested connection page
+  -> emit one ProductComparison per category
+  -> emit a Relay ProductComparisonColumnConnection
+  -> emit row cells for exactly the requested column page
      with stable cell order and explicit status
 ```
 
 Read model должен использовать DataLoader/batch repositories и возвращать
 готовые category matrices, а не заставлять client группировать variants или
-сопоставлять несколько `Product.features`. `groups` принадлежат column
-connection page, поэтому каждая row содержит ровно одну cell на `nodes` в том
-же порядке.
+сопоставлять несколько `Product.features`. `groups` принадлежат конкретной page
+колонок, поэтому каждая row содержит ровно одну cell на connection `nodes` в том
+же порядке. Аргументы `first`, `after`, `last`, `before` управляют только Relay
+pagination и не участвуют в определении совместимости.
 
 Storefront schema Customers не публикует внутренние `customer_comparison` и
 `customer_comparison_item`. Покупатель изменяет selection атомарными add/remove
@@ -258,7 +275,7 @@ price и availability нельзя cache-ировать без market/channel/cu
 System/header values — product title, concrete variant media, current price,
 availability и CTA — не моделируются как `ProductFeature`. Их поставляют
 owning domains через storefront composition. Variant-specific weight, dimensions,
-price и selected options относятся к точному input `variant_id`; storefront
+price и selected options относятся к точному persisted `variant_id`; storefront
 никогда не выбирает «первый доступный» variant молча.
 
 ## Write contracts
