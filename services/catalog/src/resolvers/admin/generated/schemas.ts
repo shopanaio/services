@@ -737,6 +737,7 @@ export function ProductDeleteInputSchema(): z.ZodObject<Properties<ProductDelete
 
 export function ProductFeatureCreateInputSchema(): z.ZodObject<Properties<ProductFeatureCreateInput>> {
   return z.object({
+    featured: z.boolean().default(false).nullish(),
     name: z.string(),
     productId: z.string(),
     slug: z.string(),
@@ -752,6 +753,7 @@ export function ProductFeatureDeleteInputSchema(): z.ZodObject<Properties<Produc
 
 export function ProductFeatureInputSchema(): z.ZodObject<Properties<ProductFeatureInput>> {
   return z.object({
+    featured: z.boolean().default(false).nullish(),
     name: z.string(),
     slug: z.string(),
     values: z.array(z.lazy(() => ProductFeatureValueCreateInputSchema()))
@@ -760,6 +762,7 @@ export function ProductFeatureInputSchema(): z.ZodObject<Properties<ProductFeatu
 
 export function ProductFeatureSyncItemInputSchema(): z.ZodObject<Properties<ProductFeatureSyncItemInput>> {
   return z.object({
+    featured: z.boolean().default(false),
     id: z.string().nullish(),
     index: z.array(z.number()),
     isGroup: z.boolean(),
@@ -771,6 +774,7 @@ export function ProductFeatureSyncItemInputSchema(): z.ZodObject<Properties<Prod
 
 export function ProductFeatureUpdateInputSchema(): z.ZodObject<Properties<ProductFeatureUpdateInput>> {
   return z.object({
+    featured: z.boolean().nullish(),
     id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish(),

@@ -2891,6 +2891,7 @@ function mapProductFeaturesSyncOperation(
     index: feature.index,
     slug: feature.slug,
     isGroup: feature.isGroup,
+    featured: feature.featured ?? false,
     name: feature.name,
     values: feature.values?.map((value, valueIndex) => ({
       id: value.id

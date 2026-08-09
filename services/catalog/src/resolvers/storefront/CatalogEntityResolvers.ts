@@ -221,6 +221,10 @@ abstract class BaseFeatureResolver extends CatalogType<string, ProductFeature> {
     const index = await this.$get("index");
     return index.at(-1) ?? 0;
   }
+
+  async featured() {
+    return (await this.$get("featured")) ?? false;
+  }
 }
 
 @SubgraphReference()

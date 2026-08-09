@@ -63,6 +63,15 @@ export const useStyles = createStyles(({ token }) => ({
     color: token.colorSuccess,
     fontSize: 14,
   },
+  featuredBadge: {
+    marginInlineStart: 6,
+    whiteSpace: "nowrap",
+    "& .ant-badge-status-text": {
+      color: token.colorWarningText,
+      fontSize: 12,
+      fontWeight: 500,
+    },
+  },
   actionsCell: {
     display: "flex",
     alignItems: "center",

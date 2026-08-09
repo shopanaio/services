@@ -234,6 +234,9 @@ input ProductFeatureInput {
   """Display name."""
   name: String!
 
+  """Whether this feature should be highlighted in product presentation."""
+  featured: Boolean = false
+
   """The values for this feature."""
   values: [ProductFeatureValueCreateInput!]!
 }

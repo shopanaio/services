@@ -106,6 +106,7 @@ export class FeatureRepository extends BaseRepository {
     data: {
       slug: string;
       isGroup?: boolean;
+      featured?: boolean;
       parentId?: string | null;
       index: number[];
     }
@@ -119,6 +120,7 @@ export class FeatureRepository extends BaseRepository {
       slug: data.slug,
       index: data.index,
       isGroup: data.isGroup ?? false,
+      featured: data.featured ?? false,
       parentId: data.parentId ?? null,
     };
 
@@ -135,6 +137,7 @@ export class FeatureRepository extends BaseRepository {
     data: {
       slug?: string;
       isGroup?: boolean;
+      featured?: boolean;
       parentId?: string | null;
       index?: number[];
     }
@@ -143,6 +146,7 @@ export class FeatureRepository extends BaseRepository {
 
     if (data.slug !== undefined) updateData.slug = data.slug;
     if (data.isGroup !== undefined) updateData.isGroup = data.isGroup;
+    if (data.featured !== undefined) updateData.featured = data.featured;
     if (data.parentId !== undefined) updateData.parentId = data.parentId;
     if (data.index !== undefined) updateData.index = data.index;
 

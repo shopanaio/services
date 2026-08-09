@@ -190,6 +190,7 @@ export const PRODUCT_FEATURE_FRAGMENT = gql`
     name
     slug
     isGroup
+    featured
     index
     values {
       id

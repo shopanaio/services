@@ -496,8 +496,10 @@ export const createMockApiProductFeature = (params: {
   isGroup?: boolean;
   children?: ApiProductFeature[];
   parent?: ApiProductFeature | null;
+  featured?: boolean;
 }): ApiProductFeature => ({
   __typename: "ProductFeature",
+  featured: params.featured ?? false,
   id: params.id,
   name: params.name,
   slug: params.slug,

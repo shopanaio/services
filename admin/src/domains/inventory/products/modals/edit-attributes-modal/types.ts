@@ -15,6 +15,7 @@ export interface AttributeEditorRow extends ITreeTableRow {
   apiId?: string;
   apiType?: AttributeEditorRowType;
   type: AttributeEditorRowType;
+  featured: boolean;
   name: string;
   slug: string;
   parentId: string | null;

@@ -14,6 +14,9 @@ type ProductFeature implements Node @key(fields: "id") {
   """Whether this feature is a group (container) or an attribute (leaf)."""
   isGroup: Boolean!
 
+  """Whether this feature should be highlighted in product presentation."""
+  featured: Boolean!
+
   """Display name (from translations)."""
   name: String!
 
@@ -76,6 +79,9 @@ input ProductFeatureSyncItemInput {
   """Whether this is a group (true) or attribute (false)."""
   isGroup: Boolean!
 
+  """Whether this feature should be highlighted in product presentation."""
+  featured: Boolean! = false
+
   """Display name."""
   name: String!
 
@@ -123,6 +129,9 @@ input ProductFeatureCreateInput {
 
   """Display name."""
   name: String!
+
+  """Whether this feature should be highlighted in product presentation."""
+  featured: Boolean = false
 
   """The values for this feature."""
   values: [ProductFeatureValueCreateInput!]!
@@ -174,6 +183,9 @@ input ProductFeatureUpdateInput {
 
   """Display name."""
   name: String
+
+  """Whether this feature should be highlighted in product presentation."""
+  featured: Boolean
 
   """Nested value operations."""
   values: ProductFeatureValuesInput

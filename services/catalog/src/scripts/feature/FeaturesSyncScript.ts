@@ -91,6 +91,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
         const created = await this.repository.feature.create(productId, {
           slug: f.slug,
           isGroup: true,
+          featured: f.featured,
           parentId: null,
           index: f.index,
         });
@@ -104,6 +105,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
         const created = await this.repository.feature.create(productId, {
           slug: f.slug,
           isGroup: false,
+          featured: f.featured,
           index: f.index,
           parentId: null,
         });
@@ -129,6 +131,7 @@ export class FeaturesSyncScript extends BaseScript<FeatureSyncParams, FeatureSyn
     await this.repository.feature.update(item.id, {
       slug: item.input.slug,
       isGroup: item.input.isGroup,
+      featured: item.input.featured,
       parentId: item.parentId,
       index: item.index,
     });

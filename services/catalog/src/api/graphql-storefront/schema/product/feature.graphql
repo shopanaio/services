@@ -4,6 +4,7 @@ type ProductFeature implements Node @key(fields: "id") {
   handle: String!
   name: String!
   position: Int!
+  featured: Boolean!
   group: ProductFeatureGroup
   values: [ProductFeatureValue!]!
 }
@@ -23,5 +24,6 @@ type ProductFeatureGroup implements Node @key(fields: "id") {
   handle: String!
   name: String!
   position: Int!
+  featured: Boolean!
   features: [ProductFeature!]!
 }

@@ -38,6 +38,7 @@ const FeatureSyncItemSchema = z.object({
       "Feature slug must use lowercase letters, numbers, and hyphens"
     ),
   isGroup: z.boolean(),
+  featured: z.boolean(),
   name: z.string().min(1, "Feature name is required").max(255),
   values: z.array(FeatureValueInputSchema).optional(),
 });

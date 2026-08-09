@@ -46,6 +46,10 @@ export class FeatureResolver extends CatalogType<string, ProductFeature> {
     return (await this.$get("isGroup")) ?? false;
   }
 
+  async featured() {
+    return (await this.$get("featured")) ?? false;
+  }
+
   async parent() {
     const parentId = await this.$get("parentId");
     if (!parentId) return null;

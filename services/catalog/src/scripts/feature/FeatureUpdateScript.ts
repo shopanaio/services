@@ -5,7 +5,7 @@ import type { ProductFeature, ProductFeatureValue } from "../../repositories/mod
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
-    const { id, slug, name, values } = params;
+    const { id, slug, name, featured, values } = params;
 
     // 1. Check feature exists
     const existingFeature = await this.repository.feature.findById(id);
@@ -52,8 +52,11 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       }
     }
 
-    if (slug !== undefined) {
-      await this.repository.feature.update(id, { slug });
+    if (slug !== undefined || featured !== undefined) {
+      const featureUpdate: { slug?: string; featured?: boolean } = {};
+      if (slug !== undefined) featureUpdate.slug = slug;
+      if (featured !== undefined) featureUpdate.featured = featured;
+      await this.repository.feature.update(id, featureUpdate);
     }
 
     // 2. Update translation if name provided

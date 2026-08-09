@@ -5,6 +5,7 @@ export interface FeatureUpdateParams {
   readonly id: string;
   readonly slug?: string;
   readonly name?: string;
+  readonly featured?: boolean;
   readonly values?: FeatureValuesInput;
 }
 

@@ -12258,6 +12258,8 @@ export type ApiProductFeature = ApiNode & {
   __typename?: 'ProductFeature';
   /** Child features. Returns empty array for attributes (isGroup = false). */
   children: Array<ApiProductFeature>;
+  /** Whether this feature should be highlighted in product presentation. */
+  featured: Scalars['Boolean']['output'];
   /** The globally unique ID of the feature. */
   id: Scalars['ID']['output'];
   /** Tree position as array: [0] for root, [0, 1] for child of first group. */
@@ -12276,6 +12278,8 @@ export type ApiProductFeature = ApiNode & {
 
 /** Input for creating a feature on a product. */
 export type ApiProductFeatureCreateInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** Display name. */
   name: Scalars['String']['input'];
   /** The ID of the product. */
@@ -12316,6 +12320,8 @@ export type ApiProductFeatureDeletePayload = {
 
 /** Input for creating a feature during product creation. */
 export type ApiProductFeatureInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the feature. */
@@ -12325,6 +12331,8 @@ export type ApiProductFeatureInput = {
 };
 
 export type ApiProductFeatureSyncItemInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: Scalars['Boolean']['input'];
   /**
    * Database ID. Null for new records.
    * - If provided: update existing feature
@@ -12352,6 +12360,8 @@ export type ApiProductFeatureSyncItemInput = {
 
 /** Input for updating a feature. */
 export type ApiProductFeatureUpdateInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** The ID of the feature to update. */
   id: Scalars['ID']['input'];
   /** Display name. */

@@ -214,6 +214,7 @@ export function apiProductFeaturesToAttributeEditorRows(
         apiId: feature.id,
         apiType: "attribute",
         type: "attribute",
+        featured: feature.featured,
         name: feature.name,
         slug: feature.slug,
         parentId,
@@ -237,6 +238,7 @@ export function apiProductFeaturesToAttributeEditorRows(
       apiId: feature.id,
       apiType: feature.isGroup ? "group" : "attribute",
       type: feature.isGroup ? "group" : "attribute",
+      featured: feature.featured,
       name: feature.name,
       slug: feature.slug,
       parentId: null,
@@ -369,6 +371,7 @@ function createFeatureSyncItem(input: {
   const item: ApiProductFeatureSyncItemInput = {
     index: input.index,
     isGroup: input.row.type === "group",
+    featured: input.row.featured,
     name: input.row.name.trim(),
     slug,
   };

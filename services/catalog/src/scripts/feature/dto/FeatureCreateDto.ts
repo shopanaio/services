@@ -5,6 +5,7 @@ export interface FeatureCreateParams {
   readonly productId: string;
   readonly slug: string;
   readonly name: string;
+  readonly featured?: boolean;
   readonly values: FeatureValueInput[];
 }
 

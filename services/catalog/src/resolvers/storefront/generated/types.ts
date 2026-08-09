@@ -1255,6 +1255,7 @@ export type ProductComponentSelectionInput = {
 /** A localized product specification such as material or screen size. */
 export type ProductFeature = Node & {
   __typename?: 'ProductFeature';
+  featured: Scalars['Boolean']['output'];
   group: Maybe<ProductFeatureGroup>;
   handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -1266,6 +1267,7 @@ export type ProductFeature = Node & {
 /** A presentation group containing related product specifications. */
 export type ProductFeatureGroup = Node & {
   __typename?: 'ProductFeatureGroup';
+  featured: Scalars['Boolean']['output'];
   features: Array<ProductFeature>;
   handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -2044,6 +2046,7 @@ export type ProductComponentItemResolvers<ContextType = ServiceContext, ParentTy
 
 export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeature'] = ResolversParentTypes['ProductFeature']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeature']>, { __typename: 'ProductFeature' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  featured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   group?: Resolver<Maybe<ResolversTypes['ProductFeatureGroup']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -2055,6 +2058,7 @@ export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType ext
 
 export type ProductFeatureGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeatureGroup'] = ResolversParentTypes['ProductFeatureGroup']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeatureGroup']>, { __typename: 'ProductFeatureGroup' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  featured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   features?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;

@@ -13,6 +13,7 @@ export interface FeatureSyncItemInput {
   readonly index: number[];
   readonly slug: string;
   readonly isGroup: boolean;
+  readonly featured: boolean;
   readonly name: string;
   readonly values?: FeatureValueSyncInput[];
 }

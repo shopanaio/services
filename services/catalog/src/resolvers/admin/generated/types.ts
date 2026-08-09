@@ -3066,6 +3066,8 @@ export type ProductFeature = Node & {
   __typename?: 'ProductFeature';
   /** Child features. Returns empty array for attributes (isGroup = false). */
   children: Array<ProductFeature>;
+  /** Whether this feature should be highlighted in product presentation. */
+  featured: Scalars['Boolean']['output'];
   /** The globally unique ID of the feature. */
   id: Scalars['ID']['output'];
   /** Tree position as array: [0] for root, [0, 1] for child of first group. */
@@ -3084,6 +3086,8 @@ export type ProductFeature = Node & {
 
 /** Input for creating a feature on a product. */
 export type ProductFeatureCreateInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** Display name. */
   name: Scalars['String']['input'];
   /** The ID of the product. */
@@ -3124,6 +3128,8 @@ export type ProductFeatureDeletePayload = {
 
 /** Input for creating a feature during product creation. */
 export type ProductFeatureInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** Display name. */
   name: Scalars['String']['input'];
   /** The URL-friendly slug for the feature. */
@@ -3133,6 +3139,8 @@ export type ProductFeatureInput = {
 };
 
 export type ProductFeatureSyncItemInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: Scalars['Boolean']['input'];
   /**
    * Database ID. Null for new records.
    * - If provided: update existing feature
@@ -3160,6 +3168,8 @@ export type ProductFeatureSyncItemInput = {
 
 /** Input for updating a feature. */
 export type ProductFeatureUpdateInput = {
+  /** Whether this feature should be highlighted in product presentation. */
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
   /** The ID of the feature to update. */
   id: Scalars['ID']['input'];
   /** Display name. */
@@ -6475,6 +6485,7 @@ export type ProductEdgeResolvers<ContextType = ServiceContext, ParentType extend
 export type ProductFeatureResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductFeature'] = ResolversParentTypes['ProductFeature']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductFeature']>, { __typename: 'ProductFeature' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   children?: Resolver<Array<ResolversTypes['ProductFeature']>, ParentType, ContextType>;
+  featured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   index?: Resolver<Array<ResolversTypes['Int']>, ParentType, ContextType>;
   isGroup?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;

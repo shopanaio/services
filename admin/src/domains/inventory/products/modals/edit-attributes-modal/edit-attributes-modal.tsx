@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Alert, App, Button, Dropdown, Flex, Typography } from "antd";
+import { Alert, App, Button, Checkbox, Dropdown, Flex, Typography } from "antd";
 import { LuPlus as PlusOutlined, LuFolder as FolderOutlined, LuTags as TagsOutlined } from "react-icons/lu";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -11,6 +11,7 @@ import {
   RowDragModule,
   GetRowIdParams,
   CellValueChangedEvent,
+  type ICellRendererParams,
 } from "ag-grid-community";
 import {
   useModalStackContext,
@@ -119,6 +120,7 @@ export const EditAttributesModal = () => {
       const newRow: AttributeEditorRow = {
         id: createTemporaryFeatureId(),
         type: "attribute",
+        featured: false,
         name: "New Attribute",
         slug: "",
         parentId,
@@ -138,6 +140,7 @@ export const EditAttributesModal = () => {
     const newGroup: AttributeEditorRow = {
       id: createTemporaryFeatureId(),
       type: "group",
+      featured: false,
       name: "New Group",
       slug: "",
       parentId: null,
@@ -168,6 +171,7 @@ export const EditAttributesModal = () => {
       const newRow: AttributeEditorRow = {
         id: newId,
         type: "attribute",
+        featured: false,
         name: "New Attribute",
         slug: "",
         parentId: null,
@@ -253,6 +257,28 @@ export const EditAttributesModal = () => {
           onToggleExpand: handleToggleExpand,
           allRows,
         },
+      },
+      {
+        field: "featured",
+        headerName: "Featured",
+        width: 110,
+        cellRenderer: (params: ICellRendererParams<AttributeEditorRow>) => {
+          const row = params.data;
+          if (!row) return null;
+
+          return (
+            <Checkbox
+              checked={row.featured}
+              aria-label={`Mark ${row.name} as featured`}
+              data-testid={`edit-attributes-featured-${row.id}`}
+              onChange={(event) =>
+                updateRow(row.id, { featured: event.target.checked })
+              }
+            />
+          );
+        },
+        sortable: false,
+        filter: false,
       },
       {
         colId: "valuesText",

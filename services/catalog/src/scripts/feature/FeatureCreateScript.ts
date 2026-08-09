@@ -4,7 +4,7 @@ import { isValidSlug } from "../shared/slug.js";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
-    const { productId, slug, name, values } = params;
+    const { productId, slug, name, featured, values } = params;
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -71,6 +71,7 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     const feature = await this.repository.feature.create(productId, {
       slug,
       isGroup: false,
+      featured: featured ?? false,
       parentId: null,
       index: newIndex,
     });

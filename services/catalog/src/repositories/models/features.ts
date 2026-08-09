@@ -23,6 +23,7 @@ export const productFeature = catalogSchema.table(
     slug: varchar("slug", { length: 255 }).notNull(),
     index: integer("index").array().notNull(), // int[] - tree position: [0], [0, 1], etc.
     isGroup: boolean("is_group").notNull().default(false),
+    featured: boolean("featured").notNull().default(false),
     parentId: uuid("parent_id").references(
       (): AnyPgColumn => productFeature.id,
       { onDelete: "cascade" }
