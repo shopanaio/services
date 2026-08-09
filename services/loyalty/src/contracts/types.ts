@@ -354,8 +354,6 @@ export interface LoyaltyTierContract {
   name: string;
   rank: number;
   qualificationPoints: string | null;
-  qualificationSpend: LoyaltyMoney | null;
-  benefits: LoyaltyJsonObject;
   createdAt: string;
 }
 

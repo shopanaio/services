@@ -53,15 +53,8 @@ type LoyaltyTier {
   code: String!
   name: String!
   rank: Int!
-  benefits: [LoyaltyTierBenefit!]!
   effectiveFrom: DateTime!
   effectiveTo: DateTime
-}
-
-"""A customer-visible benefit included in a loyalty tier."""
-type LoyaltyTierBenefit {
-  title: String!
-  description: String
 }
 
 """Points scheduled to expire at the same time."""

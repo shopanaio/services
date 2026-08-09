@@ -61,8 +61,6 @@ type LoyaltyTier implements Node @key(fields: "id") {
   name: String!
   rank: Int!
   qualificationPoints: BigInt
-  qualificationSpend: LoyaltyMoney
-  benefits: JSON!
   createdAt: DateTime!
 }
 
@@ -177,9 +175,6 @@ input LoyaltyTierInput {
   name: String!
   rank: Int!
   qualificationPoints: BigInt
-  qualificationSpendMinor: BigInt
-  qualificationCurrencyCode: CurrencyCode
-  benefits: JSON
 }
 
 input LoyaltyProgramRulesInput {
