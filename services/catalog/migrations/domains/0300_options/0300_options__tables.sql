@@ -46,7 +46,9 @@ CREATE TABLE "catalog"."product_option" (
     REFERENCES "catalog"."product_option_category" ("id")
     ON DELETE RESTRICT,
   CONSTRAINT "product_option_product_id_slug_key"
-    UNIQUE ("product_id", "slug")
+    UNIQUE ("product_id", "slug"),
+  CONSTRAINT "product_option_product_id_id_uniq"
+    UNIQUE ("product_id", "id")
 );
 
 CREATE INDEX "idx_product_option_product_id"

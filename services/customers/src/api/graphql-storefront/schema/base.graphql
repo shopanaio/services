@@ -76,4 +76,19 @@ type Mutation {
   wishlistProductRemove(
     input: WishlistProductRemoveInput!
   ): WishlistProductRemovePayload!
+
+  """Adds one concrete Catalog variant to the customer's comparisons."""
+  customerComparisonVariantAdd(
+    input: CustomerComparisonVariantAddInput!
+  ): CustomerComparisonMutationPayload!
+
+  """Removes one concrete Catalog variant from the customer's comparisons."""
+  customerComparisonVariantRemove(
+    input: CustomerComparisonVariantRemoveInput!
+  ): CustomerComparisonMutationPayload!
+
+  """Removes every selected variant currently grouped under one category."""
+  customerComparisonCategoryClear(
+    input: CustomerComparisonCategoryClearInput!
+  ): CustomerComparisonMutationPayload!
 }

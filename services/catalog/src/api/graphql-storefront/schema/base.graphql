@@ -15,6 +15,17 @@ type Query {
   """Returns a published product variant by its globally unique Relay ID."""
   productVariant(id: ID!): ProductVariant
 
+  """
+  Builds a presentation-ready comparison for concrete published variants.
+
+  All variants must currently belong to the same primary category. Input order
+  is preserved as column order. Different variants of the same product are
+  allowed, while duplicate variant IDs are rejected. Authenticated customer
+  selections are exposed as category-grouped ProductComparison nodes through
+  Customer.productComparisons.
+  """
+  productComparison(variantIds: [ID!]!): ProductComparison
+
   """Returns a published category by its globally unique Relay ID."""
   category(id: ID!): Category
 

@@ -693,6 +693,27 @@ export enum CurrencyCode {
   Zwl = 'ZWL'
 }
 
+export type Customer = {
+  __typename?: 'Customer';
+  id: Scalars['ID']['output'];
+  /**
+   * Presentation-ready comparisons for the authenticated customer.
+   *
+   * Catalog groups the customer's persisted variants by their current primary
+   * category. Each node contains every selected variant in that category. Empty
+   * categories are omitted.
+   */
+  productComparisons: ProductComparisonConnection;
+};
+
+
+export type CustomerProductComparisonsArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  before?: InputMaybe<Scalars['Cursor']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -1144,6 +1165,175 @@ export type ProductVariantsArgs = {
 };
 
 /**
+ * A fully prepared comparison of concrete variants from one product category.
+ *
+ * Catalog validates publication, ownership and effective-profile compatibility,
+ * then resolves product features, selected variant options, prices, availability,
+ * media and localized values. The storefront renders the returned connection
+ * without grouping products or aligning cells itself.
+ */
+export type ProductComparison = {
+  __typename?: 'ProductComparison';
+  /** Current storefront category used to group the selected variants. */
+  category: Category;
+  /**
+   * Prepared variant columns using Relay cursor pagination.
+   *
+   * The returned connection also contains the row groups for this exact page.
+   * Every row's cells use the same order as connection.nodes.
+   */
+  columns: ProductComparisonColumnConnection;
+  /** Stable opaque key derived from the customer and category identities. */
+  key: Scalars['String']['output'];
+  /** Localized comparison title, when configured by the merchant. */
+  title: Maybe<Scalars['String']['output']>;
+};
+
+
+/**
+ * A fully prepared comparison of concrete variants from one product category.
+ *
+ * Catalog validates publication, ownership and effective-profile compatibility,
+ * then resolves product features, selected variant options, prices, availability,
+ * media and localized values. The storefront renders the returned connection
+ * without grouping products or aligning cells itself.
+ */
+export type ProductComparisonColumnsArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  before?: InputMaybe<Scalars['Cursor']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/**
+ * One fully formatted matrix cell.
+ *
+ * The storefront renders displayValue directly. It does not normalize units,
+ * join multiple values, localize missing states or compare canonical values.
+ */
+export type ProductComparisonCell = {
+  __typename?: 'ProductComparisonCell';
+  /**
+   * Locale-aware text ready for display, including units and configured fallback
+   * labels for missing, not-applicable and unavailable states.
+   */
+  displayValue: Scalars['String']['output'];
+  status: ProductComparisonCellStatus;
+};
+
+/** Semantic state of a prepared comparison cell. */
+export enum ProductComparisonCellStatus {
+  /** The property applies, but this product or variant has no configured value. */
+  Missing = 'MISSING',
+  /** The merchant explicitly marked the property as inapplicable. */
+  NotApplicable = 'NOT_APPLICABLE',
+  /** A contextual source could not currently resolve the property. */
+  Unavailable = 'UNAVAILABLE',
+  /** One or more values were resolved and formatted. */
+  Value = 'VALUE'
+}
+
+/** One concrete variant column in the comparison matrix. */
+export type ProductComparisonColumn = {
+  __typename?: 'ProductComparisonColumn';
+  /** Whether the concrete variant can currently be purchased. */
+  availableForSale: Scalars['Boolean']['output'];
+  /** Current compare-at price of the concrete variant, when applicable. */
+  compareAtPrice: Maybe<Money>;
+  /**
+   * Media selected by Catalog for the comparison header.
+   *
+   * Variant media takes precedence over product media.
+   */
+  featuredMedia: Maybe<Media>;
+  /** Stable column key derived from variant.id. */
+  key: Scalars['String']['output'];
+  /** Zero-based position in the complete comparison, not only this page. */
+  position: Scalars['Int']['output'];
+  /** Current price of the concrete variant in the storefront currency. */
+  price: Maybe<Money>;
+  product: Product;
+  /** Concrete storefront variant represented by this comparison column. */
+  variant: ProductVariant;
+};
+
+/** Relay connection containing one page of comparison columns. */
+export type ProductComparisonColumnConnection = Connection & {
+  __typename?: 'ProductComparisonColumnConnection';
+  edges: Array<ProductComparisonColumnEdge>;
+  /**
+   * Localized row groups prepared for exactly the variants in nodes.
+   *
+   * Every row contains one cell per node in the same deterministic order.
+   */
+  groups: Array<ProductComparisonGroup>;
+  nodes: Array<ProductComparisonColumn>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** A comparison column and its opaque position in the selected page. */
+export type ProductComparisonColumnEdge = {
+  __typename?: 'ProductComparisonColumnEdge';
+  cursor: Scalars['Cursor']['output'];
+  node: ProductComparisonColumn;
+};
+
+/** Relay connection containing category-based product comparisons. */
+export type ProductComparisonConnection = Connection & {
+  __typename?: 'ProductComparisonConnection';
+  edges: Array<ProductComparisonEdge>;
+  nodes: Array<ProductComparison>;
+  pageInfo: PageInfo;
+  /**
+   * Revision of the persisted customer selection used for this result.
+   *
+   * Returns zero when the customer has not persisted any comparison items yet.
+   */
+  revision: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+};
+
+/** A product comparison and its opaque position in the customer result. */
+export type ProductComparisonEdge = {
+  __typename?: 'ProductComparisonEdge';
+  cursor: Scalars['Cursor']['output'];
+  node: ProductComparison;
+};
+
+/** A localized section of prepared comparison rows. */
+export type ProductComparisonGroup = {
+  __typename?: 'ProductComparisonGroup';
+  /** Opaque stable key suitable for storefront rendering. */
+  key: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  /** Prepared rows in merchant-defined display order. */
+  rows: Array<ProductComparisonRow>;
+};
+
+/**
+ * One presentation-ready property row across the current column page.
+ *
+ * Rows may be sourced from product-level features or from selected variant
+ * options such as size, color and package. Both source kinds are aligned through
+ * the same canonical comparison field identity.
+ */
+export type ProductComparisonRow = {
+  __typename?: 'ProductComparisonRow';
+  /**
+   * Prepared cells in exactly the same order as the containing column
+   * connection's nodes.
+   */
+  cells: Array<ProductComparisonCell>;
+  description: Maybe<Scalars['String']['output']>;
+  /** Whether at least two cells in this page have different semantic values. */
+  hasDifferences: Scalars['Boolean']['output'];
+  /** Opaque stable key suitable for storefront rendering. */
+  key: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
+/**
  * A presentation-ready component configuration for one product variant.
  *
  * Catalog has already applied visibility, required-state, selection, and price
@@ -1450,6 +1640,16 @@ export type Query = {
   product: Maybe<Product>;
   /** Returns a published product by its stable storefront handle. */
   productByHandle: Maybe<Product>;
+  /**
+   * Builds a presentation-ready comparison for concrete published variants.
+   *
+   * All variants must currently belong to the same primary category. Input order
+   * is preserved as column order. Different variants of the same product are
+   * allowed, while duplicate variant IDs are rejected. Authenticated customer
+   * selections are exposed as category-grouped ProductComparison nodes through
+   * Customer.productComparisons.
+   */
+  productComparison: Maybe<ProductComparison>;
   /** Returns a published product variant by its globally unique Relay ID. */
   productVariant: Maybe<ProductVariant>;
 };
@@ -1497,6 +1697,12 @@ export type QueryProductArgs = {
 /** Public Catalog entry points for the active storefront context. */
 export type QueryProductByHandleArgs = {
   handle: Scalars['String']['input'];
+};
+
+
+/** Public Catalog entry points for the active storefront context. */
+export type QueryProductComparisonArgs = {
+  variantIds: Array<Scalars['ID']['input']>;
 };
 
 
@@ -1664,10 +1870,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Connection: ( Omit<CategoryConnection, 'nodes'> & { nodes: Array<_RefType['Category']> } ) | ( Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CategoryMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductVariantConnection, 'nodes'> & { nodes: Array<_RefType['ProductVariant']> } ) | ( Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantMediaEdge']>, nodes: Array<_RefType['Media']> } );
+  Connection: ( Omit<CategoryConnection, 'nodes'> & { nodes: Array<_RefType['Category']> } ) | ( Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CategoryMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductComparisonColumnConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductComparisonColumnEdge']>, nodes: Array<_RefType['ProductComparisonColumn']> } ) | ( Omit<ProductComparisonConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductComparisonEdge']>, nodes: Array<_RefType['ProductComparison']> } ) | ( Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductVariantConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantEdge']>, nodes: Array<_RefType['ProductVariant']> } ) | ( Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantMediaEdge']>, nodes: Array<_RefType['Media']> } );
   DisplayableError: ( UserError );
   Media: ( ExternalVideo ) | ( MediaImage ) | ( Model3d ) | ( Video );
-  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']> } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'category' | 'optionValues'> & { category: _RefType['ProductOptionCategory'], optionValues: Array<_RefType['ProductOptionValue']> } ) | ( ProductOptionCategory ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
+  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions' | 'variants'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']>, variants: _RefType['ProductVariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'category' | 'optionValues'> & { category: _RefType['ProductOptionCategory'], optionValues: Array<_RefType['ProductOptionValue']> } ) | ( ProductOptionCategory ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1685,6 +1891,7 @@ export type ResolversTypes = ResolversObject<{
   CountryCode: CountryCode;
   CurrencyCode: CurrencyCode;
   Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
+  Customer: ResolverTypeWrapper<Omit<Customer, 'productComparisons'> & { productComparisons: ResolversTypes['ProductComparisonConnection'] }>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   DimensionUnit: DimensionUnit;
@@ -1707,7 +1914,17 @@ export type ResolversTypes = ResolversObject<{
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   OpenGraphMetadata: ResolverTypeWrapper<Omit<OpenGraphMetadata, 'image'> & { image?: Maybe<ResolversTypes['Media']> }>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
-  Product: ResolverTypeWrapper<Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions'> & { compareAtPriceRange?: Maybe<ResolversTypes['ProductPriceRange']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, featuredMedia?: Maybe<ResolversTypes['Media']>, media: ResolversTypes['ProductMediaConnection'], options: Array<ResolversTypes['ProductOption']>, priceRange?: Maybe<ResolversTypes['ProductPriceRange']>, primaryCategory?: Maybe<ResolversTypes['Category']>, selectedOrFirstAvailableVariant?: Maybe<ResolversTypes['ProductVariant']>, seo: ResolversTypes['SEO'], variantBySelectedOptions?: Maybe<ResolversTypes['ProductVariant']> }>;
+  Product: ResolverTypeWrapper<Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions' | 'variants'> & { compareAtPriceRange?: Maybe<ResolversTypes['ProductPriceRange']>, description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, featuredMedia?: Maybe<ResolversTypes['Media']>, media: ResolversTypes['ProductMediaConnection'], options: Array<ResolversTypes['ProductOption']>, priceRange?: Maybe<ResolversTypes['ProductPriceRange']>, primaryCategory?: Maybe<ResolversTypes['Category']>, selectedOrFirstAvailableVariant?: Maybe<ResolversTypes['ProductVariant']>, seo: ResolversTypes['SEO'], variantBySelectedOptions?: Maybe<ResolversTypes['ProductVariant']>, variants: ResolversTypes['ProductVariantConnection'] }>;
+  ProductComparison: ResolverTypeWrapper<Omit<ProductComparison, 'category' | 'columns'> & { category: ResolversTypes['Category'], columns: ResolversTypes['ProductComparisonColumnConnection'] }>;
+  ProductComparisonCell: ResolverTypeWrapper<ProductComparisonCell>;
+  ProductComparisonCellStatus: ProductComparisonCellStatus;
+  ProductComparisonColumn: ResolverTypeWrapper<Omit<ProductComparisonColumn, 'compareAtPrice' | 'featuredMedia' | 'price' | 'product' | 'variant'> & { compareAtPrice?: Maybe<ResolversTypes['Money']>, featuredMedia?: Maybe<ResolversTypes['Media']>, price?: Maybe<ResolversTypes['Money']>, product: ResolversTypes['Product'], variant: ResolversTypes['ProductVariant'] }>;
+  ProductComparisonColumnConnection: ResolverTypeWrapper<Omit<ProductComparisonColumnConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['ProductComparisonColumnEdge']>, nodes: Array<ResolversTypes['ProductComparisonColumn']> }>;
+  ProductComparisonColumnEdge: ResolverTypeWrapper<Omit<ProductComparisonColumnEdge, 'node'> & { node: ResolversTypes['ProductComparisonColumn'] }>;
+  ProductComparisonConnection: ResolverTypeWrapper<Omit<ProductComparisonConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['ProductComparisonEdge']>, nodes: Array<ResolversTypes['ProductComparison']> }>;
+  ProductComparisonEdge: ResolverTypeWrapper<Omit<ProductComparisonEdge, 'node'> & { node: ResolversTypes['ProductComparison'] }>;
+  ProductComparisonGroup: ResolverTypeWrapper<ProductComparisonGroup>;
+  ProductComparisonRow: ResolverTypeWrapper<ProductComparisonRow>;
   ProductComponentConfiguration: ResolverTypeWrapper<Omit<ProductComponentConfiguration, 'componentsSubtotal' | 'groups' | 'totalPrice'> & { componentsSubtotal: ResolversTypes['Money'], groups: Array<ResolversTypes['ProductComponentGroup']>, totalPrice: ResolversTypes['Money'] }>;
   ProductComponentDisplayStyle: ProductComponentDisplayStyle;
   ProductComponentGroup: ResolverTypeWrapper<Omit<ProductComponentGroup, 'items'> & { items: Array<ResolversTypes['ProductComponentItem']> }>;
@@ -1725,7 +1942,7 @@ export type ResolversTypes = ResolversObject<{
   ProductOptionValueSwatch: ResolverTypeWrapper<Omit<ProductOptionValueSwatch, 'image'> & { image?: Maybe<ResolversTypes['Media']> }>;
   ProductPriceRange: ResolverTypeWrapper<Omit<ProductPriceRange, 'maxVariantPrice' | 'minVariantPrice'> & { maxVariantPrice: ResolversTypes['Money'], minVariantPrice: ResolversTypes['Money'] }>;
   ProductVariant: ResolverTypeWrapper<Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<ResolversTypes['Money']>, componentConfiguration?: Maybe<ResolversTypes['ProductComponentConfiguration']>, featuredMedia?: Maybe<ResolversTypes['Media']>, inventoryItem?: Maybe<ResolversTypes['InventoryItem']>, media: ResolversTypes['ProductVariantMediaConnection'], price?: Maybe<ResolversTypes['Money']>, product: ResolversTypes['Product'], selectedOptions: Array<ResolversTypes['SelectedOption']> }>;
-  ProductVariantConnection: ResolverTypeWrapper<Omit<ProductVariantConnection, 'nodes'> & { nodes: Array<ResolversTypes['ProductVariant']> }>;
+  ProductVariantConnection: ResolverTypeWrapper<Omit<ProductVariantConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['ProductVariantEdge']>, nodes: Array<ResolversTypes['ProductVariant']> }>;
   ProductVariantEdge: ResolverTypeWrapper<Omit<ProductVariantEdge, 'node'> & { node: ResolversTypes['ProductVariant'] }>;
   ProductVariantInventoryPolicy: ProductVariantInventoryPolicy;
   ProductVariantMediaConnection: ResolverTypeWrapper<Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['ProductVariantMediaEdge']>, nodes: Array<ResolversTypes['Media']> }>;
@@ -1758,6 +1975,7 @@ export type ResolversParentTypes = ResolversObject<{
   Color: Scalars['Color']['output'];
   Connection: ResolversInterfaceTypes<ResolversParentTypes>['Connection'];
   Cursor: Scalars['Cursor']['output'];
+  Customer: Omit<Customer, 'productComparisons'> & { productComparisons: ResolversParentTypes['ProductComparisonConnection'] };
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
   Dimensions: Dimensions;
@@ -1778,7 +1996,16 @@ export type ResolversParentTypes = ResolversObject<{
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   OpenGraphMetadata: Omit<OpenGraphMetadata, 'image'> & { image?: Maybe<ResolversParentTypes['Media']> };
   PageInfo: PageInfo;
-  Product: Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions'> & { compareAtPriceRange?: Maybe<ResolversParentTypes['ProductPriceRange']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, featuredMedia?: Maybe<ResolversParentTypes['Media']>, media: ResolversParentTypes['ProductMediaConnection'], options: Array<ResolversParentTypes['ProductOption']>, priceRange?: Maybe<ResolversParentTypes['ProductPriceRange']>, primaryCategory?: Maybe<ResolversParentTypes['Category']>, selectedOrFirstAvailableVariant?: Maybe<ResolversParentTypes['ProductVariant']>, seo: ResolversParentTypes['SEO'], variantBySelectedOptions?: Maybe<ResolversParentTypes['ProductVariant']> };
+  Product: Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions' | 'variants'> & { compareAtPriceRange?: Maybe<ResolversParentTypes['ProductPriceRange']>, description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, featuredMedia?: Maybe<ResolversParentTypes['Media']>, media: ResolversParentTypes['ProductMediaConnection'], options: Array<ResolversParentTypes['ProductOption']>, priceRange?: Maybe<ResolversParentTypes['ProductPriceRange']>, primaryCategory?: Maybe<ResolversParentTypes['Category']>, selectedOrFirstAvailableVariant?: Maybe<ResolversParentTypes['ProductVariant']>, seo: ResolversParentTypes['SEO'], variantBySelectedOptions?: Maybe<ResolversParentTypes['ProductVariant']>, variants: ResolversParentTypes['ProductVariantConnection'] };
+  ProductComparison: Omit<ProductComparison, 'category' | 'columns'> & { category: ResolversParentTypes['Category'], columns: ResolversParentTypes['ProductComparisonColumnConnection'] };
+  ProductComparisonCell: ProductComparisonCell;
+  ProductComparisonColumn: Omit<ProductComparisonColumn, 'compareAtPrice' | 'featuredMedia' | 'price' | 'product' | 'variant'> & { compareAtPrice?: Maybe<ResolversParentTypes['Money']>, featuredMedia?: Maybe<ResolversParentTypes['Media']>, price?: Maybe<ResolversParentTypes['Money']>, product: ResolversParentTypes['Product'], variant: ResolversParentTypes['ProductVariant'] };
+  ProductComparisonColumnConnection: Omit<ProductComparisonColumnConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['ProductComparisonColumnEdge']>, nodes: Array<ResolversParentTypes['ProductComparisonColumn']> };
+  ProductComparisonColumnEdge: Omit<ProductComparisonColumnEdge, 'node'> & { node: ResolversParentTypes['ProductComparisonColumn'] };
+  ProductComparisonConnection: Omit<ProductComparisonConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['ProductComparisonEdge']>, nodes: Array<ResolversParentTypes['ProductComparison']> };
+  ProductComparisonEdge: Omit<ProductComparisonEdge, 'node'> & { node: ResolversParentTypes['ProductComparison'] };
+  ProductComparisonGroup: ProductComparisonGroup;
+  ProductComparisonRow: ProductComparisonRow;
   ProductComponentConfiguration: Omit<ProductComponentConfiguration, 'componentsSubtotal' | 'groups' | 'totalPrice'> & { componentsSubtotal: ResolversParentTypes['Money'], groups: Array<ResolversParentTypes['ProductComponentGroup']>, totalPrice: ResolversParentTypes['Money'] };
   ProductComponentGroup: Omit<ProductComponentGroup, 'items'> & { items: Array<ResolversParentTypes['ProductComponentItem']> };
   ProductComponentItem: Omit<ProductComponentItem, 'featuredMedia' | 'product' | 'totalPrice' | 'unitPrice' | 'variant'> & { featuredMedia?: Maybe<ResolversParentTypes['Media']>, product: ResolversParentTypes['Product'], totalPrice: ResolversParentTypes['Money'], unitPrice: ResolversParentTypes['Money'], variant: ResolversParentTypes['ProductVariant'] };
@@ -1794,7 +2021,7 @@ export type ResolversParentTypes = ResolversObject<{
   ProductOptionValueSwatch: Omit<ProductOptionValueSwatch, 'image'> & { image?: Maybe<ResolversParentTypes['Media']> };
   ProductPriceRange: Omit<ProductPriceRange, 'maxVariantPrice' | 'minVariantPrice'> & { maxVariantPrice: ResolversParentTypes['Money'], minVariantPrice: ResolversParentTypes['Money'] };
   ProductVariant: Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<ResolversParentTypes['Money']>, componentConfiguration?: Maybe<ResolversParentTypes['ProductComponentConfiguration']>, featuredMedia?: Maybe<ResolversParentTypes['Media']>, inventoryItem?: Maybe<ResolversParentTypes['InventoryItem']>, media: ResolversParentTypes['ProductVariantMediaConnection'], price?: Maybe<ResolversParentTypes['Money']>, product: ResolversParentTypes['Product'], selectedOptions: Array<ResolversParentTypes['SelectedOption']> };
-  ProductVariantConnection: Omit<ProductVariantConnection, 'nodes'> & { nodes: Array<ResolversParentTypes['ProductVariant']> };
+  ProductVariantConnection: Omit<ProductVariantConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['ProductVariantEdge']>, nodes: Array<ResolversParentTypes['ProductVariant']> };
   ProductVariantEdge: Omit<ProductVariantEdge, 'node'> & { node: ResolversParentTypes['ProductVariant'] };
   ProductVariantMediaConnection: Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['ProductVariantMediaEdge']>, nodes: Array<ResolversParentTypes['Media']> };
   ProductVariantMediaEdge: Omit<ProductVariantMediaEdge, 'node'> & { node: ResolversParentTypes['Media'] };
@@ -1864,7 +2091,7 @@ export interface ColorScalarConfig extends GraphQLScalarTypeConfig<ResolversType
 }
 
 export type ConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Connection'] = ResolversParentTypes['Connection']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'CategoryConnection' | 'CategoryMediaConnection' | 'ProductMediaConnection' | 'ProductVariantConnection' | 'ProductVariantMediaConnection', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'CategoryConnection' | 'CategoryMediaConnection' | 'ProductComparisonColumnConnection' | 'ProductComparisonConnection' | 'ProductMediaConnection' | 'ProductVariantConnection' | 'ProductVariantMediaConnection', ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
 }>;
@@ -1872,6 +2099,13 @@ export type ConnectionResolvers<ContextType = ServiceContext, ParentType extends
 export interface CursorScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Cursor'], any> {
   name: 'Cursor';
 }
+
+export type CustomerResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Customer'] = ResolversParentTypes['Customer']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Customer']>, { __typename: 'Customer' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+  productComparisons?: Resolver<ResolversTypes['ProductComparisonConnection'], { __typename: 'Customer' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, Partial<CustomerProductComparisonsArgs>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -2005,6 +2239,78 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   variantBySelectedOptions?: Resolver<Maybe<ResolversTypes['ProductVariant']>, ParentType, ContextType, RequireFields<ProductVariantBySelectedOptionsArgs, 'selectedOptions'>>;
   variants?: Resolver<ResolversTypes['ProductVariantConnection'], ParentType, ContextType, Partial<ProductVariantsArgs>>;
   vendor?: Resolver<Maybe<ResolversTypes['Vendor']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparison'] = ResolversParentTypes['ProductComparison']> = ResolversObject<{
+  category?: Resolver<ResolversTypes['Category'], ParentType, ContextType>;
+  columns?: Resolver<ResolversTypes['ProductComparisonColumnConnection'], ParentType, ContextType, Partial<ProductComparisonColumnsArgs>>;
+  key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonCellResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonCell'] = ResolversParentTypes['ProductComparisonCell']> = ResolversObject<{
+  displayValue?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['ProductComparisonCellStatus'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonColumnResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonColumn'] = ResolversParentTypes['ProductComparisonColumn']> = ResolversObject<{
+  availableForSale?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  compareAtPrice?: Resolver<Maybe<ResolversTypes['Money']>, ParentType, ContextType>;
+  featuredMedia?: Resolver<Maybe<ResolversTypes['Media']>, ParentType, ContextType>;
+  key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  price?: Resolver<Maybe<ResolversTypes['Money']>, ParentType, ContextType>;
+  product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  variant?: Resolver<ResolversTypes['ProductVariant'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonColumnConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonColumnConnection'] = ResolversParentTypes['ProductComparisonColumnConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ProductComparisonColumnEdge']>, ParentType, ContextType>;
+  groups?: Resolver<Array<ResolversTypes['ProductComparisonGroup']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['ProductComparisonColumn']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonColumnEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonColumnEdge'] = ResolversParentTypes['ProductComparisonColumnEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['Cursor'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ProductComparisonColumn'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonConnection'] = ResolversParentTypes['ProductComparisonConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['ProductComparisonEdge']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['ProductComparison']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonEdge'] = ResolversParentTypes['ProductComparisonEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['Cursor'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['ProductComparison'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonGroupResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonGroup'] = ResolversParentTypes['ProductComparisonGroup']> = ResolversObject<{
+  key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  rows?: Resolver<Array<ResolversTypes['ProductComparisonRow']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductComparisonRowResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductComparisonRow'] = ResolversParentTypes['ProductComparisonRow']> = ResolversObject<{
+  cells?: Resolver<Array<ResolversTypes['ProductComparisonCell']>, ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  hasDifferences?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2197,6 +2503,7 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<QueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<QueryProductArgs, 'id'>>;
   productByHandle?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<QueryProductByHandleArgs, 'handle'>>;
+  productComparison?: Resolver<Maybe<ResolversTypes['ProductComparison']>, ParentType, ContextType, RequireFields<QueryProductComparisonArgs, 'variantIds'>>;
   productVariant?: Resolver<Maybe<ResolversTypes['ProductVariant']>, ParentType, ContextType, RequireFields<QueryProductVariantArgs, 'id'>>;
 }>;
 
@@ -2272,6 +2579,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Color?: GraphQLScalarType;
   Connection?: ConnectionResolvers<ContextType>;
   Cursor?: GraphQLScalarType;
+  Customer?: CustomerResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Decimal?: GraphQLScalarType;
   Dimensions?: DimensionsResolvers<ContextType>;
@@ -2291,6 +2599,15 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   OpenGraphMetadata?: OpenGraphMetadataResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
+  ProductComparison?: ProductComparisonResolvers<ContextType>;
+  ProductComparisonCell?: ProductComparisonCellResolvers<ContextType>;
+  ProductComparisonColumn?: ProductComparisonColumnResolvers<ContextType>;
+  ProductComparisonColumnConnection?: ProductComparisonColumnConnectionResolvers<ContextType>;
+  ProductComparisonColumnEdge?: ProductComparisonColumnEdgeResolvers<ContextType>;
+  ProductComparisonConnection?: ProductComparisonConnectionResolvers<ContextType>;
+  ProductComparisonEdge?: ProductComparisonEdgeResolvers<ContextType>;
+  ProductComparisonGroup?: ProductComparisonGroupResolvers<ContextType>;
+  ProductComparisonRow?: ProductComparisonRowResolvers<ContextType>;
   ProductComponentConfiguration?: ProductComponentConfigurationResolvers<ContextType>;
   ProductComponentGroup?: ProductComponentGroupResolvers<ContextType>;
   ProductComponentItem?: ProductComponentItemResolvers<ContextType>;

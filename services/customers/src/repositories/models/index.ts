@@ -9,3 +9,4 @@ export * from "./statistics.js";
 export * from "./lifecycle.js";
 export * from "./listViews.js";
 export * from "./storefrontAuth.js";
+export * from "./comparisons.js";

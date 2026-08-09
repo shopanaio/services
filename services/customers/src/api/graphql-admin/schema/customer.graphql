@@ -127,6 +127,9 @@ type Customer implements Node @key(fields: "id") {
     where: CustomerMonetaryStatisticsWhereInput
     orderBy: [CustomerMonetaryStatisticsOrderByInput!]
   ): CustomerMonetaryStatisticsConnection!
+
+  """The customer's persisted product comparison selection."""
+  comparison: CustomerComparison
 }
 
 type CustomerConnection {

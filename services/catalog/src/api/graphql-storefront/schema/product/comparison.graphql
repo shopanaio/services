@@ -1,0 +1,185 @@
+extend type Customer @key(fields: "id") {
+  id: ID! @external
+
+  """
+  Presentation-ready comparisons for the authenticated customer.
+
+  Catalog groups the customer's persisted variants by their current primary
+  category. Each node contains every selected variant in that category. Empty
+  categories are omitted.
+  """
+  productComparisons(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): ProductComparisonConnection!
+}
+
+"""
+A fully prepared comparison of concrete variants from one product category.
+
+Catalog validates publication, ownership and effective-profile compatibility,
+then resolves product features, selected variant options, prices, availability,
+media and localized values. The storefront renders the returned connection
+without grouping products or aligning cells itself.
+"""
+type ProductComparison {
+  """Stable opaque key derived from the customer and category identities."""
+  key: String!
+
+  """Current storefront category used to group the selected variants."""
+  category: Category!
+
+  """Localized comparison title, when configured by the merchant."""
+  title: String
+
+  """
+  Prepared variant columns using Relay cursor pagination.
+
+  The returned connection also contains the row groups for this exact page.
+  Every row's cells use the same order as connection.nodes.
+  """
+  columns(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): ProductComparisonColumnConnection!
+}
+
+"""Relay connection containing category-based product comparisons."""
+type ProductComparisonConnection implements Connection {
+  edges: [ProductComparisonEdge!]!
+  nodes: [ProductComparison!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+
+  """
+  Revision of the persisted customer selection used for this result.
+
+  Returns zero when the customer has not persisted any comparison items yet.
+  """
+  revision: Int!
+}
+
+"""A product comparison and its opaque position in the customer result."""
+type ProductComparisonEdge {
+  cursor: Cursor!
+  node: ProductComparison!
+}
+
+"""Relay connection containing one page of comparison columns."""
+type ProductComparisonColumnConnection implements Connection {
+  edges: [ProductComparisonColumnEdge!]!
+  nodes: [ProductComparisonColumn!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+
+  """
+  Localized row groups prepared for exactly the variants in nodes.
+
+  Every row contains one cell per node in the same deterministic order.
+  """
+  groups: [ProductComparisonGroup!]!
+}
+
+"""A comparison column and its opaque position in the selected page."""
+type ProductComparisonColumnEdge {
+  cursor: Cursor!
+  node: ProductComparisonColumn!
+}
+
+"""One concrete variant column in the comparison matrix."""
+type ProductComparisonColumn {
+  """Stable column key derived from variant.id."""
+  key: String!
+
+  """Zero-based position in the complete comparison, not only this page."""
+  position: Int!
+
+  product: Product!
+
+  """Concrete storefront variant represented by this comparison column."""
+  variant: ProductVariant!
+
+  """
+  Media selected by Catalog for the comparison header.
+
+  Variant media takes precedence over product media.
+  """
+  featuredMedia: Media
+
+  """Current price of the concrete variant in the storefront currency."""
+  price: Money
+
+  """Current compare-at price of the concrete variant, when applicable."""
+  compareAtPrice: Money
+
+  """Whether the concrete variant can currently be purchased."""
+  availableForSale: Boolean!
+}
+
+"""A localized section of prepared comparison rows."""
+type ProductComparisonGroup {
+  """Opaque stable key suitable for storefront rendering."""
+  key: String!
+  name: String!
+
+  """Prepared rows in merchant-defined display order."""
+  rows: [ProductComparisonRow!]!
+}
+
+"""
+One presentation-ready property row across the current column page.
+
+Rows may be sourced from product-level features or from selected variant
+options such as size, color and package. Both source kinds are aligned through
+the same canonical comparison field identity.
+"""
+type ProductComparisonRow {
+  """Opaque stable key suitable for storefront rendering."""
+  key: String!
+  name: String!
+  description: String
+
+  """Whether at least two cells in this page have different semantic values."""
+  hasDifferences: Boolean!
+
+  """
+  Prepared cells in exactly the same order as the containing column
+  connection's nodes.
+  """
+  cells: [ProductComparisonCell!]!
+}
+
+"""Semantic state of a prepared comparison cell."""
+enum ProductComparisonCellStatus {
+  """One or more values were resolved and formatted."""
+  VALUE
+
+  """The property applies, but this product or variant has no configured value."""
+  MISSING
+
+  """The merchant explicitly marked the property as inapplicable."""
+  NOT_APPLICABLE
+
+  """A contextual source could not currently resolve the property."""
+  UNAVAILABLE
+}
+
+"""
+One fully formatted matrix cell.
+
+The storefront renders displayValue directly. It does not normalize units,
+join multiple values, localize missing states or compare canonical values.
+"""
+type ProductComparisonCell {
+  status: ProductComparisonCellStatus!
+
+  """
+  Locale-aware text ready for display, including units and configured fallback
+  labels for missing, not-applicable and unavailable states.
+  """
+  displayValue: String!
+}

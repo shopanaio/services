@@ -23,6 +23,7 @@ purchase statistics, merge support and privacy requests.
 | `0300` | Tax | `customer_tax_identifier`, `customer_tax_exemption` |
 | `0400` | Marketing | `customer_consent`, `customer_consent_event` |
 | `0500` | Classification | groups, tags, segments, memberships and aggregate revision metadata |
+| `0600` | Preferences | persisted customer product comparisons |
 | `0700` | Integrations | `customer_external_reference` |
 | `0800` | Read models | order and currency-specific monetary statistics |
 | `0900` | Lifecycle | merges and privacy data requests |
@@ -53,6 +54,35 @@ the trusted store context.
 All persisted UUID identifiers default to PostgreSQL `uuidv7()`. Dates use
 `date`; event and lifecycle timestamps use `timestamptz`. Money is stored as
 integer minor units plus a three-letter currency code.
+
+### Product comparisons
+
+`customer_comparison` is the authenticated customer's single persisted,
+store-scoped comparison selection. Its `revision` is aggregate optimistic
+concurrency state for atomic add, remove and category-clear mutations. Guest
+selections remain client-owned URL or local-storage state and do not create
+customer rows.
+
+`customer_comparison_item` stores one flat ordered selection of concrete Catalog
+variants.
+`variant_id` is the comparison-column identity; `product_id` is its
+denormalized Catalog owner reference. These are cross-service UUIDs and
+therefore have no database foreign keys to Catalog. One variant can appear only
+once in a comparison, while several variants of the same product are allowed.
+Positions are unique within the comparison. Storefront changes the selection
+through atomic add/remove operations and can clear every item currently resolved
+under one Catalog category.
+
+Customers deliberately does not persist a Catalog comparison profile. Catalog
+must resolve the current effective profile, publication, variant ownership and
+cross-product compatibility before a Customers write commits. This prevents a
+stored profile snapshot from becoming authoritative after Catalog category or
+profile configuration changes. Catalog groups the stored variants by their
+current primary category at read time and exposes the resulting
+presentation-ready matrices through the federated
+`Customer.productComparisons` field. A category move therefore changes the
+presentation grouping without rewriting Customers data. Clients do not group
+products, align fields, normalize values, format units or calculate differences.
 
 ### Addresses
 

@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { category } from "./categories";
 import { productFeature, productFeatureValue } from "./features";
+import { productOption, productOptionValue } from "./options";
 import { product } from "./products";
 import {
   catalogSchema,
@@ -374,6 +375,59 @@ export const comparisonFeatureBinding = catalogSchema.table(
   ],
 );
 
+/**
+ * Maps one product-local variant option (for example size or color) to a
+ * canonical comparison row. Options are explicit sources just like features;
+ * their mutable handles are never used as cross-product semantic identity.
+ */
+export const comparisonOptionBinding = catalogSchema.table(
+  "comparison_option_binding",
+  {
+    storeId: uuid("store_id").notNull(),
+    productId: uuid("product_id").notNull(),
+    optionId: uuid("option_id").primaryKey(),
+    profileId: uuid("profile_id").notNull(),
+    fieldId: uuid("field_id").notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: "comparison_option_binding_product_option_fk",
+      columns: [table.productId, table.optionId],
+      foreignColumns: [productOption.productId, productOption.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "comparison_option_binding_profile_field_fk",
+      columns: [table.profileId, table.fieldId],
+      foreignColumns: [comparisonField.profileId, comparisonField.id],
+    }).onDelete("restrict"),
+    unique("comparison_option_binding_option_field_uniq").on(
+      table.optionId,
+      table.fieldId,
+    ),
+    unique("comparison_option_binding_product_field_uniq").on(
+      table.productId,
+      table.fieldId,
+    ),
+    index("idx_comparison_option_binding_store_id").on(table.storeId),
+    index("idx_comparison_option_binding_profile_field").on(
+      table.profileId,
+      table.fieldId,
+    ),
+  ],
+);
+
 export const comparisonFieldNotApplicable = catalogSchema.table(
   "comparison_field_not_applicable",
   {
@@ -524,6 +578,114 @@ export const comparisonFeatureValueBinding = catalogSchema.table(
   ],
 );
 
+/**
+ * Normalizes one local option value for comparison. A concrete variant selects
+ * at most one value for an option, so the bound field is intrinsically SINGLE
+ * for each comparison column even though the option owns many possible values.
+ */
+export const comparisonOptionValueBinding = catalogSchema.table(
+  "comparison_option_value_binding",
+  {
+    storeId: uuid("store_id").notNull(),
+    optionId: uuid("option_id").notNull(),
+    optionValueId: uuid("option_value_id").primaryKey(),
+    fieldId: uuid("field_id").notNull(),
+    valueType: comparisonValueTypeEnum("value_type").notNull(),
+    fieldOptionId: uuid("field_option_id"),
+    decimalValue: numeric("decimal_value", {
+      precision: 38,
+      scale: 12,
+      mode: "string",
+    }),
+    integerValue: bigint("integer_value", { mode: "bigint" }),
+    booleanValue: boolean("boolean_value"),
+    textValue: text("text_value"),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: "comparison_option_value_binding_option_value_fk",
+      columns: [table.optionId, table.optionValueId],
+      foreignColumns: [productOptionValue.optionId, productOptionValue.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "comparison_option_value_binding_option_field_fk",
+      columns: [table.optionId, table.fieldId],
+      foreignColumns: [
+        comparisonOptionBinding.optionId,
+        comparisonOptionBinding.fieldId,
+      ],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "comparison_option_value_binding_field_type_fk",
+      columns: [table.fieldId, table.valueType],
+      foreignColumns: [comparisonField.id, comparisonField.valueType],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "comparison_option_value_binding_field_option_fk",
+      columns: [table.fieldId, table.fieldOptionId],
+      foreignColumns: [comparisonFieldOption.fieldId, comparisonFieldOption.id],
+    }).onDelete("restrict"),
+    check(
+      "comparison_option_value_binding_shape_check",
+      sql`(
+          ${table.valueType} = 'BOOLEAN'
+          AND ${table.booleanValue} IS NOT NULL
+          AND ${table.decimalValue} IS NULL
+          AND ${table.integerValue} IS NULL
+          AND ${table.textValue} IS NULL
+          AND ${table.fieldOptionId} IS NULL
+        ) OR (
+          ${table.valueType} = 'DECIMAL'
+          AND ${table.decimalValue} IS NOT NULL
+          AND ${table.booleanValue} IS NULL
+          AND ${table.integerValue} IS NULL
+          AND ${table.textValue} IS NULL
+          AND ${table.fieldOptionId} IS NULL
+        ) OR (
+          ${table.valueType} = 'ENUM'
+          AND ${table.fieldOptionId} IS NOT NULL
+          AND ${table.booleanValue} IS NULL
+          AND ${table.decimalValue} IS NULL
+          AND ${table.integerValue} IS NULL
+          AND ${table.textValue} IS NULL
+        ) OR (
+          ${table.valueType} = 'INTEGER'
+          AND ${table.integerValue} IS NOT NULL
+          AND ${table.booleanValue} IS NULL
+          AND ${table.decimalValue} IS NULL
+          AND ${table.textValue} IS NULL
+          AND ${table.fieldOptionId} IS NULL
+        ) OR (
+          ${table.valueType} = 'TEXT'
+          AND ${table.textValue} IS NOT NULL
+          AND length(btrim(${table.textValue})) > 0
+          AND ${table.booleanValue} IS NULL
+          AND ${table.decimalValue} IS NULL
+          AND ${table.integerValue} IS NULL
+          AND ${table.fieldOptionId} IS NULL
+        )`,
+    ),
+    index("idx_comparison_option_value_binding_store_id").on(table.storeId),
+    index("idx_comparison_option_value_binding_option_id").on(table.optionId),
+    index("idx_comparison_option_value_binding_field_id").on(table.fieldId),
+    index("idx_comparison_option_value_binding_field_option_id").on(
+      table.fieldOptionId,
+    ),
+  ],
+);
+
 export type ComparisonProfile = typeof comparisonProfile.$inferSelect;
 export type NewComparisonProfile = typeof comparisonProfile.$inferInsert;
 export type ComparisonGroup = typeof comparisonGroup.$inferSelect;
@@ -561,7 +723,15 @@ export type ComparisonFeatureBinding =
   typeof comparisonFeatureBinding.$inferSelect;
 export type NewComparisonFeatureBinding =
   typeof comparisonFeatureBinding.$inferInsert;
+export type ComparisonOptionBinding =
+  typeof comparisonOptionBinding.$inferSelect;
+export type NewComparisonOptionBinding =
+  typeof comparisonOptionBinding.$inferInsert;
 export type ComparisonFeatureValueBinding =
   typeof comparisonFeatureValueBinding.$inferSelect;
 export type NewComparisonFeatureValueBinding =
   typeof comparisonFeatureValueBinding.$inferInsert;
+export type ComparisonOptionValueBinding =
+  typeof comparisonOptionValueBinding.$inferSelect;
+export type NewComparisonOptionValueBinding =
+  typeof comparisonOptionValueBinding.$inferInsert;

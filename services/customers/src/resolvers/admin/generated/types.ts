@@ -385,6 +385,8 @@ export type Customer = Node & {
   /** Reason the customer is currently blocked. Null for other lifecycle states. */
   blockedReason: Maybe<Scalars['String']['output']>;
   companyName: Maybe<Scalars['String']['output']>;
+  /** The customer's persisted product comparison selection. */
+  comparison: Maybe<CustomerComparison>;
   /** At most one current consent record per channel. */
   consents: Array<CustomerConsent>;
   createdAt: Scalars['DateTime']['output'];
@@ -788,6 +790,36 @@ export type CustomerCompanyUpdateInput = {
   jobTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
+/**
+ * An authenticated customer's persisted product comparison selection.
+ *
+ * This Admin view is read-only. Product compatibility and the comparison matrix
+ * remain owned and resolved by Catalog.
+ */
+export type CustomerComparison = Node & {
+  __typename?: 'CustomerComparison';
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  id: Scalars['ID']['output'];
+  items: Array<CustomerComparisonItem>;
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** One concrete Catalog variant stored as a comparison column. */
+export type CustomerComparisonItem = Node & {
+  __typename?: 'CustomerComparisonItem';
+  addedAt: Scalars['DateTime']['output'];
+  comparison: CustomerComparison;
+  id: Scalars['ID']['output'];
+  position: Scalars['Int']['output'];
+  product: Maybe<Product>;
+  productId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  variant: Maybe<Variant>;
+  variantId: Scalars['ID']['output'];
+};
+
 export type CustomerConnection = {
   __typename?: 'CustomerConnection';
   edges: Array<CustomerEdge>;
@@ -1167,7 +1199,7 @@ export type CustomerGroup = Node & {
   isActive: Scalars['Boolean']['output'];
   isDefault: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
-  /** Aggregate revision incremented by definition and membership changes. */
+  /** Aggregate revision incremented by definition, state and membership changes. */
   revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -1744,7 +1776,7 @@ export type CustomerSegment = Node & {
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   query: Maybe<Scalars['String']['output']>;
-  /** Aggregate revision incremented by definition and membership changes. */
+  /** Aggregate revision incremented by definition, state and membership changes. */
   revision: Scalars['Int']['output'];
   status: CustomerSegmentStatus;
   type: CustomerSegmentType;
@@ -3322,6 +3354,28 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
+/** Catalog Product reference. Customers never joins the Catalog database. */
+export type Product = Node & {
+  __typename?: 'Product';
+  id: Scalars['ID']['output'];
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Customers Admin query namespace. */
@@ -3371,6 +3425,12 @@ export type UserError = {
   code: Maybe<Scalars['String']['output']>;
   field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
+};
+
+/** Catalog Variant reference. Customers never joins the Catalog database. */
+export type Variant = Node & {
+  __typename?: 'Variant';
+  id: Scalars['ID']['output'];
 };
 
 /** Weight measurement units */
@@ -3467,7 +3527,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Customer ) | ( CustomerAddress ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier );
+  Node: ( Customer ) | ( CustomerAddress ) | ( CustomerComparison ) | ( CustomerComparisonItem ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier ) | ( Product ) | ( Variant );
   UserError: ( GenericUserError );
 }>;
 
@@ -3508,6 +3568,8 @@ export type ResolversTypes = ResolversObject<{
   CustomerAuthenticationProvider: CustomerAuthenticationProvider;
   CustomerAuthenticationProviderSettings: ResolverTypeWrapper<CustomerAuthenticationProviderSettings>;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
+  CustomerComparison: ResolverTypeWrapper<CustomerComparison>;
+  CustomerComparisonItem: ResolverTypeWrapper<CustomerComparisonItem>;
   CustomerConnection: ResolverTypeWrapper<CustomerConnection>;
   CustomerConsent: ResolverTypeWrapper<CustomerConsent>;
   CustomerConsentAdminState: CustomerConsentAdminState;
@@ -3696,10 +3758,14 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
+  Product: ResolverTypeWrapper<Product>;
   Query: ResolverTypeWrapper<{}>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;
   UserError: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['UserError']>;
+  Variant: ResolverTypeWrapper<Variant>;
   WeightUnit: WeightUnit;
 }>;
 
@@ -3732,6 +3798,8 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAuthenticationMethodSettings: CustomerAuthenticationMethodSettings;
   CustomerAuthenticationProviderSettings: CustomerAuthenticationProviderSettings;
   CustomerCompanyUpdateInput: CustomerCompanyUpdateInput;
+  CustomerComparison: CustomerComparison;
+  CustomerComparisonItem: CustomerComparisonItem;
   CustomerConnection: CustomerConnection;
   CustomerConsent: CustomerConsent;
   CustomerConsentEvent: CustomerConsentEvent;
@@ -3892,9 +3960,11 @@ export type ResolversParentTypes = ResolversObject<{
   Mutation: {};
   Node: ResolversInterfaceTypes<ResolversParentTypes>['Node'];
   PageInfo: PageInfo;
+  Product: Product;
   Query: {};
   StringFilter: StringFilter;
   UserError: ResolversInterfaceTypes<ResolversParentTypes>['UserError'];
+  Variant: Variant;
 }>;
 
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
@@ -3907,6 +3977,7 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
   addresses?: Resolver<ResolversTypes['CustomerAddressConnection'], ParentType, ContextType, Partial<CustomerAddressesArgs>>;
   blockedReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   companyName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  comparison?: Resolver<Maybe<ResolversTypes['CustomerComparison']>, ParentType, ContextType>;
   consents?: Resolver<Array<ResolversTypes['CustomerConsent']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   createdByUserId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4017,6 +4088,31 @@ export type CustomerAuthenticationProviderSettingsResolvers<ContextType = Servic
   configured?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   provider?: Resolver<ResolversTypes['CustomerAuthenticationProvider'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerComparisonResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerComparison'] = ResolversParentTypes['CustomerComparison']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerComparison']>, { __typename: 'CustomerComparison' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  items?: Resolver<Array<ResolversTypes['CustomerComparisonItem']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerComparisonItemResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerComparisonItem'] = ResolversParentTypes['CustomerComparisonItem']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerComparisonItem']>, { __typename: 'CustomerComparisonItem' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  addedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  comparison?: Resolver<ResolversTypes['CustomerComparison'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  productId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  variant?: Resolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
+  variantId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4616,7 +4712,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Customer' | 'CustomerAddress' | 'CustomerConsent' | 'CustomerConsentEvent' | 'CustomerDataRequest' | 'CustomerGroup' | 'CustomerGroupMembership' | 'CustomerMerge' | 'CustomerMonetaryStatistics' | 'CustomerSegment' | 'CustomerSegmentMembership' | 'CustomerTag' | 'CustomerTagAssignment' | 'CustomerTaxExemption' | 'CustomerTaxIdentifier', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Customer' | 'CustomerAddress' | 'CustomerComparison' | 'CustomerComparisonItem' | 'CustomerConsent' | 'CustomerConsentEvent' | 'CustomerDataRequest' | 'CustomerGroup' | 'CustomerGroupMembership' | 'CustomerMerge' | 'CustomerMonetaryStatistics' | 'CustomerSegment' | 'CustomerSegmentMembership' | 'CustomerTag' | 'CustomerTagAssignment' | 'CustomerTaxExemption' | 'CustomerTaxIdentifier' | 'Product' | 'Variant', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -4625,6 +4721,12 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
   hasNextPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   hasPreviousPage?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   startCursor?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Product'] = ResolversParentTypes['Product']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4639,6 +4741,12 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
 }>;
 
+export type VariantResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Variant'] = ResolversParentTypes['Variant']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Variant']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Customer?: CustomerResolvers<ContextType>;
@@ -4649,6 +4757,8 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerAddressEdge?: CustomerAddressEdgeResolvers<ContextType>;
   CustomerAuthenticationMethodSettings?: CustomerAuthenticationMethodSettingsResolvers<ContextType>;
   CustomerAuthenticationProviderSettings?: CustomerAuthenticationProviderSettingsResolvers<ContextType>;
+  CustomerComparison?: CustomerComparisonResolvers<ContextType>;
+  CustomerComparisonItem?: CustomerComparisonItemResolvers<ContextType>;
   CustomerConnection?: CustomerConnectionResolvers<ContextType>;
   CustomerConsent?: CustomerConsentResolvers<ContextType>;
   CustomerConsentEvent?: CustomerConsentEventResolvers<ContextType>;
@@ -4719,7 +4829,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
+  Product?: ProductResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
+  Variant?: VariantResolvers<ContextType>;
 }>;
 

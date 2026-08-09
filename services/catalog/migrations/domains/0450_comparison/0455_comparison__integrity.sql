@@ -54,6 +54,19 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM "catalog"."comparison_option_binding" cob
+    WHERE cob.product_id = NEW.product_id
+      AND cob.field_id = NEW.field_id
+  ) THEN
+    RAISE EXCEPTION
+      'comparison field cannot use both feature and option sources for the same product: %, %',
+      NEW.product_id,
+      NEW.field_id
+      USING ERRCODE = '23514';
+  END IF;
+
   RETURN NEW;
 END;
 $function$;
@@ -97,6 +110,90 @@ FOR EACH ROW
 WHEN (NEW."is_group" = true AND OLD."is_group" = false)
 EXECUTE FUNCTION "catalog"."comparison_product_feature_validate_group_update"();
 
+-- Variant options such as size, color and package may feed canonical SINGLE
+-- fields. A product row has exactly one configured source: feature, option or
+-- explicit NOT_APPLICABLE.
+CREATE FUNCTION "catalog"."comparison_option_binding_validate"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+  field_cardinality "catalog"."comparison_cardinality";
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    PERFORM pg_advisory_xact_lock(lock_key)
+    FROM (
+      SELECT DISTINCT hashtextextended(
+        'comparison-option:' || option_id::text,
+        0
+      ) AS lock_key
+      FROM (VALUES (OLD.option_id), (NEW.option_id)) AS option_ids(option_id)
+      ORDER BY lock_key
+    ) AS option_locks;
+
+    PERFORM pg_advisory_xact_lock_shared(lock_key)
+    FROM (
+      SELECT DISTINCT hashtextextended(
+        'comparison-field:' || field_id::text,
+        0
+      ) AS lock_key
+      FROM (VALUES (OLD.field_id), (NEW.field_id)) AS field_ids(field_id)
+      ORDER BY lock_key
+    ) AS field_locks;
+  ELSE
+    PERFORM pg_advisory_xact_lock(
+      hashtextextended('comparison-option:' || NEW.option_id::text, 0)
+    );
+    PERFORM pg_advisory_xact_lock_shared(
+      hashtextextended('comparison-field:' || NEW.field_id::text, 0)
+    );
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(
+    hashtextextended(NEW.product_id::text || ':' || NEW.field_id::text, 0)
+  );
+
+  SELECT cf.cardinality
+    INTO field_cardinality
+  FROM "catalog"."comparison_field" cf
+  WHERE cf.id = NEW.field_id;
+
+  IF field_cardinality <> 'SINGLE' THEN
+    RAISE EXCEPTION
+      'comparison option binding requires a SINGLE field: %, %',
+      NEW.option_id,
+      NEW.field_id
+      USING ERRCODE = '23514';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM "catalog"."comparison_feature_binding" cfb
+    WHERE cfb.product_id = NEW.product_id
+      AND cfb.field_id = NEW.field_id
+  ) OR EXISTS (
+    SELECT 1
+    FROM "catalog"."comparison_field_not_applicable" cfna
+    WHERE cfna.product_id = NEW.product_id
+      AND cfna.field_id = NEW.field_id
+  ) THEN
+    RAISE EXCEPTION
+      'comparison option field conflicts with another source for product: %, %',
+      NEW.product_id,
+      NEW.field_id
+      USING ERRCODE = '23514';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER "comparison_option_binding_validate_trigger"
+BEFORE INSERT OR UPDATE OF "product_id", "option_id", "field_id"
+ON "catalog"."comparison_option_binding"
+FOR EACH ROW
+EXECUTE FUNCTION "catalog"."comparison_option_binding_validate"();
+
 CREATE FUNCTION "catalog"."comparison_field_not_applicable_validate"()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -111,6 +208,11 @@ BEGIN
     FROM "catalog"."comparison_feature_binding" cfb
     WHERE cfb.product_id = NEW.product_id
       AND cfb.field_id = NEW.field_id
+  ) OR EXISTS (
+    SELECT 1
+    FROM "catalog"."comparison_option_binding" cob
+    WHERE cob.product_id = NEW.product_id
+      AND cob.field_id = NEW.field_id
   ) THEN
     RAISE EXCEPTION
       'comparison field cannot be NOT_APPLICABLE and mapped for the same product: %, %',
@@ -200,6 +302,40 @@ ON "catalog"."comparison_feature_value_binding"
 FOR EACH ROW
 EXECUTE FUNCTION "catalog"."comparison_feature_value_binding_validate_cardinality"();
 
+-- Coordinate normalized option writes with semantic field updates. Unlike a
+-- feature, an option owns many possible values while each concrete variant
+-- selects at most one, so SINGLE is enforced on the option binding itself.
+CREATE FUNCTION "catalog"."comparison_option_value_binding_lock_field"()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    PERFORM pg_advisory_xact_lock_shared(lock_key)
+    FROM (
+      SELECT DISTINCT hashtextextended(
+        'comparison-field:' || field_id::text,
+        0
+      ) AS lock_key
+      FROM (VALUES (OLD.field_id), (NEW.field_id)) AS field_ids(field_id)
+      ORDER BY lock_key
+    ) AS field_locks;
+  ELSE
+    PERFORM pg_advisory_xact_lock_shared(
+      hashtextextended('comparison-field:' || NEW.field_id::text, 0)
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;
+
+CREATE TRIGGER "comparison_option_value_binding_lock_field_trigger"
+BEFORE INSERT OR UPDATE OF "option_id", "option_value_id", "field_id"
+ON "catalog"."comparison_option_value_binding"
+FOR EACH ROW
+EXECUTE FUNCTION "catalog"."comparison_option_value_binding_lock_field"();
+
 -- Changing a populated field from MULTIPLE to SINGLE or changing its canonical
 -- numeric unit would invalidate already-normalized data. Callers must remove or
 -- rewrite affected value bindings in the same explicit management flow first.
@@ -231,11 +367,30 @@ BEGIN
       USING ERRCODE = '23514';
   END IF;
 
-  IF NEW.canonical_unit IS DISTINCT FROM OLD.canonical_unit
+  IF NEW.cardinality = 'MULTIPLE'
+     AND OLD.cardinality = 'SINGLE'
      AND EXISTS (
        SELECT 1
-       FROM "catalog"."comparison_feature_value_binding" cfvb
-       WHERE cfvb.field_id = OLD.id
+       FROM "catalog"."comparison_option_binding" cob
+       WHERE cob.field_id = OLD.id
+     ) THEN
+    RAISE EXCEPTION
+      'cannot change comparison field with option bindings to MULTIPLE: %',
+      OLD.id
+      USING ERRCODE = '23514';
+  END IF;
+
+  IF NEW.canonical_unit IS DISTINCT FROM OLD.canonical_unit
+     AND (
+       EXISTS (
+         SELECT 1
+         FROM "catalog"."comparison_feature_value_binding" cfvb
+         WHERE cfvb.field_id = OLD.id
+       ) OR EXISTS (
+         SELECT 1
+         FROM "catalog"."comparison_option_value_binding" covb
+         WHERE covb.field_id = OLD.id
+       )
      ) THEN
     RAISE EXCEPTION
       'cannot change canonical unit while normalized values exist: %',

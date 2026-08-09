@@ -17,17 +17,20 @@ Catalog владеет:
 - comparison profiles, группами, полями и enum options;
 - назначением comparison profile категории;
 - явным mapping локальной feature в canonical comparison field;
-- нормализованным значением локального feature value.
+- явным mapping product-local variant option в canonical field;
+- нормализованными feature values и option values.
 
-Catalog не хранит пользовательский список выбранных продуктов. Guest selection
-может храниться в URL/local storage. Persisted и shared comparison lists должны
-принадлежать customer/preferences bounded context, когда он появится. Цена,
+Catalog не хранит пользовательский список. Guest selection может храниться в
+URL/local storage. Persisted selection принадлежит Customers/preferences и
+состоит из единого упорядоченного набора concrete `variant_id`, а не из
+уникальных products. Catalog группирует этот набор по текущей primary category
+только при построении storefront presentation model. Цена,
 наличие и variant state остаются текущими contextual данными pricing/inventory,
 а не snapshot внутри comparison schema.
 
 ## Главный инвариант
 
-`ProductFeature` остаётся уникальной внутри продукта. Её `slug`, имя, группа и
+`ProductFeature` и `ProductOption` остаются product-local. Их `slug`, имя и
 values не являются межпродуктовой semantic identity.
 
 Разные локальные features связываются с одной строкой сравнения через стабильный
@@ -41,7 +44,8 @@ Product C / display ──────────┘
 
 Storefront никогда не объединяет features автоматически по slug или
 переведённому имени. Такое совпадение может использоваться Admin только как
-подсказка, которую merchant должен подтвердить явным binding.
+подсказка, которую merchant должен подтвердить явным binding. То же правило
+действует для options `size`, `color`, `package` и их values.
 
 ## Physical model
 
@@ -53,11 +57,15 @@ comparison_profile
   └── category_comparison_profile
 
 product
-  └── product_feature                              (product-local)
-        └── product_feature_value                  (product-local)
-              │
-              ├── comparison_feature_binding      feature -> field
-              └── comparison_feature_value_binding value -> normalized value
+  ├── product_feature                              (product-local)
+  │     ├── comparison_feature_binding             feature -> field
+  │     └── product_feature_value
+  │           └── comparison_feature_value_binding value -> normalized value
+  └── product_option                               (product-local)
+        ├── comparison_option_binding                  option -> SINGLE field
+        ├── product_option_value
+        │     └── comparison_option_value_binding  value -> normalized value
+        └── product_option_variant_link             selected value per variant
 
 product + comparison_field
   └── comparison_field_not_applicable              explicit N/A
@@ -95,7 +103,7 @@ category:
 неоднозначность, когда продукт одновременно состоит в нескольких категориях.
 
 Изменение primary category или category-profile assignment не перепривязывает
-features автоматически. Management script должен проверить существующие
+features и options автоматически. Management script должен проверить существующие
 bindings и либо отклонить несовместимое изменение, либо выполнить явный
 transactional remap.
 
@@ -114,6 +122,8 @@ transactional remap.
 `cardinality` принимает `SINGLE` или `MULTIPLE`. Для `SINGLE` одна локальная
 feature может иметь не более одного нормализованного value binding. Остальные
 локальные values могут существовать, но не участвуют в canonical comparison.
+Variant option всегда связывается только с `SINGLE` field: у option может быть
+много possible values, но concrete variant выбирает не более одного.
 
 `canonical_unit` допустим только для `DECIMAL` и `INTEGER`. В нём хранится
 стабильный registry code (`mm`, `g`, `byte`, `Hz` и т. п.), а не локализованная
@@ -125,7 +135,7 @@ feature может иметь не более одного нормализов�
 Сначала values должны быть явно удалены или перенормализованы. Это предотвращает
 тихую смену смысла уже сохранённых чисел.
 
-## Feature binding
+## Feature и option bindings
 
 `comparison_feature_binding` связывает одну product-local leaf feature с одним
 canonical field.
@@ -144,11 +154,17 @@ Binding может быть подготовлен до назначения к�
 script обязан проверить, что `binding.profile_id` совпадает с effective profile
 продукта. Binding из другого профиля не публикуется в comparison matrix.
 
+`comparison_option_binding` так же явно связывает product-local option с
+canonical `SINGLE` field. Например, options `shoe-size`, `size` и
+`eu-size` разных products могут питать одну строку `ComparisonField / size`.
+Один `(product_id, field_id)` может иметь ровно один source kind:
+feature, option или explicit `NOT_APPLICABLE`.
+
 ## Value normalization
 
-`comparison_feature_value_binding` связывает локальный
-`product_feature_value` с normalized value. `value_type` продублирован намеренно
-и composite FK гарантирует его совпадение с типом canonical field.
+`comparison_feature_value_binding` и `comparison_option_value_binding` связывают
+локальный source value с normalized value. `value_type` продублирован
+намеренно, а composite FK гарантирует его совпадение с типом canonical field.
 
 CHECK constraint разрешает ровно один payload:
 
@@ -178,15 +194,16 @@ Storefront query не парсит строки `6.1 inch` и не угадыв�
 
 Эти состояния семантически различаются:
 
-- `VALUE` — есть feature binding и normalized value;
+- `VALUE` — есть feature/option binding и normalized value;
 - `MISSING` — field применим, но binding/value отсутствует;
 - `NOT_APPLICABLE` — существует явная запись
   `comparison_field_not_applicable`;
 - `UNAVAILABLE` — contextual/runtime источник временно не дал значение и в
   configuration tables не сохраняется.
 
-Один `(product_id, field_id)` не может одновременно иметь feature binding и
-`NOT_APPLICABLE`. Integrity triggers проверяют обе стороны перехода.
+Один `(product_id, field_id)` не может одновременно иметь feature binding,
+option binding или `NOT_APPLICABLE`. Integrity triggers проверяют все
+направления перехода.
 
 ## Category assignment и совместимость
 
@@ -202,28 +219,47 @@ profiles storefront может вернуть `COMMON_ONLY`, но общие п�
 
 ## Storefront read contract
 
-Будущий comparison query должен быть presentation-ready aggregate:
+Для guest selection `Query.productComparison(variantIds:)` принимает уникальные
+concrete variants. Для authenticated customer Catalog расширяет federation
+entity `Customer` полем `productComparisons`, группирует сохранённые Customers
+variants по текущей primary category и возвращает один `ProductComparison` на
+категорию. Несколько variants одного Product разрешены. Внутри категории
+колонки сохраняют persisted/input order:
 
 ```text
-input product/variant IDs
-  -> validate publication and storefront context
-  -> resolve primary category and effective profile
+input ordered variant IDs or persisted Customer selection
+  -> validate uniqueness, publication, product ownership and storefront context
+  -> group by current primary category
+  -> resolve effective profile inside each category group
+  -> require compatible effective profile for all columns
   -> load ordered groups and fields
-  -> load feature/value mappings in batch
-  -> join current price, availability and selected variant state
-  -> emit rows with stable cell order and explicit status
+  -> load product feature mappings in batch
+  -> load selected option/value mappings for each concrete variant
+  -> join current variant price, availability and media
+  -> emit a Relay ProductComparisonColumnConnection per category
+  -> emit row cells for exactly the columns in the requested connection page
+     with stable cell order and explicit status
 ```
 
-Query должен использовать DataLoader/batch repositories и возвращать одну
-матрицу, а не заставлять client сопоставлять несколько `Product.features`.
+Read model должен использовать DataLoader/batch repositories и возвращать
+готовые category matrices, а не заставлять client группировать variants или
+сопоставлять несколько `Product.features`. `groups` принадлежат column
+connection page, поэтому каждая row содержит ровно одну cell на `nodes` в том
+же порядке.
+
+Storefront schema Customers не публикует внутренние `customer_comparison` и
+`customer_comparison_item`. Покупатель изменяет selection атомарными add/remove
+операциями и может очистить одну category group. Mutation payload возвращает
+Customer и новую revision; presentation model повторно читается через
+`Customer.productComparisons` из Catalog subgraph.
 Static profile/mapping data можно cache-ировать с `store_id` в key. Contextual
 price и availability нельзя cache-ировать без market/channel/currency context.
 
-System/header values — product title, media, current price, availability и CTA
-— не моделируются как `ProductFeature`. Их поставляют owning domains через
-storefront composition. Variant-specific weight, dimensions, price и selected
-options должны относиться к явно выбранному variant; storefront не выбирает
-«первый доступный» variant молча.
+System/header values — product title, concrete variant media, current price,
+availability и CTA — не моделируются как `ProductFeature`. Их поставляют
+owning domains через storefront composition. Variant-specific weight, dimensions,
+price и selected options относятся к точному input `variant_id`; storefront
+никогда не выбирает «первый доступный» variant молча.
 
 ## Write contracts
 
@@ -233,21 +269,24 @@ Management operations должны быть transactional и валидиров�
 1. profile/group/field owner и `store_id`;
 2. уникальность handle и sort order;
 3. field type, cardinality и canonical unit;
-4. leaf feature и product ownership;
+4. leaf feature/option и product ownership;
 5. совпадение binding profile с effective product profile перед publication;
 6. enum option принадлежит тому же field;
 7. normalized payload соответствует field type;
-8. `SINGLE` cardinality;
-9. взаимное исключение binding и explicit `NOT_APPLICABLE`.
+8. `SINGLE` cardinality для variant option binding;
+9. option value принадлежит тому же product option;
+10. взаимное исключение feature/option binding и explicit `NOT_APPLICABLE`.
 
 DB constraints являются последней линией защиты, но не заменяют semantic
 validation и понятные user errors в scripts.
 
 Integrity triggers сериализуют конкурентные изменения по стабильным entity
-IDs: записи normalized values берут exclusive lock локальной feature и shared
-lock canonical field, а semantic update field — exclusive lock того же field.
-Это гарантирует `SINGLE`, запрет смены populated `canonical_unit` и перехода
-bound leaf feature в group даже при параллельных management transactions.
+IDs и `(product_id, field_id)`. Записи normalized feature/option values берут
+shared lock canonical field, а semantic update field — exclusive lock того же
+field. Source bindings сериализуются, чтобы feature, option и explicit N/A
+не могли одновременно занять одну product row. Это гарантирует `SINGLE`,
+запрет смены populated `canonical_unit` и перехода bound leaf feature в group
+даже при параллельных management transactions.
 
 ## Migration layout
 
@@ -257,6 +296,9 @@ Canonical clean-DB baseline:
 0000_foundation/0001_foundation__types.sql
   comparison_value_type
   comparison_cardinality
+
+0300_options/
+  composite uniqueness required by option/value ownership FKs
 
 0400_features/
   composite uniqueness required by product-local binding FKs

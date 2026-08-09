@@ -14,9 +14,9 @@ CREATE TABLE "catalog"."product_option_variant_link" (
     FOREIGN KEY ("option_id")
     REFERENCES "catalog"."product_option" ("id")
     ON DELETE CASCADE,
-  CONSTRAINT "product_option_variant_link_option_value_id_fk"
-    FOREIGN KEY ("option_value_id")
-    REFERENCES "catalog"."product_option_value" ("id")
+  CONSTRAINT "product_option_variant_link_option_value_fk"
+    FOREIGN KEY ("option_id", "option_value_id")
+    REFERENCES "catalog"."product_option_value" ("option_id", "id")
     ON DELETE CASCADE
 );
 

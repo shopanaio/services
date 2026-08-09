@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   primaryKey,
+  foreignKey,
   index,
   unique,
   timestamp,
@@ -70,6 +71,7 @@ export const productOption = catalogSchema.table(
   },
   (table) => [
     unique("product_option_product_id_slug_key").on(table.productId, table.slug),
+    unique("product_option_product_id_id_uniq").on(table.productId, table.id),
     index("idx_product_option_product_id").on(table.productId),
     index("idx_product_option_category_id").on(table.categoryId),
     index("idx_product_option_sort").on(
@@ -99,6 +101,10 @@ export const productOptionValue = catalogSchema.table(
       table.optionId,
       table.slug
     ),
+    unique("product_option_value_option_id_id_uniq").on(
+      table.optionId,
+      table.id
+    ),
     index("idx_product_option_value_option_id").on(table.optionId),
   ]
 );
@@ -113,13 +119,15 @@ export const productOptionVariantLink = catalogSchema.table(
     optionId: uuid("option_id")
       .notNull()
       .references(() => productOption.id, { onDelete: "cascade" }),
-    optionValueId: uuid("option_value_id").references(
-      () => productOptionValue.id,
-      { onDelete: "cascade" }
-    ),
+    optionValueId: uuid("option_value_id"),
   },
   (table) => [
     primaryKey({ columns: [table.variantId, table.optionId] }),
+    foreignKey({
+      name: "product_option_variant_link_option_value_fk",
+      columns: [table.optionId, table.optionValueId],
+      foreignColumns: [productOptionValue.optionId, productOptionValue.id],
+    }).onDelete("cascade"),
     index("idx_product_option_variant_link_store_id").on(table.storeId),
   ]
 );
@@ -132,5 +140,7 @@ export type ProductOption = typeof productOption.$inferSelect;
 export type NewProductOption = typeof productOption.$inferInsert;
 export type ProductOptionValue = typeof productOptionValue.$inferSelect;
 export type NewProductOptionValue = typeof productOptionValue.$inferInsert;
-export type ProductOptionVariantLink = typeof productOptionVariantLink.$inferSelect;
-export type NewProductOptionVariantLink = typeof productOptionVariantLink.$inferInsert;
+export type ProductOptionVariantLink =
+  typeof productOptionVariantLink.$inferSelect;
+export type NewProductOptionVariantLink =
+  typeof productOptionVariantLink.$inferInsert;

@@ -1,0 +1,37 @@
+"""
+An authenticated customer's persisted product comparison selection.
+
+This Admin view is read-only. Product compatibility and the comparison matrix
+remain owned and resolved by Catalog.
+"""
+type CustomerComparison implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  revision: Int!
+  items: [CustomerComparisonItem!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""One concrete Catalog variant stored as a comparison column."""
+type CustomerComparisonItem implements Node @key(fields: "id") {
+  id: ID!
+  comparison: CustomerComparison!
+  productId: ID!
+  variantId: ID!
+  product: Product
+  variant: Variant
+  position: Int!
+  addedAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""Catalog Product reference. Customers never joins the Catalog database."""
+type Product implements Node @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+"""Catalog Variant reference. Customers never joins the Catalog database."""
+type Variant implements Node @key(fields: "id", resolvable: false) {
+  id: ID!
+}

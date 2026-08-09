@@ -22,7 +22,7 @@ export * from "./options";
 // Features
 export * from "./features";
 
-// Product comparison profiles and feature mappings
+// Product comparison profiles plus feature and variant-option mappings
 export * from "./comparison";
 
 // Media links

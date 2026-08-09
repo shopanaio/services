@@ -17,7 +17,9 @@ CREATE TABLE "catalog"."product_option_value" (
     REFERENCES "catalog"."product_option_swatch" ("id")
     ON DELETE SET NULL,
   CONSTRAINT "product_option_value_option_id_slug_key"
-    UNIQUE ("option_id", "slug")
+    UNIQUE ("option_id", "slug"),
+  CONSTRAINT "product_option_value_option_id_id_uniq"
+    UNIQUE ("option_id", "id")
 );
 
 CREATE INDEX "idx_product_option_value_option_id"
