@@ -1,98 +1,120 @@
-"""A customer-visible summary of a Loyalty program."""
-type StorefrontLoyaltyProgram {
+"""Customer-visible information about the active loyalty program."""
+type LoyaltyProgram {
   id: ID!
-  code: String!
   name: String!
   pointsSingular: String!
   pointsPlural: String!
-  termsRevision: String!
 }
 
-"""The authenticated Customer's account in one store Loyalty program."""
-type StorefrontLoyaltyAccount implements Node @key(fields: "id") {
+"""
+The authenticated customer's account in the store's active loyalty program.
+
+The account is resolved only for the customer and store from the authenticated
+request context. A Customer federation reference is not an authorization grant.
+"""
+type LoyaltyAccount {
   id: ID!
-  program: StorefrontLoyaltyProgram!
-  status: StorefrontLoyaltyAccountStatus!
-  balance: StorefrontLoyaltyBalance!
-  tier: StorefrontLoyaltyTier
-  expiringPoints(first: Int = 20): [StorefrontExpiringLoyaltyPoints!]!
-  transactions(
-    first: Int = 20
-    after: Cursor
-  ): StorefrontLoyaltyTransactionConnection!
+  program: LoyaltyProgram!
+  status: LoyaltyAccountStatus!
+  balance: LoyaltyBalance!
+  tier: LoyaltyTier
+
+  """
+  The nearest point expirations, ordered by expiresAt ascending.
+
+  The projection contains at most 20 entries. Expirations with the same date may
+  be aggregated into one entry by the Loyalty service.
+  """
+  upcomingExpirations: [LoyaltyPointsExpiration!]!
+
+  """
+  Customer-visible balance changes, newest first. Internal bucket transfers,
+  reservations, releases, merges, and activation events are not returned.
+  """
+  transactions(first: Int = 20, after: Cursor): LoyaltyTransactionConnection!
 }
 
-enum StorefrontLoyaltyAccountStatus {
+enum LoyaltyAccountStatus {
   ACTIVE
   SUSPENDED
   CLOSED
 }
 
-type StorefrontLoyaltyBalance {
+"""The customer's current point balances."""
+type LoyaltyBalance {
   pendingPoints: UnsignedInt64!
   availablePoints: UnsignedInt64!
   reservedPoints: UnsignedInt64!
   debtPoints: UnsignedInt64!
-  revision: String!
 }
 
-type StorefrontLoyaltyTier {
+"""The customer's current tier membership."""
+type LoyaltyTier {
   code: String!
   name: String!
   rank: Int!
-  benefits: JSON!
+  benefits: [LoyaltyTierBenefit!]!
   effectiveFrom: DateTime!
   effectiveTo: DateTime
 }
 
-type StorefrontExpiringLoyaltyPoints {
+"""A customer-visible benefit included in a loyalty tier."""
+type LoyaltyTierBenefit {
+  title: String!
+  description: String
+}
+
+"""Points scheduled to expire at the same time."""
+type LoyaltyPointsExpiration {
   points: UnsignedInt64!
   expiresAt: DateTime!
 }
 
-enum StorefrontLoyaltyTransactionDirection {
+enum LoyaltyTransactionDirection {
   CREDIT
   DEBIT
 }
 
-enum StorefrontLoyaltyTransactionType {
+"""A stable customer-facing category rather than an internal ledger event kind."""
+enum LoyaltyTransactionType {
   EARNED
-  ACTIVATED
   REDEEMED
   EXPIRED
-  REVERSED
-  RESTORED
+  REFUNDED
   ADJUSTED
 }
 
-type StorefrontLoyaltyTransaction implements Node @key(fields: "id") {
+"""A customer-visible balance change."""
+type LoyaltyTransaction {
   id: ID!
-  type: StorefrontLoyaltyTransactionType!
-  direction: StorefrontLoyaltyTransactionDirection!
+  type: LoyaltyTransactionType!
+  direction: LoyaltyTransactionDirection!
   points: UnsignedInt64!
-  description: String!
+  description: String
   occurredAt: DateTime!
   effectiveAt: DateTime!
   expiresAt: DateTime
 }
 
-type StorefrontLoyaltyTransactionConnection implements Connection {
-  edges: [StorefrontLoyaltyTransactionEdge!]!
+type LoyaltyTransactionConnection implements Connection {
+  edges: [LoyaltyTransactionEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-type StorefrontLoyaltyTransactionEdge {
-  node: StorefrontLoyaltyTransaction!
+type LoyaltyTransactionEdge {
+  node: LoyaltyTransaction!
   cursor: Cursor!
 }
 
 extend type Customer @key(fields: "id") {
   id: ID! @external
 
-  """The default active Loyalty account for the authenticated customer."""
-  loyaltyAccount: StorefrontLoyaltyAccount
+  """
+  The authenticated customer's account in this store's active loyalty program.
 
-  """All Loyalty accounts visible to the authenticated customer in this store."""
-  loyaltyAccounts: [StorefrontLoyaltyAccount!]!
+  Returns null when the store has no active program or the customer has no
+  visible account. Merged accounts are never exposed.
+  """
+  loyaltyAccount: LoyaltyAccount
 }
