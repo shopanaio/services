@@ -47,3 +47,7 @@ export { tagPickerConfig } from "./configs/tag-picker-config";
 
 // Media config (auto-registers)
 export { mediaPickerConfig } from "./configs/media-picker-config";
+export {
+  optionCategoryPickerConfig,
+  type OptionCategoryPickerEntity,
+} from "./configs/option-category-picker-config";

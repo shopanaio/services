@@ -3,7 +3,6 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import type { ProductOption } from "../../repositories/models/index.js";
-import type { OptionDisplayType } from "./interfaces/index.js";
 import { CatalogType } from "./CatalogType.js";
 
 /**
@@ -37,8 +36,9 @@ export class OptionResolver extends CatalogType<string, ProductOption> {
     return (await this.$get("slug")) ?? "";
   }
 
-  async displayType(): Promise<OptionDisplayType> {
-    return ((await this.$get("displayType")) as OptionDisplayType) ?? "BUTTONS";
+  async category() {
+    const categoryId = await this.$get("categoryId");
+    return this.resolvers.optionCategory(categoryId);
   }
 
   async sortIndex() {

@@ -78,7 +78,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
       } else {
         const created = await this.repository.option.create(productId, {
           slug: opt.slug,
-          displayType: opt.displayType,
+          categoryId: opt.categoryId,
           sortIndex: opt.sortIndex,
         });
         id = created.id;
@@ -93,7 +93,7 @@ export class OptionsSyncScript extends BaseScript<OptionSyncParams, OptionSyncRe
   private async upsertOption(item: ResolvedOption): Promise<void> {
     await this.repository.option.update(item.id, {
       slug: item.input.slug,
-      displayType: item.input.displayType,
+      categoryId: item.input.categoryId,
       sortIndex: item.input.sortIndex,
     });
 

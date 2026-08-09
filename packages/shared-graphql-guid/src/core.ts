@@ -135,6 +135,7 @@ export enum GlobalIdEntity {
   SearchSynonymGroup = "SearchSynonymGroup",
   SearchProductBoost = "SearchProductBoost",
   Option = "Option",
+  OptionCategory = "OptionCategory",
   OptionValue = "OptionValue",
   Feature = "Feature",
   FeatureValue = "FeatureValue",

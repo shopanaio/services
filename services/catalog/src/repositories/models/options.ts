@@ -6,6 +6,7 @@ import {
   primaryKey,
   index,
   unique,
+  timestamp,
 } from "drizzle-orm/pg-core";
 import { catalogSchema } from "./schema";
 import { product, variant } from "./products";
@@ -26,6 +27,33 @@ export const productOptionSwatch = catalogSchema.table(
   ]
 );
 
+export const productOptionCategory = catalogSchema.table(
+  "product_option_category",
+  {
+    storeId: uuid("store_id").notNull(),
+    id: uuid("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    unique("product_option_category_store_id_slug_key").on(
+      table.storeId,
+      table.slug
+    ),
+    unique("product_option_category_store_id_id_unique").on(
+      table.storeId,
+      table.id
+    ),
+    index("idx_product_option_category_store_id").on(table.storeId),
+  ]
+);
+
 export const productOption = catalogSchema.table(
   "product_option",
   {
@@ -34,13 +62,16 @@ export const productOption = catalogSchema.table(
     productId: uuid("product_id")
       .notNull()
       .references(() => product.id, { onDelete: "cascade" }),
+    categoryId: uuid("category_id")
+      .notNull()
+      .references(() => productOptionCategory.id, { onDelete: "restrict" }),
     slug: varchar("slug", { length: 255 }).notNull(),
-    displayType: varchar("display_type", { length: 32 }).notNull(),
     sortIndex: integer("sort_index").notNull().default(0),
   },
   (table) => [
     unique("product_option_product_id_slug_key").on(table.productId, table.slug),
     index("idx_product_option_product_id").on(table.productId),
+    index("idx_product_option_category_id").on(table.categoryId),
     index("idx_product_option_sort").on(
       table.storeId,
       table.productId,
@@ -95,6 +126,8 @@ export const productOptionVariantLink = catalogSchema.table(
 
 export type ProductOptionSwatch = typeof productOptionSwatch.$inferSelect;
 export type NewProductOptionSwatch = typeof productOptionSwatch.$inferInsert;
+export type ProductOptionCategory = typeof productOptionCategory.$inferSelect;
+export type NewProductOptionCategory = typeof productOptionCategory.$inferInsert;
 export type ProductOption = typeof productOption.$inferSelect;
 export type NewProductOption = typeof productOption.$inferInsert;
 export type ProductOptionValue = typeof productOptionValue.$inferSelect;

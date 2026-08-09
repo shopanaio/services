@@ -67,7 +67,7 @@ export const EditOptionsModal = () => {
     fields,
     watchedGroups,
     handleUpdateGroupName,
-    handleUpdateGroupDisplayType,
+    handleUpdateGroupCategory,
     handleDeleteGroup,
     handleUpdateValueName,
     handleUpdateValueSwatch,
@@ -225,8 +225,8 @@ export const EditOptionsModal = () => {
                     onUpdateName={(name) =>
                       handleUpdateGroupName(groupIndex, name)
                     }
-                    onUpdateDisplayType={(displayType) =>
-                      handleUpdateGroupDisplayType(groupIndex, displayType)
+                    onUpdateCategory={(category) =>
+                      handleUpdateGroupCategory(groupIndex, category)
                     }
                     onDeleteGroup={() => handleDeleteGroup(groupIndex)}
                     onUpdateValueName={(valueIndex, name) =>

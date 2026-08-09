@@ -24,7 +24,7 @@ const OptionSyncItemSchema = z.object({
   sortIndex: z.number().int().min(0),
   slug: z.string().min(1, "Option slug is required").max(255),
   name: z.string().min(1, "Option name is required").max(255),
-  displayType: z.enum(["DROPDOWN", "SWATCH", "BUTTONS"]),
+  categoryId: z.string().uuid(),
   values: z.array(OptionValueSyncInputSchema).min(1, "Option must have at least one value"),
 });
 

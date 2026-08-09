@@ -71,6 +71,7 @@ export function EntityPickerModal() {
         <ModalHeader
           name="entity-picker"
           title={`Select ${config.entityNamePlural}`}
+          extra={config.HeaderExtra ? <config.HeaderExtra /> : null}
           onClose={handleCancel}
           submitButtonProps={{
             onClick: handleConfirm,

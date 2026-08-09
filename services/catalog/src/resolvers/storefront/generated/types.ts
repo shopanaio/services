@@ -1302,7 +1302,7 @@ export type ProductMediaEdge = {
 /** A configurable product dimension such as size, color, or material. */
 export type ProductOption = Node & {
   __typename?: 'ProductOption';
-  displayType: ProductOptionDisplayType;
+  category: ProductOptionCategory;
   handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
@@ -1310,12 +1310,13 @@ export type ProductOption = Node & {
   position: Scalars['Int']['output'];
 };
 
-/** How an option should be presented by a product option picker. */
-export enum ProductOptionDisplayType {
-  Buttons = 'BUTTONS',
-  Dropdown = 'DROPDOWN',
-  Swatch = 'SWATCH'
-}
+/** A reusable product option category. */
+export type ProductOptionCategory = Node & {
+  __typename?: 'ProductOptionCategory';
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+};
 
 /** The visual representation used for an option value. */
 export enum ProductOptionSwatchType {
@@ -1664,7 +1665,7 @@ export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = 
   Connection: ( Omit<CategoryConnection, 'nodes'> & { nodes: Array<_RefType['Category']> } ) | ( Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CategoryMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductVariantConnection, 'nodes'> & { nodes: Array<_RefType['ProductVariant']> } ) | ( Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantMediaEdge']>, nodes: Array<_RefType['Media']> } );
   DisplayableError: ( UserError );
   Media: ( ExternalVideo ) | ( MediaImage ) | ( Model3d ) | ( Video );
-  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']> } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'optionValues'> & { optionValues: Array<_RefType['ProductOptionValue']> } ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
+  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']> } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'category' | 'optionValues'> & { category: _RefType['ProductOptionCategory'], optionValues: Array<_RefType['ProductOptionValue']> } ) | ( ProductOptionCategory ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1715,8 +1716,8 @@ export type ResolversTypes = ResolversObject<{
   ProductFeatureValue: ResolverTypeWrapper<ProductFeatureValue>;
   ProductMediaConnection: ResolverTypeWrapper<Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['ProductMediaEdge']>, nodes: Array<ResolversTypes['Media']> }>;
   ProductMediaEdge: ResolverTypeWrapper<Omit<ProductMediaEdge, 'node'> & { node: ResolversTypes['Media'] }>;
-  ProductOption: ResolverTypeWrapper<Omit<ProductOption, 'optionValues'> & { optionValues: Array<ResolversTypes['ProductOptionValue']> }>;
-  ProductOptionDisplayType: ProductOptionDisplayType;
+  ProductOption: ResolverTypeWrapper<Omit<ProductOption, 'category' | 'optionValues'> & { category: ResolversTypes['ProductOptionCategory'], optionValues: Array<ResolversTypes['ProductOptionValue']> }>;
+  ProductOptionCategory: ResolverTypeWrapper<ProductOptionCategory>;
   ProductOptionSwatchType: ProductOptionSwatchType;
   ProductOptionValue: ResolverTypeWrapper<Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<ResolversTypes['ProductOptionValueSwatch']> }>;
   ProductOptionValueSwatch: ResolverTypeWrapper<Omit<ProductOptionValueSwatch, 'image'> & { image?: Maybe<ResolversTypes['Media']> }>;
@@ -1785,7 +1786,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductFeatureValue: ProductFeatureValue;
   ProductMediaConnection: Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['ProductMediaEdge']>, nodes: Array<ResolversParentTypes['Media']> };
   ProductMediaEdge: Omit<ProductMediaEdge, 'node'> & { node: ResolversParentTypes['Media'] };
-  ProductOption: Omit<ProductOption, 'optionValues'> & { optionValues: Array<ResolversParentTypes['ProductOptionValue']> };
+  ProductOption: Omit<ProductOption, 'category' | 'optionValues'> & { category: ResolversParentTypes['ProductOptionCategory'], optionValues: Array<ResolversParentTypes['ProductOptionValue']> };
+  ProductOptionCategory: ProductOptionCategory;
   ProductOptionValue: Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<ResolversParentTypes['ProductOptionValueSwatch']> };
   ProductOptionValueSwatch: Omit<ProductOptionValueSwatch, 'image'> & { image?: Maybe<ResolversParentTypes['Media']> };
   ProductPriceRange: Omit<ProductPriceRange, 'maxVariantPrice' | 'minVariantPrice'> & { maxVariantPrice: ResolversParentTypes['Money'], minVariantPrice: ResolversParentTypes['Money'] };
@@ -1955,7 +1957,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureGroup' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionValue' | 'ProductVariant' | 'Tag' | 'Vendor', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureGroup' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionCategory' | 'ProductOptionValue' | 'ProductVariant' | 'Tag' | 'Vendor', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2087,12 +2089,20 @@ export type ProductMediaEdgeResolvers<ContextType = ServiceContext, ParentType e
 
 export type ProductOptionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOption'] = ResolversParentTypes['ProductOption']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOption']>, { __typename: 'ProductOption' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
-  displayType?: Resolver<ResolversTypes['ProductOptionDisplayType'], ParentType, ContextType>;
+  category?: Resolver<ResolversTypes['ProductOptionCategory'], ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   optionValues?: Resolver<Array<ResolversTypes['ProductOptionValue']>, ParentType, ContextType>;
   position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ProductOptionCategoryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductOptionCategory'] = ResolversParentTypes['ProductOptionCategory']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['ProductOptionCategory']>, { __typename: 'ProductOptionCategory' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2286,6 +2296,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductMediaConnection?: ProductMediaConnectionResolvers<ContextType>;
   ProductMediaEdge?: ProductMediaEdgeResolvers<ContextType>;
   ProductOption?: ProductOptionResolvers<ContextType>;
+  ProductOptionCategory?: ProductOptionCategoryResolvers<ContextType>;
   ProductOptionValue?: ProductOptionValueResolvers<ContextType>;
   ProductOptionValueSwatch?: ProductOptionValueSwatchResolvers<ContextType>;
   ProductPriceRange?: ProductPriceRangeResolvers<ContextType>;

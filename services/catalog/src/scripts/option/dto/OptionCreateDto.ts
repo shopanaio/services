@@ -5,7 +5,7 @@ export interface OptionCreateParams {
   readonly productId: string;
   readonly slug: string;
   readonly name: string;
-  readonly displayType: string;
+  readonly categoryId: string;
   readonly sortIndex?: number;
   readonly values: OptionValueInput[];
 }

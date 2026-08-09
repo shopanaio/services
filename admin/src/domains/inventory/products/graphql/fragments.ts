@@ -136,7 +136,13 @@ export const PRODUCT_OPTION_FRAGMENT = gql`
     id
     name
     slug
-    displayType
+    category {
+      id
+      name
+      slug
+      createdAt
+      updatedAt
+    }
     sortIndex
     values {
       ...ProductOptionValueFields

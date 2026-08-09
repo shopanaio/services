@@ -66,3 +66,23 @@ export const PRODUCT_DELETE_MUTATION = gql`
   }
   ${USER_ERROR_FRAGMENT}
 `;
+
+export const PRODUCT_OPTION_CATEGORY_CREATE_MUTATION = gql`
+  mutation ProductOptionCategoryCreate($input: ProductOptionCategoryCreateInput!) {
+    catalogMutation {
+      productOptionCategoryCreate(input: $input) {
+        category {
+          id
+          name
+          slug
+          createdAt
+          updatedAt
+        }
+        userErrors {
+          ...UserErrorFields
+        }
+      }
+    }
+  }
+  ${USER_ERROR_FRAGMENT}
+`;

@@ -11,6 +11,7 @@ import "./configs/variant-picker-config";
 import "./configs/category-picker-config";
 import "./configs/vendor-picker-config";
 import "./configs/media-picker-config";
+import "./configs/option-category-picker-config";
 
 /**
  * Register entity picker modal in the modal stack

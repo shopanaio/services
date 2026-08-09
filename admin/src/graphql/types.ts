@@ -1884,6 +1884,9 @@ export type ApiCatalogMutation = {
   productCreate: ApiProductCreatePayload;
   /** Delete an existing product */
   productDelete: ApiProductDeletePayload;
+  productOptionCategoryCreate: ApiProductOptionCategoryCreatePayload;
+  productOptionCategoryDelete: ApiProductOptionCategoryDeletePayload;
+  productOptionCategoryUpdate: ApiProductOptionCategoryUpdatePayload;
   /**
    * Unified product update with optimistic locking.
    * Supports product, component, and variant updates in a single request.
@@ -1977,6 +1980,21 @@ export type ApiCatalogMutationProductDeleteArgs = {
 };
 
 
+export type ApiCatalogMutationProductOptionCategoryCreateArgs = {
+  input: ApiProductOptionCategoryCreateInput;
+};
+
+
+export type ApiCatalogMutationProductOptionCategoryDeleteArgs = {
+  input: ApiProductOptionCategoryDeleteInput;
+};
+
+
+export type ApiCatalogMutationProductOptionCategoryUpdateArgs = {
+  input: ApiProductOptionCategoryUpdateInput;
+};
+
+
 export type ApiCatalogMutationProductUpdateArgs = {
   expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<ApiProductUpdateInput>;
@@ -2030,6 +2048,8 @@ export type ApiCatalogQuery = {
    * Defaults to active jobs when statusFilter is omitted.
    */
   productBulkUpdateJobs: ApiProductBulkUpdateJobConnection;
+  productOptionCategories: ApiProductOptionCategoryConnection;
+  productOptionCategory?: Maybe<ApiProductOptionCategory>;
   /** Get products with Relay-style pagination */
   products: ApiProductConnection;
   /** Get a tag by ID */
@@ -2110,6 +2130,21 @@ export type ApiCatalogQueryProductBulkUpdateJobsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
+};
+
+
+export type ApiCatalogQueryProductOptionCategoriesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiProductOptionCategoryOrderByInput>>;
+  where?: InputMaybe<ApiProductOptionCategoryWhereInput>;
+};
+
+
+export type ApiCatalogQueryProductOptionCategoryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -10768,13 +10803,6 @@ export enum OperationType {
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
-/** Display type for product options in the UI. */
-export enum OptionDisplayType {
-  Buttons = 'BUTTONS',
-  Dropdown = 'DROPDOWN',
-  Swatch = 'SWATCH'
-}
-
 export type ApiOrder = {
   __typename?: 'Order';
   adminNote?: Maybe<Scalars['String']['output']>;
@@ -12162,8 +12190,8 @@ export type ApiProductCreateInput = {
 
 /** Input for creating an option during product creation. */
 export type ApiProductCreateOptionInput = {
-  /** How to display the option (default: DROPDOWN). */
-  displayType?: InputMaybe<Scalars['String']['input']>;
+  /** Category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Display name for the option. */
   name: Scalars['String']['input'];
   /** URL-friendly slug for the option. */
@@ -12442,8 +12470,8 @@ export type ApiProductMediaItem = {
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
 export type ApiProductOption = ApiNode & {
   __typename?: 'ProductOption';
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The reusable category assigned to this option. */
+  category: ApiProductOptionCategory;
   /** The globally unique ID of the option. */
   id: Scalars['ID']['output'];
   /** Display name. */
@@ -12456,10 +12484,108 @@ export type ApiProductOption = ApiNode & {
   values: Array<ApiProductOptionValue>;
 };
 
+/** A reusable category for grouping product options, such as color or size. */
+export type ApiProductOptionCategory = ApiNode & {
+  __typename?: 'ProductOptionCategory';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiProductOptionCategoryConnection = {
+  __typename?: 'ProductOptionCategoryConnection';
+  edges: Array<ApiProductOptionCategoryEdge>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiProductOptionCategoryCreateInput = {
+  name: Scalars['String']['input'];
+  slug: Scalars['String']['input'];
+};
+
+export type ApiProductOptionCategoryCreatePayload = {
+  __typename?: 'ProductOptionCategoryCreatePayload';
+  category?: Maybe<ApiProductOptionCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductOptionCategoryDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiProductOptionCategoryDeletePayload = {
+  __typename?: 'ProductOptionCategoryDeletePayload';
+  deletedCategoryId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductOptionCategoryEdge = {
+  __typename?: 'ProductOptionCategoryEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiProductOptionCategory;
+};
+
+/** Ordering configuration for ProductOptionCategory */
+export type ApiProductOptionCategoryOrderByInput = {
+  /** Sort direction */
+  direction: SortDirection;
+  /** Field to order by */
+  field: ProductOptionCategoryOrderField;
+};
+
+/** Fields available for sorting ProductOptionCategory */
+export enum ProductOptionCategoryOrderField {
+  /** Sort by createdAt */
+  CreatedAt = 'createdAt',
+  /** Sort by id */
+  Id = 'id',
+  /** Sort by name */
+  Name = 'name',
+  /** Sort by slug */
+  Slug = 'slug',
+  /** Sort by updatedAt */
+  UpdatedAt = 'updatedAt'
+}
+
+export type ApiProductOptionCategoryUpdateInput = {
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiProductOptionCategoryUpdatePayload = {
+  __typename?: 'ProductOptionCategoryUpdatePayload';
+  category?: Maybe<ApiProductOptionCategory>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Filter conditions for ProductOptionCategory */
+export type ApiProductOptionCategoryWhereInput = {
+  /** Logical AND of multiple conditions */
+  _and?: InputMaybe<Array<ApiProductOptionCategoryWhereInput>>;
+  /** Negate the condition */
+  _not?: InputMaybe<ApiProductOptionCategoryWhereInput>;
+  /** Logical OR of multiple conditions */
+  _or?: InputMaybe<Array<ApiProductOptionCategoryWhereInput>>;
+  /** Filter by createdAt */
+  createdAt?: InputMaybe<ApiDateTimeFilter>;
+  /** Filter by id */
+  id?: InputMaybe<ApiIdFilter>;
+  /** Filter by name */
+  name?: InputMaybe<ApiStringFilter>;
+  /** Filter by slug */
+  slug?: InputMaybe<ApiStringFilter>;
+  /** Filter by updatedAt */
+  updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
 /** Input for creating an option on a product. */
 export type ApiProductOptionCreateInput = {
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The ID of the product (optional when creating with product). */
@@ -12533,8 +12659,8 @@ export type ApiProductOptionSwatchInput = {
 
 /** Input for syncing a single option. */
 export type ApiProductOptionSyncItemInput = {
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Existing option ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Display name. */
@@ -12549,8 +12675,8 @@ export type ApiProductOptionSyncItemInput = {
 
 /** Input for updating an option. */
 export type ApiProductOptionUpdateInput = {
-  /** The new display type. */
-  displayType?: InputMaybe<OptionDisplayType>;
+  /** The new category assigned to the option. */
+  categoryId?: InputMaybe<Scalars['ID']['input']>;
   /** The ID of the option to update. */
   id: Scalars['ID']['input'];
   /** Display name. */
@@ -12975,6 +13101,8 @@ export enum ProductQuestionAnswerOrderField {
   IsAccepted = 'isAccepted',
   /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by questionId */
@@ -13036,6 +13164,8 @@ export type ApiProductQuestionAnswerWhereInput = {
   isAccepted?: InputMaybe<ApiBooleanFilter>;
   /** Filter by isOfficial */
   isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<ApiStringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
   /** Filter by questionId */
@@ -13113,6 +13243,8 @@ export enum ProductQuestionOrderField {
   DeletedAt = 'deletedAt',
   /** Sort by id */
   Id = 'id',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by officialAnswerCount */
@@ -13242,6 +13374,8 @@ export type ApiProductQuestionWhereInput = {
   deletedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by id */
   id?: InputMaybe<ApiIdFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<ApiStringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
   /** Filter by officialAnswerCount */
@@ -15131,6 +15265,8 @@ export enum ReviewReplyOrderField {
   Id = 'id',
   /** Sort by isOfficial */
   IsOfficial = 'isOfficial',
+  /** Sort by likeCount */
+  LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
   /** Sort by reviewId */
@@ -15184,6 +15320,8 @@ export type ApiReviewReplyWhereInput = {
   id?: InputMaybe<ApiIdFilter>;
   /** Filter by isOfficial */
   isOfficial?: InputMaybe<ApiBooleanFilter>;
+  /** Filter by likeCount */
+  likeCount?: InputMaybe<ApiStringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<ApiStringFilter>;
   /** Filter by reviewId */
@@ -18411,8 +18549,16 @@ export type ApiWarehouseOrderByInput = {
 
 /** Fields available for sorting Warehouse */
 export enum WarehouseOrderField {
+  /** Sort by addressLine1 */
+  AddressLine1 = 'addressLine1',
+  /** Sort by addressLine2 */
+  AddressLine2 = 'addressLine2',
+  /** Sort by city */
+  City = 'city',
   /** Sort by code */
   Code = 'code',
+  /** Sort by countryCode */
+  CountryCode = 'countryCode',
   /** Sort by createdAt */
   CreatedAt = 'createdAt',
   /** Sort by id */
@@ -18421,6 +18567,12 @@ export enum WarehouseOrderField {
   IsDefault = 'isDefault',
   /** Sort by name */
   Name = 'name',
+  /** Sort by postalCode */
+  PostalCode = 'postalCode',
+  /** Sort by provinceCode */
+  ProvinceCode = 'provinceCode',
+  /** Sort by provinceName */
+  ProvinceName = 'provinceName',
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
@@ -18609,8 +18761,16 @@ export type ApiWarehouseWhereInput = {
   _not?: InputMaybe<ApiWarehouseWhereInput>;
   /** Logical OR of multiple conditions */
   _or?: InputMaybe<Array<ApiWarehouseWhereInput>>;
+  /** Filter by addressLine1 */
+  addressLine1?: InputMaybe<ApiStringFilter>;
+  /** Filter by addressLine2 */
+  addressLine2?: InputMaybe<ApiStringFilter>;
+  /** Filter by city */
+  city?: InputMaybe<ApiStringFilter>;
   /** Filter by code */
   code?: InputMaybe<ApiStringFilter>;
+  /** Filter by countryCode */
+  countryCode?: InputMaybe<ApiStringFilter>;
   /** Filter by createdAt */
   createdAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by id */
@@ -18619,6 +18779,12 @@ export type ApiWarehouseWhereInput = {
   isDefault?: InputMaybe<ApiBooleanFilter>;
   /** Filter by name */
   name?: InputMaybe<ApiStringFilter>;
+  /** Filter by postalCode */
+  postalCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by provinceCode */
+  provinceCode?: InputMaybe<ApiStringFilter>;
+  /** Filter by provinceName */
+  provinceName?: InputMaybe<ApiStringFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };

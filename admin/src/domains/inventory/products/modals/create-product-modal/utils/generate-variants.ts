@@ -10,6 +10,7 @@ export interface IOptionValueInput {
 export interface IOptionInput {
   id: string;
   name: string;
+  category?: { id: string; name: string; slug: string } | null;
   values: IOptionValueInput[];
 }
 
@@ -111,4 +112,3 @@ export function countPotentialVariants(options: IOptionInput[]): number {
 
   return validOptions.reduce((acc, opt) => acc * opt.values.length, 1);
 }
-

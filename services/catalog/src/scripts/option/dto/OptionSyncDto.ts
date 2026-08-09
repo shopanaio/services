@@ -14,7 +14,7 @@ export interface OptionSyncItemInput {
   readonly sortIndex: number;
   readonly slug: string;
   readonly name: string;
-  readonly displayType: string;
+  readonly categoryId: string;
   readonly values: OptionValueSyncInput[];
 }
 

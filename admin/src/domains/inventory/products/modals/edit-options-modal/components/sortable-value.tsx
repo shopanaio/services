@@ -2,7 +2,6 @@ import { Button, Flex, Input } from "antd";
 import { LuX as CloseOutlined, LuGripVertical as HolderOutlined } from "react-icons/lu";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { OptionDisplayType } from "@/graphql/types";
 import { useStyles } from "../edit-options-modal.styles";
 import { DEFAULT_SWATCH } from "../edit-options-modal.constants";
 import type { OptionEditorSwatch, OptionEditorValue } from "../types";
@@ -10,7 +9,7 @@ import { SwatchPicker } from "./swatch-picker";
 
 interface ISortableValueProps {
   value: OptionEditorValue;
-  groupDisplayType: OptionDisplayType;
+  swatchesEnabled?: boolean;
   isDeleteDisabled?: boolean;
   onNameChange: (name: string) => void;
   onSwatchChange: (swatch: OptionEditorSwatch) => void;
@@ -19,7 +18,7 @@ interface ISortableValueProps {
 
 export const SortableValue = ({
   value,
-  groupDisplayType,
+  swatchesEnabled = true,
   isDeleteDisabled,
   onNameChange,
   onSwatchChange,
@@ -42,7 +41,6 @@ export const SortableValue = ({
   };
 
   const swatch = value.swatch || DEFAULT_SWATCH;
-  const showSwatchControls = groupDisplayType === OptionDisplayType.Swatch;
 
   return (
     <div
@@ -66,7 +64,7 @@ export const SortableValue = ({
             >
               <HolderOutlined />
             </span>
-            {showSwatchControls && (
+            {swatchesEnabled && (
               <span onPointerDown={(e) => e.stopPropagation()}>
                 <SwatchPicker swatch={swatch} onChange={onSwatchChange} />
               </span>

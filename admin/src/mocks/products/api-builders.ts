@@ -1,7 +1,6 @@
 import {
   CurrencyCode,
   FileProvider,
-  OptionDisplayType,
   ProductSortBy,
   SortDirection,
   SwatchType,
@@ -18,6 +17,7 @@ import {
   type ApiProductFeatureValue,
   type ApiProductMediaItem,
   type ApiProductOption,
+  type ApiProductOptionCategory,
   type ApiProductOptionSwatch,
   type ApiProductOptionValue,
   type ApiProductSeo,
@@ -142,7 +142,7 @@ export const createMockApiProductOption = (params: {
   id: string;
   name: string;
   slug: string;
-  displayType?: OptionDisplayType;
+  category?: ApiProductOptionCategory;
   sortIndex?: number;
   values: ApiProductOptionValue[];
 }): ApiProductOption => ({
@@ -150,7 +150,14 @@ export const createMockApiProductOption = (params: {
   id: params.id,
   name: params.name,
   slug: params.slug,
-  displayType: params.displayType ?? OptionDisplayType.Buttons,
+  category: params.category ?? {
+    __typename: "ProductOptionCategory",
+    id: `option-category-${params.slug}`,
+    name: params.name,
+    slug: params.slug,
+    createdAt: "2025-01-01T00:00:00.000Z",
+    updatedAt: "2025-01-01T00:00:00.000Z",
+  },
   sortIndex: params.sortIndex ?? 0,
   values: params.values,
 });

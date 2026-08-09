@@ -2095,9 +2095,9 @@ type ProductOption implements Node @join__type(graph: CATALOG_ADMIN, key: "id") 
   """
   name: String!
   """
-  The display type for UI rendering.
+  The reusable category assigned to this option.
   """
-  displayType: OptionDisplayType!
+  category: ProductOptionCategory!
   """
   Sort order within the product options list.
   """
@@ -2106,6 +2106,14 @@ type ProductOption implements Node @join__type(graph: CATALOG_ADMIN, key: "id") 
   The available values for this option.
   """
   values: [ProductOptionValue!]!
+}
+
+type ProductOptionCategory implements Node @join__type(graph: CATALOG_ADMIN, key: "id")  @join__implements(graph: CATALOG_ADMIN, interface: "Node")  {
+  id: ID!
+  name: String!
+  slug: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 """
@@ -7237,15 +7245,6 @@ enum ThresholdMethod @join__type(graph: CATALOG_ADMIN)  {
 }
 
 """
-Display type for product options in the UI.
-"""
-enum OptionDisplayType @join__type(graph: CATALOG_ADMIN)  {
-  DROPDOWN @join__enumValue(graph: CATALOG_ADMIN) 
-  SWATCH @join__enumValue(graph: CATALOG_ADMIN) 
-  BUTTONS @join__enumValue(graph: CATALOG_ADMIN) 
-}
-
-"""
 Type of visual swatch for option values.
 """
 enum SwatchType @join__type(graph: CATALOG_ADMIN)  @join__type(graph: LISTING_ADMIN)  {
@@ -10429,9 +10428,9 @@ input ProductOptionCreateInput @join__type(graph: CATALOG_ADMIN)  {
   """
   name: String!
   """
-  The display type for UI rendering.
+  The category assigned to the option.
   """
-  displayType: OptionDisplayType!
+  categoryId: ID!
   """
   Sort order within the product options list.
   """
@@ -10503,9 +10502,9 @@ input ProductOptionUpdateInput @join__type(graph: CATALOG_ADMIN)  {
   """
   name: String
   """
-  The new display type.
+  The new category assigned to the option.
   """
-  displayType: OptionDisplayType
+  categoryId: ID
   """
   Sort order within the product options list.
   """
@@ -10573,9 +10572,9 @@ input ProductOptionSyncItemInput @join__type(graph: CATALOG_ADMIN)  {
   """
   name: String!
   """
-  The display type for UI rendering.
+  The category assigned to the option.
   """
-  displayType: OptionDisplayType!
+  categoryId: ID!
   """
   The values for this option.
   """
@@ -10767,9 +10766,9 @@ input ProductCreateOptionInput @join__type(graph: CATALOG_ADMIN)  {
   """
   slug: String!
   """
-  How to display the option (default: DROPDOWN).
+  Category assigned to the option.
   """
-  displayType: String
+  categoryId: ID!
   """
   Sort order within the product options list.
   """

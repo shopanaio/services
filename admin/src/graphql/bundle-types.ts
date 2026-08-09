@@ -5208,13 +5208,6 @@ export enum OperationType {
   VariantUpdate = 'VARIANT_UPDATE'
 }
 
-/** Display type for product options in the UI. */
-export enum OptionDisplayType {
-  Buttons = 'BUTTONS',
-  Dropdown = 'DROPDOWN',
-  Swatch = 'SWATCH'
-}
-
 export type ApiOrder = {
   __typename?: 'Order';
   adminNote?: Maybe<Scalars['String']['output']>;
@@ -5893,8 +5886,8 @@ export type ApiProductCreateInput = {
 
 /** Input for creating an option during product creation. */
 export type ApiProductCreateOptionInput = {
-  /** How to display the option (default: DROPDOWN). */
-  displayType?: InputMaybe<Scalars['String']['input']>;
+  /** Category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Display name for the option. */
   name: Scalars['String']['input'];
   /** URL-friendly slug for the option. */
@@ -6173,8 +6166,8 @@ export type ApiProductMediaItem = {
 /** A product option defines a configurable aspect of a product, such as Size or Color. */
 export type ApiProductOption = ApiNode & {
   __typename?: 'ProductOption';
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The reusable category assigned to this option. */
+  category: ApiProductOptionCategory;
   /** The globally unique ID of the option. */
   id: Scalars['ID']['output'];
   /** Display name. */
@@ -6187,10 +6180,19 @@ export type ApiProductOption = ApiNode & {
   values: Array<ApiProductOptionValue>;
 };
 
+export type ApiProductOptionCategory = ApiNode & {
+  __typename?: 'ProductOptionCategory';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  slug: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
 /** Input for creating an option on a product. */
 export type ApiProductOptionCreateInput = {
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Display name. */
   name: Scalars['String']['input'];
   /** The ID of the product (optional when creating with product). */
@@ -6264,8 +6266,8 @@ export type ApiProductOptionSwatchInput = {
 
 /** Input for syncing a single option. */
 export type ApiProductOptionSyncItemInput = {
-  /** The display type for UI rendering. */
-  displayType: OptionDisplayType;
+  /** The category assigned to the option. */
+  categoryId: Scalars['ID']['input'];
   /** Existing option ID (null = create new). */
   id?: InputMaybe<Scalars['ID']['input']>;
   /** Display name. */
@@ -6280,8 +6282,8 @@ export type ApiProductOptionSyncItemInput = {
 
 /** Input for updating an option. */
 export type ApiProductOptionUpdateInput = {
-  /** The new display type. */
-  displayType?: InputMaybe<OptionDisplayType>;
+  /** The new category assigned to the option. */
+  categoryId?: InputMaybe<Scalars['ID']['input']>;
   /** The ID of the option to update. */
   id: Scalars['ID']['input'];
   /** Display name. */

@@ -262,8 +262,8 @@ input ProductCreateOptionInput {
   """URL-friendly slug for the option."""
   slug: String!
 
-  """How to display the option (default: DROPDOWN)."""
-  displayType: String
+  """Category assigned to the option."""
+  categoryId: ID!
 
   """Sort order within the product options list."""
   sortIndex: Int

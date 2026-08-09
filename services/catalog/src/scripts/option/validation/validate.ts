@@ -14,7 +14,7 @@ export interface OptionSyncValidationResult {
 }
 
 export async function validateOptionSyncParams(
-  repository: Pick<Repository, "option" | "product">,
+  repository: Pick<Repository, "option" | "optionCategory" | "product">,
   params: OptionSyncParams,
 ): Promise<OptionSyncValidationResult> {
   const parseResult = OptionSyncInputSchema.safeParse(params);
@@ -34,6 +34,22 @@ export async function validateOptionSyncParams(
       userErrors: [
         { message: "Product not found", field: ["productId"], code: "NOT_FOUND" },
       ],
+    };
+  }
+
+  const categoryIds = [...new Set(options.map((option) => option.categoryId))];
+  const categories = await repository.optionCategory.getByIds(categoryIds);
+  if (categories.length !== categoryIds.length) {
+    const existingIds = new Set(categories.map((category) => category.id));
+    const optionIndex = options.findIndex(
+      (option) => !existingIds.has(option.categoryId)
+    );
+    return {
+      userErrors: [{
+        message: "Option category not found",
+        field: ["options", String(optionIndex), "categoryId"],
+        code: "NOT_FOUND",
+      }],
     };
   }
 

@@ -1,15 +1,6 @@
 # ---- Product Option Types ----
 
 """
-Display type for product options in the UI.
-"""
-enum OptionDisplayType {
-  DROPDOWN
-  SWATCH
-  BUTTONS
-}
-
-"""
 Type of visual swatch for option values.
 """
 enum SwatchType {
@@ -31,14 +22,64 @@ type ProductOption implements Node @key(fields: "id") {
   """Display name."""
   name: String!
 
-  """The display type for UI rendering."""
-  displayType: OptionDisplayType!
+  """The reusable category assigned to this option."""
+  category: ProductOptionCategory!
 
   """Sort order within the product options list."""
   sortIndex: Int!
 
   """The available values for this option."""
   values: [ProductOptionValue!]!
+}
+
+"""A reusable category for grouping product options, such as color or size."""
+type ProductOptionCategory implements Node @key(fields: "id") {
+  id: ID!
+  name: String!
+  slug: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type ProductOptionCategoryConnection {
+  edges: [ProductOptionCategoryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ProductOptionCategoryEdge {
+  node: ProductOptionCategory!
+  cursor: String!
+}
+
+input ProductOptionCategoryCreateInput {
+  name: String!
+  slug: String!
+}
+
+type ProductOptionCategoryCreatePayload {
+  category: ProductOptionCategory
+  userErrors: [GenericUserError!]!
+}
+
+input ProductOptionCategoryUpdateInput {
+  id: ID!
+  name: String
+  slug: String
+}
+
+type ProductOptionCategoryUpdatePayload {
+  category: ProductOptionCategory
+  userErrors: [GenericUserError!]!
+}
+
+input ProductOptionCategoryDeleteInput {
+  id: ID!
+}
+
+type ProductOptionCategoryDeletePayload {
+  deletedCategoryId: ID
+  userErrors: [GenericUserError!]!
 }
 
 """
@@ -159,8 +200,8 @@ input ProductOptionCreateInput {
   """Display name."""
   name: String!
 
-  """The display type for UI rendering."""
-  displayType: OptionDisplayType!
+  """The category assigned to the option."""
+  categoryId: ID!
 
   """Sort order within the product options list."""
   sortIndex: Int
@@ -230,8 +271,8 @@ input ProductOptionUpdateInput {
   """Display name."""
   name: String
 
-  """The new display type."""
-  displayType: OptionDisplayType
+  """The new category assigned to the option."""
+  categoryId: ID
 
   """Sort order within the product options list."""
   sortIndex: Int
@@ -314,8 +355,8 @@ input ProductOptionSyncItemInput {
   """Display name."""
   name: String!
 
-  """The display type for UI rendering."""
-  displayType: OptionDisplayType!
+  """The category assigned to the option."""
+  categoryId: ID!
 
   """The values for this option."""
   values: [ProductOptionValueSyncInput!]!

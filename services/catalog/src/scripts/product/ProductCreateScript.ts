@@ -46,6 +46,25 @@ export class ProductCreateScript extends BaseScript<
       }
     }
 
+    if (options?.length) {
+      const categoryIds = [...new Set(options.map((option) => option.categoryId))];
+      const categories = await this.repository.optionCategory.getByIds(categoryIds);
+      if (categories.length !== categoryIds.length) {
+        const existingIds = new Set(categories.map((category) => category.id));
+        const optionIndex = options.findIndex(
+          (option) => !existingIds.has(option.categoryId)
+        );
+        return {
+          product: undefined,
+          userErrors: [{
+            message: "Option category not found",
+            field: ["options", String(optionIndex), "categoryId"],
+            code: "NOT_FOUND",
+          }],
+        };
+      }
+    }
+
     // 1. Create product with handle
     const product = await this.repository.product.create({ vendorId });
     await this.repository.product.update(product.id, { handle });
@@ -154,7 +173,7 @@ export class ProductCreateScript extends BaseScript<
       // Create option
       const option = await this.repository.option.create(productId, {
         slug: optionInput.slug,
-        displayType: optionInput.displayType ?? "DROPDOWN",
+        categoryId: optionInput.categoryId,
         sortIndex: optionInput.sortIndex ?? 0,
       });
 

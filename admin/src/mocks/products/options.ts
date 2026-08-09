@@ -1,4 +1,4 @@
-import { OptionDisplayType, SwatchType, type ApiProductOption } from "@/graphql/types";
+import { SwatchType, type ApiProductOption } from "@/graphql/types";
 
 export const MOCK_OPTION_GROUPS: ApiProductOption[] = [
   {
@@ -6,7 +6,7 @@ export const MOCK_OPTION_GROUPS: ApiProductOption[] = [
     id: "opt-1",
     name: "Color",
     slug: "color",
-    displayType: OptionDisplayType.Swatch,
+    category: { __typename: "ProductOptionCategory", id: "option-category-color", name: "Color", slug: "color", createdAt: "2025-01-01T00:00:00.000Z", updatedAt: "2025-01-01T00:00:00.000Z" },
     sortIndex: 0,
     values: [
       {
@@ -48,7 +48,7 @@ export const MOCK_OPTION_GROUPS: ApiProductOption[] = [
     id: "opt-2",
     name: "Size",
     slug: "size",
-    displayType: OptionDisplayType.Buttons,
+    category: { __typename: "ProductOptionCategory", id: "option-category-size", name: "Size", slug: "size", createdAt: "2025-01-01T00:00:00.000Z", updatedAt: "2025-01-01T00:00:00.000Z" },
     sortIndex: 1,
     values: [
       { __typename: "ProductOptionValue", id: "val-5", name: "S", slug: "s", sortIndex: 0, swatch: null },

@@ -74,6 +74,13 @@ export class ResolverRegistry {
     return new ProductOptionResolver(id, this.ctx);
   }
 
+  async productOptionCategory(id: string) {
+    const { ProductOptionCategoryResolver } = await import(
+      "./CatalogEntityResolvers.js"
+    );
+    return new ProductOptionCategoryResolver(id, this.ctx);
+  }
+
   async productOptionValue(id: string) {
     const { ProductOptionValueResolver } = await import(
       "./CatalogEntityResolvers.js"

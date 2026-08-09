@@ -12,6 +12,7 @@ import {
   ProductFeatureResolver,
   ProductFeatureValueResolver,
   ProductOptionResolver,
+  ProductOptionCategoryResolver,
   ProductOptionValueResolver,
   TagResolver,
   VendorResolver,
@@ -30,6 +31,8 @@ export const typeResolvers: Partial<Resolvers> = {
       if (value instanceof ProductVariantResolver) return "ProductVariant";
       if (value instanceof CategoryResolver) return "Category";
       if (value instanceof ProductOptionResolver) return "ProductOption";
+      if (value instanceof ProductOptionCategoryResolver)
+        return "ProductOptionCategory";
       if (value instanceof ProductOptionValueResolver)
         return "ProductOptionValue";
       if (value instanceof ProductFeatureResolver) return "ProductFeature";
@@ -102,6 +105,10 @@ export const typeResolvers: Partial<Resolvers> = {
   Vendor: referenceResolver(VendorResolver, GlobalIdEntity.Vendor),
   Tag: referenceResolver(TagResolver, GlobalIdEntity.Tag),
   ProductOption: referenceResolver(ProductOptionResolver, GlobalIdEntity.Option),
+  ProductOptionCategory: referenceResolver(
+    ProductOptionCategoryResolver,
+    GlobalIdEntity.OptionCategory,
+  ),
   ProductOptionValue: referenceResolver(
     ProductOptionValueResolver,
     GlobalIdEntity.OptionValue,

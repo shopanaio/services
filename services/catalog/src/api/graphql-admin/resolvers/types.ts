@@ -11,6 +11,7 @@ import { CollectionResolver } from "../../../resolvers/admin/CollectionResolver.
 import { FeatureResolver } from "../../../resolvers/admin/FeatureResolver.js";
 import { FeatureValueResolver } from "../../../resolvers/admin/FeatureValueResolver.js";
 import { OptionResolver } from "../../../resolvers/admin/OptionResolver.js";
+import { OptionCategoryResolver } from "../../../resolvers/admin/OptionCategoryResolver.js";
 import { OptionValueResolver } from "../../../resolvers/admin/OptionValueResolver.js";
 import {
   ProductReferenceResolver,
@@ -52,6 +53,7 @@ export const typeResolvers: Partial<Resolvers> = {
     __resolveType: async (obj: unknown) => {
       const record = obj as Record<string, unknown>;
       if (obj instanceof ProductResolver) return "Product";
+      if (obj instanceof OptionCategoryResolver) return "ProductOptionCategory";
       if (obj instanceof ProductComponentConfigurationResolver)
         return "ProductComponentConfiguration";
       if (obj instanceof ProductComponentGroupResolver)
@@ -89,7 +91,7 @@ export const typeResolvers: Partial<Resolvers> = {
         return "InventoryItem";
       if ("variants" in record) return "Product";
       if ("productId" in record && "optionValueIds" in record) return "Variant";
-      if ("displayType" in record) return "ProductOption";
+      if ("productId" in record && "categoryId" in record) return "ProductOption";
       if ("swatchType" in record) return "ProductOptionSwatch";
       if ("amountMinor" in record) return "VariantPrice";
       if ("unitCostMinor" in record) return "VariantCost";
@@ -249,6 +251,21 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Option,
       );
       return OptionResolver.load(optionId, fieldInfo, ctx);
+    },
+  },
+
+  ProductOptionCategory: {
+    __resolveReference: async (
+      reference: { __typename: "ProductOptionCategory"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const fieldInfo = parseGraphqlInfo(info);
+      const categoryId = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.OptionCategory,
+      );
+      return OptionCategoryResolver.load(categoryId, fieldInfo, ctx);
     },
   },
 

@@ -1,6 +1,5 @@
 import { slugify } from "transliteration/dist/node/src/node/index.js";
 import {
-  OptionDisplayType,
   SwatchType,
   type ApiGenericUserError,
   type ApiProductOption,
@@ -18,7 +17,6 @@ import type {
 
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 const DATA_URL_PATTERN = /^data:/i;
-const VALID_DISPLAY_TYPES = new Set<string>(Object.values(OptionDisplayType));
 const VALID_SWATCH_TYPES = new Set<string>(Object.values(SwatchType));
 
 type UserErrorField = Array<string | number>;
@@ -50,10 +48,6 @@ function isNonNegativeInteger(value: number): boolean {
 
 function isValidSlug(slug: string): boolean {
   return SLUG_PATTERN.test(slug);
-}
-
-function isValidDisplayType(displayType: OptionDisplayType): boolean {
-  return VALID_DISPLAY_TYPES.has(displayType);
 }
 
 function isValidSwatchType(swatchType: SwatchType): boolean {
@@ -165,7 +159,7 @@ export function apiProductOptionsToOptionEditorGroups(
     apiId: option.id,
     name: option.name,
     slug: option.slug,
-    displayType: option.displayType,
+    category: option.category,
     sortIndex: optionIndex,
     values: option.values.map((value, valueIndex) => ({
       id: value.id,
@@ -263,7 +257,6 @@ function getValueSlug(input: {
 
 function createValueSyncInput(input: {
   value: OptionEditorValue;
-  groupDisplayType: OptionDisplayType;
   sortIndex: number;
   slug: string;
 }): ApiProductOptionValueSyncInput {
@@ -271,10 +264,7 @@ function createValueSyncInput(input: {
     name: input.value.name.trim(),
     slug: input.slug,
     sortIndex: input.sortIndex,
-    swatch:
-      input.groupDisplayType === OptionDisplayType.Swatch
-        ? optionEditorSwatchToProductOptionSwatchInput(input.value.swatch)
-        : null,
+    swatch: optionEditorSwatchToProductOptionSwatchInput(input.value.swatch),
   };
 
   if (input.value.apiId) {
@@ -300,7 +290,6 @@ export function buildProductOptionsSyncDraft(input: {
 
       return createValueSyncInput({
         value,
-        groupDisplayType: group.displayType,
         sortIndex: valueIndex,
         slug: getValueSlug({
           value,
@@ -311,7 +300,7 @@ export function buildProductOptionsSyncDraft(input: {
     });
 
     const optionInput: ApiProductOptionSyncItemInput = {
-      displayType: group.displayType,
+      categoryId: group.category?.id ?? "",
       name: group.name.trim(),
       slug: getOptionSlug({
         group,
@@ -514,12 +503,12 @@ export function validateOptionEditorGroups(input: {
       optionPositions.set(group.sortIndex, group);
     }
 
-    if (!isValidDisplayType(group.displayType)) {
+    if (!group.category) {
       errors.push(
-        makeUserError("Option display type is invalid.", [
+        makeUserError("Option category is required.", [
           "options",
           optionIndex,
-          "displayType",
+          "categoryId",
         ]),
       );
     }
@@ -620,7 +609,7 @@ export function validateOptionEditorGroups(input: {
         valuePositions.set(value.sortIndex, value);
       }
 
-      if (group.displayType === OptionDisplayType.Swatch) {
+      if (value.swatch) {
         validateSwatch({
           errors,
           optionIndex,
@@ -688,17 +677,6 @@ export function validateOptionEditorGroups(input: {
         valueSlugs.set(value.slug, valueIndex);
       }
 
-      if (option.displayType !== OptionDisplayType.Swatch && value.swatch !== null) {
-        errors.push(
-          makeUserError("Non-swatch options must not send value swatches.", [
-            "options",
-            optionIndex,
-            "values",
-            valueIndex,
-            "swatch",
-          ]),
-        );
-      }
     });
   });
 

@@ -83,6 +83,46 @@ export const VENDORS_QUERY = gql`
   }
 `;
 
+export const PRODUCT_OPTION_CATEGORIES_QUERY = gql`
+  query ProductOptionCategories(
+    $first: Int
+    $after: String
+    $last: Int
+    $before: String
+    $where: ProductOptionCategoryWhereInput
+    $orderBy: [ProductOptionCategoryOrderByInput!]
+  ) {
+    catalogQuery {
+      productOptionCategories(
+        first: $first
+        after: $after
+        last: $last
+        before: $before
+        where: $where
+        orderBy: $orderBy
+      ) {
+        edges {
+          cursor
+          node {
+            id
+            name
+            slug
+            createdAt
+            updatedAt
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+`;
+
 export const PRODUCT_DETAILS_QUERY = gql`
   query ProductDetails(
     $id: ID!

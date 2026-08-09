@@ -52,7 +52,7 @@ export function prepareOptions(
   }
 
   const validOptions = options.filter(
-    (option) => option.name.trim() && option.values.length > 0,
+    (option) => option.name.trim() && option.category && option.values.length > 0,
   );
 
   if (validOptions.length === 0) {
@@ -60,6 +60,7 @@ export function prepareOptions(
   }
 
   return validOptions.map((option) => ({
+    categoryId: option.category!.id,
     name: option.name,
     slug: slugify(option.name),
     values: option.values.map((value) => ({

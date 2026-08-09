@@ -7,6 +7,7 @@ export * from './variant/index.js';
 
 // Option scripts
 export * from './option/index.js';
+export * from './option-category/index.js';
 
 // Feature scripts
 export * from './feature/index.js';

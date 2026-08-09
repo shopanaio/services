@@ -125,6 +125,17 @@ type CatalogQuery {
     orderBy: [VendorOrderByInput!]
   ): VendorConnection!
 
+  productOptionCategory(id: ID!): ProductOptionCategory
+
+  productOptionCategories(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ProductOptionCategoryWhereInput
+    orderBy: [ProductOptionCategoryOrderByInput!]
+  ): ProductOptionCategoryConnection!
+
   """
   Get bulk update job by ID.
   """
@@ -349,6 +360,16 @@ type InventoryMutation {
 }
 
 type CatalogMutation {
+  productOptionCategoryCreate(
+    input: ProductOptionCategoryCreateInput!
+  ): ProductOptionCategoryCreatePayload!
+  productOptionCategoryUpdate(
+    input: ProductOptionCategoryUpdateInput!
+  ): ProductOptionCategoryUpdatePayload!
+  productOptionCategoryDelete(
+    input: ProductOptionCategoryDeleteInput!
+  ): ProductOptionCategoryDeletePayload!
+
   # Vendor mutations
 
   """

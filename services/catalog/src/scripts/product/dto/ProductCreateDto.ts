@@ -15,7 +15,7 @@ export interface ProductCreateOptionValueInput {
 export interface ProductCreateOptionInput {
   readonly name: string;
   readonly slug: string;
-  readonly displayType?: string;
+  readonly categoryId: string;
   readonly sortIndex?: number;
   readonly values: ProductCreateOptionValueInput[];
 }

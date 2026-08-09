@@ -1,14 +1,13 @@
 import { useCallback } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
-import { OptionDisplayType } from "@/graphql/types";
 import {
   createTemporaryOptionId,
   createTemporaryOptionValueId,
 } from "../../../mappers";
 import type { IEditOptionsFormValues } from "../edit-options-modal.schema";
-import { DEFAULT_SWATCH } from "../edit-options-modal.constants";
 import type {
   OptionEditorGroup,
+  OptionEditorCategory,
   OptionEditorSwatch,
   OptionEditorValue,
 } from "../types";
@@ -51,17 +50,13 @@ function normalizeGroupSortIndexes(
 
 function createEmptyValue(input: {
   sortIndex: number;
-  displayType: OptionDisplayType;
 }): OptionEditorValue {
   return {
     id: createTemporaryOptionValueId(),
     name: "",
     slug: "",
     sortIndex: input.sortIndex,
-    swatch:
-      input.displayType === OptionDisplayType.Swatch
-        ? { ...DEFAULT_SWATCH }
-        : null,
+    swatch: null,
   };
 }
 
@@ -103,21 +98,12 @@ export const useEditOptionsForm = ({
     [notifyChange, setValue],
   );
 
-  const handleUpdateGroupDisplayType = useCallback(
-    (groupIndex: number, displayType: OptionDisplayType) => {
+  const handleUpdateGroupCategory = useCallback(
+    (groupIndex: number, category: OptionEditorCategory) => {
       const group = getValues(`groups.${groupIndex}`);
-      const values = group.values.map((value) => ({
-        ...value,
-        swatch:
-          displayType === OptionDisplayType.Swatch
-            ? value.swatch ?? { ...DEFAULT_SWATCH }
-            : value.swatch,
-      }));
-
       setValue(`groups.${groupIndex}`, {
         ...group,
-        displayType,
-        values,
+        category,
       }, { shouldDirty: true });
       notifyChange();
     },
@@ -181,10 +167,7 @@ export const useEditOptionsForm = ({
     (groupIndex: number) => {
       const group = getValues(`groups.${groupIndex}`);
       const currentValues = group.values;
-      const newValue = createEmptyValue({
-        sortIndex: currentValues.length,
-        displayType: group.displayType,
-      });
+      const newValue = createEmptyValue({ sortIndex: currentValues.length });
 
       setValue(
         `groups.${groupIndex}.values`,
@@ -210,18 +193,14 @@ export const useEditOptionsForm = ({
 
   const handleAddGroup = useCallback(() => {
     const currentGroups = getValues("groups");
-    const displayType = OptionDisplayType.Buttons;
     const newGroup: OptionEditorGroup = {
       id: createTemporaryOptionId(),
       name: "New Option",
       slug: "",
-      displayType,
+      category: null,
       sortIndex: currentGroups.length,
       values: [
-        createEmptyValue({
-          sortIndex: 0,
-          displayType,
-        }),
+        createEmptyValue({ sortIndex: 0 }),
       ],
     };
 
@@ -239,7 +218,7 @@ export const useEditOptionsForm = ({
     fields,
     watchedGroups,
     handleUpdateGroupName,
-    handleUpdateGroupDisplayType,
+    handleUpdateGroupCategory,
     handleDeleteGroup,
     handleUpdateValueName,
     handleUpdateValueSwatch,

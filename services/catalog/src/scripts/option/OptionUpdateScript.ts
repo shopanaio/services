@@ -7,7 +7,7 @@ import type { ProductOption, ProductOptionValue } from "../../repositories/model
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
-    const { id, slug, name, displayType, sortIndex, values } = params;
+    const { id, slug, name, categoryId, sortIndex, values } = params;
 
     // 1. Check option exists
     const existingOption = await this.repository.option.findById(id);
@@ -38,9 +38,15 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
     }
 
     // 3. Update option
-    const updateData: { slug?: string; displayType?: string; sortIndex?: number } = {};
+    if (categoryId !== undefined && !(await this.repository.optionCategory.findById(categoryId))) {
+      return {
+        option: undefined,
+        userErrors: [{ message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" }],
+      };
+    }
+    const updateData: { slug?: string; categoryId?: string; sortIndex?: number } = {};
     if (slug !== undefined) updateData.slug = slug;
-    if (displayType !== undefined) updateData.displayType = displayType;
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (sortIndex !== undefined) updateData.sortIndex = sortIndex;
 
     if (Object.keys(updateData).length > 0) {

@@ -69,7 +69,7 @@ export class OptionRepository extends BaseRepository {
 
   async create(
     productId: string,
-    data: { slug: string; displayType: string; sortIndex?: number }
+    data: { slug: string; categoryId: string; sortIndex?: number }
   ): Promise<ProductOption> {
     const id = await this.generateUuidV7();
 
@@ -77,8 +77,8 @@ export class OptionRepository extends BaseRepository {
       id,
       storeId: this.storeId,
       productId,
+      categoryId: data.categoryId,
       slug: data.slug,
-      displayType: data.displayType,
       sortIndex: data.sortIndex ?? 0,
     };
 
@@ -92,12 +92,12 @@ export class OptionRepository extends BaseRepository {
 
   async update(
     id: string,
-    data: { slug?: string; displayType?: string; sortIndex?: number }
+    data: { slug?: string; categoryId?: string; sortIndex?: number }
   ): Promise<ProductOption | null> {
     const updateData: Partial<NewProductOption> = {};
 
     if (data.slug !== undefined) updateData.slug = data.slug;
-    if (data.displayType !== undefined) updateData.displayType = data.displayType;
+    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
     if (data.sortIndex !== undefined) updateData.sortIndex = data.sortIndex;
 
     if (Object.keys(updateData).length === 0) {

@@ -19,7 +19,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { OptionDisplayType } from "@/graphql/types";
 import type {
   OptionEditorSwatch,
   OptionEditorValue,
@@ -96,11 +95,7 @@ export function FacetValuesList({
             <SortableValue
               key={value.id}
               value={value}
-              groupDisplayType={
-                swatchesEnabled
-                  ? OptionDisplayType.Swatch
-                  : OptionDisplayType.Buttons
-              }
+              swatchesEnabled={swatchesEnabled}
               isDeleteDisabled={values.length <= 1}
               onNameChange={(name) => onUpdateValueName(valueIndex, name)}
               onSwatchChange={(swatch) =>

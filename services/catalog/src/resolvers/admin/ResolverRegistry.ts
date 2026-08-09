@@ -3,6 +3,7 @@ import type { ProductSeo } from "../../repositories/models/index.js";
 import type { ProductConnectionInput } from "../../repositories/product/ProductRepository.js";
 import type { CategoryConnectionInput } from "../../repositories/category/CategoryRepository.js";
 import type { VendorRelayInput } from "../../repositories/vendor/VendorRepository.js";
+import type { OptionCategoryRelayInput } from "../../repositories/option-category/OptionCategoryRepository.js";
 import type { TagRelayInput } from "../../repositories/tag/TagRepository.js";
 import type { BulkEditJobConnectionInput } from "../../repositories/BulkEditJobRepository.js";
 import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
@@ -244,6 +245,20 @@ export class ResolverRegistry {
   async option(id: string) {
     const { OptionResolver } = await import("./OptionResolver.js");
     return new OptionResolver(id, this.ctx);
+  }
+
+  async optionCategory(id: string) {
+    const { OptionCategoryResolver } = await import(
+      "./OptionCategoryResolver.js"
+    );
+    return new OptionCategoryResolver(id, this.ctx);
+  }
+
+  async optionCategoryConnection(input: OptionCategoryRelayInput) {
+    const { OptionCategoryConnectionResolver } = await import(
+      "./OptionCategoryConnectionResolver.js"
+    );
+    return new OptionCategoryConnectionResolver(input, this.ctx);
   }
 
   async optionValue(id: string) {

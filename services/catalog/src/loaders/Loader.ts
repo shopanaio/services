@@ -3,6 +3,7 @@ import type { Repository } from "../repositories/Repository.js";
 import { CategoryLoader } from "./CategoryLoader.js";
 import { FeatureLoader } from "./FeatureLoader.js";
 import { OptionLoader } from "./OptionLoader.js";
+import { OptionCategoryLoader } from "./OptionCategoryLoader.js";
 import { ProductLoader } from "./ProductLoader.js";
 import { VendorLoader } from "./VendorLoader.js";
 import { TagLoader } from "./TagLoader.js";
@@ -63,6 +64,7 @@ export class Loader {
   public readonly productTagIds;
 
   // Options
+  public readonly optionCategory;
   public readonly optionTranslation;
   public readonly optionValueIds;
   public readonly optionValue;
@@ -139,6 +141,7 @@ export class Loader {
     const categoryLoader = new CategoryLoader(repository);
     const tagLoader = new TagLoader(repository);
     const optionLoader = new OptionLoader(repository);
+    const optionCategoryLoader = new OptionCategoryLoader(repository);
     const featureLoader = new FeatureLoader(repository);
     const collectionLoader = new CollectionLoader(repository);
     const bulkEditLoader = new BulkEditLoader(repository);
@@ -196,6 +199,7 @@ export class Loader {
     this.productTagIds = tagLoader.productTagIds;
 
     // Options
+    this.optionCategory = optionCategoryLoader.optionCategory;
     this.optionTranslation = optionLoader.optionTranslation;
     this.optionValueIds = optionLoader.optionValueIds;
     this.optionValue = optionLoader.optionValue;

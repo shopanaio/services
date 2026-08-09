@@ -1,4 +1,5 @@
 import type { ColDef } from "ag-grid-community";
+import type { ComponentType } from "react";
 import type { IFilterSchema, IFilterValue } from "@/layouts/filters/core/types";
 import type {
   FilterTransformer,
@@ -94,6 +95,8 @@ export interface IEntityPickerConfig<
   }) => IEntityPickerDataResult<T>;
   /** Get unique row ID */
   getRowId: (entity: T) => string;
+  /** Optional action rendered in the picker header. */
+  HeaderExtra?: ComponentType;
   /** Whether a row cannot be selected */
   isRowDisabled?: (entity: T) => boolean;
   /** Whether a preselected row must stay selected and cannot be changed */

@@ -15,6 +15,11 @@ const optionValueInputSchema = z.object({
 const optionInputSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Option name is required'),
+  category: z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    slug: z.string().min(1),
+  }).nullish(),
   values: z.array(optionValueInputSchema).min(1, 'At least one value is required'),
 });
 
@@ -85,6 +90,13 @@ export const createProductSchema = z
     options: z.array(optionInputSchema),
     variants: z.array(generatedVariantSchema),
   })
+  .refine(
+    (data) => !data.hasVariants || data.options.every((option) => option.category),
+    {
+      message: 'Every option must have a category',
+      path: ['options'],
+    }
+  )
   .refine(
     (data) => {
       // If hasVariants is true, at least one option must be defined

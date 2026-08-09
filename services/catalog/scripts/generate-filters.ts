@@ -8,6 +8,7 @@ import { categoryRelayQuery } from "../src/repositories/category/CategoryReposit
 import { productRelayQuery } from "../src/repositories/product/ProductRepository.js";
 import { tagRelayQuery } from "../src/repositories/tag/TagRepository.js";
 import { vendorRelayQuery } from "../src/repositories/vendor/VendorRepository.js";
+import { optionCategoryRelayQuery } from "../src/repositories/option-category/OptionCategoryRepository.js";
 import { variantRelayQuery } from "../src/repositories/variant/VariantRepository.js";
 import { warehouseRelayQuery } from "../src/repositories/warehouse/WarehouseRepository.js";
 import { stockRelayQuery } from "../src/repositories/stock/StockRepository.js";
@@ -80,6 +81,34 @@ const vendorOrderBy = generateOrderByInputType(vendorRelayQuery, "Vendor", {
   fieldTypes: vendorFieldTypes,
   excludeFields: ["storeId"],
 });
+
+const optionCategoryFieldTypes: Record<string, GraphQLFieldType> = {
+  id: "ID",
+  name: "String",
+  slug: "String",
+  createdAt: "DateTime",
+  updatedAt: "DateTime",
+};
+
+const optionCategoryWhere = generateWhereInputType(
+  optionCategoryRelayQuery,
+  "ProductOptionCategory",
+  {
+    includeDescriptions: true,
+    fieldTypes: optionCategoryFieldTypes,
+    excludeFields: ["storeId"],
+  }
+);
+
+const optionCategoryOrderBy = generateOrderByInputType(
+  optionCategoryRelayQuery,
+  "ProductOptionCategory",
+  {
+    includeDescriptions: true,
+    fieldTypes: optionCategoryFieldTypes,
+    excludeFields: ["storeId"],
+  }
+);
 
 const categoryListFieldTypes: Record<string, GraphQLFieldType> = {
   id: "ID",
@@ -243,6 +272,12 @@ ${productOrderBy}
 ${vendorWhere}
 
 ${vendorOrderBy}
+
+# ---- ProductOptionCategory ----
+
+${optionCategoryWhere}
+
+${optionCategoryOrderBy}
 
 # ---- Category ----
 

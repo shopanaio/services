@@ -85,21 +85,21 @@ type ProductVariant implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
-"""How an option should be presented by a product option picker."""
-enum ProductOptionDisplayType {
-  DROPDOWN
-  SWATCH
-  BUTTONS
-}
-
 """A configurable product dimension such as size, color, or material."""
 type ProductOption implements Node @key(fields: "id") {
   id: ID!
   handle: String!
   name: String!
-  displayType: ProductOptionDisplayType!
+  category: ProductOptionCategory!
   position: Int!
   optionValues: [ProductOptionValue!]!
+}
+
+"""A reusable product option category."""
+type ProductOptionCategory implements Node @key(fields: "id") {
+  id: ID!
+  name: String!
+  handle: String!
 }
 
 """One customer-selectable value of a product option."""

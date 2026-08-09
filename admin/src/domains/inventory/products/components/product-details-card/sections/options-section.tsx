@@ -2,34 +2,16 @@
 
 import type { ReactNode } from "react";
 import { Typography, Tag, Flex } from "antd";
-import { LuPalette as BgColorsOutlined, LuCircleCheck as CheckCircleOutlined, LuMenu as MenuOutlined, LuImage as PictureOutlined } from "react-icons/lu";
+import { LuTags as TagsOutlined, LuImage as PictureOutlined } from "react-icons/lu";
 import { Paper, PaperHeader } from "@/ui-kit/paper";
 import { EntityDetailsEmptyState } from "@/domains/inventory/components/entity-details-sections";
 import { useOptionsStyles } from "../product-details-card.styles";
-import { OptionDisplayType, SwatchType, type ApiProductOption, type ApiProductOptionSwatch } from "@/graphql/types";
+import { SwatchType, type ApiProductOption, type ApiProductOptionSwatch } from "@/graphql/types";
 
 interface IOptionsSectionProps {
   options: ApiProductOption[];
   actions?: ReactNode;
 }
-
-const DISPLAY_TYPE_METADATA: Record<
-  OptionDisplayType,
-  { label: string; icon: ReactNode }
-> = {
-  [OptionDisplayType.Swatch]: {
-    label: "Swatch",
-    icon: <BgColorsOutlined />,
-  },
-  [OptionDisplayType.Buttons]: {
-    label: "Buttons",
-    icon: <CheckCircleOutlined />,
-  },
-  [OptionDisplayType.Dropdown]: {
-    label: "Dropdown",
-    icon: <MenuOutlined />,
-  },
-};
 
 const SwatchPreview = ({
   swatch,
@@ -91,19 +73,15 @@ export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
       <PaperHeader title="Options" actions={actions} />
       <Flex vertical gap={12}>
         {options.length > 0 ? (
-          options.map((option) => {
-            const displayTypeOption = DISPLAY_TYPE_METADATA[option.displayType];
-            const showSwatch = option.displayType === OptionDisplayType.Swatch;
-
-            return (
+          options.map((option) => (
               <div key={option.id} className={styles.optionGroup}>
                 <Flex align="center" gap={6} className={styles.optionHeader}>
-                  {displayTypeOption.icon}
+                  <TagsOutlined />
                   <Typography.Text strong className={styles.optionTitle}>
                     {option.name}
                   </Typography.Text>
                   <Typography.Text type="secondary" className={styles.styleTag}>
-                    {displayTypeOption.label}
+                    {option.category.name}
                   </Typography.Text>
                 </Flex>
                 <Flex gap={4} wrap="wrap">
@@ -116,7 +94,7 @@ export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
                         gap: 4,
                       }}
                       icon={
-                        showSwatch ? (
+                        value.swatch ? (
                           <SwatchPreview swatch={value.swatch} />
                         ) : null
                       }
@@ -126,12 +104,11 @@ export const OptionsSection = ({ options, actions }: IOptionsSectionProps) => {
                   ))}
                 </Flex>
               </div>
-            );
-          })
+            ))
         ) : (
           <div data-testid="product-options-empty-state">
             <EntityDetailsEmptyState
-              icon={<MenuOutlined />}
+              icon={<TagsOutlined />}
               state={{
                 title: "No options added",
                 description:

@@ -27,6 +27,7 @@ export { CategoryResolver } from "./CategoryResolver.js";
 export { TagResolver } from "./TagResolver.js";
 export { CollectionResolver } from "./CollectionResolver.js";
 export { OptionResolver } from "./OptionResolver.js";
+export { OptionCategoryResolver } from "./OptionCategoryResolver.js";
 export { FeatureResolver } from "./FeatureResolver.js";
 export { BulkUpdateItemResolver } from "./BulkUpdateItemResolver.js";
 export { ProductBulkUpdateJobResolver } from "./ProductBulkUpdateJobResolver.js";
@@ -71,6 +72,10 @@ export {
   VendorConnectionResolver,
   type VendorConnectionInput,
 } from "./VendorConnectionResolver.js";
+export {
+  OptionCategoryConnectionResolver,
+  type OptionCategoryConnectionInput,
+} from "./OptionCategoryConnectionResolver.js";
 export {
   CategoryConnectionResolver,
   type CategoryConnectionInput,

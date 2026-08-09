@@ -8,6 +8,7 @@ import type { CurrencyCode } from "@shopana/shared-references";
 import { CatalogType } from "./CatalogType.js";
 import type { ProductQueryProductsArgs } from "./ProductConnectionResolver.js";
 import type { VendorConnectionInput } from "./VendorConnectionResolver.js";
+import type { OptionCategoryConnectionInput } from "./OptionCategoryConnectionResolver.js";
 import type { CategoryQueryCategoriesArgs } from "./CategoryConnectionResolver.js";
 import type { TagConnectionInput } from "./TagConnectionResolver.js";
 import type {
@@ -207,6 +208,18 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
    */
   vendors(args: VendorConnectionInput) {
     return this.resolvers.vendorConnection(args);
+  }
+
+  async productOptionCategory(args: { id: string }) {
+    const id = this.safeDecodeId(args.id, GlobalIdEntity.OptionCategory);
+    if (!id) return null;
+    const category = await this.$ctx.loaders.optionCategory.load(id);
+    if (!category) return null;
+    return this.resolvers.optionCategory(id);
+  }
+
+  productOptionCategories(args: OptionCategoryConnectionInput) {
+    return this.resolvers.optionCategoryConnection(args);
   }
 
   // ---- Category Queries ----

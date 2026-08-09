@@ -1,4 +1,3 @@
-import { OptionDisplayType } from "@/graphql/types";
 import type {
   ApiCategory,
   ApiProduct,
@@ -288,7 +287,6 @@ const colorOption = createMockApiProductOption({
   id: "opt-color",
   name: "Color",
   slug: "color",
-  displayType: OptionDisplayType.Swatch,
   values: [
     createMockApiProductOptionValue({
       id: "feat-black",

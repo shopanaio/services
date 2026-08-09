@@ -3,7 +3,7 @@ import type { OptionCreateParams, OptionCreateResult, OptionSwatchInput } from "
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
-    const { productId, slug, name, displayType, sortIndex, values } = params;
+    const { productId, slug, name, categoryId, sortIndex, values } = params;
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -11,6 +11,12 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
       return {
         option: undefined,
         userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
+      };
+    }
+    if (!(await this.repository.optionCategory.findById(categoryId))) {
+      return {
+        option: undefined,
+        userErrors: [{ message: "Option category not found", field: ["categoryId"], code: "NOT_FOUND" }],
       };
     }
 
@@ -32,7 +38,7 @@ export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCre
       sortIndex ?? (await this.repository.option.getMaxSortIndex(productId)) + 1;
     const option = await this.repository.option.create(productId, {
       slug,
-      displayType,
+      categoryId,
       sortIndex: resolvedSortIndex,
     });
 

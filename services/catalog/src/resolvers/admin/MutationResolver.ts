@@ -95,6 +95,11 @@ import type {
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
 import {
+  OptionCategoryCreateScript,
+  OptionCategoryDeleteScript,
+  OptionCategoryUpdateScript,
+} from "../../scripts/option-category/index.js";
+import {
   WarehouseCreateScript,
   WarehouseDeleteScript,
   WarehouseUpdateScript,
@@ -124,6 +129,9 @@ import type {
   CatalogMutationCategoryRebalanceArgs,
   CatalogMutationCategoryUpdateArgs,
   CatalogMutationVendorCreateArgs,
+  CatalogMutationProductOptionCategoryCreateArgs,
+  CatalogMutationProductOptionCategoryDeleteArgs,
+  CatalogMutationProductOptionCategoryUpdateArgs,
   CatalogMutationProductUpdateArgs,
   WarehouseCreateInput,
   WarehouseUpdateInput,
@@ -136,6 +144,9 @@ import {
   CategoryMoveInputSchema,
   CategoryRebalanceInputSchema,
   VendorCreateInputSchema,
+  ProductOptionCategoryCreateInputSchema,
+  ProductOptionCategoryDeleteInputSchema,
+  ProductOptionCategoryUpdateInputSchema,
   ProductCreateInputSchema,
   ProductDeleteInputSchema,
   WarehouseCreateInputSchema,
@@ -602,6 +613,69 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
+  @ZodResolver(ProductOptionCategoryCreateInputSchema())
+  async productOptionCategoryCreate(
+    args: CatalogMutationProductOptionCategoryCreateArgs
+  ) {
+    const result = await this.$ctx.kernel.runScript(
+      OptionCategoryCreateScript,
+      args.input
+    );
+    return {
+      category: result.category
+        ? await this.resolvers.optionCategory(result.category.id)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(ProductOptionCategoryUpdateInputSchema())
+  async productOptionCategoryUpdate(
+    args: CatalogMutationProductOptionCategoryUpdateArgs
+  ) {
+    const id = decodeGlobalIdByType(
+      args.input.id,
+      GlobalIdEntity.OptionCategory
+    );
+    const result = await this.$ctx.kernel.runScript(
+      OptionCategoryUpdateScript,
+      {
+        id,
+        name: args.input.name ?? undefined,
+        slug: args.input.slug ?? undefined,
+      }
+    );
+    return {
+      category: result.category
+        ? await this.resolvers.optionCategory(result.category.id)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  @ZodResolver(ProductOptionCategoryDeleteInputSchema())
+  async productOptionCategoryDelete(
+    args: CatalogMutationProductOptionCategoryDeleteArgs
+  ) {
+    const id = decodeGlobalIdByType(
+      args.input.id,
+      GlobalIdEntity.OptionCategory
+    );
+    const result = await this.$ctx.kernel.runScript(
+      OptionCategoryDeleteScript,
+      { id }
+    );
+    return {
+      deletedCategoryId: result.deletedCategoryId
+        ? encodeGlobalIdByType(
+            result.deletedCategoryId,
+            GlobalIdEntity.OptionCategory
+          )
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
   // ---- Product Mutations ----
 
   /**
@@ -630,7 +704,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       options: input.options?.map((opt) => ({
         name: opt.name,
         slug: opt.slug,
-        displayType: opt.displayType ?? undefined,
+        categoryId: decodeGlobalIdByType(
+          opt.categoryId,
+          GlobalIdEntity.OptionCategory
+        ),
         sortIndex: opt.sortIndex ?? undefined,
         values: opt.values.map((v) => ({
           name: v.name,
@@ -2739,7 +2816,12 @@ function mapProductOptionsSyncOperation(
     sortIndex: option.sortIndex,
     slug: option.slug,
     name: option.name,
-    displayType: option.displayType,
+    categoryId: decodeInputId(
+      option.categoryId,
+      GlobalIdEntity.OptionCategory,
+      [...fieldPrefix, String(optionIndex), "categoryId"],
+      errors,
+    ) ?? "",
     values: option.values.map((value, valueIndex) => ({
       id: value.id
         ? decodeInputId(

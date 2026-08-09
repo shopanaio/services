@@ -14,6 +14,11 @@ import type {
   ApiProductFeature,
   ApiProductInventoryWidget,
   ApiProductOption,
+  ApiProductOptionCategoryConnection,
+  ApiProductOptionCategoryCreateInput,
+  ApiProductOptionCategoryCreatePayload,
+  ApiProductOptionCategoryOrderByInput,
+  ApiProductOptionCategoryWhereInput,
   ApiProductOrderByInput,
   ApiProductProductsMetaInput,
   ApiProductUpdateInput,
@@ -59,6 +64,31 @@ export interface VendorsQueryVariables {
   before?: string | null;
   where?: ApiVendorWhereInput | null;
   orderBy?: ApiVendorOrderByInput[] | null;
+}
+
+export interface ProductOptionCategoriesQueryData {
+  catalogQuery: Pick<ApiCatalogQuery, "productOptionCategories"> & {
+    productOptionCategories: ApiProductOptionCategoryConnection;
+  };
+}
+
+export interface ProductOptionCategoriesQueryVariables {
+  first?: number;
+  after?: string | null;
+  last?: number;
+  before?: string | null;
+  where?: ApiProductOptionCategoryWhereInput | null;
+  orderBy?: ApiProductOptionCategoryOrderByInput[] | null;
+}
+
+export interface ProductOptionCategoryCreateMutationData {
+  catalogMutation: Pick<ApiCatalogMutation, "productOptionCategoryCreate"> & {
+    productOptionCategoryCreate: ApiProductOptionCategoryCreatePayload;
+  };
+}
+
+export interface ProductOptionCategoryCreateMutationVariables {
+  input: ApiProductOptionCategoryCreateInput;
 }
 
 export interface ProductDetailsQueryData {

@@ -7,6 +7,7 @@ import { CategoryRepository } from "./category/CategoryRepository.js";
 import { TagRepository } from "./tag/TagRepository.js";
 import { PricingRepository } from "./pricing/PricingRepository.js";
 import { OptionRepository } from "./option/OptionRepository.js";
+import { OptionCategoryRepository } from "./option-category/OptionCategoryRepository.js";
 import { FeatureRepository } from "./feature/FeatureRepository.js";
 import { TranslationRepository } from "./translation/TranslationRepository.js";
 import { MediaRepository } from "./media/MediaRepository.js";
@@ -41,6 +42,7 @@ export class Repository {
   public readonly tag: TagRepository;
   public readonly pricing: PricingRepository;
   public readonly option: OptionRepository;
+  public readonly optionCategory: OptionCategoryRepository;
   public readonly feature: FeatureRepository;
   public readonly translation: TranslationRepository;
   public readonly media: MediaRepository;
@@ -77,6 +79,7 @@ export class Repository {
     tag: TagRepository,
     pricing: PricingRepository,
     option: OptionRepository,
+    optionCategory: OptionCategoryRepository,
     feature: FeatureRepository,
     translation: TranslationRepository,
     media: MediaRepository,
@@ -104,6 +107,7 @@ export class Repository {
     this.tag = tag;
     this.pricing = pricing;
     this.option = option;
+    this.optionCategory = optionCategory;
     this.feature = feature;
     this.translation = translation;
     this.media = media;
@@ -142,6 +146,7 @@ export class Repository {
     const tag = new TagRepository(db, txManager);
     const pricing = new PricingRepository(db, txManager);
     const option = new OptionRepository(db, txManager);
+    const optionCategory = new OptionCategoryRepository(db, txManager);
     const feature = new FeatureRepository(db, txManager);
     const translation = new TranslationRepository(db, txManager);
     const media = new MediaRepository(db, txManager);
@@ -172,6 +177,7 @@ export class Repository {
       tag,
       pricing,
       option,
+      optionCategory,
       feature,
       translation,
       media,

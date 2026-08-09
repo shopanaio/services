@@ -239,7 +239,6 @@ export interface ProductInventoryWidget {
 // --- Options ---
 
 /** Display type for product options in the UI */
-export type OptionDisplayType = "DROPDOWN" | "SWATCH" | "BUTTONS";
 
 /** Type of visual swatch for option values */
 export type SwatchType = "COLOR" | "GRADIENT" | "IMAGE";

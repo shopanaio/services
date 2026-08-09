@@ -1,4 +1,9 @@
-import type { OptionDisplayType, SwatchType } from "@/graphql/types";
+import type { ApiProductOptionCategory, SwatchType } from "@/graphql/types";
+
+export type OptionEditorCategory = Pick<
+  ApiProductOptionCategory,
+  "id" | "name" | "slug"
+>;
 
 export interface OptionEditorSwatch {
   swatchType: SwatchType;
@@ -24,7 +29,7 @@ export interface OptionEditorGroup {
   apiId?: string;
   name: string;
   slug: string;
-  displayType: OptionDisplayType;
+  category: OptionEditorCategory | null;
   sortIndex: number;
   values: OptionEditorValue[];
 }

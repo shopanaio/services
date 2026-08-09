@@ -8,7 +8,6 @@ import {
   useSensors,
   DragOverlay,
   DragEndEvent,
-  DragStartEvent,
   closestCenter,
 } from "@dnd-kit/core";
 import {
@@ -19,21 +18,22 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { OptionDisplayType } from "@/graphql/types";
+import { useEntityPicker } from "@/shared/components/entity-picker-modal/hooks/use-entity-picker";
+import type { OptionCategoryPickerEntity } from "@/shared/components/entity-picker-modal/configs/option-category-picker-config";
 import { useStyles } from "../edit-options-modal.styles";
 import type {
   OptionEditorGroup,
+  OptionEditorCategory,
   OptionEditorSwatch,
   OptionEditorValue,
 } from "../types";
-import { DisplayTypeSelector } from "./style-selector";
 import { SortableValue } from "./sortable-value";
 
 interface ISortableOptionGroupProps {
   group: OptionEditorGroup;
   fieldId: string;
   onUpdateName: (name: string) => void;
-  onUpdateDisplayType: (displayType: OptionDisplayType) => void;
+  onUpdateCategory: (category: OptionEditorCategory) => void;
   onDeleteGroup: () => void;
   onUpdateValueName: (valueIndex: number, name: string) => void;
   onUpdateValueSwatch: (valueIndex: number, swatch: OptionEditorSwatch) => void;
@@ -46,7 +46,7 @@ export const SortableOptionGroup = ({
   group,
   fieldId,
   onUpdateName,
-  onUpdateDisplayType,
+  onUpdateCategory,
   onDeleteGroup,
   onUpdateValueName,
   onUpdateValueSwatch,
@@ -55,6 +55,21 @@ export const SortableOptionGroup = ({
   onReorderValues,
 }: ISortableOptionGroupProps) => {
   const { styles, cx } = useStyles();
+  const { openPicker: openCategoryPicker } = useEntityPicker<OptionCategoryPickerEntity>({
+    entityType: "option-category",
+    selectionMode: "single",
+    initialSelection: group.category ? [group.category.id] : [],
+    onConfirm: (categories) => {
+      const category = categories[0];
+      if (category) {
+        onUpdateCategory({
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+        });
+      }
+    },
+  });
 
   const {
     attributes,
@@ -74,10 +89,6 @@ export const SortableOptionGroup = ({
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-
-  const handleDragStart = (_event: DragStartEvent) => {
-    // Drag start - no action needed
-  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -137,10 +148,13 @@ export const SortableOptionGroup = ({
               align="center"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <DisplayTypeSelector
-                value={group.displayType}
-                onChange={onUpdateDisplayType}
-              />
+              <Button
+                size="small"
+                onClick={openCategoryPicker}
+                data-testid="edit-options-category-picker-button"
+              >
+                {group.category?.name ?? "Select category"}
+              </Button>
               <Button
                 size="small"
                 type="text"
@@ -165,7 +179,6 @@ export const SortableOptionGroup = ({
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -177,7 +190,6 @@ export const SortableOptionGroup = ({
                 <SortableValue
                   key={value.id}
                   value={value}
-                  groupDisplayType={group.displayType}
                   isDeleteDisabled={group.values.length <= 1}
                   onNameChange={(name) =>
                     onUpdateValueName(valueIndex, name)

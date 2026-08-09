@@ -121,6 +121,50 @@ input VendorOrderByInput {
   direction: SortDirection!
 }
 
+# ---- ProductOptionCategory ----
+
+"""Filter conditions for ProductOptionCategory"""
+input ProductOptionCategoryWhereInput {
+  """Logical AND of multiple conditions"""
+  _and: [ProductOptionCategoryWhereInput!]
+  """Logical OR of multiple conditions"""
+  _or: [ProductOptionCategoryWhereInput!]
+  """Negate the condition"""
+  _not: ProductOptionCategoryWhereInput
+  """Filter by id"""
+  id: IDFilter
+  """Filter by name"""
+  name: StringFilter
+  """Filter by slug"""
+  slug: StringFilter
+  """Filter by createdAt"""
+  createdAt: DateTimeFilter
+  """Filter by updatedAt"""
+  updatedAt: DateTimeFilter
+}
+
+"""Fields available for sorting ProductOptionCategory"""
+enum ProductOptionCategoryOrderField {
+  """Sort by id"""
+  id
+  """Sort by name"""
+  name
+  """Sort by slug"""
+  slug
+  """Sort by createdAt"""
+  createdAt
+  """Sort by updatedAt"""
+  updatedAt
+}
+
+"""Ordering configuration for ProductOptionCategory"""
+input ProductOptionCategoryOrderByInput {
+  """Field to order by"""
+  field: ProductOptionCategoryOrderField!
+  """Sort direction"""
+  direction: SortDirection!
+}
+
 # ---- Category ----
 
 """Filter conditions for Category"""

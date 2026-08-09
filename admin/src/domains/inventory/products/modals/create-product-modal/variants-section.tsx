@@ -22,6 +22,8 @@ import {
 import type { ICreateProductFormValues } from "./types";
 import type { IOptionInput, IOptionValueInput, IGeneratedVariant } from "./utils/generate-variants";
 import { useAgGridTheme } from "@/hooks";
+import { useEntityPicker } from "@/shared/components/entity-picker-modal/hooks/use-entity-picker";
+import type { OptionCategoryPickerEntity } from "@/shared/components/entity-picker-modal/configs/option-category-picker-config";
 
 const useStyles = createStyles(({ token }) => ({
   switchRow: {
@@ -118,6 +120,10 @@ interface IOptionCardProps {
   index: number;
   onUpdateValues: (id: string, values: IOptionValueInput[]) => void;
   onUpdateName: (id: string, name: string) => void;
+  onUpdateCategory: (
+    id: string,
+    category: { id: string; name: string; slug: string },
+  ) => void;
   onDelete: (id: string) => void;
   canDelete: boolean;
 }
@@ -127,6 +133,7 @@ const OptionCard = ({
   index,
   onUpdateValues,
   onUpdateName,
+  onUpdateCategory,
   onDelete,
   canDelete,
 }: IOptionCardProps) => {
@@ -136,6 +143,21 @@ const OptionCard = ({
   const optionErrors = errors.options?.[index];
   const hasNameError = !!optionErrors?.name;
   const hasValuesError = !!optionErrors?.values;
+  const { openPicker: openCategoryPicker } = useEntityPicker<OptionCategoryPickerEntity>({
+    entityType: "option-category",
+    selectionMode: "single",
+    initialSelection: option.category ? [option.category.id] : [],
+    onConfirm: (categories) => {
+      const category = categories[0];
+      if (category) {
+        onUpdateCategory(option.id, {
+          id: category.id,
+          name: category.name,
+          slug: category.slug,
+        });
+      }
+    },
+  });
 
   // Convert IOptionValueInput[] to string[] for Select display
   const displayValues = option.values.map((v) => v.value);
@@ -159,6 +181,16 @@ const OptionCard = ({
     >
       <div className={styles.optionRow}>
         <div className={styles.optionFields}>
+          <div className={styles.optionFieldRow}>
+            <div className={styles.optionFieldLabel}>Category</div>
+            <Button
+              onClick={openCategoryPicker}
+              danger={Boolean(optionErrors?.category)}
+              data-testid={`create-product-option-${index}-category-button`}
+            >
+              {option.category?.name ?? "Select category"}
+            </Button>
+          </div>
           <div className={styles.optionFieldRow}>
             <div className={styles.optionFieldLabel}>Title</div>
             <Input
@@ -273,6 +305,16 @@ export const VariantsSection = () => {
       );
     },
     [options, setValue]
+  );
+
+  const handleUpdateOptionCategory = useCallback(
+    (id: string, category: { id: string; name: string; slug: string }) => {
+      setValue(
+        "options",
+        options.map((opt) => (opt.id === id ? { ...opt, category } : opt)),
+      );
+    },
+    [options, setValue],
   );
 
   const handleDeleteOption = useCallback(
@@ -391,6 +433,7 @@ export const VariantsSection = () => {
               option={option}
               index={index}
               onUpdateName={handleUpdateOptionName}
+              onUpdateCategory={handleUpdateOptionCategory}
               onUpdateValues={handleUpdateOptionValues}
               onDelete={handleDeleteOption}
               canDelete={options.length > 1}

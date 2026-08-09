@@ -5,6 +5,7 @@ import type {
   ProductFeature,
   ProductFeatureValue,
   ProductOption,
+  ProductOptionCategory,
   ProductOptionValue,
   ProductOptionSwatch,
   Tag,
@@ -78,8 +79,8 @@ export class ProductOptionResolver extends CatalogType<string, ProductOption> {
     return translation?.name ?? (await this.$get("slug"));
   }
 
-  async displayType() {
-    return (await this.$get("displayType")).toUpperCase();
+  async category() {
+    return this.resolvers.productOptionCategory(await this.$get("categoryId"));
   }
 
   position() {
@@ -89,6 +90,30 @@ export class ProductOptionResolver extends CatalogType<string, ProductOption> {
   async optionValues() {
     const ids = await this.$ctx.loaders.optionValueIds.load(this.$props);
     return Promise.all(ids.map((id) => this.resolvers.productOptionValue(id)));
+  }
+}
+
+@SubgraphReference()
+export class ProductOptionCategoryResolver extends CatalogType<
+  string,
+  ProductOptionCategory
+> {
+  async $preload() {
+    const value = await this.$ctx.loaders.optionCategory.load(this.$props);
+    if (!value) throw new PreloadNotFoundError("Product option category not found");
+    return value;
+  }
+
+  id() {
+    return this.encodeId(this.$props, GlobalIdEntity.OptionCategory);
+  }
+
+  name() {
+    return this.$get("name");
+  }
+
+  handle() {
+    return this.$get("slug");
   }
 }
 
