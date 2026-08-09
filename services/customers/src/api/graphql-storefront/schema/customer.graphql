@@ -20,6 +20,44 @@ type Customer @key(fields: "id") {
   defaultAddress: CustomerAddress
   """Mailing addresses owned by the customer."""
   addresses: [CustomerAddress!]!
+
+  """
+  Wishlist collections owned by the authenticated customer.
+
+  Results are ordered by creation time ascending and then by ID ascending.
+  Omitting all pagination arguments returns the first 20 entries. At most 100
+  entries can be requested in either direction.
+  """
+  wishlists(
+    """Number of wishlists to return from the start of the selected range."""
+    first: Int
+    """Return wishlists after this opaque cursor."""
+    after: Cursor
+    """Number of wishlists to return from the end of the selected range."""
+    last: Int
+    """Return wishlists before this opaque cursor."""
+    before: Cursor
+  ): CustomerWishlistConnection!
+
+  """
+  The customer's primary wishlist, or null when no wishlist has been created.
+
+  The first wishlist created for a customer becomes the default. The default
+  wishlist can be renamed but cannot be deleted.
+  """
+  defaultWishlist: CustomerWishlist
+
+  """
+  Returns one wishlist owned by the authenticated customer.
+
+  The ID must be a CustomerWishlist global ID belonging to the current
+  customer and store. Missing, foreign, and inaccessible wishlists all return
+  null so that ownership information is not disclosed.
+  """
+  wishlist(
+    """Global ID of the wishlist to return."""
+    id: ID!
+  ): CustomerWishlist
 }
 
 """
@@ -41,12 +79,21 @@ type CustomerUpdatePayload {
   userErrors: [CustomerUserError!]!
 }
 
-"""A customer-facing mutation error."""
-type CustomerUserError {
+"""
+A customer-facing validation, ownership, dependency, or business error.
+
+Wishlist operations use stable codes including NOT_FOUND,
+WISHLIST_NAME_TAKEN, PRODUCT_NOT_FOUND, PRODUCT_NOT_PUBLISHED, and
+CATALOG_UNAVAILABLE. Missing and foreign wishlist resources deliberately share
+the NOT_FOUND code.
+"""
+type CustomerUserError implements DisplayableError {
   """Path to the input field associated with the error, when available."""
   field: [String!]
   """Human-readable error message safe to show to the customer."""
   message: String!
-  """Stable machine-readable error code, when available."""
-  code: String
+  """Stable machine-readable error code."""
+  code: String!
+  """Whether retrying the operation may succeed without changing its input."""
+  retryable: Boolean!
 }

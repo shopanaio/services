@@ -56,4 +56,63 @@ type Mutation {
   Unsubscribes the authenticated customer's email address from marketing.
   """
   customerEmailMarketingUnsubscribe: CustomerEmailMarketingUnsubscribePayload!
+
+  """
+  Creates a wishlist for the authenticated customer.
+
+  Customer and store ownership are derived only from trusted storefront
+  context. The first wishlist created for the customer becomes the default.
+  """
+  wishlistCreate(
+    """Values for the new wishlist."""
+    input: WishlistCreateInput!
+  ): WishlistCreatePayload!
+
+  """
+  Renames a wishlist owned by the authenticated customer.
+
+  Missing and foreign wishlist IDs produce the same NOT_FOUND user error.
+  The default wishlist may be renamed.
+  """
+  wishlistUpdate(
+    """Global ID of the wishlist to rename."""
+    id: ID!
+    """New values for the wishlist."""
+    input: WishlistUpdateInput!
+  ): WishlistUpdatePayload!
+
+  """
+  Deletes a non-default wishlist owned by the authenticated customer.
+
+  Its items are deleted with it. The default wishlist cannot be deleted.
+  Missing and foreign wishlist IDs produce the same NOT_FOUND user error.
+  """
+  wishlistDelete(
+    """Global ID of the wishlist to delete."""
+    id: ID!
+  ): WishlistDeletePayload!
+
+  """
+  Adds a published product to one of the authenticated customer's wishlists.
+
+  When wishlistId is omitted, the existing default wishlist is used or a new
+  default wishlist named `Wishlist` is created. Repeating the operation for a
+  product already in the selected wishlist returns the existing item.
+  """
+  wishlistProductAdd(
+    """Global ID of the published Catalog product to save."""
+    productId: ID!
+    """Target wishlist global ID; omit to use the default wishlist."""
+    wishlistId: ID
+  ): WishlistProductAddPayload!
+
+  """
+  Removes a saved product item owned by the authenticated customer.
+
+  Missing and foreign item IDs produce the same NOT_FOUND user error.
+  """
+  wishlistProductRemove(
+    """Global ID of the wishlist item to remove."""
+    itemId: ID!
+  ): WishlistProductRemovePayload!
 }

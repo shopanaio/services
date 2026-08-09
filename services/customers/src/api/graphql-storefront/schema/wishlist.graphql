@@ -1,0 +1,205 @@
+"""
+A named, private collection of products saved by the authenticated customer.
+
+Wishlist ownership is scoped to both the current store and customer. A
+customer can have multiple wishlists, but exactly one existing wishlist is the
+default. Wishlists are never shared between customers.
+"""
+type CustomerWishlist implements Node @key(fields: "id") {
+  """Globally unique CustomerWishlist ID."""
+  id: ID!
+
+  """Customer-visible name after surrounding whitespace has been removed."""
+  name: String!
+
+  """
+  Whether this is the customer's primary wishlist.
+
+  A default wishlist can be renamed but cannot be deleted.
+  """
+  isDefault: Boolean!
+
+  """Customer who owns this wishlist."""
+  customer: Customer!
+
+  """
+  Products saved in this wishlist.
+
+  Results are ordered by addition time descending and then by ID descending.
+  Omitting all pagination arguments returns the first 20 entries. At most 100
+  entries can be requested in either direction.
+  """
+  items(
+    """Number of items to return from the start of the selected range."""
+    first: Int
+    """Return items after this opaque cursor."""
+    after: Cursor
+    """Number of items to return from the end of the selected range."""
+    last: Int
+    """Return items before this opaque cursor."""
+    before: Cursor
+  ): CustomerWishlistItemConnection!
+
+  """Date and time when the wishlist was created."""
+  createdAt: DateTime!
+
+  """Date and time when the wishlist was last renamed or otherwise updated."""
+  updatedAt: DateTime!
+}
+
+"""One product saved in a customer wishlist."""
+type CustomerWishlistItem implements Node @key(fields: "id") {
+  """Globally unique CustomerWishlistItem ID."""
+  id: ID!
+
+  """Wishlist containing this saved item."""
+  wishlist: CustomerWishlist!
+
+  """
+  The currently published storefront product represented by this item.
+
+  The saved item remains present when the product is unpublished. This field
+  is null when the product is unpublished, deleted, belongs to another store,
+  or its federated reference cannot be resolved.
+  """
+  product: Product
+
+  """Date and time when the product was added to the wishlist."""
+  addedAt: DateTime!
+}
+
+"""A Relay connection containing customer wishlists."""
+type CustomerWishlistConnection implements Connection {
+  """Wishlist edges in deterministic cursor order."""
+  edges: [CustomerWishlistEdge!]!
+
+  """Wishlists contained in the returned page."""
+  nodes: [CustomerWishlist!]!
+
+  """Information needed to request adjacent pages."""
+  pageInfo: PageInfo!
+
+  """Total number of wishlists owned by the authenticated customer."""
+  totalCount: Int!
+}
+
+"""A cursor and the customer wishlist at that cursor."""
+type CustomerWishlistEdge {
+  """Opaque cursor for this wishlist in the current connection."""
+  cursor: Cursor!
+
+  """Wishlist at the end of the edge."""
+  node: CustomerWishlist!
+}
+
+"""A Relay connection containing items from one customer wishlist."""
+type CustomerWishlistItemConnection implements Connection {
+  """Wishlist item edges in deterministic cursor order."""
+  edges: [CustomerWishlistItemEdge!]!
+
+  """Wishlist items contained in the returned page."""
+  nodes: [CustomerWishlistItem!]!
+
+  """Information needed to request adjacent pages."""
+  pageInfo: PageInfo!
+
+  """Total number of products saved in the wishlist."""
+  totalCount: Int!
+}
+
+"""A cursor and the customer wishlist item at that cursor."""
+type CustomerWishlistItemEdge {
+  """Opaque cursor for this item in the current connection."""
+  cursor: Cursor!
+
+  """Wishlist item at the end of the edge."""
+  node: CustomerWishlistItem!
+}
+
+"""Values used to create a customer wishlist."""
+input WishlistCreateInput {
+  """
+  Customer-visible wishlist name.
+
+  Surrounding whitespace is removed before storage. The resulting value must
+  contain between 1 and 128 Unicode characters. Names are unique for the
+  authenticated customer after Unicode NFKC normalization and
+  locale-independent lowercase conversion.
+  """
+  name: String!
+}
+
+"""Values used to rename a customer wishlist."""
+input WishlistUpdateInput {
+  """
+  New customer-visible wishlist name.
+
+  Surrounding whitespace is removed before storage. The resulting value must
+  contain between 1 and 128 Unicode characters. Names are unique for the
+  authenticated customer after Unicode NFKC normalization and
+  locale-independent lowercase conversion.
+  """
+  name: String!
+}
+
+"""Result of creating a customer wishlist."""
+type WishlistCreatePayload {
+  """The created wishlist, or null when creation failed."""
+  wishlist: CustomerWishlist
+
+  """Validation, ownership, and business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of renaming a customer wishlist."""
+type WishlistUpdatePayload {
+  """The updated wishlist, or null when the update failed."""
+  wishlist: CustomerWishlist
+
+  """Validation, ownership, and business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of deleting a non-default customer wishlist."""
+type WishlistDeletePayload {
+  """Global ID of the deleted wishlist, or null when nothing was deleted."""
+  deletedWishlistId: ID
+
+  """Validation, ownership, and business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of adding a published product to a customer wishlist."""
+type WishlistProductAddPayload {
+  """
+  The created or previously existing wishlist item, or null when the operation
+  failed.
+  """
+  wishlistItem: CustomerWishlistItem
+
+  """
+  Validation, ownership, Catalog availability, and business errors produced by
+  the operation.
+  """
+  userErrors: [CustomerUserError!]!
+}
+
+"""Result of removing a product item from a customer wishlist."""
+type WishlistProductRemovePayload {
+  """Global ID of the removed item, or null when nothing was removed."""
+  deletedWishlistItemId: ID
+
+  """Validation, ownership, and business errors produced by the operation."""
+  userErrors: [CustomerUserError!]!
+}
+
+"""
+A storefront Catalog product referenced by a wishlist item.
+
+The Customers subgraph stores only the product ID and does not resolve Product
+entities. Published product data is provided by the Catalog subgraph.
+"""
+type Product @key(fields: "id", resolvable: false) {
+  """Globally unique Product ID."""
+  id: ID!
+}
