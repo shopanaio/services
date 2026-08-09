@@ -83,6 +83,139 @@ export type LoyaltyTierMembershipEventType =
   | "RENEWED"
   | "EXPIRED"
   | "REVOKED";
+export type LoyaltyEarningTriggerType =
+  | "ORDER"
+  | "SIGNUP"
+  | "REVIEW"
+  | "REFERRAL"
+  | "BIRTHDAY"
+  | "ANNIVERSARY"
+  | "LOGIN"
+  | "SUBSCRIPTION_RENEWAL"
+  | "CUSTOM_EVENT";
+export type LoyaltyEarningActionType =
+  | "AWARD_FIXED_POINTS"
+  | "AWARD_SPEND_RATIO"
+  | "AWARD_CASHBACK"
+  | "APPLY_MULTIPLIER"
+  | "ISSUE_REWARD";
+export type LoyaltyRewardType =
+  | "POINTS"
+  | "VOUCHER"
+  | "FIXED_DISCOUNT"
+  | "PERCENTAGE_DISCOUNT"
+  | "FREE_SHIPPING"
+  | "FREE_PRODUCT"
+  | "MEMBER_BENEFIT"
+  | "MONETARY_CREDIT";
+export type LoyaltyRewardEntitlementStatus =
+  | "ISSUED"
+  | "RESERVED"
+  | "REDEEMED"
+  | "EXPIRED"
+  | "REVOKED";
+export type LoyaltyTierEvaluationWindowType = "LIFETIME" | "ROLLING" | "CALENDAR";
+export type LoyaltyTierCalendarPeriod = "MONTH" | "QUARTER" | "YEAR" | "PROGRAM_YEAR";
+export type LoyaltyTierDowngradePolicy =
+  | "IMMEDIATE"
+  | "GRACE_PERIOD"
+  | "END_OF_MEMBERSHIP";
+export type LoyaltyTierRequalificationPolicy = "AUTOMATIC" | "MANUAL";
+export type LoyaltyMonetaryWalletType = "CASHBACK" | "STORE_CREDIT";
+export type LoyaltyMonetaryWalletStatus = "ACTIVE" | "SUSPENDED" | "CLOSED" | "MERGED";
+export type LoyaltyMonetaryTransactionKind =
+  | "EARN_PENDING"
+  | "ACTIVATE"
+  | "RESERVE"
+  | "RELEASE"
+  | "SPEND"
+  | "EXPIRE"
+  | "REVERSE_EARN"
+  | "RESTORE_SPEND"
+  | "ADJUST_CREDIT"
+  | "ADJUST_DEBIT"
+  | "MERGE_TRANSFER"
+  | "DEBT_RECOVERY";
+
+export type LoyaltyConditionExpressionV1 =
+  | Readonly<{
+      type: "ALL" | "ANY";
+      conditions: readonly LoyaltyConditionExpressionV1[];
+    }>
+  | Readonly<{ type: "NOT"; condition: LoyaltyConditionExpressionV1 }>
+  | Readonly<{
+      type: "SEGMENT";
+      match: "ANY" | "ALL";
+      segmentIds: readonly string[];
+    }>
+  | Readonly<{ type: "CHANNEL"; channelCodes: readonly string[] }>
+  | Readonly<{ type: "CATALOG"; selector: LoyaltyCatalogSelector }>
+  | Readonly<{ type: "PAYMENT_METHOD"; paymentMethodCodes: readonly string[] }>
+  | Readonly<{ type: "FIRST_PURCHASE" }>
+  | Readonly<{ type: "SCHEDULE"; startsAt: string | null; endsAt: string | null }>
+  | Readonly<{
+      type: "EVENT_FIELD";
+      path: readonly string[];
+      operator: "EQ" | "NE" | "IN" | "GTE" | "GT" | "LTE" | "LT";
+      value: LoyaltyJsonValue;
+    }>;
+
+export type LoyaltyEarningActionV1 =
+  | Readonly<{ type: "AWARD_FIXED_POINTS"; points: string }>
+  | Readonly<{
+      type: "AWARD_SPEND_RATIO";
+      points: string;
+      amountMinor: string;
+    }>
+  | Readonly<{
+      type: "AWARD_CASHBACK";
+      basisPoints: number;
+      settlement: "POINTS" | "MONETARY";
+      currencyCode: string | null;
+    }>
+  | Readonly<{ type: "APPLY_MULTIPLIER"; multiplierBps: number }>
+  | Readonly<{ type: "ISSUE_REWARD"; rewardDefinitionCode: string }>;
+
+export interface LoyaltyEarningLimitWindowV1 {
+  type: "LIFETIME" | "DAY" | "WEEK" | "MONTH" | "ROLLING";
+  rollingWindowSeconds: number | null;
+}
+
+export interface LoyaltyEarningLimitsV1 {
+  startsAt: string | null;
+  endsAt: string | null;
+  perEventMaxPoints: string | null;
+  perAccount: Readonly<{
+    maxOccurrences: string | null;
+    maxPoints: string | null;
+    window: LoyaltyEarningLimitWindowV1;
+  }> | null;
+  campaign: Readonly<{
+    maxOccurrences: string | null;
+    maxPoints: string | null;
+    maxMonetaryMinorByCurrency: Readonly<Record<string, string>>;
+  }> | null;
+}
+
+export type LoyaltyTierMetricExpressionV1 =
+  | Readonly<{
+      type: "ALL" | "ANY";
+      expressions: readonly LoyaltyTierMetricExpressionV1[];
+    }>
+  | Readonly<{ type: "NOT"; expression: LoyaltyTierMetricExpressionV1 }>
+  | Readonly<{
+      type: "METRIC";
+      metric:
+        | "QUALIFYING_POINTS"
+        | "NET_SPEND_MINOR"
+        | "ORDER_COUNT"
+        | "REFERRAL_COUNT"
+        | "CUSTOM";
+      customMetricCode: string | null;
+      operator: "GTE" | "GT";
+      threshold: string;
+      currencyCode: string | null;
+    }>;
 
 export type LoyaltyCatalogSelector =
   | Readonly<{ type: "ALL"; ids: readonly [] }>
@@ -171,8 +304,6 @@ export interface LoyaltyProgramContract {
   status: LoyaltyProgramStatus;
   isDefault: boolean;
   defaultCurrencyCode: string;
-  pointsSingular: string;
-  pointsPlural: string;
   revision: number;
   metadata: LoyaltyJsonObject;
   createdAt: string;
@@ -353,8 +484,113 @@ export interface LoyaltyTierContract {
   code: string;
   name: string;
   rank: number;
-  qualificationPoints: string | null;
+  qualificationSchemaVersion: number;
+  qualification: LoyaltyTierMetricExpressionV1;
+  maintenance: LoyaltyTierMetricExpressionV1 | null;
   createdAt: string;
+}
+
+export interface LoyaltyTierPolicyContract {
+  id: string;
+  storeId: string;
+  programVersionId: string;
+  windowType: LoyaltyTierEvaluationWindowType;
+  rollingWindowDays: number | null;
+  calendarPeriod: LoyaltyTierCalendarPeriod | null;
+  programYearStartsMonth: number | null;
+  membershipDurationDays: number | null;
+  gracePeriodDays: number;
+  downgradePolicy: LoyaltyTierDowngradePolicy;
+  requalificationPolicy: LoyaltyTierRequalificationPolicy;
+  metricSchemaVersion: number;
+  createdAt: string;
+}
+
+export interface LoyaltyEarningRuleContract {
+  id: string;
+  storeId: string;
+  programVersionId: string;
+  code: string;
+  name: string;
+  priority: number;
+  triggerType: LoyaltyEarningTriggerType;
+  triggerSchemaVersion: number;
+  triggerConfig: LoyaltyJsonObject;
+  conditionSchemaVersion: number;
+  conditions: LoyaltyConditionExpressionV1;
+  actionType: LoyaltyEarningActionType;
+  actionSchemaVersion: number;
+  action: LoyaltyEarningActionV1;
+  limitSchemaVersion: number;
+  limits: LoyaltyEarningLimitsV1;
+  stopProcessing: boolean;
+  createdAt: string;
+}
+
+export interface LoyaltyRewardDefinitionContract {
+  id: string;
+  storeId: string;
+  programVersionId: string;
+  code: string;
+  name: string;
+  rewardType: LoyaltyRewardType;
+  configurationSchemaVersion: number;
+  configuration: LoyaltyJsonObject;
+  validityDays: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  issuanceLimit: string | null;
+  perAccountLimit: string | null;
+  createdAt: string;
+}
+
+export interface LoyaltyEventFactContract {
+  id: string;
+  storeId: string;
+  producer: string;
+  externalEventId: string;
+  eventType: string;
+  subjectType: string;
+  subjectId: string;
+  customerId: string | null;
+  occurredAt: string;
+  payloadSchemaVersion: number;
+  payloadHash: string;
+  payload: LoyaltyJsonObject;
+  receivedAt: string;
+}
+
+export interface LoyaltyRewardEntitlementContract {
+  id: string;
+  storeId: string;
+  rewardDefinitionId: string;
+  accountId: string;
+  sourceEventFactId: string | null;
+  issuanceTransactionId: string | null;
+  monetaryTransactionId: string | null;
+  status: LoyaltyRewardEntitlementStatus;
+  configurationSchemaVersion: number;
+  configurationSnapshot: LoyaltyJsonObject;
+  quantity: string;
+  validFrom: string;
+  validTo: string | null;
+  externalReference: string | null;
+  revision: number;
+}
+
+export interface LoyaltyMonetaryWalletContract {
+  id: string;
+  storeId: string;
+  programId: string;
+  accountId: string;
+  walletType: LoyaltyMonetaryWalletType;
+  currencyCode: string;
+  status: LoyaltyMonetaryWalletStatus;
+  mergedIntoWalletId: string | null;
+  revision: number;
+  openedAt: string;
+  closedAt: string | null;
+  updatedAt: string;
 }
 
 export interface LoyaltyTierMembershipContract {

@@ -153,3 +153,58 @@ enum LoyaltyPointsAdjustmentDirection {
   CREDIT
   DEBIT
 }
+
+enum LoyaltyEarningTriggerType {
+  ORDER
+  SIGNUP
+  REVIEW
+  REFERRAL
+  BIRTHDAY
+  ANNIVERSARY
+  LOGIN
+  SUBSCRIPTION_RENEWAL
+  CUSTOM_EVENT
+}
+
+enum LoyaltyEarningActionType {
+  AWARD_FIXED_POINTS
+  AWARD_SPEND_RATIO
+  AWARD_CASHBACK
+  APPLY_MULTIPLIER
+  ISSUE_REWARD
+}
+
+enum LoyaltyRewardType {
+  POINTS
+  VOUCHER
+  FIXED_DISCOUNT
+  PERCENTAGE_DISCOUNT
+  FREE_SHIPPING
+  FREE_PRODUCT
+  MEMBER_BENEFIT
+  MONETARY_CREDIT
+}
+
+enum LoyaltyTierEvaluationWindowType {
+  LIFETIME
+  ROLLING
+  CALENDAR
+}
+
+enum LoyaltyTierCalendarPeriod {
+  MONTH
+  QUARTER
+  YEAR
+  PROGRAM_YEAR
+}
+
+enum LoyaltyTierDowngradePolicy {
+  IMMEDIATE
+  GRACE_PERIOD
+  END_OF_MEMBERSHIP
+}
+
+enum LoyaltyTierRequalificationPolicy {
+  AUTOMATIC
+  MANUAL
+}

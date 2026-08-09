@@ -49,8 +49,6 @@ export interface LoyaltyProgramSnapshot {
   programVersionId: string;
   programVersion: number;
   programRevision: number;
-  pointsSingular: string;
-  pointsPlural: string;
   currencyCode: string;
   redemptionEnabled: boolean;
   redeemPoints: string;

@@ -2,7 +2,9 @@
 
 Loyalty is the store-scoped bounded context for enterprise loyalty programs,
 versioned earning and redemption policies, customer points accounts, an
-append-only ledger, expiring point lots, Checkout reservations, and tiers.
+append-only ledger, expiring point lots, Checkout reservations, tiers, issued
+reward entitlements, and currency-specific monetary cashback/store-credit
+wallets.
 
 This change intentionally provides contracts only. `config.yml` keeps the
 subgraph disabled until resolvers, repositories, event handlers, and workflows
@@ -19,11 +21,13 @@ work can add providers without changing the public package name.
   a tender-like reduction applied by Checkout after the Pricing quote.
 - Checkout owns orchestration and persists Loyalty quote/reservation snapshots.
 - Loyalty exclusively owns conversion rules, balances, reservations, lot
-  allocation, expiry, redemption, debt, and points audit history.
+  allocation, expiry, redemption, debt, reward entitlement lifecycle, monetary
+  wallet balances, and loyalty audit history.
 
-All Loyalty-owned foreign keys include `store_id` in their relational contract.
-The database therefore rejects cross-store links even if a future repository
-forgets to apply its tenant filter.
+Every store-scoped Loyalty row carries `store_id`. New extensibility tables use
+stable entity IDs in foreign keys, as required by the project migration rules,
+and constraint triggers validate store/program agreement for denormalized scope
+columns. Repositories must still apply the request store filter to every query.
 
 ## Authoritative and projected data
 
@@ -64,6 +68,70 @@ before publication. Reconciliation state such as `VALID` or `STALE` is mutable
 operational data and must be stored outside the immutable `rules` JSON. A stale
 reference must never be removed from an already published policy or historical
 calculation snapshot.
+
+## Universal earning rules
+
+The fixed purchase conversion fields on `program_version` remain the optimized
+default purchase-points policy. Additional earning mechanics are represented by
+immutable `earning_rule` rows owned by the same program version.
+
+An earning rule has four independently versioned parts:
+
+- a trigger (`ORDER`, `SIGNUP`, `REVIEW`, `REFERRAL`, `BIRTHDAY`,
+  `ANNIVERSARY`, `LOGIN`, `SUBSCRIPTION_RENEWAL`, or `CUSTOM_EVENT`);
+- a canonical boolean condition expression for segments, channels, catalog
+  selectors, payment methods, first-purchase checks, and schedules;
+- a typed action for fixed points, spend conversion, cashback, multipliers, or
+  reward issuance;
+- limits for event, account, time-window, campaign-budget, points, and monetary
+  caps.
+
+`earning_rule_usage` is a lockable, rebuildable projection used to enforce
+concurrent limits. `event_fact` and `event_evaluation` remain the audit source
+for rebuilding it. Big integer values inside JSON policies are decimal strings,
+never JSON numbers.
+
+## External loyalty event facts
+
+`event_fact` stores the immutable, hashed snapshot received from an owning
+service. Producer plus external event ID is the idempotency identity. A fact is
+evaluated independently against each matching rule and account, producing one
+append-only `event_evaluation` decision. Unknown external events use the
+`CUSTOM_EVENT` trigger; they do not require a database enum migration.
+
+## Rewards and entitlements
+
+`reward_definition` is immutable with its program version and describes points,
+vouchers, fixed or percentage discounts, free shipping, free products, member
+benefits, or monetary credit. `reward_entitlement` is the customer-owned issued
+instance and stores the immutable definition snapshot plus its reservation,
+redemption, expiration, revocation, and external Pricing/Checkout reference.
+
+Pricing continues to calculate discounts. Loyalty owns eligibility and issuance;
+the external reference identifies the concrete Pricing voucher or benefit.
+`tier_reward_benefit` attaches version-compatible reward definitions to a tier.
+
+## Tier policy
+
+`tier_policy` defines lifetime, rolling, or calendar evaluation windows,
+membership duration, downgrade grace, and automatic or manual requalification.
+Each tier stores versioned qualification and maintenance boolean expressions.
+Expressions can combine spend, earned points, order count, referrals, or custom
+metrics with explicit `ALL`, `ANY`, and `NOT` nodes. Tier benefits are reward
+definition links rather than untyped fields embedded in the tier row.
+
+## Monetary wallets
+
+Real cashback and store credit use `monetary_wallet`,
+`monetary_transaction`, `monetary_ledger_entry`, and monetary credit lots. A
+wallet is bound to exactly one account, wallet type, and ISO currency. Monetary
+minor units never enter the points ledger or `account_balance`; conversion
+between points and money always creates separately audited transactions.
+
+A monetary transaction and all of its ledger entries must be created in one
+PostgreSQL transaction. The writer sets `entries_finalized` only after the last
+entry is inserted; a deferred constraint rejects an unfinalized transaction at
+commit, and finalized transactions reject additional entries.
 
 ## Event contracts
 
@@ -112,3 +180,24 @@ quote so later commit, release, reversal, and emitted events remain auditable.
   expirations, and customer-safe transaction history.
 - Storefront does not expose direct reserve/commit mutations. Redemption is a
   Checkout operation and uses the broker contracts in `@shopana/broker-types`.
+
+### Storefront presentation projections
+
+Storefront clients never receive policy JSON and never calculate eligibility,
+points, cashback, limits, priority, or customer-facing loyalty copy.
+
+`Product.loyalty` and `ProductVariant.loyalty` are server-computed projections
+using the active store, channel, market, currency, locale, published Pricing
+state, program version, and viewer context. `primaryOpportunity` is selected by
+the server for compact product cards; the client must not rerank alternatives.
+Product purchase values use quantity one and are estimates until cart/checkout
+provides the authoritative Pricing and eligibility snapshot.
+
+`LoyaltyAccount.opportunities` contains server-ranked account actions, while
+`LoyaltyAccount.availableRewards` contains only entitlements that are usable at
+request time. Expired, redeemed, revoked, future, and otherwise unusable rewards
+are excluded on the server.
+
+All presentation copy is already localized and merchant-configured. Structured
+reward values remain available for native widgets and analytics, but a generic
+client can render only `presentation`/`copy` without branching on reward kind.

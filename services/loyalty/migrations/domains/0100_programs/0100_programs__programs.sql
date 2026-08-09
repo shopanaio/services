@@ -6,8 +6,6 @@ CREATE TABLE "loyalty"."program" (
   "status" "loyalty"."program_status" NOT NULL DEFAULT 'DRAFT',
   "is_default" boolean NOT NULL DEFAULT false,
   "default_currency_code" varchar(3) NOT NULL,
-  "points_singular" varchar(64) NOT NULL DEFAULT 'point',
-  "points_plural" varchar(64) NOT NULL DEFAULT 'points',
   "revision" integer NOT NULL DEFAULT 1,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -21,8 +19,6 @@ CREATE TABLE "loyalty"."program" (
   CONSTRAINT "loyalty_program_name_check" CHECK (btrim("name") <> ''),
   CONSTRAINT "loyalty_program_currency_check"
     CHECK ("default_currency_code" ~ '^[A-Z]{3}$'),
-  CONSTRAINT "loyalty_program_points_names_check"
-    CHECK (btrim("points_singular") <> '' AND btrim("points_plural") <> ''),
   CONSTRAINT "loyalty_program_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_program_metadata_check"
     CHECK (jsonb_typeof("metadata") = 'object'),
@@ -190,6 +186,33 @@ BEGIN
     RAISE EXCEPTION 'Invalid active loyalty program version transition';
   ELSIF OLD."status" = 'RETIRED' AND NEW."status" <> 'RETIRED' THEN
     RAISE EXCEPTION 'Retired loyalty program versions cannot be reactivated';
+  END IF;
+
+  IF OLD."status" = 'DRAFT' AND NEW."status" <> 'DRAFT' THEN
+    IF EXISTS (
+      SELECT 1 FROM "loyalty"."tier"
+       WHERE "program_version_id" = NEW."id"
+    ) AND NOT EXISTS (
+      SELECT 1 FROM "loyalty"."tier_policy"
+       WHERE "program_version_id" = NEW."id"
+    ) THEN
+      RAISE EXCEPTION 'A loyalty program version with tiers requires a tier policy';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+        FROM "loyalty"."earning_rule" AS rule
+       WHERE rule."program_version_id" = NEW."id"
+         AND rule."action_type" = 'ISSUE_REWARD'
+         AND NOT EXISTS (
+           SELECT 1
+             FROM "loyalty"."reward_definition" AS reward
+            WHERE reward."program_version_id" = NEW."id"
+              AND reward."code" = rule."action"->>'rewardDefinitionCode'
+         )
+    ) THEN
+      RAISE EXCEPTION 'Every ISSUE_REWARD action must reference a reward definition in the same version';
+    END IF;
   END IF;
 
   RETURN NEW;

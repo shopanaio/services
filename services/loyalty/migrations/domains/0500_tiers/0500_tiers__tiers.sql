@@ -1,3 +1,52 @@
+CREATE TABLE "loyalty"."tier_policy" (
+  "id" uuid PRIMARY KEY DEFAULT uuidv7(),
+  "store_id" uuid NOT NULL,
+  "program_version_id" uuid NOT NULL,
+  "window_type" "loyalty"."tier_evaluation_window_type" NOT NULL,
+  "rolling_window_days" integer,
+  "calendar_period" "loyalty"."tier_calendar_period",
+  "program_year_starts_month" smallint,
+  "membership_duration_days" integer,
+  "grace_period_days" integer NOT NULL DEFAULT 0,
+  "downgrade_policy" "loyalty"."tier_downgrade_policy" NOT NULL DEFAULT 'IMMEDIATE',
+  "requalification_policy" "loyalty"."tier_requalification_policy"
+    NOT NULL DEFAULT 'AUTOMATIC',
+  "metric_schema_version" integer NOT NULL DEFAULT 1,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+
+  CONSTRAINT "loyalty_tier_policy_program_version_fk"
+    FOREIGN KEY ("program_version_id")
+    REFERENCES "loyalty"."program_version" ("id"),
+  CONSTRAINT "loyalty_tier_policy_program_version_unique"
+    UNIQUE ("program_version_id"),
+  CONSTRAINT "loyalty_tier_policy_window_check" CHECK (
+    ("window_type" = 'LIFETIME'
+      AND "rolling_window_days" IS NULL
+      AND "calendar_period" IS NULL
+      AND "program_year_starts_month" IS NULL)
+    OR ("window_type" = 'ROLLING'
+      AND "rolling_window_days" > 0
+      AND "calendar_period" IS NULL
+      AND "program_year_starts_month" IS NULL)
+    OR ("window_type" = 'CALENDAR'
+      AND "rolling_window_days" IS NULL
+      AND "calendar_period" IS NOT NULL
+      AND (
+        ("calendar_period" = 'PROGRAM_YEAR'
+          AND "program_year_starts_month" BETWEEN 1 AND 12)
+        OR ("calendar_period" <> 'PROGRAM_YEAR'
+          AND "program_year_starts_month" IS NULL)
+      ))
+  ),
+  CONSTRAINT "loyalty_tier_policy_duration_check" CHECK (
+    ("membership_duration_days" IS NULL OR "membership_duration_days" > 0)
+    AND "grace_period_days" >= 0
+    AND ("downgrade_policy" = 'GRACE_PERIOD' OR "grace_period_days" = 0)
+  ),
+  CONSTRAINT "loyalty_tier_policy_metric_schema_check"
+    CHECK ("metric_schema_version" > 0)
+);
+
 CREATE TABLE "loyalty"."tier" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
@@ -5,10 +54,9 @@ CREATE TABLE "loyalty"."tier" (
   "code" varchar(64) NOT NULL,
   "name" varchar(160) NOT NULL,
   "rank" integer NOT NULL,
-  "qualification_points" bigint,
-  "qualification_spend_minor" bigint,
-  "qualification_currency_code" varchar(3),
-  "benefits" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "qualification_schema_version" integer NOT NULL DEFAULT 1,
+  "qualification" jsonb NOT NULL,
+  "maintenance" jsonb,
   "created_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_tier_program_version_fk"
@@ -22,14 +70,11 @@ CREATE TABLE "loyalty"."tier" (
   CONSTRAINT "loyalty_tier_code_check" CHECK ("code" ~ '^[a-z][a-z0-9_-]{1,63}$'),
   CONSTRAINT "loyalty_tier_name_check" CHECK (btrim("name") <> ''),
   CONSTRAINT "loyalty_tier_rank_check" CHECK ("rank" >= 0),
-  CONSTRAINT "loyalty_tier_points_check"
-    CHECK ("qualification_points" IS NULL OR "qualification_points" >= 0),
-  CONSTRAINT "loyalty_tier_spend_pair_check" CHECK (
-    ("qualification_spend_minor" IS NULL) = ("qualification_currency_code" IS NULL)
-    AND ("qualification_spend_minor" IS NULL OR "qualification_spend_minor" >= 0)
-    AND ("qualification_currency_code" IS NULL OR "qualification_currency_code" ~ '^[A-Z]{3}$')
-  ),
-  CONSTRAINT "loyalty_tier_benefits_check" CHECK (jsonb_typeof("benefits") = 'object')
+  CONSTRAINT "loyalty_tier_qualification_check" CHECK (
+    "qualification_schema_version" > 0
+    AND jsonb_typeof("qualification") = 'object'
+    AND ("maintenance" IS NULL OR jsonb_typeof("maintenance") = 'object')
+  )
 );
 
 CREATE TABLE "loyalty"."tier_membership" (
@@ -71,21 +116,36 @@ RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  owning_version_id uuid;
-  owning_version_status "loyalty"."program_version_status";
+  old_version_status "loyalty"."program_version_status";
+  new_version_status "loyalty"."program_version_status";
+  new_version_store_id uuid;
 BEGIN
-  owning_version_id := CASE
-    WHEN TG_OP = 'DELETE' THEN OLD."program_version_id"
-    ELSE NEW."program_version_id"
-  END;
+  IF TG_OP <> 'INSERT' THEN
+    SELECT "status" INTO old_version_status
+      FROM "loyalty"."program_version"
+     WHERE "id" = OLD."program_version_id";
 
-  SELECT "status"
-    INTO owning_version_status
-    FROM "loyalty"."program_version"
-   WHERE "id" = owning_version_id;
+    IF old_version_status <> 'DRAFT' THEN
+      RAISE EXCEPTION 'Tiers of a published loyalty program version are immutable';
+    END IF;
+  END IF;
 
-  IF owning_version_status <> 'DRAFT' THEN
-    RAISE EXCEPTION 'Tiers of a published loyalty program version are immutable';
+  IF TG_OP <> 'DELETE' THEN
+    SELECT "status", "store_id" INTO new_version_status, new_version_store_id
+      FROM "loyalty"."program_version"
+     WHERE "id" = NEW."program_version_id";
+
+    IF new_version_status <> 'DRAFT' THEN
+      RAISE EXCEPTION 'Tiers may only be attached to draft program versions';
+    END IF;
+
+    IF new_version_store_id IS DISTINCT FROM NEW."store_id" THEN
+      RAISE EXCEPTION 'Tier definition must use its program version store';
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND NEW."program_version_id" <> OLD."program_version_id" THEN
+    RAISE EXCEPTION 'Tiers cannot be moved between program versions';
   END IF;
 
   IF TG_OP = 'DELETE' THEN
@@ -98,6 +158,10 @@ $$;
 
 CREATE TRIGGER "loyalty_tier_version_immutability"
 BEFORE INSERT OR UPDATE OR DELETE ON "loyalty"."tier"
+FOR EACH ROW EXECUTE FUNCTION "loyalty"."guard_tier_mutation"();
+
+CREATE TRIGGER "loyalty_tier_policy_version_immutability"
+BEFORE INSERT OR UPDATE OR DELETE ON "loyalty"."tier_policy"
 FOR EACH ROW EXECUTE FUNCTION "loyalty"."guard_tier_mutation"();
 
 CREATE UNIQUE INDEX "loyalty_tier_membership_one_active_idx"

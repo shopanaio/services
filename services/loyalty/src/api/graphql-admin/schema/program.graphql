@@ -10,8 +10,6 @@ type LoyaltyProgram implements Node @key(fields: "id") {
   status: LoyaltyProgramStatus!
   isDefault: Boolean!
   defaultCurrencyCode: CurrencyCode!
-  pointsSingular: String!
-  pointsPlural: String!
   revision: Int!
   metadata: JSON!
   activeVersion: LoyaltyProgramVersion
@@ -47,6 +45,9 @@ type LoyaltyProgramVersion implements Node @key(fields: "id") {
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy!
   rulesSchemaVersion: Int!
   rules: LoyaltyProgramRules!
+  earningRules: [LoyaltyEarningRule!]!
+  rewardDefinitions: [LoyaltyRewardDefinition!]!
+  tierPolicy: LoyaltyTierPolicy
   tiers: [LoyaltyTier!]!
   createdById: ID
   publishedById: ID
@@ -60,7 +61,60 @@ type LoyaltyTier implements Node @key(fields: "id") {
   code: String!
   name: String!
   rank: Int!
-  qualificationPoints: BigInt
+  qualificationSchemaVersion: Int!
+  qualification: JSON!
+  maintenance: JSON
+  createdAt: DateTime!
+}
+
+type LoyaltyTierPolicy implements Node @key(fields: "id") {
+  id: ID!
+  programVersion: LoyaltyProgramVersion!
+  windowType: LoyaltyTierEvaluationWindowType!
+  rollingWindowDays: Int
+  calendarPeriod: LoyaltyTierCalendarPeriod
+  programYearStartsMonth: Int
+  membershipDurationDays: Int
+  gracePeriodDays: Int!
+  downgradePolicy: LoyaltyTierDowngradePolicy!
+  requalificationPolicy: LoyaltyTierRequalificationPolicy!
+  metricSchemaVersion: Int!
+  createdAt: DateTime!
+}
+
+type LoyaltyEarningRule implements Node @key(fields: "id") {
+  id: ID!
+  programVersion: LoyaltyProgramVersion!
+  code: String!
+  name: String!
+  priority: Int!
+  triggerType: LoyaltyEarningTriggerType!
+  triggerSchemaVersion: Int!
+  triggerConfig: JSON!
+  conditionSchemaVersion: Int!
+  conditions: JSON!
+  actionType: LoyaltyEarningActionType!
+  actionSchemaVersion: Int!
+  action: JSON!
+  limitSchemaVersion: Int!
+  limits: JSON!
+  stopProcessing: Boolean!
+  createdAt: DateTime!
+}
+
+type LoyaltyRewardDefinition implements Node @key(fields: "id") {
+  id: ID!
+  programVersion: LoyaltyProgramVersion!
+  code: String!
+  name: String!
+  rewardType: LoyaltyRewardType!
+  configurationSchemaVersion: Int!
+  configuration: JSON!
+  validityDays: Int
+  startsAt: DateTime
+  endsAt: DateTime
+  issuanceLimit: BigInt
+  perAccountLimit: BigInt
   createdAt: DateTime!
 }
 
@@ -124,8 +178,6 @@ input LoyaltyProgramCreateInput {
   code: String!
   name: String!
   defaultCurrencyCode: CurrencyCode!
-  pointsSingular: String!
-  pointsPlural: String!
   isDefault: Boolean = false
   metadata: JSON
   idempotencyKey: String!
@@ -137,8 +189,6 @@ input LoyaltyProgramUpdateInput {
   name: String
   status: LoyaltyProgramStatus
   isDefault: Boolean
-  pointsSingular: String
-  pointsPlural: String
   metadata: JSON
   idempotencyKey: String!
 }
@@ -166,6 +216,9 @@ input LoyaltyProgramVersionCreateInput {
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy = ORIGINAL_EXPIRY
   rulesSchemaVersion: Int = 1
   rules: LoyaltyProgramRulesInput!
+  earningRules: [LoyaltyEarningRuleInput!]! = []
+  rewardDefinitions: [LoyaltyRewardDefinitionInput!]! = []
+  tierPolicy: LoyaltyTierPolicyInput
   tiers: [LoyaltyTierInput!]
   idempotencyKey: String!
 }
@@ -174,7 +227,51 @@ input LoyaltyTierInput {
   code: String!
   name: String!
   rank: Int!
-  qualificationPoints: BigInt
+  qualificationSchemaVersion: Int = 1
+  qualification: JSON!
+  maintenance: JSON
+}
+
+input LoyaltyTierPolicyInput {
+  windowType: LoyaltyTierEvaluationWindowType!
+  rollingWindowDays: Int
+  calendarPeriod: LoyaltyTierCalendarPeriod
+  programYearStartsMonth: Int
+  membershipDurationDays: Int
+  gracePeriodDays: Int = 0
+  downgradePolicy: LoyaltyTierDowngradePolicy = IMMEDIATE
+  requalificationPolicy: LoyaltyTierRequalificationPolicy = AUTOMATIC
+  metricSchemaVersion: Int = 1
+}
+
+input LoyaltyEarningRuleInput {
+  code: String!
+  name: String!
+  priority: Int = 0
+  triggerType: LoyaltyEarningTriggerType!
+  triggerSchemaVersion: Int = 1
+  triggerConfig: JSON! = {}
+  conditionSchemaVersion: Int = 1
+  conditions: JSON!
+  actionType: LoyaltyEarningActionType!
+  actionSchemaVersion: Int = 1
+  action: JSON!
+  limitSchemaVersion: Int = 1
+  limits: JSON! = {}
+  stopProcessing: Boolean = false
+}
+
+input LoyaltyRewardDefinitionInput {
+  code: String!
+  name: String!
+  rewardType: LoyaltyRewardType!
+  configurationSchemaVersion: Int = 1
+  configuration: JSON!
+  validityDays: Int
+  startsAt: DateTime
+  endsAt: DateTime
+  issuanceLimit: BigInt
+  perAccountLimit: BigInt
 }
 
 input LoyaltyProgramRulesInput {

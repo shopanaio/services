@@ -1,11 +1,3 @@
-"""Customer-visible information about the active loyalty program."""
-type LoyaltyProgram {
-  id: ID!
-  name: String!
-  pointsSingular: String!
-  pointsPlural: String!
-}
-
 """
 The authenticated customer's account in the store's active loyalty program.
 
@@ -14,10 +6,28 @@ request context. A Customer federation reference is not an authorization grant.
 """
 type LoyaltyAccount {
   id: ID!
-  program: LoyaltyProgram!
   status: LoyaltyAccountStatus!
   balance: LoyaltyBalance!
   tier: LoyaltyTier
+
+  """
+  Server-ranked actions through which the current customer can earn or unlock a
+  loyalty reward. Values, eligibility, limits, localization, and ordering are
+  fully resolved for the active storefront context.
+  """
+  opportunities: LoyaltyAccountOpportunityPresentation!
+
+  """
+  Issued rewards that the customer can currently use.
+
+  Expired, revoked, redeemed, future, and otherwise unusable entitlements are
+  excluded by the server. The storefront must not reimplement entitlement state
+  or date checks.
+  """
+  availableRewards(
+    first: Int = 20
+    after: Cursor
+  ): LoyaltyAvailableRewardConnection!
 
   """
   The nearest point expirations, ordered by expiresAt ascending.

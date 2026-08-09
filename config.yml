@@ -198,9 +198,9 @@ services:
       <<: *db_default
       schema: null
 
-  # Contract-only until resolvers, repositories, handlers, and workflows land.
+  # Included in federation as a contract-only subgraph. Runtime providers land separately.
   loyalty:
-    enabled: false
+    enabled: true
     ports:
       admin_graphql: 10025
       storefront_graphql: 10026

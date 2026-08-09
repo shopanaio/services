@@ -63,3 +63,89 @@ CREATE TYPE "loyalty"."tier_membership_status" AS ENUM (
 CREATE TYPE "loyalty"."tier_membership_event_type" AS ENUM (
   'QUALIFIED', 'UPGRADED', 'DOWNGRADED', 'RENEWED', 'EXPIRED', 'REVOKED'
 );
+
+CREATE TYPE "loyalty"."earning_trigger_type" AS ENUM (
+  'ORDER',
+  'SIGNUP',
+  'REVIEW',
+  'REFERRAL',
+  'BIRTHDAY',
+  'ANNIVERSARY',
+  'LOGIN',
+  'SUBSCRIPTION_RENEWAL',
+  'CUSTOM_EVENT'
+);
+
+CREATE TYPE "loyalty"."earning_action_type" AS ENUM (
+  'AWARD_FIXED_POINTS',
+  'AWARD_SPEND_RATIO',
+  'AWARD_CASHBACK',
+  'APPLY_MULTIPLIER',
+  'ISSUE_REWARD'
+);
+
+CREATE TYPE "loyalty"."loyalty_event_evaluation_decision" AS ENUM (
+  'AWARDED', 'INELIGIBLE', 'LIMIT_REACHED', 'BUDGET_EXHAUSTED', 'IGNORED'
+);
+
+CREATE TYPE "loyalty"."reward_type" AS ENUM (
+  'POINTS',
+  'VOUCHER',
+  'FIXED_DISCOUNT',
+  'PERCENTAGE_DISCOUNT',
+  'FREE_SHIPPING',
+  'FREE_PRODUCT',
+  'MEMBER_BENEFIT',
+  'MONETARY_CREDIT'
+);
+
+CREATE TYPE "loyalty"."reward_entitlement_status" AS ENUM (
+  'ISSUED', 'RESERVED', 'REDEEMED', 'EXPIRED', 'REVOKED'
+);
+
+CREATE TYPE "loyalty"."reward_entitlement_event_type" AS ENUM (
+  'ISSUED', 'RESERVED', 'RELEASED', 'REDEEMED', 'EXPIRED', 'REVOKED'
+);
+
+CREATE TYPE "loyalty"."tier_evaluation_window_type" AS ENUM (
+  'LIFETIME', 'ROLLING', 'CALENDAR'
+);
+
+CREATE TYPE "loyalty"."tier_calendar_period" AS ENUM (
+  'MONTH', 'QUARTER', 'YEAR', 'PROGRAM_YEAR'
+);
+
+CREATE TYPE "loyalty"."tier_downgrade_policy" AS ENUM (
+  'IMMEDIATE', 'GRACE_PERIOD', 'END_OF_MEMBERSHIP'
+);
+
+CREATE TYPE "loyalty"."tier_requalification_policy" AS ENUM (
+  'AUTOMATIC', 'MANUAL'
+);
+
+CREATE TYPE "loyalty"."monetary_wallet_type" AS ENUM (
+  'CASHBACK', 'STORE_CREDIT'
+);
+
+CREATE TYPE "loyalty"."monetary_wallet_status" AS ENUM (
+  'ACTIVE', 'SUSPENDED', 'CLOSED', 'MERGED'
+);
+
+CREATE TYPE "loyalty"."monetary_balance_bucket" AS ENUM (
+  'PENDING', 'AVAILABLE', 'RESERVED', 'DEBT'
+);
+
+CREATE TYPE "loyalty"."monetary_transaction_kind" AS ENUM (
+  'EARN_PENDING',
+  'ACTIVATE',
+  'RESERVE',
+  'RELEASE',
+  'SPEND',
+  'EXPIRE',
+  'REVERSE_EARN',
+  'RESTORE_SPEND',
+  'ADJUST_CREDIT',
+  'ADJUST_DEBIT',
+  'MERGE_TRANSFER',
+  'DEBT_RECOVERY'
+);

@@ -1,0 +1,290 @@
+# Server-computed loyalty presentation for a published product. Resolution uses
+# store, channel, market, currency, locale, Pricing, program, and viewer context.
+extend type Product @key(fields: "id") {
+  id: ID! @external
+
+  """
+  Loyalty values ready for rendering on a product card or product page.
+
+  Purchase values use a quantity of one and span the currently purchasable
+  variants. The server batches resolution across products in a listing. Null
+  means that the store has no active customer-visible loyalty presentation.
+  """
+  loyalty: ProductLoyaltyPresentation
+}
+
+# Server-computed loyalty presentation for one concrete purchasable variant.
+extend type ProductVariant @key(fields: "id") {
+  id: ID! @external
+
+  """
+  Loyalty values ready for rendering for this variant at quantity one. Null
+  means that the store has no active customer-visible loyalty presentation.
+  """
+  loyalty: ProductLoyaltyPresentation
+}
+
+"""
+Complete loyalty presentation for one product or variant in the current
+storefront viewer context.
+
+An empty opportunities list means that nothing should be shown. The storefront
+must not infer hidden or ineligible rules from the empty result.
+"""
+type ProductLoyaltyPresentation {
+  """
+  The single opportunity selected by server-side priority for compact surfaces.
+
+  Null means that the product card should not render a loyalty badge. The client
+  must not select or rank another opportunity itself.
+  """
+  primaryOpportunity: LoyaltyOpportunity
+
+  """
+  The purchase opportunity selected by the server for a standard product-price
+  or add-to-cart surface. Null means no purchase reward should be displayed.
+  """
+  purchaseOpportunity: LoyaltyOpportunity
+
+  """
+  The review opportunity selected by the server for the product review surface.
+  Null means no review reward should be displayed.
+  """
+  reviewOpportunity: LoyaltyOpportunity
+
+  """Server-ranked purchase rewards applicable to this product or variant."""
+  purchaseOpportunities: [LoyaltyOpportunity!]!
+
+  """
+  Server-ranked non-purchase rewards such as a verified-review reward.
+  """
+  engagementOpportunities: [LoyaltyOpportunity!]!
+
+  """When this complete presentation snapshot was calculated."""
+  evaluatedAt: DateTime!
+
+  """
+  Earliest time at which a schedule, price, customer state, usage limit, or
+  program version can invalidate this snapshot. Null means no known time-based
+  invalidation; normal server cache policy still applies.
+  """
+  validUntil: DateTime
+
+  """Opaque revision suitable for response caching and diagnostics."""
+  revision: String!
+}
+
+"""A customer-visible action through which a loyalty reward can be obtained."""
+type LoyaltyOpportunity {
+  """Stable opaque key within the returned presentation revision."""
+  key: String!
+
+  """The customer action represented by this opportunity."""
+  type: LoyaltyOpportunityType!
+
+  """
+  Viewer-specific state calculated from authentication, prior events, limits,
+  budgets, account status, segments, tier, and schedule.
+  """
+  state: LoyaltyOpportunityState!
+
+  """The fully calculated reward value."""
+  reward: LoyaltyRewardPresentation!
+
+  """
+  Localized, merchant-configurable copy ready for direct rendering.
+  """
+  presentation: LoyaltyOpportunityCopy!
+
+  """
+  Number of additional times the viewer can currently receive this reward.
+  Null means that no finite viewer limit applies or the viewer is anonymous.
+  """
+  remainingUses: UnsignedInt64
+
+  """End of the currently evaluated rule or entitlement window."""
+  validUntil: DateTime
+}
+
+enum LoyaltyOpportunityType {
+  PURCHASE
+  SIGNUP
+  REVIEW
+  REFERRAL
+  BIRTHDAY
+  ANNIVERSARY
+  LOGIN
+  SUBSCRIPTION_RENEWAL
+  CUSTOM
+}
+
+"""
+Presentation state, not a command authorization.
+
+The authoritative eligibility check is repeated when the underlying action is
+accepted by its owning service.
+"""
+enum LoyaltyOpportunityState {
+  AVAILABLE
+  AUTHENTICATION_REQUIRED
+  COMPLETED
+  LIMIT_REACHED
+  BUDGET_EXHAUSTED
+}
+
+"""Localized server-authored copy for one opportunity or issued reward."""
+type LoyaltyOpportunityCopy {
+  """Primary text, for example `Earn 300 points for a review`."""
+  headline: String!
+
+  """Optional explanatory text for a detail surface."""
+  description: String
+
+  """Short text suitable for a product-card badge."""
+  badge: String
+
+  """Complete localized text for assistive technology."""
+  accessibilityLabel: String!
+
+  """Already localized customer-facing terms selected by the server."""
+  terms: [String!]!
+}
+
+"""
+A calculated reward value.
+
+All implementations expose common server-authored copy. Clients can render that
+copy without inspecting the concrete reward type; typed fields are available for
+richer native presentation and analytics.
+"""
+interface LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+}
+
+enum LoyaltyRewardKind {
+  POINTS
+  CASHBACK
+  STORE_CREDIT
+  VOUCHER
+  FIXED_DISCOUNT
+  PERCENTAGE_DISCOUNT
+  FREE_SHIPPING
+  FREE_PRODUCT
+  MEMBER_BENEFIT
+}
+
+"""Minimum and maximum unsigned values calculated by the server."""
+type LoyaltyUnsignedRange {
+  minimum: UnsignedInt64!
+  maximum: UnsignedInt64!
+}
+
+"""Minimum and maximum monetary values in one storefront currency."""
+type LoyaltyMoneyRange {
+  minimum: Money!
+  maximum: Money!
+}
+
+enum LoyaltyValueAccuracy {
+  """The value cannot change for the evaluated subject and context."""
+  EXACT
+
+  """The value can change after cart, Pricing, or final eligibility evaluation."""
+  ESTIMATED
+}
+
+type LoyaltyPointsRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+  points: LoyaltyUnsignedRange!
+  accuracy: LoyaltyValueAccuracy!
+}
+
+"""Cashback, store credit, or a fixed monetary discount."""
+type LoyaltyMoneyRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+  amount: LoyaltyMoneyRange!
+  accuracy: LoyaltyValueAccuracy!
+}
+
+type LoyaltyPercentageRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+
+  """Percentage expressed as a decimal value, for example `5` for five percent."""
+  percentage: Decimal!
+}
+
+type LoyaltyVoucherRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+
+  """
+  Customer-visible voucher code. Null for an opportunity that has not yet issued
+  an entitlement.
+  """
+  code: String
+}
+
+type LoyaltyFreeShippingRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+}
+
+type LoyaltyFreeProductRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+  product: Product!
+  variant: ProductVariant
+  quantity: UnsignedInt64!
+}
+
+type LoyaltyMemberBenefitRewardPresentation implements LoyaltyRewardPresentation {
+  kind: LoyaltyRewardKind!
+  copy: LoyaltyOpportunityCopy!
+  code: String!
+}
+
+"""
+Account-level opportunities selected and ranked for the authenticated customer.
+Product-scoped opportunities remain available through Product.loyalty.
+"""
+type LoyaltyAccountOpportunityPresentation {
+  primaryOpportunity: LoyaltyOpportunity
+  opportunities: [LoyaltyOpportunity!]!
+  evaluatedAt: DateTime!
+  validUntil: DateTime
+  revision: String!
+}
+
+"""An issued reward that the current customer can use now."""
+type LoyaltyAvailableReward implements Node @key(fields: "id") {
+  id: ID!
+  reward: LoyaltyRewardPresentation!
+
+  """Localized server-authored copy ready for an account or checkout surface."""
+  presentation: LoyaltyOpportunityCopy!
+
+  issuedAt: DateTime!
+  validUntil: DateTime
+
+  """
+  Opaque revision used by a later reservation or redemption mutation owned by
+  Checkout. The storefront does not interpret it.
+  """
+  revision: String!
+}
+
+type LoyaltyAvailableRewardConnection implements Connection {
+  edges: [LoyaltyAvailableRewardEdge!]!
+  nodes: [LoyaltyAvailableReward!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyAvailableRewardEdge {
+  node: LoyaltyAvailableReward!
+  cursor: Cursor!
+}
