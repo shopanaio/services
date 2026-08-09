@@ -1,7 +1,18 @@
 # Application authentication OpenAPI contract
 
-Машинно-читаемый контракт находится в
+Машинно-читаемый контракт генерируется командой:
+
+```bash
+yarn iam:openapi
+```
+
+Результат находится в
 [`application-auth.openapi.yaml`](./application-auth.openapi.yaml).
+
+Файл результата вручную не редактируется. Генератор объединяет endpoint
+metadata установленной версии Better Auth/OAuth Provider, публичный IAM route
+manifest и IAM-specific overrides из
+`application-auth.openapi.overrides.yaml`, затем удаляет запрещенные routes.
 
 Он описывает публичные JSON/protocol endpoints IAM для:
 
@@ -43,9 +54,9 @@ export default defineConfig({
 });
 ```
 
-Не редактируйте generated-файлы вручную. Источником истины остается OpenAPI
-контракт, синхронизированный с `applicationAuthRouteManifest.ts`, IAM HTTP
-boundary и установленными версиями Better Auth/OAuth Provider.
+Не редактируйте generated-файлы вручную. После изменения route manifest,
+Better Auth endpoint metadata или IAM overrides сначала выполните
+`yarn iam:openapi`, затем frontend codegen.
 
 ## Runtime-особенности
 
@@ -71,5 +82,7 @@ boundary и установленными версиями Better Auth/OAuth Prov
 
 1. `src/auth/applicationAuthRouteManifest.ts`;
 2. IAM HTTP boundary policy;
-3. `application-auth.openapi.yaml`;
-4. сгенерированный frontend client.
+3. `application-auth.openapi.overrides.yaml`, если изменился IAM-specific
+   контракт поверх Better Auth metadata;
+4. generated `application-auth.openapi.yaml` командой `yarn iam:openapi`;
+5. сгенерированный frontend client.

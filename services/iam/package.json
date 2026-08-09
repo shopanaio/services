@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "zod:generate": "ts-to-zod"
+    "zod:generate": "ts-to-zod",
+    "openapi:generate": "tsx scripts/generate-application-auth-openapi.ts"
   },
   "exports": {
     ".": {
@@ -64,7 +65,8 @@
     "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "ts-to-zod": "^5.1.0",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "yaml": "^2.6.1"
   },
   "engines": {
     "node": ">=18"

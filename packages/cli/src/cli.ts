@@ -9,6 +9,7 @@ import { devCommand } from "./commands/dev.js";
 import { e2eCodegenCommand, e2eTestCommand } from "./commands/e2e.js";
 import { gatewayCommand } from "./commands/gateway.js";
 import { migrateCommand } from "./commands/migrate.js";
+import { openApiCommand } from "./commands/openapi.js";
 import {
   schemaBuildCommand,
   schemaComposeCommand,
@@ -63,6 +64,12 @@ program
   .description("Generate GraphQL TypeScript types")
   .option("-s, --service <service>", "Generate for specific service only")
   .action(codegenCommand);
+
+program
+  .command("openapi")
+  .description("Generate OpenAPI contracts")
+  .option("-s, --service <service>", "Generate for specific service only")
+  .action(openApiCommand);
 
 // Gateway command
 program

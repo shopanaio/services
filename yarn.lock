@@ -7706,6 +7706,7 @@ __metadata:
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     uuid: "npm:^13.0.0"
+    yaml: "npm:^2.6.1"
     zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft
