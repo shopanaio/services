@@ -241,7 +241,12 @@ function contentPolicyFor(
   ) {
     return "form";
   }
-  if (normalizedPath === "/oauth2/userinfo") return "none";
+  if (
+    normalizedPath === "/oauth2/userinfo" ||
+    normalizedPath === "/sign-out"
+  ) {
+    return "none";
+  }
   if (socialCallback) return "form-or-json";
   if (
     normalizedPath === "/login/password" ||

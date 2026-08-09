@@ -15,6 +15,7 @@ import {
   expectSignUp,
   expireSessions,
   formHeaders,
+  jsonHeaders,
   postLogoutUri,
   redirectUri,
   setClientDisabled,
@@ -66,6 +67,40 @@ test.describe('Application password auth — session and token lifecycle', () =>
     expect(local.ok(), await local.text()).toBe(true);
     expect(response.ok()).toBe(false);
     expect(await sessionCount(realms.b.applicationId)).toBe(0);
+  });
+
+  test('REST sign-out revokes only the current application session', async ({
+    api,
+    request,
+  }) => {
+    const realms = await createRealmMatrix(api, request);
+    const email = uniqueEmail('rest-sign-out');
+    const [signupA, signupB] = await Promise.all([
+      expectSignUp(request, realms.a, email),
+      expectSignUp(request, realms.b, email),
+    ]);
+    const cookieA = applicationCookie(signupA, realms.a);
+    const cookieB = applicationCookie(signupB, realms.b);
+    const beforeA = await sessionCount(realms.a.applicationId);
+    const beforeB = await sessionCount(realms.b.applicationId);
+
+    const response = await request.post(endpoint(realms.a, '/sign-out'), {
+      headers: { ...jsonHeaders(), cookie: cookieA },
+    });
+
+    expect(response.ok(), await response.text()).toBe(true);
+    expect(await response.json()).toEqual({ success: true });
+    expect(setCookieHeaders(response).join('\n')).toContain(
+      `shopana_application_${realms.a.applicationId}`,
+    );
+    expect(await sessionCount(realms.a.applicationId)).toBe(beforeA - 1);
+    expect(await sessionCount(realms.b.applicationId)).toBe(beforeB);
+
+    const stillAuthenticated = await request.get(
+      endpoint(realms.b, '/account/connections'),
+      { headers: { cookie: cookieB, accept: 'text/html' }, maxRedirects: 0 },
+    );
+    expect(stillAuthenticated.ok(), await stillAuthenticated.text()).toBe(true);
   });
 
   test('sessions in A and B coexist and revoke independently', async ({

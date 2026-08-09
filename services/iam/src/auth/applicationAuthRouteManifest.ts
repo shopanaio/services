@@ -50,6 +50,10 @@ const HOSTED_UI_BASE_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
   exact("GET", APPLICATION_AUTH_UI_STYLE_PATH),
 ];
 
+const SESSION_ROUTES: readonly ApplicationAuthRouteManifestEntry[] = [
+  exact("POST", "/sign-out"),
+];
+
 /** Paths which must remain denied even though the installed plugins own them. */
 export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteManifestEntry[] =
   [
@@ -92,7 +96,11 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
   ) {
     throw new Error("Enabled application social providers are duplicated");
   }
-  const allowedRoutes = [...OAUTH_PROTOCOL_ROUTES, ...HOSTED_UI_BASE_ROUTES];
+  const allowedRoutes = [
+    ...OAUTH_PROTOCOL_ROUTES,
+    ...HOSTED_UI_BASE_ROUTES,
+    ...SESSION_ROUTES,
+  ];
 
   if (input.policy.passwordSignInAllowed) {
     allowedRoutes.push(
