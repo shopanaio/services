@@ -11,7 +11,7 @@ CREATE TABLE listing.recommendation_snapshot (
   ranker_type varchar(16) NOT NULL,
   model_version varchar(64) NOT NULL,
   build_key varchar(255) NOT NULL,
-  source_watermark timestamptz NOT NULL,
+  source_watermarks jsonb NOT NULL DEFAULT '{}'::jsonb,
   item_count smallint NOT NULL DEFAULT 0,
   generated_at timestamptz NOT NULL DEFAULT now(),
   activated_at timestamptz,
@@ -24,11 +24,11 @@ CREATE TABLE listing.recommendation_snapshot (
   CONSTRAINT fk_recommendation_snapshot_policy
     FOREIGN KEY (policy_id)
     REFERENCES listing.recommendation_placement_policy(policy_id)
-    ON DELETE SET NULL,
+    ON DELETE RESTRICT,
   CONSTRAINT fk_recommendation_snapshot_calculation_run
     FOREIGN KEY (calculation_run_id)
     REFERENCES listing.recommendation_calculation_run(run_id)
-    ON DELETE SET NULL,
+    ON DELETE RESTRICT,
   CONSTRAINT chk_recommendation_snapshot_uuid_v7
     CHECK (
       substring(snapshot_id::text FROM 15 FOR 1) = '7'
@@ -70,6 +70,8 @@ CREATE TABLE listing.recommendation_snapshot (
     CHECK (model_version <> ''),
   CONSTRAINT chk_recommendation_snapshot_build_key
     CHECK (build_key <> ''),
+  CONSTRAINT chk_recommendation_snapshot_source_watermarks
+    CHECK (jsonb_typeof(source_watermarks) = 'object'),
   CONSTRAINT chk_recommendation_snapshot_item_count
     CHECK (item_count BETWEEN 0 AND 100),
   CONSTRAINT chk_recommendation_snapshot_expiry

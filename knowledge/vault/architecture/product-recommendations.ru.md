@@ -31,8 +31,8 @@ dual-write не поддерживаются.
 - объединять curated и behavioral signals по прозрачной policy;
 - возвращать storefront готовый детерминированный список Product references;
 - обеспечивать cold-start fallback для новых товаров и магазинов;
-- сохранять provenance результата: policy version, model version, source
-  watermark и использованные features;
+- сохранять provenance результата: policy version, model version, monotonic
+  ingestion watermark и использованные features;
 - публиковать новый ranking атомарно, не показывая частично рассчитанный набор;
 - в дальнейшем использовать те же pair/context features для cart cross-sell,
   checkout upsell и search rerank.
@@ -78,7 +78,8 @@ events или broker contracts.
 | `policy` | Merchant/system configuration объединения источников |
 | `calculation run` | Версионированный воспроизводимый расчёт behavioral statistics |
 | `snapshot` | Неизменяемый опубликованный ranked list для anchor + placement |
-| `source watermark` | Верхняя граница source data, учтённая расчётом |
+| `ingestion watermark` | Монотонная позиция append-only projection log, до которой включительно прочитаны события |
+| `event-time watermark` | Наблюдаемая верхняя граница business timestamps; используется для monitoring, но не доказывает полноту ingestion |
 
 Связь является направленной: рекомендация `A -> B` не создаёт автоматически
 `B -> A`. FBT calculation материализует оба направления отдельно, потому что
@@ -142,9 +143,19 @@ Actions:
 - `BOOST` — target получает положительный ranking feature `boost`;
 - `EXCLUDE` — target запрещён в placement независимо от automated score.
 
-Один target имеет не более одного action внутри anchor + placement. Anchor не
-может рекомендовать сам себя. `starts_at` и `ends_at` задают editorial schedule;
-`enabled = false` выключает запись без её удаления.
+Один target имеет не более одного одновременно активного action внутри anchor +
+placement. Anchor не может рекомендовать сам себя. `starts_at` и `ends_at`
+задают полуоткрытый editorial interval `[starts_at, ends_at)`; null означает
+бесконечную границу. `enabled = false` выключает запись без её удаления.
+
+PostgreSQL exclusion constraints с `btree_gist` запрещают пересечения:
+
+- intervals одного target внутри anchor + placement;
+- intervals двух `PIN` на одной position внутри anchor + placement.
+
+Выключенные и `STALE` records не резервируют position. Непересекающиеся
+scheduled records могут повторно использовать target или position; окончание
+одного interval ровно в момент начала следующего не считается конфликтом.
 
 `anchor_reference_status` и `target_reference_status` принимают `VALID` или
 `STALE`. Product deletion/unpublication handler не удаляет editorial intent, а
@@ -185,23 +196,41 @@ Reversal/correction должен содержать те же stable identifiers
 
 ### Order fact projection
 
-`recommendation_order_fact` хранит минимальный обезличенный sales fact:
+`recommendation_order_fact` является append-only log минимальных обезличенных
+sales facts. Каждая order revision хранится отдельной записью:
 
 - `COMMITTED` или `REVERSED`;
-- monotonic `order_revision`;
+- monotonic revision внутри order;
+- локальная глобально возрастающая `ingestion_position`;
 - timestamps;
-- последний `event_id`;
+- event ID;
 - canonical payload hash для идемпотентности.
 
 `recommendation_order_product_fact` агрегирует повторяющиеся lines одного
-product внутри заказа в `(order_id, product_id, quantity)`. Customer ID, email,
-address, payment data и line price не сохраняются, поскольку они не нужны для
-pair statistics.
+product внутри конкретной committed revision в
+`(order_fact_id, product_id, quantity)`. Customer ID, email, address, payment
+data и line price не сохраняются, поскольку они не нужны для pair statistics.
 
-Event handler применяет событие только если revision новее сохранённой. Повтор
-с тем же event ID и payload является успешным no-op. Тот же event ID с другим
-payload hash является integrity error. Stale revision не может откатить более
-новое состояние.
+`recommendation_ingestion_cursor` хранит последний committed position отдельно
+для каждого store. Event handler в одной транзакции:
+
+1. блокирует cursor row через `SELECT ... FOR UPDATE`;
+2. повторно проверяет event/revision idempotency;
+3. увеличивает `last_position` на один;
+4. вставляет immutable order fact с выделенной position;
+5. commit-ит fact и cursor вместе.
+
+Run читает watermark под тем же cursor lock. Поэтому watermark обозначает
+непрерывный префикс закоммиченных facts; обычный PostgreSQL sequence/identity
+для этого недостаточен, поскольку position может быть выделена до commit и
+создать временный gap.
+
+Ingestion position не зависит от business event time или порядка доставки
+broker. Повтор с тем же event ID и payload является успешным no-op. Тот же event
+ID или order revision с другим payload hash является integrity error.
+Late/stale revisions разрешено дописать для диагностики, но effective order
+state выбирается по максимальной `order_revision`, доступной на зафиксированной
+ingestion position; поэтому старая revision не может откатить более новую.
 
 ## FBT calculation
 
@@ -212,15 +241,25 @@ payload hash является integrity error. Stale revision не может о
 - store и calculation type;
 - `algorithm_version`;
 - `[window_started_at, window_ended_at)`;
-- source watermark;
+- `source_ingestion_watermark`;
+- optional диагностический `source_event_time_watermark`;
 - idempotency key;
 - product/pair counts;
 - lifecycle timestamps и failure code.
 
-В расчёт входят только `COMMITTED` orders внутри окна. `REVERSED` orders
-исключаются. Product учитывается один раз на заказ для pair frequency;
-`quantity` сохраняется отдельно и может стать feature, но не размножает одну
-покупку в несколько совместных покупок.
+Расчёт сначала ограничивает append-only facts условием
+`ingestion_position <= source_ingestion_watermark`, затем выбирает максимальную
+`order_revision` каждого order. В расчёт входят только resulting `COMMITTED`
+orders с `committed_at` внутри окна. Resulting `REVERSED` orders исключаются.
+Product учитывается один раз на заказ для pair frequency; `quantity` сохраняется
+отдельно и может стать feature, но не размножает одну покупку в несколько
+совместных покупок.
+
+Timestamp не является границей полноты: late event может иметь старый
+`committed_at`, но новую ingestion position. Повторный run с тем же ingestion
+watermark поэтому видит тот же набор revisions. Event-time watermark остаётся
+nullable диагностическим показателем lag и не заменяет ingestion cursor. Он не
+участвует в допуске или активации run и может быть меньше `window_ended_at`.
 
 Run lifecycle:
 
@@ -324,7 +363,7 @@ store + anchor + placement. Он сохраняет:
 - calculation run lineage;
 - ranker/model version;
 - build idempotency key;
-- source watermark;
+- typed source watermarks object;
 - generated/activated/expiry timestamps;
 - ожидаемое число items.
 
@@ -335,6 +374,10 @@ BUILDING -> READY -> ACTIVE -> SUPERSEDED
     |
     +-----------------------> FAILED
 ```
+
+`source_watermarks` хранит объект positions/versions всех источников, например
+orders ingestion position и manual configuration version. Timestamp без
+монотонной позиции не является допустимым единственным watermark.
 
 `recommendation_snapshot_item` содержит target, rank, final score,
 `primary_source`, `pinned`, feature object и source breakdown. Features и source
@@ -512,9 +555,17 @@ order ID, product IDs, quantity и timestamps. Это уменьшает privacy
 
 Retention выполняется только после появления нового ACTIVE поколения:
 
-- order facts старше maximum calculation window можно удалять после учёта
-  reversal/correction SLA;
-- SUPERSEDED calculation runs удаляются вместе с дочерними statistics;
+- append-only order facts старше maximum calculation window можно удалять после
+  учёта reversal/correction SLA и только когда их ingestion positions не нужны
+  сохраняемым runs;
+- тяжёлые product/pair statistics SUPERSEDED run можно удалить отдельно и
+  зафиксировать `statistics_purged_at`, сохранив маленький run header;
+- FK snapshot -> calculation run использует `ON DELETE RESTRICT`: run header
+  нельзя удалить, пока на него ссылается сохраняемый snapshot;
+- FK snapshot -> placement policy также использует `ON DELETE RESTRICT`, чтобы
+  не потерять policy lineage;
+- run header удаляется только после удаления/истечения всех referencing
+  snapshots;
 - SUPERSEDED/FAILED snapshots удаляются по отдельному operational TTL;
 - ACTIVE run/snapshot никогда не удаляется retention job;
 - manual configuration не удаляется автоматическим retention.
@@ -525,7 +576,7 @@ Retention operation должна быть batch, store-scoped и resumable.
 
 Минимальные metrics:
 
-- event projection lag и stale revision count;
+- event projection lag, current ingestion position и late/stale revision count;
 - committed/reversed order facts;
 - calculation duration, products/pairs processed и run failures;
 - snapshot build duration и activation failures;
@@ -563,6 +614,8 @@ manual_product_recommendation
 recommendation_order_fact
   └── recommendation_order_product_fact
 
+recommendation_ingestion_cursor
+
 recommendation_calculation_run
   ├── recommendation_product_stat
   └── recommendation_product_pair_stat
@@ -599,11 +652,14 @@ Migration files:
 3. Manual `EXCLUDE` является hard rule для любого ranking strategy.
 4. `PIN` задаёт policy position, а не искусственно высокий score.
 5. FBT строится только из confirmed sales facts и учитывает reversals.
-6. Customer identity не сохраняется в recommendation projection.
-7. Storefront читает только ACTIVE immutable snapshot.
-8. Новый run/snapshot активируется атомарно и не разрушает предыдущий active.
-9. Live publication/availability повторно проверяются при serving.
-10. Recommendation не создаёт цену, скидку или cart mutation.
-11. Ranking всегда детерминирован и имеет stable tie-breaker.
-12. Любой результат объясним через policy/model version, features и source
+6. Воспроизводимость calculation run определяется ingestion position, а не
+   business timestamp.
+7. Customer identity не сохраняется в recommendation projection.
+8. Storefront читает только ACTIVE immutable snapshot.
+9. Новый run/snapshot активируется атомарно и не разрушает предыдущий active.
+10. Active или сохраняемый snapshot не может потерять calculation run lineage.
+11. Live publication/availability повторно проверяются при serving.
+12. Recommendation не создаёт цену, скидку или cart mutation.
+13. Ranking всегда детерминирован и имеет stable tie-breaker.
+14. Любой результат объясним через policy/model version, features и source
     breakdown.

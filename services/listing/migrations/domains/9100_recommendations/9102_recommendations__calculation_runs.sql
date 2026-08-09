@@ -6,13 +6,15 @@ CREATE TABLE listing.recommendation_calculation_run (
   algorithm_version varchar(64) NOT NULL,
   window_started_at timestamptz NOT NULL,
   window_ended_at timestamptz NOT NULL,
-  source_watermark timestamptz NOT NULL,
+  source_ingestion_watermark bigint NOT NULL,
+  source_event_time_watermark timestamptz,
   idempotency_key varchar(255) NOT NULL,
   product_count integer NOT NULL DEFAULT 0,
   pair_count bigint NOT NULL DEFAULT 0,
   started_at timestamptz NOT NULL DEFAULT now(),
   completed_at timestamptz,
   activated_at timestamptz,
+  statistics_purged_at timestamptz,
   failure_code varchar(64),
   created_at timestamptz NOT NULL DEFAULT now(),
 
@@ -31,10 +33,9 @@ CREATE TABLE listing.recommendation_calculation_run (
   CONSTRAINT chk_recommendation_calculation_run_algorithm_version
     CHECK (algorithm_version <> ''),
   CONSTRAINT chk_recommendation_calculation_run_window
-    CHECK (
-      window_started_at < window_ended_at
-      AND source_watermark >= window_ended_at
-    ),
+    CHECK (window_started_at < window_ended_at),
+  CONSTRAINT chk_recommendation_calculation_run_ingestion_watermark
+    CHECK (source_ingestion_watermark >= 0),
   CONSTRAINT chk_recommendation_calculation_run_idempotency_key
     CHECK (idempotency_key <> ''),
   CONSTRAINT chk_recommendation_calculation_run_counts
@@ -48,7 +49,12 @@ CREATE TABLE listing.recommendation_calculation_run (
       OR (status = 'FAILED' AND completed_at IS NOT NULL AND activated_at IS NULL AND failure_code IS NOT NULL)
     ),
   CONSTRAINT chk_recommendation_calculation_run_failure_code
-    CHECK (failure_code IS NULL OR failure_code <> '')
+    CHECK (failure_code IS NULL OR failure_code <> ''),
+  CONSTRAINT chk_recommendation_calculation_run_statistics_retention
+    CHECK (
+      statistics_purged_at IS NULL
+      OR status IN ('SUPERSEDED', 'FAILED')
+    )
 );
 
 CREATE UNIQUE INDEX recommendation_calculation_run_one_active_idx

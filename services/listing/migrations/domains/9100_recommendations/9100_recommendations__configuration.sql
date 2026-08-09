@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE listing.recommendation_placement_policy (
   policy_id uuid NOT NULL,
   store_id uuid NOT NULL,
@@ -74,8 +76,6 @@ CREATE TABLE listing.manual_product_recommendation (
   updated_at timestamptz NOT NULL DEFAULT now(),
 
   PRIMARY KEY (recommendation_id),
-  CONSTRAINT manual_product_recommendation_target_unique
-    UNIQUE (store_id, anchor_product_id, placement, target_product_id),
   CONSTRAINT chk_manual_product_recommendation_uuid_v7
     CHECK (
       substring(recommendation_id::text FROM 15 FOR 1) = '7'
@@ -124,17 +124,47 @@ CREATE TABLE listing.manual_product_recommendation (
   CONSTRAINT chk_manual_product_recommendation_target_reference_status
     CHECK (target_reference_status IN ('VALID', 'STALE')),
   CONSTRAINT chk_manual_product_recommendation_version
-    CHECK (version > 0)
+    CHECK (version > 0),
+  CONSTRAINT manual_product_recommendation_target_schedule_excl
+    EXCLUDE USING gist (
+      store_id WITH =,
+      anchor_product_id WITH =,
+      placement WITH =,
+      target_product_id WITH =,
+      (
+        tstzrange(
+          COALESCE(starts_at, '-infinity'::timestamptz),
+          COALESCE(ends_at, 'infinity'::timestamptz),
+          '[)'
+        )
+      ) WITH &&
+    )
+    WHERE (
+      enabled = true
+      AND anchor_reference_status = 'VALID'
+      AND target_reference_status = 'VALID'
+    ),
+  CONSTRAINT manual_product_recommendation_pin_schedule_excl
+    EXCLUDE USING gist (
+      store_id WITH =,
+      anchor_product_id WITH =,
+      placement WITH =,
+      position WITH =,
+      (
+        tstzrange(
+          COALESCE(starts_at, '-infinity'::timestamptz),
+          COALESCE(ends_at, 'infinity'::timestamptz),
+          '[)'
+        )
+      ) WITH &&
+    )
+    WHERE (
+      action = 'PIN'
+      AND enabled = true
+      AND anchor_reference_status = 'VALID'
+      AND target_reference_status = 'VALID'
+    )
 );
-
-CREATE UNIQUE INDEX manual_product_recommendation_pin_position_unique_idx
-  ON listing.manual_product_recommendation (
-    store_id,
-    anchor_product_id,
-    placement,
-    position
-  )
-  WHERE action = 'PIN';
 
 CREATE INDEX manual_product_recommendation_active_lookup_idx
   ON listing.manual_product_recommendation (
