@@ -212,14 +212,20 @@ test.describe('Customers Storefront API — customer update', () => {
   });
 
   test('future impossible and out-of-range date of birth is rejected', async () => {
-    for (const dateOfBirth of ['2030-01-01', '2023-02-29', '1800-01-01']) {
+    const futureDate = new Date();
+    futureDate.setUTCFullYear(futureDate.getUTCFullYear() + 10);
+    for (const dateOfBirth of [
+      futureDate.toISOString().slice(0, 10),
+      '2023-02-29',
+      '1800-01-01',
+    ]) {
       const response = await update({
         dateOfBirth,
         expectedRevision: await kit.revision(),
         idempotencyKey: uniqueKey(),
       });
       if (response.errors) {
-        expect(response.errors[0]!.extensions?.code).toBe('BAD_USER_INPUT');
+        kit.expectBadUserInput(response);
       } else {
         kit.expectUserError(response.data!.payload.userErrors, 'INVALID_DATE_OF_BIRTH');
       }
@@ -252,7 +258,7 @@ test.describe('Customers Storefront API — customer update', () => {
         idempotencyKey: uniqueKey(),
       });
       if (response.errors) {
-        expect(response.data ?? null).toBeNull();
+        kit.expectBadUserInput(response);
       } else {
         kit.expectUserError(response.data!.payload.userErrors, 'INVALID_REVISION');
       }

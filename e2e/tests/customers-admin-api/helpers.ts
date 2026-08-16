@@ -51,6 +51,7 @@ export async function createCustomer(api: Api, input: Json = {}) {
     throwOnError: false,
     variables: { input },
   });
+  expectNoTransportErrors(errors);
   const payload = data?.customersMutation?.customerCreate;
   if (!payload) throw new Error(`customerCreate returned no payload: ${JSON.stringify(errors)}`);
   expectNoUserErrors(payload);
@@ -75,24 +76,27 @@ export async function updateCustomer(
     throwOnError: false,
     variables: { customerId: customer.id, expectedRevision, operations },
   });
+  expectNoTransportErrors(errors);
   const payload = data?.customersMutation?.customerUpdate;
   if (!payload) throw new Error(`customerUpdate returned no payload: ${JSON.stringify(errors)}`);
   return payload;
 }
 
 export async function getCustomer(api: Api, id: string) {
-  const { data } = await api.admin.query<Json>('customers-admin-api/Customer', {
+  const { data, errors } = await api.admin.query<Json>('customers-admin-api/Customer', {
     throwOnError: false,
     variables: { id },
   });
+  expectNoTransportErrors(errors);
   return data?.customersQuery?.customer ?? null;
 }
 
 export async function getCustomerByEmail(api: Api, email: string) {
-  const { data } = await api.admin.query<Json>('customers-admin-api/CustomerByEmail', {
+  const { data, errors } = await api.admin.query<Json>('customers-admin-api/CustomerByEmail', {
     throwOnError: false,
     variables: { email },
   });
+  expectNoTransportErrors(errors);
   return data?.customersQuery?.customerByEmail ?? null;
 }
 
@@ -101,6 +105,7 @@ export async function listCustomers(api: Api, variables: Json = {}) {
     throwOnError: false,
     variables,
   });
+  expectNoTransportErrors(errors);
   const connection = data?.customersQuery?.customers;
   if (!connection) throw new Error(`customers returned no connection: ${JSON.stringify(errors)}`);
   return connection;
@@ -111,6 +116,7 @@ export async function deleteCustomer(api: Api, id: string, expectedRevision?: nu
     throwOnError: false,
     variables: { input: { id, ...(expectedRevision === undefined ? {} : { expectedRevision }) } },
   });
+  expectNoTransportErrors(errors);
   const payload = data?.customersMutation?.customerDelete;
   if (!payload) throw new Error(`customerDelete returned no payload: ${JSON.stringify(errors)}`);
   return payload;
@@ -131,10 +137,14 @@ export async function updateGroup(
   operations: Json,
   expectedRevision = group.revision,
 ) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerGroupUpdate', {
-    throwOnError: false,
-    variables: { groupId: group.id, expectedRevision, operations },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerGroupUpdate',
+    {
+      throwOnError: false,
+      variables: { groupId: group.id, expectedRevision, operations },
+    },
+  );
+  expectNoTransportErrors(errors);
   return data.customersMutation.customerGroupUpdate;
 }
 
@@ -148,18 +158,26 @@ export async function createTag(api: Api, input: Json = {}) {
 }
 
 export async function updateTag(api: Api, tag: Json, operations?: Json | null) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerTagUpdate', {
-    throwOnError: false,
-    variables: { tagId: tag.id, operations },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerTagUpdate',
+    {
+      throwOnError: false,
+      variables: { tagId: tag.id, operations },
+    },
+  );
+  expectNoTransportErrors(errors);
   return data.customersMutation.customerTagUpdate;
 }
 
 export async function createSegment(api: Api, input: Json = {}) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerSegmentCreate', {
-    throwOnError: false,
-    variables: { input: { name: unique('Segment'), type: 'MANUAL', ...input } },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerSegmentCreate',
+    {
+      throwOnError: false,
+      variables: { input: { name: unique('Segment'), type: 'MANUAL', ...input } },
+    },
+  );
+  expectNoTransportErrors(errors);
   const payload = data.customersMutation.customerSegmentCreate;
   expectNoUserErrors(payload);
   return required(payload.segment, 'created segment');
@@ -171,10 +189,14 @@ export async function updateSegment(
   operations: Json,
   expectedRevision = segment.revision,
 ) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerSegmentUpdate', {
-    throwOnError: false,
-    variables: { segmentId: segment.id, expectedRevision, operations },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerSegmentUpdate',
+    {
+      throwOnError: false,
+      variables: { segmentId: segment.id, expectedRevision, operations },
+    },
+  );
+  expectNoTransportErrors(errors);
   return data.customersMutation.customerSegmentUpdate;
 }
 
@@ -184,10 +206,14 @@ export async function createMerge(
   targetCustomerId: string,
   input: Json = {},
 ) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerMergeCreate', {
-    throwOnError: false,
-    variables: { input: { sourceCustomerId, targetCustomerId, ...input } },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerMergeCreate',
+    {
+      throwOnError: false,
+      variables: { input: { sourceCustomerId, targetCustomerId, ...input } },
+    },
+  );
+  expectNoTransportErrors(errors);
   return data.customersMutation.customerMergeCreate;
 }
 
@@ -197,11 +223,19 @@ export async function createDataRequest(
   type = 'ACCESS',
   input: Json = {},
 ) {
-  const { data } = await api.admin.mutation<Json>('customers-admin-api/CustomerDataRequestCreate', {
-    throwOnError: false,
-    variables: { input: { customerId, type, ...input } },
-  });
+  const { data, errors } = await api.admin.mutation<Json>(
+    'customers-admin-api/CustomerDataRequestCreate',
+    {
+      throwOnError: false,
+      variables: { input: { customerId, type, ...input } },
+    },
+  );
+  expectNoTransportErrors(errors);
   return data.customersMutation.customerDataRequestCreate;
+}
+
+export function expectNoTransportErrors(errors: Json[] | undefined) {
+  expect(errors ?? []).toHaveLength(0);
 }
 
 export function expectNoUserErrors(payload: Json) {

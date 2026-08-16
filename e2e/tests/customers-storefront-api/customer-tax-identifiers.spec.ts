@@ -180,7 +180,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
 
   test('invalid country code is rejected', async () => {
     const response = await create({ countryCode: 'AQ' });
-    if (response.errors) expect(response.data ?? null).toBeNull();
+    if (response.errors) kit.expectBadUserInput(response);
     else kit.expectUserError(response.data!.payload.userErrors, 'INVALID_COUNTRY_CODE');
   });
 
@@ -215,9 +215,17 @@ test.describe('Customers Storefront API — tax identifiers', () => {
   test('missing cross-customer cross-store malformed and wrong-type tax IDs are safe', async () => {
     const foreignCustomer = await kit.createGuestCustomer();
     const foreign = await kit.seedTaxIdentifier({ customerId: foreignCustomer.id });
+    const foreignStore = await kit.createForeignStore();
+    const foreignStoreId = kit.headless.rawId(foreignStore.id);
+    const crossStoreCustomer = await kit.createGuestCustomer({ storeId: foreignStoreId });
+    const crossStore = await kit.seedTaxIdentifier({
+      customerId: crossStoreCustomer.id,
+      storeId: foreignStoreId,
+    });
     for (const id of [
       kit.id('CustomerTaxIdentifier'),
       foreign.globalId,
+      crossStore.globalId,
       'bad',
       kit.id('CustomerAddress'),
     ]) {

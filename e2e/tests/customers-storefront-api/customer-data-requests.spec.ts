@@ -151,7 +151,7 @@ test.describe('Customers Storefront API — privacy data requests', () => {
       new Date(Date.now() + 86_400_000).toISOString(),
     ]) {
       const response = await cancel(seeded.globalId, expectedUpdatedAt);
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['UPDATED_AT_CONFLICT', 'INVALID_UPDATED_AT']).toContain(
           response.data!.payload.userErrors[0]!.code,
@@ -162,9 +162,17 @@ test.describe('Customers Storefront API — privacy data requests', () => {
   test('missing cross-customer cross-store malformed and wrong-type request IDs are safe', async () => {
     const foreign = await kit.createGuestCustomer();
     const foreignRequest = await kit.seedDataRequest({ customerId: foreign.id });
+    const foreignStore = await kit.createForeignStore();
+    const foreignStoreId = kit.headless.rawId(foreignStore.id);
+    const crossStoreCustomer = await kit.createGuestCustomer({ storeId: foreignStoreId });
+    const crossStoreRequest = await kit.seedDataRequest({
+      customerId: crossStoreCustomer.id,
+      storeId: foreignStoreId,
+    });
     for (const id of [
       kit.id('CustomerDataRequest'),
       foreignRequest.globalId,
+      crossStoreRequest.globalId,
       'bad',
       kit.id('CustomerAddress'),
     ]) {

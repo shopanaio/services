@@ -186,6 +186,59 @@ export class CustomersStorefrontTestKit {
     }
   }
 
+  async issueCustomerAccessToken(email = this.customer.email): Promise<string> {
+    return this.issueAccessToken(email);
+  }
+
+  async expireAccessTokenSession(accessToken: string): Promise<void> {
+    const encodedClaims = accessToken.split('.')[1];
+    expect(encodedClaims).toBeTruthy();
+    const claims = JSON.parse(Buffer.from(encodedClaims!, 'base64url').toString('utf8')) as {
+      sid?: string;
+    };
+    expect(claims.sid).toEqual(expect.any(String));
+    const rows = await this.sql`
+      update iam.application_session
+      set expires_at = now() - interval '1 second'
+      where application_id = ${this.realm.applicationId}
+        and id = ${claims.sid!}
+      returning id
+    `;
+    expect(rows).toHaveLength(1);
+  }
+
+  async revokeAccessToken(accessToken: string): Promise<void> {
+    const response = await this.request.post(endpoint(this.realm, '/oauth2/revoke'), {
+      headers: formHeaders(this.realm.origin),
+      form: {
+        client_id: this.realm.clientId,
+        token: accessToken,
+        token_type_hint: 'access_token',
+      },
+    });
+    expect(response.ok(), await response.text()).toBe(true);
+  }
+
+  async createForeignStore(): Promise<Api['session']['project']> {
+    const current = this.api.session.project;
+    try {
+      await this.api.session.setupProject();
+      return this.api.session.project;
+    } finally {
+      this.api.session.project = current;
+    }
+  }
+
+  async inProject<T>(project: Api['session']['project'], run: () => Promise<T>): Promise<T> {
+    const current = this.api.session.project;
+    this.api.session.project = project;
+    try {
+      return await run();
+    } finally {
+      this.api.session.project = current;
+    }
+  }
+
   customerQuery<T>(
     selection: string,
     variables?: Record<string, unknown>,
@@ -404,6 +457,11 @@ export class CustomersStorefrontTestKit {
   expectNoTransportErrors(response: GraphQLResponse<unknown>): void {
     expect(response.errors).toBeUndefined();
     expect(response.data).toBeDefined();
+  }
+
+  expectBadUserInput(response: GraphQLResponse<unknown>): void {
+    expect(response.data ?? null).toBeNull();
+    expect(response.errors?.[0]?.extensions?.code).toBe('BAD_USER_INPUT');
   }
 
   expectUserError(

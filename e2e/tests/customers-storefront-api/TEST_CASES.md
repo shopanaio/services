@@ -5,7 +5,7 @@
 - `test('storefront channel credential without a customer session returns null customer')` — Channel authentication не подменяет customer identity.
 - `test('missing storefront channel credential is rejected before Customers resolution')` — Gateway возвращает credential-required contract.
 - `test('invalid customer bearer token is rejected')` — Возвращается customer-auth error без anonymous fallback.
-- `test('expired revoked and malformed customer tokens are rejected identically')` — Нет token oracle и утечки claims.
+- `test('tokens with expired sessions, revoked tokens and malformed tokens are rejected identically')` — Нет token oracle и утечки claims.
 - `test('valid session resolves only its linked active customer')` — Principal/store mapping однозначен.
 - `test('customer token for store A cannot be used with store B storefront')` — Cross-store replay закрыт.
 - `test('customer A cannot read customer B owned entities by global ID')` — Address, wishlist, data request и related nodes выглядят отсутствующими.
@@ -186,7 +186,7 @@
 - `test('Catalog outage is retryable and never changes persisted selection')` — Scoped Catalog fault produces retryable `CATALOG_UNAVAILABLE` without changing revision or rows.
 - `test('comparison selection is isolated by customer and store')` — Same variant choices do not share state.
 - `test('Catalog federation presents saved comparisons grouped by current primary category')` — End-to-end Customers persistence + Catalog read model.
-- `test('category changes and unavailable variants do not expose another store or corrupt selection')` — Reclassification edge case remains fail-closed.
+- `test('reading comparisons does not mutate persisted selection')` — Federated read leaves the persisted selection unchanged.
 
 ## `relay-pagination.spec.ts`
 

@@ -97,14 +97,17 @@ test.describe('Customers Storefront API — comparisons', () => {
   });
   test('missing deleted unpublished parent-product foreign-store and malformed variants are rejected', async () => {
     const draft = await product('DRAFT');
+    const foreignStore = await kit.createForeignStore();
+    const foreign = await kit.inProject(foreignStore, () => product());
     for (const id of [
       kit.id('ProductVariant'),
       draft.variants.edges[0]!.node.id,
+      foreign.variants.edges[0]!.node.id,
       'bad',
       kit.id('Product'),
     ]) {
       const response = await add(id);
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['VARIANT_NOT_AVAILABLE', 'INVALID_ID']).toContain(
           response.data!.payload.userErrors[0]!.code,
@@ -152,9 +155,11 @@ test.describe('Customers Storefront API — comparisons', () => {
     expect(response.data?.payload.revision).toBe(before);
   });
   test('missing foreign-store and malformed category IDs are rejected', async () => {
-    for (const id of [kit.id('Category'), 'bad', kit.id('Product')]) {
+    const foreignStore = await kit.createForeignStore();
+    const foreign = await kit.inProject(foreignStore, () => createCategory());
+    for (const id of [kit.id('Category'), foreign.id, 'bad', kit.id('Product')]) {
       const response = await clear(id);
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['CATEGORY_NOT_FOUND', 'INVALID_ID']).toContain(
           response.data!.payload.userErrors[0]!.code,
@@ -180,7 +185,7 @@ test.describe('Customers Storefront API — comparisons', () => {
     const variant = (await product()).variants.edges[0]!.node;
     for (const expectedRevision of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
       const response = await add(variant.id, { expectedRevision });
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else kit.expectUserError(response.data!.payload.userErrors, 'INVALID_REVISION');
     }
   });
@@ -236,9 +241,15 @@ test.describe('Customers Storefront API — comparisons', () => {
       { id: string }[]
     >`insert into customers.customer_comparison (store_id, customer_id, revision) values (${kit.realm.storeId}, ${foreign.id}, 1) returning id`;
     await kit.sql`insert into customers.customer_comparison_item (store_id, comparison_id, product_id, variant_id, position) values (${kit.realm.storeId}, ${comparison!.id}, ${crypto.randomUUID()}, ${kit.headless.rawId(variant.id)}, 0)`;
-    const [row] =
-      await kit.sql`select count(*)::int as count from customers.customer_comparison_item item join customers.customer_comparison comparison on comparison.id = item.comparison_id where comparison.customer_id = ${kit.customer.rawId}`;
-    expect(row!.count).toBe(1);
+    const foreignStore = await kit.createForeignStore();
+    const foreignStoreId = kit.headless.rawId(foreignStore.id);
+    const crossStoreCustomer = await kit.createGuestCustomer({ storeId: foreignStoreId });
+    const [crossStoreComparison] = await kit.sql<
+      { id: string }[]
+    >`insert into customers.customer_comparison (store_id, customer_id, revision) values (${foreignStoreId}, ${crossStoreCustomer.id}, 1) returning id`;
+    await kit.sql`insert into customers.customer_comparison_item (store_id, comparison_id, product_id, variant_id, position) values (${foreignStoreId}, ${crossStoreComparison!.id}, ${crypto.randomUUID()}, ${kit.headless.rawId(variant.id)}, 0)`;
+    const customer = await kit.currentCustomer<any>('productComparisons { revision itemCount }');
+    expect(customer.productComparisons).toMatchObject({ revision: 1, itemCount: 1 });
   });
   test('Catalog federation presents saved comparisons grouped by current primary category', async () => {
     const current = await product();
@@ -259,7 +270,7 @@ test.describe('Customers Storefront API — comparisons', () => {
     );
     expect(customer.productComparisons.nodes[0].category.id).toBe(category.id);
   });
-  test('category changes and unavailable variants do not expose another store or corrupt selection', async () => {
+  test('reading comparisons does not mutate persisted selection', async () => {
     const current = await product();
     const variant = current.variants.edges[0]!.node;
     await add(variant.id);

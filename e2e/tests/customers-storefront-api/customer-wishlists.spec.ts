@@ -185,7 +185,7 @@ test.describe('Customers Storefront API — wishlists', () => {
         await update(wishlist.id as string, 'No write', timestamp),
         await remove(wishlist.id as string, timestamp),
       ]) {
-        if (response.errors) expect(response.data ?? null).toBeNull();
+        if (response.errors) kit.expectBadUserInput(response);
         else
           expect(['UPDATED_AT_CONFLICT', 'INVALID_UPDATED_AT']).toContain(
             response.data!.payload.userErrors[0]!.code,
@@ -226,9 +226,18 @@ test.describe('Customers Storefront API — wishlists', () => {
   test('missing cross-customer cross-store malformed and wrong-type wishlist IDs are safe', async () => {
     const foreignCustomer = await kit.createGuestCustomer();
     const foreign = await kit.seedWishlist({ customerId: foreignCustomer.id, isDefault: true });
+    const foreignStore = await kit.createForeignStore();
+    const foreignStoreId = kit.headless.rawId(foreignStore.id);
+    const crossStoreCustomer = await kit.createGuestCustomer({ storeId: foreignStoreId });
+    const crossStore = await kit.seedWishlist({
+      customerId: crossStoreCustomer.id,
+      storeId: foreignStoreId,
+      isDefault: true,
+    });
     for (const id of [
       kit.id('CustomerWishlist'),
       foreign.globalId,
+      crossStore.globalId,
       'bad',
       kit.id('CustomerAddress'),
     ]) {
@@ -271,9 +280,17 @@ test.describe('Customers Storefront API — wishlists', () => {
   });
   test('missing deleted unpublished foreign-store and malformed products are rejected', async () => {
     const draft = await product('DRAFT');
-    for (const id of [kit.id('Product'), draft.id, 'bad', kit.id('CustomerAddress')]) {
+    const foreignStore = await kit.createForeignStore();
+    const foreign = await kit.inProject(foreignStore, () => product());
+    for (const id of [
+      kit.id('Product'),
+      draft.id,
+      foreign.id,
+      'bad',
+      kit.id('CustomerAddress'),
+    ]) {
       const response = await add(id);
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['PRODUCT_NOT_FOUND', 'PRODUCT_NOT_PUBLISHED', 'INVALID_ID']).toContain(
           response.data!.payload.userErrors[0]!.code,
@@ -300,7 +317,26 @@ test.describe('Customers Storefront API — wishlists', () => {
     );
   });
   test('missing cross-customer cross-store malformed and wrong-type wishlist item IDs are safe', async () => {
-    for (const id of [kit.id('CustomerWishlistItem'), 'bad', kit.id('CustomerWishlist')]) {
+    const foreignCustomer = await kit.createGuestCustomer();
+    const foreignWishlist = await kit.seedWishlist({ customerId: foreignCustomer.id });
+    const foreignItemId = crypto.randomUUID();
+    await kit.sql`insert into customers.customer_wishlist_item (id, store_id, wishlist_id, product_id) values (${foreignItemId}, ${kit.realm.storeId}, ${foreignWishlist.id}, ${crypto.randomUUID()})`;
+    const foreignStore = await kit.createForeignStore();
+    const foreignStoreId = kit.headless.rawId(foreignStore.id);
+    const crossStoreCustomer = await kit.createGuestCustomer({ storeId: foreignStoreId });
+    const crossStoreWishlist = await kit.seedWishlist({
+      customerId: crossStoreCustomer.id,
+      storeId: foreignStoreId,
+    });
+    const crossStoreItemId = crypto.randomUUID();
+    await kit.sql`insert into customers.customer_wishlist_item (id, store_id, wishlist_id, product_id) values (${crossStoreItemId}, ${foreignStoreId}, ${crossStoreWishlist.id}, ${crypto.randomUUID()})`;
+    for (const id of [
+      kit.id('CustomerWishlistItem'),
+      kit.id('CustomerWishlistItem', foreignItemId),
+      kit.id('CustomerWishlistItem', crossStoreItemId),
+      'bad',
+      kit.id('CustomerWishlist'),
+    ]) {
       const response = await removeItem(id);
       expect(['NOT_FOUND', 'INVALID_ID']).toContain(response.data!.payload.userErrors[0]!.code);
     }

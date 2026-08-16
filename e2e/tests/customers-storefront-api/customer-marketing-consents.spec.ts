@@ -148,7 +148,7 @@ test.describe('Customers Storefront API — marketing consents', () => {
   test('stale and invalid revision reject consent changes', async () => {
     for (const expectedRevision of [Math.max(1, (await kit.revision()) - 1), 0, 1.5]) {
       const response = await transition('EMAIL', 'SUBSCRIBED', { expectedRevision });
-      if (response.errors) expect(response.data ?? null).toBeNull();
+      if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['REVISION_CONFLICT', 'INVALID_REVISION']).toContain(
           response.data!.payload.userErrors[0]!.code,

@@ -46,12 +46,12 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
     expect(response.errors?.[0]?.extensions?.code).toBe('STOREFRONT_CUSTOMER_INVALID');
   });
 
-  test('expired revoked and malformed customer tokens are rejected identically', async () => {
-    const invalidTokens = [
-      'malformed',
-      `${kit.accessToken.slice(0, -8)}revoked0`,
-      `${kit.accessToken.slice(0, -8)}expired0`,
-    ];
+  test('tokens with expired sessions, revoked tokens and malformed tokens are rejected identically', async () => {
+    const expiredSessionToken = await kit.issueCustomerAccessToken();
+    const revokedToken = await kit.issueCustomerAccessToken();
+    await kit.expireAccessTokenSession(expiredSessionToken);
+    await kit.revokeAccessToken(revokedToken);
+    const invalidTokens = ['malformed', revokedToken, expiredSessionToken];
     const responses = await Promise.all(
       invalidTokens.map((accessToken) =>
         kit.customerQuery<{ id: string }>('id', undefined, '', { accessToken }),
