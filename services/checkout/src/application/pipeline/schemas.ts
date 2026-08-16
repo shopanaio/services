@@ -44,6 +44,7 @@ export const checkoutPipelineStageSchema = z.enum([
   "PRICING_PRELIMINARY",
   "DELIVERY",
   "PRICING_FINAL",
+  "LOYALTY",
   "PAYMENT",
   "VALIDATION",
 ]);
@@ -1266,6 +1267,12 @@ export const getAvailablePaymentMethodsRequestSchema = z
     context: paymentsCheckoutEvaluationContextSchema,
     selection: checkoutPaymentMethodSelectionIntentSchema.nullable(),
     finalQuote: finalizePricingQuoteResultSchema,
+    payableAmount: checkoutPipelineNonNegativeMoneySchema,
+    loyaltyRedemption: z.object({
+      quoteId: identifierSchema,
+      quoteRevision: revisionSchema,
+      discount: checkoutPipelineNonNegativeMoneySchema,
+    }).strict().nullable(),
     delivery: checkoutPaymentDeliverySnapshotSchema,
   })
   .strict();
@@ -1277,6 +1284,7 @@ export const getAvailablePaymentMethodsResultSchema = z
     discoveryRevision: revisionSchema,
     customizationRevision: revisionSchema,
     basedOnFinalQuoteRevision: revisionSchema,
+    basedOnLoyaltyQuoteRevision: revisionSchema.nullable(),
     basedOnDeliveryRevision: revisionSchema,
     methods: collection(checkoutPaymentMethodSchema),
     selection: checkoutPaymentMethodSelectionResolutionSchema,
@@ -1334,6 +1342,7 @@ export const validateCheckoutRequestSchema = z
     preliminary: calculatePreliminaryPricingResultSchema,
     delivery: calculateDeliveryOptionsResultSchema,
     finalQuote: finalizePricingQuoteResultSchema,
+    payableAmount: checkoutPipelineNonNegativeMoneySchema,
     payment: getAvailablePaymentMethodsResultSchema,
   })
   .strict();
@@ -1368,14 +1377,83 @@ export const checkoutPipelineChangeSchema = z.enum([
   "LINES_UPDATE",
   "LINES_DELETE",
   "LINES_REPLACE",
+  "LINES_CLEAR",
   "DISCOUNT_CODES_UPDATE",
   "BUYER_UPDATE",
   "BUYER_ELIGIBILITY_UPDATE",
   "CHANNEL_UPDATE",
   "CURRENCY_UPDATE",
+  "LOCALE_UPDATE",
   "DELIVERY_ADDRESS_UPDATE",
+  "DELIVERY_RECIPIENT_UPDATE",
   "DELIVERY_OPTION_UPDATE",
   "PAYMENT_METHOD_UPDATE",
+  "LOYALTY_REDEMPTION_UPDATE",
+]);
+
+const loyaltyProgramSnapshotSchema = z.object({
+  programId: identifierSchema,
+  programCode: identifierSchema,
+  programVersionId: identifierSchema,
+  programVersion: z.number().int().safe().positive(),
+  programRevision: z.number().int().safe().nonnegative(),
+  currencyCode: currencyCodeSchema,
+  redemptionEnabled: z.boolean(),
+  redeemPoints: z.string().regex(/^\d+$/),
+  redeemAmountMinor: z.string().regex(/^\d+$/),
+  minimumRedeemPoints: z.string().regex(/^\d+$/),
+  maximumRedeemPointsPerOrder: z.string().regex(/^\d+$/).nullable(),
+  maximumOrderPercentageBps: z.number().int().min(0).max(10_000),
+  policyRevision: revisionSchema,
+}).strict();
+
+const loyaltyQuoteSchema = z.object({
+  quoteId: identifierSchema,
+  revision: revisionSchema,
+  accountId: identifierSchema,
+  accountRevision: z.number().int().safe().nonnegative(),
+  program: loyaltyProgramSnapshotSchema,
+  requestedPoints: z.string().regex(/^\d+$/).nullable(),
+  redeemablePoints: z.string().regex(/^\d+$/),
+  discount: checkoutPipelineNonNegativeMoneySchema,
+  payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
+  availablePoints: z.string().regex(/^\d+$/),
+  expiresAt: timestampSchema,
+  basedOnCheckoutVersion: checkoutVersionSchema,
+  basedOnPricingQuoteRevision: revisionSchema,
+  basedOnCustomerEligibilityRevision: revisionSchema,
+}).strict();
+
+const loyaltyCheckoutContextSchema = z.object({
+  executionId: identifierSchema,
+  checkoutId: identifierSchema,
+  checkoutVersion: checkoutVersionSchema,
+  storeId: identifierSchema,
+  customerId: identifierSchema.nullable(),
+  currencyCode: currencyCodeSchema,
+  channelCode: identifierSchema,
+  effectiveAt: timestampSchema,
+  requestedAt: timestampSchema,
+  deadlineAt: timestampSchema,
+  correlationId: identifierSchema,
+  pricingQuoteId: identifierSchema,
+  pricingQuoteRevision: revisionSchema,
+  payableBeforeLoyalty: checkoutPipelineNonNegativeMoneySchema,
+  customerEligibilityRevision: revisionSchema,
+  segmentIds: collection(identifierSchema),
+  segmentMembershipRevision: revisionSchema,
+}).strict();
+
+export const checkoutLoyaltyRedemptionIntentSchema = z.object({
+  requestedPoints: z.string().regex(/^\d+$/).nullable(),
+  programId: identifierSchema.nullable(),
+}).strict();
+
+export const checkoutLoyaltyQuoteResultSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("NONE"), revision: revisionSchema, payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("QUOTED"), revision: revisionSchema, quote: loyaltyQuoteSchema, context: loyaltyCheckoutContextSchema, payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("NOT_APPLICABLE"), revision: revisionSchema, code: identifierSchema, retryable: z.literal(false), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("REJECTED"), revision: revisionSchema, code: identifierSchema, message: z.string().min(1), retryable: z.boolean(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
 ]);
 
 export const checkoutRecalculationRequestSchema = z
@@ -1383,6 +1461,7 @@ export const checkoutRecalculationRequestSchema = z
     context: checkoutPipelineExecutionContextSchema,
     change: checkoutPipelineChangeSchema,
     cartIntent: checkoutCartIntentSchema,
+    loyaltyRedemption: checkoutLoyaltyRedemptionIntentSchema.nullable(),
   })
   .strict();
 
@@ -1458,6 +1537,10 @@ export const checkoutRecalculationResultSchema = z
     finalPricing: checkoutPipelineStageOutcomeSchema(
       "PRICING_FINAL",
       finalizePricingQuoteResultSchema,
+    ),
+    loyalty: checkoutPipelineStageOutcomeSchema(
+      "LOYALTY",
+      checkoutLoyaltyQuoteResultSchema,
     ),
     payment: checkoutPipelineStageOutcomeSchema(
       "PAYMENT",

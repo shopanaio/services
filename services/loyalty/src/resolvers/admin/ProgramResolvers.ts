@@ -127,6 +127,7 @@ export class LoyaltyRewardDefinitionResolver extends LoyaltyType<string, RewardD
   endsAt() { return this.$get("endsAt"); }
   async issuanceLimit() { const value = await this.$get("issuanceLimit"); return value === null ? null : String(value); }
   async perAccountLimit() { const value = await this.$get("perAccountLimit"); return value === null ? null : String(value); }
+  async issuedQuantity() { return String(await this.$ctx.kernel.repository.reward.countIssued(this.$props)); }
   createdAt() { return this.$get("createdAt"); }
 }
 
@@ -145,6 +146,10 @@ export class LoyaltyTierResolver extends LoyaltyType<string, Tier> {
   qualificationSchemaVersion() { return this.$get("qualificationSchemaVersion"); }
   qualification() { return this.$get("qualification"); }
   maintenance() { return this.$get("maintenance"); }
+  async rewardBenefits() {
+    return Promise.all((await this.$ctx.loaders.tierRewardBenefits.load(this.$props))
+      .map(({ id }) => this.resolvers.tierRewardBenefit(id)));
+  }
   createdAt() { return this.$get("createdAt"); }
 }
 

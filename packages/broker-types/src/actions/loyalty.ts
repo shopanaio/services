@@ -113,7 +113,7 @@ export interface LoyaltyCheckoutContext {
   checkoutId: string;
   checkoutVersion: number;
   storeId: string;
-  customerId: string;
+  customerId: string | null;
   currencyCode: string;
   channelCode: string;
   effectiveAt: string;

@@ -4,6 +4,7 @@ const config: CodegenConfig = {
   generates: {
     "./src/interfaces/gql-storefront-api/types.ts": {
       schema: [
+        "../../packages/storefront-graphql/graphql/*.graphql",
         "../../packages/shared-references/graphql/*.graphql",
         "src/interfaces/gql-storefront-api/schema/*.graphql",
       ],
@@ -13,7 +14,7 @@ const config: CodegenConfig = {
         useIndexSignature: false,
         contextType: "./context.js#GraphQLContext",
         scalars: {
-          BigInt: "number",
+          BigInt: "string",
           JSON: "unknown",
           CurrencyCode: "string",
         },

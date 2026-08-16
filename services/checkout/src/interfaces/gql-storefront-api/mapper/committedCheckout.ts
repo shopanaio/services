@@ -41,6 +41,9 @@ export function mapCommittedCheckoutToApi(
   const finalQuote = result.finalPricing.data;
   const delivery = result.delivery.data;
   const payment = result.payment.data;
+  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+    ? result.loyalty.data.quote
+    : null;
   const buyer = draft.buyerIdentity;
   const allQuotedLines = flatten(finalQuote.lines);
   const sourceFor = (lineId: string) =>
@@ -215,6 +218,8 @@ export function mapCommittedCheckoutToApi(
           resetReason: null,
         };
   const totals = finalQuote.totals;
+  const payableAmount = loyalty?.payableAfterLoyalty ?? totals.payableTotal;
+  const loyaltyDiscountMinor = loyalty ? BigInt(loyalty.discount.amountMinor) : 0n;
   return {
     __typename: "Checkout",
     id: encodeGlobalIdByType(checkout.checkoutId, GlobalIdEntity.Checkout),
@@ -265,13 +270,13 @@ export function mapCommittedCheckoutToApi(
       totalDiscountAmount: pipelineMoney({
         amountMinor: (
           BigInt(totals.merchandiseDiscountTotal.amountMinor) +
-          BigInt(totals.deliveryDiscountTotal.amountMinor)
+          BigInt(totals.deliveryDiscountTotal.amountMinor) + loyaltyDiscountMinor
         ).toString(),
         currencyCode: totals.payableTotal.currencyCode,
       }),
       totalTaxAmount: pipelineMoney(totals.taxTotal),
       totalShippingAmount: pipelineMoney(totals.deliveryTotal),
-      totalAmount: pipelineMoney(totals.payableTotal),
+      totalAmount: pipelineMoney(payableAmount),
     },
     appliedPromoCodes: finalQuote.appliedDiscounts.flatMap((discount) =>
       discount.code
@@ -299,8 +304,23 @@ export function mapCommittedCheckoutToApi(
       __typename: "CheckoutPayment",
       methods,
       selection: paymentSelection,
-      payableAmount: pipelineMoney(totals.payableTotal),
+      payableAmount: pipelineMoney(payableAmount),
     },
+    loyaltyRedemption: loyalty ? {
+      __typename: "CheckoutLoyaltyRedemption",
+      quoteId: loyalty.quoteId,
+      revision: loyalty.revision,
+      accountId: encodeGlobalIdByType(loyalty.accountId, GlobalIdEntity.LoyaltyAccount),
+      programId: encodeGlobalIdByType(loyalty.program.programId, GlobalIdEntity.LoyaltyProgram),
+      programCode: loyalty.program.programCode,
+      programVersion: loyalty.program.programVersion,
+      requestedPoints: loyalty.requestedPoints,
+      redeemablePoints: loyalty.redeemablePoints,
+      availablePoints: loyalty.availablePoints,
+      discount: pipelineMoney(loyalty.discount),
+      payableAfterLoyalty: pipelineMoney(loyalty.payableAfterLoyalty),
+      expiresAt: loyalty.expiresAt,
+    } as any,
   };
 }
 

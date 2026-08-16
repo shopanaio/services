@@ -42,6 +42,61 @@ export interface AvailableRewardConnectionResult {
 }
 
 export class RewardRepository extends BaseRepository {
+  async getEntitlementEventsByIds(ids: readonly string[]): Promise<RewardEntitlementEvent[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(rewardEntitlementEvents).where(and(
+      eq(rewardEntitlementEvents.storeId, this.storeId),
+      inArray(rewardEntitlementEvents.id, [...ids]),
+    ));
+  }
+
+  async getEntitlementEventsByEntitlementIds(ids: readonly string[]): Promise<RewardEntitlementEvent[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(rewardEntitlementEvents).where(and(
+      eq(rewardEntitlementEvents.storeId, this.storeId),
+      inArray(rewardEntitlementEvents.entitlementId, [...ids]),
+    )).orderBy(asc(rewardEntitlementEvents.occurredAt), asc(rewardEntitlementEvents.id));
+  }
+
+  async getTierBenefitsByIds(ids: readonly string[]): Promise<TierRewardBenefit[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tierRewardBenefits).where(and(
+      eq(tierRewardBenefits.storeId, this.storeId),
+      inArray(tierRewardBenefits.id, [...ids]),
+    ));
+  }
+
+  async getTierBenefitsByTierIds(ids: readonly string[]): Promise<TierRewardBenefit[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tierRewardBenefits).where(and(
+      eq(tierRewardBenefits.storeId, this.storeId),
+      inArray(tierRewardBenefits.tierId, [...ids]),
+    )).orderBy(asc(tierRewardBenefits.tierId), asc(tierRewardBenefits.id));
+  }
+
+  async findTierBenefitById(id: string): Promise<TierRewardBenefit | null> {
+    const rows = await this.getTierBenefitsByIds([id]);
+    return rows[0] ?? null;
+  }
+
+  async listEntitlementsFiltered(input: {
+    accountIds?: readonly string[];
+    rewardDefinitionIds?: readonly string[];
+    statuses?: readonly RewardEntitlement["status"][];
+    validAt?: string;
+    limit: number;
+  }): Promise<RewardEntitlement[]> {
+    return this.connection.select().from(rewardEntitlements).where(and(
+      eq(rewardEntitlements.storeId, this.storeId),
+      input.accountIds?.length ? inArray(rewardEntitlements.accountId, [...input.accountIds]) : undefined,
+      input.rewardDefinitionIds?.length
+        ? inArray(rewardEntitlements.rewardDefinitionId, [...input.rewardDefinitionIds])
+        : undefined,
+      input.statuses?.length ? inArray(rewardEntitlements.status, [...input.statuses]) : undefined,
+      input.validAt ? lte(rewardEntitlements.validFrom, input.validAt) : undefined,
+      input.validAt ? or(isNull(rewardEntitlements.validTo), gt(rewardEntitlements.validTo, input.validAt)) : undefined,
+    )).orderBy(desc(rewardEntitlements.issuedAt), desc(rewardEntitlements.id)).limit(input.limit);
+  }
   async getIssuanceCounts(
     definitionIds: readonly string[],
     accountIds: readonly string[],

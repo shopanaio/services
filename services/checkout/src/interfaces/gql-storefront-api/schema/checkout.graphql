@@ -8,7 +8,7 @@ type CheckoutCost {
   subtotalAmount: Money!
 
   """
-  Total discount from both item-level and checkout-level promotions.
+  Total reduction from promotions and an applied loyalty redemption.
   """
   totalDiscountAmount: Money!
 
@@ -157,6 +157,24 @@ type Checkout implements Node @key(fields: "id") {
   Payment aggregate for this checkout.
   """
   payment: CheckoutPayment!
+
+  """Loyalty points selected as tender after the final Pricing quote."""
+  loyaltyRedemption: CheckoutLoyaltyRedemption
+}
+
+type CheckoutLoyaltyRedemption {
+  quoteId: String!
+  revision: String!
+  accountId: ID!
+  programId: ID!
+  programCode: String!
+  programVersion: Int!
+  requestedPoints: BigInt
+  redeemablePoints: BigInt!
+  availablePoints: BigInt!
+  discount: Money!
+  payableAfterLoyalty: Money!
+  expiresAt: DateTime!
 }
 
 """
@@ -432,11 +450,31 @@ type Mutation {
     input: CheckoutPaymentMethodUpdateInput!
   ): CheckoutMutationPayload!
 
+  """Applies an exact point amount, or the maximum allowed amount when omitted."""
+  checkoutLoyaltyRedemptionUpdate(
+    input: CheckoutLoyaltyRedemptionUpdateInput!
+  ): CheckoutMutationPayload!
+
+  """Removes the loyalty redemption selection from this checkout."""
+  checkoutLoyaltyRedemptionRemove(
+    input: CheckoutLoyaltyRedemptionRemoveInput!
+  ): CheckoutMutationPayload!
+
   """
   Places a committed checkout through the durable order placement workflow.
   Repeating the same request with the same idempotency key returns the same result.
   """
   placeOrder(input: PlaceOrderInput!): PlaceOrderPayload!
+}
+
+input CheckoutLoyaltyRedemptionUpdateInput {
+  checkoutId: ID!
+  requestedPoints: BigInt
+  programId: ID
+}
+
+input CheckoutLoyaltyRedemptionRemoveInput {
+  checkoutId: ID!
 }
 
 """

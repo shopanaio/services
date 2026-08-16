@@ -2,6 +2,7 @@ export type CheckoutPipelineStage =
   | "PRICING_PRELIMINARY"
   | "DELIVERY"
   | "PRICING_FINAL"
+  | "LOYALTY"
   | "PAYMENT"
   | "VALIDATION";
 

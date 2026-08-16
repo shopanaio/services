@@ -1,0 +1,38 @@
+input LoyaltyMaintenanceRunInput {
+  effectiveAt: DateTime!
+  limit: Int = 100
+  rebuildBalances: Boolean = false
+  idempotencyKey: String!
+}
+
+type LoyaltyMaintenanceResult {
+  activatedProgramVersions: Int!
+  activatedPointLots: Int!
+  expiredPointLots: Int!
+  activatedMonetaryLots: Int!
+  expiredMonetaryLots: Int!
+  evaluatedTiers: Int!
+  expiredRewards: Int!
+  rebuiltBalances: Int!
+}
+
+type LoyaltyMaintenanceRunPayload {
+  result: LoyaltyMaintenanceResult
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyAccountBalanceRebuildInput {
+  accountId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyAccountBalanceRebuildPayload {
+  account: LoyaltyAccount
+  balance: LoyaltyAccountBalance
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyMonetaryWalletBalanceRebuildInput {
+  walletId: ID!
+  idempotencyKey: String!
+}

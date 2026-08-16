@@ -6,18 +6,19 @@ import superjson from "superjson";
 const BigIntScalar = new GraphQLScalarType({
   name: "BigInt",
   serialize(value) {
-    if (typeof value === "bigint") return Number(value);
-    if (typeof value === "number") return Math.trunc(value);
-    if (typeof value === "string") return Number(value);
+    if (typeof value === "bigint") return value.toString();
+    if (typeof value === "number" && Number.isSafeInteger(value)) return String(value);
+    if (typeof value === "string" && /^-?\d+$/.test(value)) return value;
     return null;
   },
   parseValue(value) {
     if (value == null) return null;
-    return Number(value as any);
+    const parsed = String(value);
+    return /^-?\d+$/.test(parsed) ? parsed : null;
   },
   parseLiteral(ast) {
     if (ast.kind === Kind.INT || ast.kind === Kind.STRING) {
-      return Number(ast.value);
+      return ast.value;
     }
     return null;
   },

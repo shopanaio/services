@@ -31,6 +31,13 @@ function dependencies(overrides?: {
   const payments = {
     getAvailableMethods: jest.fn(async (_request: unknown) => fixture.payment),
   };
+  const loyalty = {
+    quote: jest.fn(async (request: any) => ({
+      status: "NONE" as const,
+      revision: "loyalty-none-v1",
+      payableAfterLoyalty: request.finalQuote.totals.payableTotal,
+    })),
+  };
   const functions: CommerceFunctionRunnerPort = {
     run: jest.fn(async () => {
       throw new Error("Function runner must not be called");
@@ -40,7 +47,7 @@ function dependencies(overrides?: {
     functions,
     bindings: emptyBindings,
   });
-  return { fixture, pricing, delivery, payments, functions, validationRunner };
+  return { fixture, pricing, delivery, loyalty, payments, functions, validationRunner };
 }
 
 const emptyBindings: CheckoutValidationBindingSource = {
@@ -48,7 +55,7 @@ const emptyBindings: CheckoutValidationBindingSource = {
 };
 
 describe("CheckoutPipeline", () => {
-  it("executes the five canonical stages with exact minimized requests", async () => {
+  it("executes the six canonical stages with exact minimized requests", async () => {
     const deps = dependencies();
     const pipeline = new CheckoutPipeline(deps);
     const request = recalculationRequestFixture();
@@ -74,6 +81,7 @@ describe("CheckoutPipeline", () => {
       "PRICING_PRELIMINARY",
       "DELIVERY",
       "PRICING_FINAL",
+      "LOYALTY",
       "PAYMENT",
       "VALIDATION",
     ]);

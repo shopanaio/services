@@ -652,19 +652,32 @@ export type LoyaltyAccount = Node & {
   expiringPoints: Array<LoyaltyExpiringPoints>;
   id: Scalars['ID']['output'];
   mergedIntoAccount: Maybe<LoyaltyAccount>;
+  monetaryWallets: Array<LoyaltyMonetaryWallet>;
   openedAt: Scalars['DateTime']['output'];
   program: LoyaltyProgram;
   revision: Scalars['Int']['output'];
+  rewardEntitlements: Array<LoyaltyRewardEntitlement>;
   status: LoyaltyAccountStatus;
   suspendedAt: Maybe<Scalars['DateTime']['output']>;
   suspendedReason: Maybe<Scalars['String']['output']>;
   tierMembership: Maybe<LoyaltyTierMembership>;
+  tierMemberships: Array<LoyaltyTierMembership>;
   transactions: LoyaltyTransactionConnection;
   updatedAt: Scalars['DateTime']['output'];
 };
 
 
 export type LoyaltyAccountExpiringPointsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type LoyaltyAccountRewardEntitlementsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type LoyaltyAccountTierMembershipsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -689,6 +702,18 @@ export type LoyaltyAccountBalance = {
   reservedPoints: Scalars['BigInt']['output'];
   revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type LoyaltyAccountBalanceRebuildInput = {
+  accountId: Scalars['ID']['input'];
+  idempotencyKey: Scalars['String']['input'];
+};
+
+export type LoyaltyAccountBalanceRebuildPayload = {
+  __typename?: 'LoyaltyAccountBalanceRebuildPayload';
+  account: Maybe<LoyaltyAccount>;
+  balance: Maybe<LoyaltyAccountBalance>;
+  userErrors: Array<LoyaltyUserError>;
 };
 
 export type LoyaltyAccountConnection = {
@@ -776,6 +801,12 @@ export enum LoyaltyDebtPolicy {
   TrackDebt = 'TRACK_DEBT'
 }
 
+export type LoyaltyDeletePayload = {
+  __typename?: 'LoyaltyDeletePayload';
+  deletedId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
 export enum LoyaltyEarningActionType {
   ApplyMultiplier = 'APPLY_MULTIPLIER',
   AwardCashback = 'AWARD_CASHBACK',
@@ -829,6 +860,30 @@ export type LoyaltyEarningRule = Node & {
   triggerType: LoyaltyEarningTriggerType;
 };
 
+export type LoyaltyEarningRuleCreateInput = {
+  action: Scalars['JSON']['input'];
+  actionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  actionType: LoyaltyEarningActionType;
+  code: Scalars['String']['input'];
+  conditionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  conditions: Scalars['JSON']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  limitSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  limits?: Scalars['JSON']['input'];
+  name: Scalars['String']['input'];
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  programVersionId: Scalars['ID']['input'];
+  stopProcessing?: InputMaybe<Scalars['Boolean']['input']>;
+  triggerConfig?: Scalars['JSON']['input'];
+  triggerSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  triggerType: LoyaltyEarningTriggerType;
+};
+
+export type LoyaltyEarningRuleDeleteInput = {
+  earningRuleId: Scalars['ID']['input'];
+  idempotencyKey: Scalars['String']['input'];
+};
+
 export type LoyaltyEarningRuleInput = {
   action: Scalars['JSON']['input'];
   actionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
@@ -844,6 +899,50 @@ export type LoyaltyEarningRuleInput = {
   triggerConfig?: Scalars['JSON']['input'];
   triggerSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   triggerType: LoyaltyEarningTriggerType;
+};
+
+export type LoyaltyEarningRulePayload = {
+  __typename?: 'LoyaltyEarningRulePayload';
+  earningRule: Maybe<LoyaltyEarningRule>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export type LoyaltyEarningRuleUpdateInput = {
+  action?: InputMaybe<Scalars['JSON']['input']>;
+  actionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  actionType?: InputMaybe<LoyaltyEarningActionType>;
+  conditionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  conditions?: InputMaybe<Scalars['JSON']['input']>;
+  earningRuleId: Scalars['ID']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  limitSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  limits?: InputMaybe<Scalars['JSON']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  priority?: InputMaybe<Scalars['Int']['input']>;
+  stopProcessing?: InputMaybe<Scalars['Boolean']['input']>;
+  triggerConfig?: InputMaybe<Scalars['JSON']['input']>;
+  triggerSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  triggerType?: InputMaybe<LoyaltyEarningTriggerType>;
+};
+
+export type LoyaltyEarningRuleUsage = Node & {
+  __typename?: 'LoyaltyEarningRuleUsage';
+  earningRule: LoyaltyEarningRule;
+  id: Scalars['ID']['output'];
+  monetaryAmounts: Scalars['JSON']['output'];
+  occurrenceCount: Scalars['BigInt']['output'];
+  pointsAwarded: Scalars['BigInt']['output'];
+  revision: Scalars['Int']['output'];
+  scopeKey: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  windowEndedAt: Maybe<Scalars['DateTime']['output']>;
+  windowStartedAt: Scalars['DateTime']['output'];
+};
+
+export type LoyaltyEarningRuleUsageWhereInput = {
+  earningRuleId: Scalars['ID']['input'];
+  effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
+  scopeKey?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum LoyaltyEarningTriggerType {
@@ -862,6 +961,62 @@ export enum LoyaltyEligibleSpendBasis {
   AfterAllDiscounts = 'AFTER_ALL_DISCOUNTS',
   AfterProductDiscounts = 'AFTER_PRODUCT_DISCOUNTS'
 }
+
+export type LoyaltyEventEvaluation = Node & {
+  __typename?: 'LoyaltyEventEvaluation';
+  account: LoyaltyAccount;
+  decision: LoyaltyEventEvaluationDecision;
+  earningRule: LoyaltyEarningRule;
+  evaluatedAt: Scalars['DateTime']['output'];
+  eventFact: LoyaltyEventFact;
+  id: Scalars['ID']['output'];
+  monetaryAmount: Maybe<LoyaltyMoney>;
+  pointsAwarded: Maybe<Scalars['BigInt']['output']>;
+  reasonCode: Scalars['String']['output'];
+  result: Scalars['JSON']['output'];
+  resultSchemaVersion: Scalars['Int']['output'];
+  transaction: Maybe<LoyaltyTransaction>;
+};
+
+export enum LoyaltyEventEvaluationDecision {
+  Awarded = 'AWARDED',
+  BudgetExhausted = 'BUDGET_EXHAUSTED',
+  Ignored = 'IGNORED',
+  Ineligible = 'INELIGIBLE',
+  LimitReached = 'LIMIT_REACHED'
+}
+
+export type LoyaltyEventEvaluationWhereInput = {
+  accountId?: InputMaybe<Scalars['ID']['input']>;
+  decisions?: InputMaybe<Array<LoyaltyEventEvaluationDecision>>;
+  earningRuleId?: InputMaybe<Scalars['ID']['input']>;
+  eventFactId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type LoyaltyEventFact = Node & {
+  __typename?: 'LoyaltyEventFact';
+  customerId: Maybe<Scalars['ID']['output']>;
+  evaluations: Array<LoyaltyEventEvaluation>;
+  eventType: Scalars['String']['output'];
+  externalEventId: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  occurredAt: Scalars['DateTime']['output'];
+  payload: Scalars['JSON']['output'];
+  payloadHash: Scalars['String']['output'];
+  payloadSchemaVersion: Scalars['Int']['output'];
+  producer: Scalars['String']['output'];
+  receivedAt: Scalars['DateTime']['output'];
+  subjectId: Scalars['String']['output'];
+  subjectType: Scalars['String']['output'];
+};
+
+export type LoyaltyEventFactWhereInput = {
+  customerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  eventTypes?: InputMaybe<Array<Scalars['String']['input']>>;
+  occurredFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  occurredTo?: InputMaybe<Scalars['DateTime']['input']>;
+  producers?: InputMaybe<Array<Scalars['String']['input']>>;
+};
 
 export type LoyaltyExpiringPoints = {
   __typename?: 'LoyaltyExpiringPoints';
@@ -899,11 +1054,208 @@ export enum LoyaltyLotAllocationType {
   Reverse = 'REVERSE'
 }
 
+export type LoyaltyMaintenanceResult = {
+  __typename?: 'LoyaltyMaintenanceResult';
+  activatedMonetaryLots: Scalars['Int']['output'];
+  activatedPointLots: Scalars['Int']['output'];
+  activatedProgramVersions: Scalars['Int']['output'];
+  evaluatedTiers: Scalars['Int']['output'];
+  expiredMonetaryLots: Scalars['Int']['output'];
+  expiredPointLots: Scalars['Int']['output'];
+  expiredRewards: Scalars['Int']['output'];
+  rebuiltBalances: Scalars['Int']['output'];
+};
+
+export type LoyaltyMaintenanceRunInput = {
+  effectiveAt: Scalars['DateTime']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  rebuildBalances?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type LoyaltyMaintenanceRunPayload = {
+  __typename?: 'LoyaltyMaintenanceRunPayload';
+  result: Maybe<LoyaltyMaintenanceResult>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
 export enum LoyaltyModifierStackingMode {
   Add = 'ADD',
   Highest = 'HIGHEST',
   Multiply = 'MULTIPLY'
 }
+
+export enum LoyaltyMonetaryAdjustmentDirection {
+  Credit = 'CREDIT',
+  Debit = 'DEBIT'
+}
+
+export enum LoyaltyMonetaryBalanceBucket {
+  Available = 'AVAILABLE',
+  Debt = 'DEBT',
+  Pending = 'PENDING',
+  Reserved = 'RESERVED'
+}
+
+export type LoyaltyMonetaryCreditLot = Node & {
+  __typename?: 'LoyaltyMonetaryCreditLot';
+  activatedAt: Scalars['DateTime']['output'];
+  allocations: Array<LoyaltyMonetaryLotAllocation>;
+  amountIssued: LoyaltyMoney;
+  createdAt: Scalars['DateTime']['output'];
+  expiresAt: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  originEntry: LoyaltyMonetaryLedgerEntry;
+  remainingAmount: LoyaltyMoney;
+  wallet: LoyaltyMonetaryWallet;
+};
+
+export type LoyaltyMonetaryLedgerEntry = Node & {
+  __typename?: 'LoyaltyMonetaryLedgerEntry';
+  amount: LoyaltyMoney;
+  bucket: LoyaltyMonetaryBalanceBucket;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  sequence: Scalars['Int']['output'];
+  transaction: LoyaltyMonetaryTransaction;
+  wallet: LoyaltyMonetaryWallet;
+};
+
+export type LoyaltyMonetaryLotAllocation = Node & {
+  __typename?: 'LoyaltyMonetaryLotAllocation';
+  amount: LoyaltyMoney;
+  createdAt: Scalars['DateTime']['output'];
+  debitEntry: LoyaltyMonetaryLedgerEntry;
+  id: Scalars['ID']['output'];
+  lot: LoyaltyMonetaryCreditLot;
+};
+
+export type LoyaltyMonetaryTransaction = Node & {
+  __typename?: 'LoyaltyMonetaryTransaction';
+  actorId: Maybe<Scalars['ID']['output']>;
+  actorType: LoyaltyActorType;
+  createdAt: Scalars['DateTime']['output'];
+  effectiveAt: Scalars['DateTime']['output'];
+  entries: Array<LoyaltyMonetaryLedgerEntry>;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  kind: LoyaltyMonetaryTransactionKind;
+  metadata: Scalars['JSON']['output'];
+  occurredAt: Scalars['DateTime']['output'];
+  program: LoyaltyProgram;
+  programVersion: Maybe<LoyaltyProgramVersion>;
+  reasonCode: Scalars['String']['output'];
+  requestHash: Scalars['String']['output'];
+  sourceId: Maybe<Scalars['String']['output']>;
+  sourceRevision: Maybe<Scalars['String']['output']>;
+  sourceType: Scalars['String']['output'];
+  wallet: LoyaltyMonetaryWallet;
+};
+
+export enum LoyaltyMonetaryTransactionKind {
+  Activate = 'ACTIVATE',
+  AdjustCredit = 'ADJUST_CREDIT',
+  AdjustDebit = 'ADJUST_DEBIT',
+  DebtRecovery = 'DEBT_RECOVERY',
+  EarnPending = 'EARN_PENDING',
+  Expire = 'EXPIRE',
+  MergeTransfer = 'MERGE_TRANSFER',
+  Release = 'RELEASE',
+  Reserve = 'RESERVE',
+  RestoreSpend = 'RESTORE_SPEND',
+  ReverseEarn = 'REVERSE_EARN',
+  Spend = 'SPEND'
+}
+
+export type LoyaltyMonetaryWallet = Node & {
+  __typename?: 'LoyaltyMonetaryWallet';
+  account: LoyaltyAccount;
+  balance: LoyaltyMonetaryWalletBalance;
+  closedAt: Maybe<Scalars['DateTime']['output']>;
+  creditLots: Array<LoyaltyMonetaryCreditLot>;
+  currencyCode: CurrencyCode;
+  id: Scalars['ID']['output'];
+  mergedIntoWallet: Maybe<LoyaltyMonetaryWallet>;
+  openedAt: Scalars['DateTime']['output'];
+  program: LoyaltyProgram;
+  revision: Scalars['Int']['output'];
+  status: LoyaltyMonetaryWalletStatus;
+  transactions: Array<LoyaltyMonetaryTransaction>;
+  updatedAt: Scalars['DateTime']['output'];
+  walletType: LoyaltyMonetaryWalletType;
+};
+
+
+export type LoyaltyMonetaryWalletTransactionsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type LoyaltyMonetaryWalletAdjustInput = {
+  amountMinor: Scalars['BigInt']['input'];
+  direction: LoyaltyMonetaryAdjustmentDirection;
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  metadata?: InputMaybe<Scalars['JSON']['input']>;
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  reasonCode: Scalars['String']['input'];
+  walletId: Scalars['ID']['input'];
+};
+
+export type LoyaltyMonetaryWalletBalance = {
+  __typename?: 'LoyaltyMonetaryWalletBalance';
+  available: LoyaltyMoney;
+  debt: LoyaltyMoney;
+  lastTransaction: Maybe<LoyaltyMonetaryTransaction>;
+  pending: LoyaltyMoney;
+  reserved: LoyaltyMoney;
+  revision: Scalars['Int']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type LoyaltyMonetaryWalletBalanceRebuildInput = {
+  idempotencyKey: Scalars['String']['input'];
+  walletId: Scalars['ID']['input'];
+};
+
+export type LoyaltyMonetaryWalletOperationPayload = {
+  __typename?: 'LoyaltyMonetaryWalletOperationPayload';
+  monetaryWallet: Maybe<LoyaltyMonetaryWallet>;
+  transaction: Maybe<LoyaltyMonetaryTransaction>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export type LoyaltyMonetaryWalletPayload = {
+  __typename?: 'LoyaltyMonetaryWalletPayload';
+  monetaryWallet: Maybe<LoyaltyMonetaryWallet>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export enum LoyaltyMonetaryWalletStatus {
+  Active = 'ACTIVE',
+  Closed = 'CLOSED',
+  Merged = 'MERGED',
+  Suspended = 'SUSPENDED'
+}
+
+export type LoyaltyMonetaryWalletStatusUpdateInput = {
+  expectedRevision: Scalars['Int']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  reasonCode: Scalars['String']['input'];
+  status: LoyaltyMonetaryWalletStatus;
+  walletId: Scalars['ID']['input'];
+};
+
+export enum LoyaltyMonetaryWalletType {
+  Cashback = 'CASHBACK',
+  StoreCredit = 'STORE_CREDIT'
+}
+
+export type LoyaltyMonetaryWalletWhereInput = {
+  accountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  currencyCodes?: InputMaybe<Array<CurrencyCode>>;
+  statuses?: InputMaybe<Array<LoyaltyMonetaryWalletStatus>>;
+  walletTypes?: InputMaybe<Array<LoyaltyMonetaryWalletType>>;
+};
 
 export type LoyaltyMoney = {
   __typename?: 'LoyaltyMoney';
@@ -913,13 +1265,44 @@ export type LoyaltyMoney = {
 
 export type LoyaltyMutation = {
   __typename?: 'LoyaltyMutation';
+  accountBalanceRebuild: LoyaltyAccountBalanceRebuildPayload;
   accountStatusUpdate: LoyaltyAccountStatusUpdatePayload;
+  earningRuleCreate: LoyaltyEarningRulePayload;
+  earningRuleDelete: LoyaltyDeletePayload;
+  earningRuleUpdate: LoyaltyEarningRulePayload;
+  maintenanceRun: LoyaltyMaintenanceRunPayload;
+  monetaryWalletAdjust: LoyaltyMonetaryWalletOperationPayload;
+  monetaryWalletBalanceRebuild: LoyaltyMonetaryWalletPayload;
+  monetaryWalletStatusUpdate: LoyaltyMonetaryWalletPayload;
   pointsAdjust: LoyaltyPointsAdjustPayload;
+  pointsConvertToMonetary: LoyaltyPointsConvertToMonetaryPayload;
   programCreate: LoyaltyProgramCreatePayload;
   programUpdate: LoyaltyProgramUpdatePayload;
   programVersionCreate: LoyaltyProgramVersionCreatePayload;
+  programVersionDelete: LoyaltyProgramVersionDeletePayload;
   programVersionPublish: LoyaltyProgramVersionPublishPayload;
+  programVersionUpdate: LoyaltyProgramVersionUpdatePayload;
   reservationRelease: LoyaltyReservationReleasePayload;
+  rewardDefinitionCreate: LoyaltyRewardDefinitionPayload;
+  rewardDefinitionDelete: LoyaltyDeletePayload;
+  rewardDefinitionUpdate: LoyaltyRewardDefinitionPayload;
+  rewardEntitlementIssue: LoyaltyRewardEntitlementPayload;
+  rewardEntitlementRelease: LoyaltyRewardEntitlementPayload;
+  rewardEntitlementRevoke: LoyaltyRewardEntitlementPayload;
+  tierCreate: LoyaltyTierPayload;
+  tierDelete: LoyaltyDeletePayload;
+  tierEvaluate: LoyaltyTierEvaluatePayload;
+  tierMembershipRevoke: LoyaltyTierEvaluatePayload;
+  tierPolicyDelete: LoyaltyDeletePayload;
+  tierPolicyUpsert: LoyaltyTierPolicyPayload;
+  tierRewardBenefitCreate: LoyaltyTierRewardBenefitPayload;
+  tierRewardBenefitDelete: LoyaltyDeletePayload;
+  tierUpdate: LoyaltyTierPayload;
+};
+
+
+export type LoyaltyMutationAccountBalanceRebuildArgs = {
+  input: LoyaltyAccountBalanceRebuildInput;
 };
 
 
@@ -928,8 +1311,48 @@ export type LoyaltyMutationAccountStatusUpdateArgs = {
 };
 
 
+export type LoyaltyMutationEarningRuleCreateArgs = {
+  input: LoyaltyEarningRuleCreateInput;
+};
+
+
+export type LoyaltyMutationEarningRuleDeleteArgs = {
+  input: LoyaltyEarningRuleDeleteInput;
+};
+
+
+export type LoyaltyMutationEarningRuleUpdateArgs = {
+  input: LoyaltyEarningRuleUpdateInput;
+};
+
+
+export type LoyaltyMutationMaintenanceRunArgs = {
+  input: LoyaltyMaintenanceRunInput;
+};
+
+
+export type LoyaltyMutationMonetaryWalletAdjustArgs = {
+  input: LoyaltyMonetaryWalletAdjustInput;
+};
+
+
+export type LoyaltyMutationMonetaryWalletBalanceRebuildArgs = {
+  input: LoyaltyMonetaryWalletBalanceRebuildInput;
+};
+
+
+export type LoyaltyMutationMonetaryWalletStatusUpdateArgs = {
+  input: LoyaltyMonetaryWalletStatusUpdateInput;
+};
+
+
 export type LoyaltyMutationPointsAdjustArgs = {
   input: LoyaltyPointsAdjustInput;
+};
+
+
+export type LoyaltyMutationPointsConvertToMonetaryArgs = {
+  input: LoyaltyPointsConvertToMonetaryInput;
 };
 
 
@@ -948,13 +1371,98 @@ export type LoyaltyMutationProgramVersionCreateArgs = {
 };
 
 
+export type LoyaltyMutationProgramVersionDeleteArgs = {
+  input: LoyaltyProgramVersionDeleteInput;
+};
+
+
 export type LoyaltyMutationProgramVersionPublishArgs = {
   input: LoyaltyProgramVersionPublishInput;
 };
 
 
+export type LoyaltyMutationProgramVersionUpdateArgs = {
+  input: LoyaltyProgramVersionUpdateInput;
+};
+
+
 export type LoyaltyMutationReservationReleaseArgs = {
   input: LoyaltyReservationReleaseInput;
+};
+
+
+export type LoyaltyMutationRewardDefinitionCreateArgs = {
+  input: LoyaltyRewardDefinitionCreateInput;
+};
+
+
+export type LoyaltyMutationRewardDefinitionDeleteArgs = {
+  input: LoyaltyRewardDefinitionDeleteInput;
+};
+
+
+export type LoyaltyMutationRewardDefinitionUpdateArgs = {
+  input: LoyaltyRewardDefinitionUpdateInput;
+};
+
+
+export type LoyaltyMutationRewardEntitlementIssueArgs = {
+  input: LoyaltyRewardEntitlementIssueInput;
+};
+
+
+export type LoyaltyMutationRewardEntitlementReleaseArgs = {
+  input: LoyaltyRewardEntitlementTransitionInput;
+};
+
+
+export type LoyaltyMutationRewardEntitlementRevokeArgs = {
+  input: LoyaltyRewardEntitlementTransitionInput;
+};
+
+
+export type LoyaltyMutationTierCreateArgs = {
+  input: LoyaltyTierCreateInput;
+};
+
+
+export type LoyaltyMutationTierDeleteArgs = {
+  input: LoyaltyTierDeleteInput;
+};
+
+
+export type LoyaltyMutationTierEvaluateArgs = {
+  input: LoyaltyTierEvaluateInput;
+};
+
+
+export type LoyaltyMutationTierMembershipRevokeArgs = {
+  input: LoyaltyTierMembershipRevokeInput;
+};
+
+
+export type LoyaltyMutationTierPolicyDeleteArgs = {
+  input: LoyaltyTierPolicyDeleteInput;
+};
+
+
+export type LoyaltyMutationTierPolicyUpsertArgs = {
+  input: LoyaltyTierPolicyUpsertInput;
+};
+
+
+export type LoyaltyMutationTierRewardBenefitCreateArgs = {
+  input: LoyaltyTierRewardBenefitCreateInput;
+};
+
+
+export type LoyaltyMutationTierRewardBenefitDeleteArgs = {
+  input: LoyaltyTierRewardBenefitDeleteInput;
+};
+
+
+export type LoyaltyMutationTierUpdateArgs = {
+  input: LoyaltyTierUpdateInput;
 };
 
 export type LoyaltyPointLot = Node & {
@@ -994,6 +1502,26 @@ export enum LoyaltyPointsAdjustmentDirection {
   Credit = 'CREDIT',
   Debit = 'DEBIT'
 }
+
+export type LoyaltyPointsConvertToMonetaryInput = {
+  accountId: Scalars['ID']['input'];
+  currencyCode: CurrencyCode;
+  idempotencyKey: Scalars['String']['input'];
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  points: Scalars['BigInt']['input'];
+  programVersionId: Scalars['ID']['input'];
+  walletType: LoyaltyMonetaryWalletType;
+};
+
+export type LoyaltyPointsConvertToMonetaryPayload = {
+  __typename?: 'LoyaltyPointsConvertToMonetaryPayload';
+  account: Maybe<LoyaltyAccount>;
+  amount: Maybe<LoyaltyMoney>;
+  monetaryTransaction: Maybe<LoyaltyMonetaryTransaction>;
+  monetaryWallet: Maybe<LoyaltyMonetaryWallet>;
+  pointsTransaction: Maybe<LoyaltyTransaction>;
+  userErrors: Array<LoyaltyUserError>;
+};
 
 export type LoyaltyProgram = Node & {
   __typename?: 'LoyaltyProgram';
@@ -1189,6 +1717,18 @@ export type LoyaltyProgramVersionCreatePayload = {
   userErrors: Array<LoyaltyUserError>;
 };
 
+export type LoyaltyProgramVersionDeleteInput = {
+  expectedRevision: Scalars['Int']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  programVersionId: Scalars['ID']['input'];
+};
+
+export type LoyaltyProgramVersionDeletePayload = {
+  __typename?: 'LoyaltyProgramVersionDeletePayload';
+  deletedProgramVersionId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
 export type LoyaltyProgramVersionPublishInput = {
   effectiveFrom: Scalars['DateTime']['input'];
   effectiveTo?: InputMaybe<Scalars['DateTime']['input']>;
@@ -1210,6 +1750,40 @@ export enum LoyaltyProgramVersionStatus {
   Scheduled = 'SCHEDULED'
 }
 
+export type LoyaltyProgramVersionUpdateInput = {
+  activationDelaySeconds?: InputMaybe<Scalars['Int']['input']>;
+  clearEffectiveTo?: InputMaybe<Scalars['Boolean']['input']>;
+  clearMaximumRedeemPointsPerOrder?: InputMaybe<Scalars['Boolean']['input']>;
+  clearPointsExpiryDays?: InputMaybe<Scalars['Boolean']['input']>;
+  debtPolicy?: InputMaybe<LoyaltyDebtPolicy>;
+  earnAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  earnPoints?: InputMaybe<Scalars['BigInt']['input']>;
+  earningEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  effectiveFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  effectiveTo?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  maximumOrderPercentageBps?: InputMaybe<Scalars['Int']['input']>;
+  maximumRedeemPointsPerOrder?: InputMaybe<Scalars['BigInt']['input']>;
+  minimumEligibleAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  minimumRedeemPoints?: InputMaybe<Scalars['BigInt']['input']>;
+  pointsExpiryDays?: InputMaybe<Scalars['Int']['input']>;
+  programVersionId: Scalars['ID']['input'];
+  redeemAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
+  redeemPoints?: InputMaybe<Scalars['BigInt']['input']>;
+  redemptionEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  refundPolicy?: InputMaybe<LoyaltyRefundPolicy>;
+  restoredPointsExpiryPolicy?: InputMaybe<LoyaltyRestoredPointsExpiryPolicy>;
+  roundingMode?: InputMaybe<LoyaltyRoundingMode>;
+  rules?: InputMaybe<LoyaltyProgramRulesInput>;
+};
+
+export type LoyaltyProgramVersionUpdatePayload = {
+  __typename?: 'LoyaltyProgramVersionUpdatePayload';
+  programVersion: Maybe<LoyaltyProgramVersion>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
 export type LoyaltyProgramWhereInput = {
   ids?: InputMaybe<Array<Scalars['ID']['input']>>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1222,12 +1796,30 @@ export type LoyaltyQuery = {
   account: Maybe<LoyaltyAccount>;
   accounts: LoyaltyAccountConnection;
   customerAccount: Maybe<LoyaltyAccount>;
+  earningRule: Maybe<LoyaltyEarningRule>;
+  earningRuleUsages: Array<LoyaltyEarningRuleUsage>;
+  eventEvaluation: Maybe<LoyaltyEventEvaluation>;
+  eventEvaluations: Array<LoyaltyEventEvaluation>;
+  eventFact: Maybe<LoyaltyEventFact>;
+  eventFacts: Array<LoyaltyEventFact>;
+  monetaryTransaction: Maybe<LoyaltyMonetaryTransaction>;
+  monetaryTransactions: Array<LoyaltyMonetaryTransaction>;
+  monetaryWallet: Maybe<LoyaltyMonetaryWallet>;
+  monetaryWallets: Array<LoyaltyMonetaryWallet>;
   node: Maybe<Node>;
   nodes: Array<Maybe<Node>>;
   program: Maybe<LoyaltyProgram>;
+  programVersion: Maybe<LoyaltyProgramVersion>;
   programs: LoyaltyProgramConnection;
   reservation: Maybe<LoyaltyReservation>;
   reservations: LoyaltyReservationConnection;
+  rewardDefinition: Maybe<LoyaltyRewardDefinition>;
+  rewardEntitlement: Maybe<LoyaltyRewardEntitlement>;
+  rewardEntitlements: Array<LoyaltyRewardEntitlement>;
+  tier: Maybe<LoyaltyTier>;
+  tierMembership: Maybe<LoyaltyTierMembership>;
+  tierMemberships: Array<LoyaltyTierMembership>;
+  tierPolicy: Maybe<LoyaltyTierPolicy>;
   transaction: Maybe<LoyaltyTransaction>;
   transactions: LoyaltyTransactionConnection;
 };
@@ -1253,6 +1845,61 @@ export type LoyaltyQueryCustomerAccountArgs = {
 };
 
 
+export type LoyaltyQueryEarningRuleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryEarningRuleUsagesArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where: LoyaltyEarningRuleUsageWhereInput;
+};
+
+
+export type LoyaltyQueryEventEvaluationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryEventEvaluationsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where: LoyaltyEventEvaluationWhereInput;
+};
+
+
+export type LoyaltyQueryEventFactArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryEventFactsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<LoyaltyEventFactWhereInput>;
+};
+
+
+export type LoyaltyQueryMonetaryTransactionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryMonetaryTransactionsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  walletId: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryMonetaryWalletArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryMonetaryWalletsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where: LoyaltyMonetaryWalletWhereInput;
+};
+
+
 export type LoyaltyQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
@@ -1264,6 +1911,11 @@ export type LoyaltyQueryNodesArgs = {
 
 
 export type LoyaltyQueryProgramArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryProgramVersionArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -1288,6 +1940,43 @@ export type LoyaltyQueryReservationsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
   where?: InputMaybe<LoyaltyReservationWhereInput>;
+};
+
+
+export type LoyaltyQueryRewardDefinitionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryRewardEntitlementArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryRewardEntitlementsArgs = {
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where: LoyaltyRewardEntitlementWhereInput;
+};
+
+
+export type LoyaltyQueryTierArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryTierMembershipArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type LoyaltyQueryTierMembershipsArgs = {
+  accountId: Scalars['ID']['input'];
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type LoyaltyQueryTierPolicyArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -1424,12 +2113,33 @@ export type LoyaltyRewardDefinition = Node & {
   endsAt: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
   issuanceLimit: Maybe<Scalars['BigInt']['output']>;
+  issuedQuantity: Scalars['BigInt']['output'];
   name: Scalars['String']['output'];
   perAccountLimit: Maybe<Scalars['BigInt']['output']>;
   programVersion: LoyaltyProgramVersion;
   rewardType: LoyaltyRewardType;
   startsAt: Maybe<Scalars['DateTime']['output']>;
   validityDays: Maybe<Scalars['Int']['output']>;
+};
+
+export type LoyaltyRewardDefinitionCreateInput = {
+  code: Scalars['String']['input'];
+  configuration: Scalars['JSON']['input'];
+  configurationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  issuanceLimit?: InputMaybe<Scalars['BigInt']['input']>;
+  name: Scalars['String']['input'];
+  perAccountLimit?: InputMaybe<Scalars['BigInt']['input']>;
+  programVersionId: Scalars['ID']['input'];
+  rewardType: LoyaltyRewardType;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  validityDays?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type LoyaltyRewardDefinitionDeleteInput = {
+  idempotencyKey: Scalars['String']['input'];
+  rewardDefinitionId: Scalars['ID']['input'];
 };
 
 export type LoyaltyRewardDefinitionInput = {
@@ -1443,6 +2153,121 @@ export type LoyaltyRewardDefinitionInput = {
   rewardType: LoyaltyRewardType;
   startsAt?: InputMaybe<Scalars['DateTime']['input']>;
   validityDays?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type LoyaltyRewardDefinitionPayload = {
+  __typename?: 'LoyaltyRewardDefinitionPayload';
+  rewardDefinition: Maybe<LoyaltyRewardDefinition>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export type LoyaltyRewardDefinitionUpdateInput = {
+  clearEndsAt?: InputMaybe<Scalars['Boolean']['input']>;
+  clearIssuanceLimit?: InputMaybe<Scalars['Boolean']['input']>;
+  clearPerAccountLimit?: InputMaybe<Scalars['Boolean']['input']>;
+  clearStartsAt?: InputMaybe<Scalars['Boolean']['input']>;
+  clearValidityDays?: InputMaybe<Scalars['Boolean']['input']>;
+  configuration?: InputMaybe<Scalars['JSON']['input']>;
+  configurationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  issuanceLimit?: InputMaybe<Scalars['BigInt']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  perAccountLimit?: InputMaybe<Scalars['BigInt']['input']>;
+  rewardDefinitionId: Scalars['ID']['input'];
+  rewardType?: InputMaybe<LoyaltyRewardType>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  validityDays?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type LoyaltyRewardEntitlement = Node & {
+  __typename?: 'LoyaltyRewardEntitlement';
+  account: LoyaltyAccount;
+  configurationSchemaVersion: Scalars['Int']['output'];
+  configurationSnapshot: Scalars['JSON']['output'];
+  definition: LoyaltyRewardDefinition;
+  events: Array<LoyaltyRewardEntitlementEvent>;
+  expiredAt: Maybe<Scalars['DateTime']['output']>;
+  externalReference: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  issuanceTransaction: Maybe<LoyaltyTransaction>;
+  issuedAt: Scalars['DateTime']['output'];
+  monetaryTransaction: Maybe<LoyaltyMonetaryTransaction>;
+  quantity: Scalars['BigInt']['output'];
+  redeemedAt: Maybe<Scalars['DateTime']['output']>;
+  redeemedOrderId: Maybe<Scalars['ID']['output']>;
+  reservedAt: Maybe<Scalars['DateTime']['output']>;
+  reservedForCheckoutId: Maybe<Scalars['ID']['output']>;
+  revision: Scalars['Int']['output'];
+  revokedAt: Maybe<Scalars['DateTime']['output']>;
+  sourceEventFact: Maybe<LoyaltyEventFact>;
+  status: LoyaltyRewardEntitlementStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  validFrom: Scalars['DateTime']['output'];
+  validTo: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type LoyaltyRewardEntitlementEvent = Node & {
+  __typename?: 'LoyaltyRewardEntitlementEvent';
+  actorId: Maybe<Scalars['ID']['output']>;
+  actorType: LoyaltyActorType;
+  createdAt: Scalars['DateTime']['output'];
+  entitlement: LoyaltyRewardEntitlement;
+  eventType: LoyaltyRewardEntitlementEventType;
+  id: Scalars['ID']['output'];
+  idempotencyKey: Scalars['String']['output'];
+  metadata: Scalars['JSON']['output'];
+  occurredAt: Scalars['DateTime']['output'];
+  previousStatus: Maybe<LoyaltyRewardEntitlementStatus>;
+  reasonCode: Scalars['String']['output'];
+  status: LoyaltyRewardEntitlementStatus;
+};
+
+export enum LoyaltyRewardEntitlementEventType {
+  Expired = 'EXPIRED',
+  Issued = 'ISSUED',
+  Redeemed = 'REDEEMED',
+  Released = 'RELEASED',
+  Reserved = 'RESERVED',
+  Revoked = 'REVOKED'
+}
+
+export type LoyaltyRewardEntitlementIssueInput = {
+  accountId: Scalars['ID']['input'];
+  externalReference?: InputMaybe<Scalars['String']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  quantity?: InputMaybe<Scalars['BigInt']['input']>;
+  rewardDefinitionId: Scalars['ID']['input'];
+};
+
+export type LoyaltyRewardEntitlementPayload = {
+  __typename?: 'LoyaltyRewardEntitlementPayload';
+  rewardEntitlement: Maybe<LoyaltyRewardEntitlement>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export enum LoyaltyRewardEntitlementStatus {
+  Expired = 'EXPIRED',
+  Issued = 'ISSUED',
+  Redeemed = 'REDEEMED',
+  Reserved = 'RESERVED',
+  Revoked = 'REVOKED'
+}
+
+export type LoyaltyRewardEntitlementTransitionInput = {
+  entitlementId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
+  reasonCode: Scalars['String']['input'];
+};
+
+export type LoyaltyRewardEntitlementWhereInput = {
+  accountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  rewardDefinitionIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  statuses?: InputMaybe<Array<LoyaltyRewardEntitlementStatus>>;
+  validAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
 export enum LoyaltyRewardType {
@@ -1478,6 +2303,7 @@ export type LoyaltyTier = Node & {
   qualification: Scalars['JSON']['output'];
   qualificationSchemaVersion: Scalars['Int']['output'];
   rank: Scalars['Int']['output'];
+  rewardBenefits: Array<LoyaltyTierRewardBenefit>;
 };
 
 export enum LoyaltyTierCalendarPeriod {
@@ -1487,11 +2313,42 @@ export enum LoyaltyTierCalendarPeriod {
   Year = 'YEAR'
 }
 
+export type LoyaltyTierCreateInput = {
+  code: Scalars['String']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  maintenance?: InputMaybe<Scalars['JSON']['input']>;
+  name: Scalars['String']['input'];
+  programVersionId: Scalars['ID']['input'];
+  qualification: Scalars['JSON']['input'];
+  qualificationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  rank: Scalars['Int']['input'];
+};
+
+export type LoyaltyTierDeleteInput = {
+  idempotencyKey: Scalars['String']['input'];
+  tierId: Scalars['ID']['input'];
+};
+
 export enum LoyaltyTierDowngradePolicy {
   EndOfMembership = 'END_OF_MEMBERSHIP',
   GracePeriod = 'GRACE_PERIOD',
   Immediate = 'IMMEDIATE'
 }
+
+export type LoyaltyTierEvaluateInput = {
+  accountId: Scalars['ID']['input'];
+  effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
+  forceRequalification?: InputMaybe<Scalars['Boolean']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  programVersionId?: InputMaybe<Scalars['ID']['input']>;
+  reasonCode: Scalars['String']['input'];
+};
+
+export type LoyaltyTierEvaluatePayload = {
+  __typename?: 'LoyaltyTierEvaluatePayload';
+  tierMembership: Maybe<LoyaltyTierMembership>;
+  userErrors: Array<LoyaltyUserError>;
+};
 
 export enum LoyaltyTierEvaluationWindowType {
   Calendar = 'CALENDAR',
@@ -1549,11 +2406,25 @@ export enum LoyaltyTierMembershipEventType {
   Upgraded = 'UPGRADED'
 }
 
+export type LoyaltyTierMembershipRevokeInput = {
+  effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedRevision: Scalars['Int']['input'];
+  idempotencyKey: Scalars['String']['input'];
+  membershipId: Scalars['ID']['input'];
+  reasonCode: Scalars['String']['input'];
+};
+
 export enum LoyaltyTierMembershipStatus {
   Active = 'ACTIVE',
   Expired = 'EXPIRED',
   Revoked = 'REVOKED'
 }
+
+export type LoyaltyTierPayload = {
+  __typename?: 'LoyaltyTierPayload';
+  tier: Maybe<LoyaltyTier>;
+  userErrors: Array<LoyaltyUserError>;
+};
 
 export type LoyaltyTierPolicy = Node & {
   __typename?: 'LoyaltyTierPolicy';
@@ -1571,6 +2442,11 @@ export type LoyaltyTierPolicy = Node & {
   windowType: LoyaltyTierEvaluationWindowType;
 };
 
+export type LoyaltyTierPolicyDeleteInput = {
+  idempotencyKey: Scalars['String']['input'];
+  programVersionId: Scalars['ID']['input'];
+};
+
 export type LoyaltyTierPolicyInput = {
   calendarPeriod?: InputMaybe<LoyaltyTierCalendarPeriod>;
   downgradePolicy?: InputMaybe<LoyaltyTierDowngradePolicy>;
@@ -1583,10 +2459,70 @@ export type LoyaltyTierPolicyInput = {
   windowType: LoyaltyTierEvaluationWindowType;
 };
 
+export type LoyaltyTierPolicyPayload = {
+  __typename?: 'LoyaltyTierPolicyPayload';
+  tierPolicy: Maybe<LoyaltyTierPolicy>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export type LoyaltyTierPolicyUpsertInput = {
+  calendarPeriod?: InputMaybe<LoyaltyTierCalendarPeriod>;
+  downgradePolicy?: InputMaybe<LoyaltyTierDowngradePolicy>;
+  gracePeriodDays?: InputMaybe<Scalars['Int']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  membershipDurationDays?: InputMaybe<Scalars['Int']['input']>;
+  metricSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  programVersionId: Scalars['ID']['input'];
+  programYearStartsMonth?: InputMaybe<Scalars['Int']['input']>;
+  requalificationPolicy?: InputMaybe<LoyaltyTierRequalificationPolicy>;
+  rollingWindowDays?: InputMaybe<Scalars['Int']['input']>;
+  windowType: LoyaltyTierEvaluationWindowType;
+};
+
 export enum LoyaltyTierRequalificationPolicy {
   Automatic = 'AUTOMATIC',
   Manual = 'MANUAL'
 }
+
+export type LoyaltyTierRewardBenefit = Node & {
+  __typename?: 'LoyaltyTierRewardBenefit';
+  createdAt: Scalars['DateTime']['output'];
+  grantPolicy: Scalars['JSON']['output'];
+  grantPolicySchemaVersion: Scalars['Int']['output'];
+  id: Scalars['ID']['output'];
+  rewardDefinition: LoyaltyRewardDefinition;
+  tier: LoyaltyTier;
+};
+
+export type LoyaltyTierRewardBenefitCreateInput = {
+  grantPolicy?: Scalars['JSON']['input'];
+  grantPolicySchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  rewardDefinitionId: Scalars['ID']['input'];
+  tierId: Scalars['ID']['input'];
+};
+
+export type LoyaltyTierRewardBenefitDeleteInput = {
+  idempotencyKey: Scalars['String']['input'];
+  tierRewardBenefitId: Scalars['ID']['input'];
+};
+
+export type LoyaltyTierRewardBenefitPayload = {
+  __typename?: 'LoyaltyTierRewardBenefitPayload';
+  tierRewardBenefit: Maybe<LoyaltyTierRewardBenefit>;
+  userErrors: Array<LoyaltyUserError>;
+};
+
+export type LoyaltyTierUpdateInput = {
+  clearMaintenance?: InputMaybe<Scalars['Boolean']['input']>;
+  idempotencyKey: Scalars['String']['input'];
+  maintenance?: InputMaybe<Scalars['JSON']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  qualification?: InputMaybe<Scalars['JSON']['input']>;
+  qualificationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
+  rank?: InputMaybe<Scalars['Int']['input']>;
+  tierId: Scalars['ID']['input'];
+};
 
 export type LoyaltyTransaction = Node & {
   __typename?: 'LoyaltyTransaction';
@@ -1819,7 +2755,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Customer ) | ( LoyaltyAccount ) | ( LoyaltyEarningRule ) | ( LoyaltyLedgerEntry ) | ( LoyaltyLotAllocation ) | ( LoyaltyPointLot ) | ( LoyaltyProgram ) | ( LoyaltyProgramVersion ) | ( LoyaltyReservation ) | ( LoyaltyReservationEvent ) | ( LoyaltyRewardDefinition ) | ( LoyaltyTier ) | ( LoyaltyTierMembership ) | ( LoyaltyTierMembershipEvent ) | ( LoyaltyTierPolicy ) | ( LoyaltyTransaction );
+  Node: ( Customer ) | ( LoyaltyAccount ) | ( LoyaltyEarningRule ) | ( LoyaltyEarningRuleUsage ) | ( LoyaltyEventEvaluation ) | ( LoyaltyEventFact ) | ( LoyaltyLedgerEntry ) | ( LoyaltyLotAllocation ) | ( LoyaltyMonetaryCreditLot ) | ( LoyaltyMonetaryLedgerEntry ) | ( LoyaltyMonetaryLotAllocation ) | ( LoyaltyMonetaryTransaction ) | ( LoyaltyMonetaryWallet ) | ( LoyaltyPointLot ) | ( LoyaltyProgram ) | ( LoyaltyProgramVersion ) | ( LoyaltyReservation ) | ( LoyaltyReservationEvent ) | ( LoyaltyRewardDefinition ) | ( LoyaltyRewardEntitlement ) | ( LoyaltyRewardEntitlementEvent ) | ( LoyaltyTier ) | ( LoyaltyTierMembership ) | ( LoyaltyTierMembershipEvent ) | ( LoyaltyTierPolicy ) | ( LoyaltyTierRewardBenefit ) | ( LoyaltyTransaction );
   UserError: ( LoyaltyUserError );
 }>;
 
@@ -1837,6 +2773,8 @@ export type ResolversTypes = ResolversObject<{
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
   LoyaltyAccountBalance: ResolverTypeWrapper<LoyaltyAccountBalance>;
+  LoyaltyAccountBalanceRebuildInput: LoyaltyAccountBalanceRebuildInput;
+  LoyaltyAccountBalanceRebuildPayload: ResolverTypeWrapper<LoyaltyAccountBalanceRebuildPayload>;
   LoyaltyAccountConnection: ResolverTypeWrapper<LoyaltyAccountConnection>;
   LoyaltyAccountEdge: ResolverTypeWrapper<LoyaltyAccountEdge>;
   LoyaltyAccountStatus: LoyaltyAccountStatus;
@@ -1850,24 +2788,58 @@ export type ResolversTypes = ResolversObject<{
   LoyaltyCatalogSelectorInput: LoyaltyCatalogSelectorInput;
   LoyaltyCatalogSelectorType: LoyaltyCatalogSelectorType;
   LoyaltyDebtPolicy: LoyaltyDebtPolicy;
+  LoyaltyDeletePayload: ResolverTypeWrapper<LoyaltyDeletePayload>;
   LoyaltyEarningActionType: LoyaltyEarningActionType;
   LoyaltyEarningModifier: ResolverTypeWrapper<LoyaltyEarningModifier>;
   LoyaltyEarningModifierInput: LoyaltyEarningModifierInput;
   LoyaltyEarningRule: ResolverTypeWrapper<LoyaltyEarningRule>;
+  LoyaltyEarningRuleCreateInput: LoyaltyEarningRuleCreateInput;
+  LoyaltyEarningRuleDeleteInput: LoyaltyEarningRuleDeleteInput;
   LoyaltyEarningRuleInput: LoyaltyEarningRuleInput;
+  LoyaltyEarningRulePayload: ResolverTypeWrapper<LoyaltyEarningRulePayload>;
+  LoyaltyEarningRuleUpdateInput: LoyaltyEarningRuleUpdateInput;
+  LoyaltyEarningRuleUsage: ResolverTypeWrapper<LoyaltyEarningRuleUsage>;
+  LoyaltyEarningRuleUsageWhereInput: LoyaltyEarningRuleUsageWhereInput;
   LoyaltyEarningTriggerType: LoyaltyEarningTriggerType;
   LoyaltyEligibleSpendBasis: LoyaltyEligibleSpendBasis;
+  LoyaltyEventEvaluation: ResolverTypeWrapper<LoyaltyEventEvaluation>;
+  LoyaltyEventEvaluationDecision: LoyaltyEventEvaluationDecision;
+  LoyaltyEventEvaluationWhereInput: LoyaltyEventEvaluationWhereInput;
+  LoyaltyEventFact: ResolverTypeWrapper<LoyaltyEventFact>;
+  LoyaltyEventFactWhereInput: LoyaltyEventFactWhereInput;
   LoyaltyExpiringPoints: ResolverTypeWrapper<LoyaltyExpiringPoints>;
   LoyaltyLedgerEntry: ResolverTypeWrapper<LoyaltyLedgerEntry>;
   LoyaltyLotAllocation: ResolverTypeWrapper<LoyaltyLotAllocation>;
   LoyaltyLotAllocationType: LoyaltyLotAllocationType;
+  LoyaltyMaintenanceResult: ResolverTypeWrapper<LoyaltyMaintenanceResult>;
+  LoyaltyMaintenanceRunInput: LoyaltyMaintenanceRunInput;
+  LoyaltyMaintenanceRunPayload: ResolverTypeWrapper<LoyaltyMaintenanceRunPayload>;
   LoyaltyModifierStackingMode: LoyaltyModifierStackingMode;
+  LoyaltyMonetaryAdjustmentDirection: LoyaltyMonetaryAdjustmentDirection;
+  LoyaltyMonetaryBalanceBucket: LoyaltyMonetaryBalanceBucket;
+  LoyaltyMonetaryCreditLot: ResolverTypeWrapper<LoyaltyMonetaryCreditLot>;
+  LoyaltyMonetaryLedgerEntry: ResolverTypeWrapper<LoyaltyMonetaryLedgerEntry>;
+  LoyaltyMonetaryLotAllocation: ResolverTypeWrapper<LoyaltyMonetaryLotAllocation>;
+  LoyaltyMonetaryTransaction: ResolverTypeWrapper<LoyaltyMonetaryTransaction>;
+  LoyaltyMonetaryTransactionKind: LoyaltyMonetaryTransactionKind;
+  LoyaltyMonetaryWallet: ResolverTypeWrapper<LoyaltyMonetaryWallet>;
+  LoyaltyMonetaryWalletAdjustInput: LoyaltyMonetaryWalletAdjustInput;
+  LoyaltyMonetaryWalletBalance: ResolverTypeWrapper<LoyaltyMonetaryWalletBalance>;
+  LoyaltyMonetaryWalletBalanceRebuildInput: LoyaltyMonetaryWalletBalanceRebuildInput;
+  LoyaltyMonetaryWalletOperationPayload: ResolverTypeWrapper<LoyaltyMonetaryWalletOperationPayload>;
+  LoyaltyMonetaryWalletPayload: ResolverTypeWrapper<LoyaltyMonetaryWalletPayload>;
+  LoyaltyMonetaryWalletStatus: LoyaltyMonetaryWalletStatus;
+  LoyaltyMonetaryWalletStatusUpdateInput: LoyaltyMonetaryWalletStatusUpdateInput;
+  LoyaltyMonetaryWalletType: LoyaltyMonetaryWalletType;
+  LoyaltyMonetaryWalletWhereInput: LoyaltyMonetaryWalletWhereInput;
   LoyaltyMoney: ResolverTypeWrapper<LoyaltyMoney>;
   LoyaltyMutation: ResolverTypeWrapper<LoyaltyMutation>;
   LoyaltyPointLot: ResolverTypeWrapper<LoyaltyPointLot>;
   LoyaltyPointsAdjustInput: LoyaltyPointsAdjustInput;
   LoyaltyPointsAdjustPayload: ResolverTypeWrapper<LoyaltyPointsAdjustPayload>;
   LoyaltyPointsAdjustmentDirection: LoyaltyPointsAdjustmentDirection;
+  LoyaltyPointsConvertToMonetaryInput: LoyaltyPointsConvertToMonetaryInput;
+  LoyaltyPointsConvertToMonetaryPayload: ResolverTypeWrapper<LoyaltyPointsConvertToMonetaryPayload>;
   LoyaltyProgram: ResolverTypeWrapper<LoyaltyProgram>;
   LoyaltyProgramConnection: ResolverTypeWrapper<LoyaltyProgramConnection>;
   LoyaltyProgramCreateInput: LoyaltyProgramCreateInput;
@@ -1886,9 +2858,13 @@ export type ResolversTypes = ResolversObject<{
   LoyaltyProgramVersion: ResolverTypeWrapper<LoyaltyProgramVersion>;
   LoyaltyProgramVersionCreateInput: LoyaltyProgramVersionCreateInput;
   LoyaltyProgramVersionCreatePayload: ResolverTypeWrapper<LoyaltyProgramVersionCreatePayload>;
+  LoyaltyProgramVersionDeleteInput: LoyaltyProgramVersionDeleteInput;
+  LoyaltyProgramVersionDeletePayload: ResolverTypeWrapper<LoyaltyProgramVersionDeletePayload>;
   LoyaltyProgramVersionPublishInput: LoyaltyProgramVersionPublishInput;
   LoyaltyProgramVersionPublishPayload: ResolverTypeWrapper<LoyaltyProgramVersionPublishPayload>;
   LoyaltyProgramVersionStatus: LoyaltyProgramVersionStatus;
+  LoyaltyProgramVersionUpdateInput: LoyaltyProgramVersionUpdateInput;
+  LoyaltyProgramVersionUpdatePayload: ResolverTypeWrapper<LoyaltyProgramVersionUpdatePayload>;
   LoyaltyProgramWhereInput: LoyaltyProgramWhereInput;
   LoyaltyQuery: ResolverTypeWrapper<Omit<LoyaltyQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   LoyaltyRefundPolicy: LoyaltyRefundPolicy;
@@ -1903,22 +2879,48 @@ export type ResolversTypes = ResolversObject<{
   LoyaltyReservationWhereInput: LoyaltyReservationWhereInput;
   LoyaltyRestoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy;
   LoyaltyRewardDefinition: ResolverTypeWrapper<LoyaltyRewardDefinition>;
+  LoyaltyRewardDefinitionCreateInput: LoyaltyRewardDefinitionCreateInput;
+  LoyaltyRewardDefinitionDeleteInput: LoyaltyRewardDefinitionDeleteInput;
   LoyaltyRewardDefinitionInput: LoyaltyRewardDefinitionInput;
+  LoyaltyRewardDefinitionPayload: ResolverTypeWrapper<LoyaltyRewardDefinitionPayload>;
+  LoyaltyRewardDefinitionUpdateInput: LoyaltyRewardDefinitionUpdateInput;
+  LoyaltyRewardEntitlement: ResolverTypeWrapper<LoyaltyRewardEntitlement>;
+  LoyaltyRewardEntitlementEvent: ResolverTypeWrapper<LoyaltyRewardEntitlementEvent>;
+  LoyaltyRewardEntitlementEventType: LoyaltyRewardEntitlementEventType;
+  LoyaltyRewardEntitlementIssueInput: LoyaltyRewardEntitlementIssueInput;
+  LoyaltyRewardEntitlementPayload: ResolverTypeWrapper<LoyaltyRewardEntitlementPayload>;
+  LoyaltyRewardEntitlementStatus: LoyaltyRewardEntitlementStatus;
+  LoyaltyRewardEntitlementTransitionInput: LoyaltyRewardEntitlementTransitionInput;
+  LoyaltyRewardEntitlementWhereInput: LoyaltyRewardEntitlementWhereInput;
   LoyaltyRewardType: LoyaltyRewardType;
   LoyaltyRoundingMode: LoyaltyRoundingMode;
   LoyaltySegmentMatchMode: LoyaltySegmentMatchMode;
   LoyaltyTier: ResolverTypeWrapper<LoyaltyTier>;
   LoyaltyTierCalendarPeriod: LoyaltyTierCalendarPeriod;
+  LoyaltyTierCreateInput: LoyaltyTierCreateInput;
+  LoyaltyTierDeleteInput: LoyaltyTierDeleteInput;
   LoyaltyTierDowngradePolicy: LoyaltyTierDowngradePolicy;
+  LoyaltyTierEvaluateInput: LoyaltyTierEvaluateInput;
+  LoyaltyTierEvaluatePayload: ResolverTypeWrapper<LoyaltyTierEvaluatePayload>;
   LoyaltyTierEvaluationWindowType: LoyaltyTierEvaluationWindowType;
   LoyaltyTierInput: LoyaltyTierInput;
   LoyaltyTierMembership: ResolverTypeWrapper<LoyaltyTierMembership>;
   LoyaltyTierMembershipEvent: ResolverTypeWrapper<LoyaltyTierMembershipEvent>;
   LoyaltyTierMembershipEventType: LoyaltyTierMembershipEventType;
+  LoyaltyTierMembershipRevokeInput: LoyaltyTierMembershipRevokeInput;
   LoyaltyTierMembershipStatus: LoyaltyTierMembershipStatus;
+  LoyaltyTierPayload: ResolverTypeWrapper<LoyaltyTierPayload>;
   LoyaltyTierPolicy: ResolverTypeWrapper<LoyaltyTierPolicy>;
+  LoyaltyTierPolicyDeleteInput: LoyaltyTierPolicyDeleteInput;
   LoyaltyTierPolicyInput: LoyaltyTierPolicyInput;
+  LoyaltyTierPolicyPayload: ResolverTypeWrapper<LoyaltyTierPolicyPayload>;
+  LoyaltyTierPolicyUpsertInput: LoyaltyTierPolicyUpsertInput;
   LoyaltyTierRequalificationPolicy: LoyaltyTierRequalificationPolicy;
+  LoyaltyTierRewardBenefit: ResolverTypeWrapper<LoyaltyTierRewardBenefit>;
+  LoyaltyTierRewardBenefitCreateInput: LoyaltyTierRewardBenefitCreateInput;
+  LoyaltyTierRewardBenefitDeleteInput: LoyaltyTierRewardBenefitDeleteInput;
+  LoyaltyTierRewardBenefitPayload: ResolverTypeWrapper<LoyaltyTierRewardBenefitPayload>;
+  LoyaltyTierUpdateInput: LoyaltyTierUpdateInput;
   LoyaltyTransaction: ResolverTypeWrapper<LoyaltyTransaction>;
   LoyaltyTransactionConnection: ResolverTypeWrapper<LoyaltyTransactionConnection>;
   LoyaltyTransactionEdge: ResolverTypeWrapper<LoyaltyTransactionEdge>;
@@ -1947,6 +2949,8 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   String: Scalars['String']['output'];
   LoyaltyAccountBalance: LoyaltyAccountBalance;
+  LoyaltyAccountBalanceRebuildInput: LoyaltyAccountBalanceRebuildInput;
+  LoyaltyAccountBalanceRebuildPayload: LoyaltyAccountBalanceRebuildPayload;
   LoyaltyAccountConnection: LoyaltyAccountConnection;
   LoyaltyAccountEdge: LoyaltyAccountEdge;
   LoyaltyAccountStatusUpdateInput: LoyaltyAccountStatusUpdateInput;
@@ -1955,18 +2959,46 @@ export type ResolversParentTypes = ResolversObject<{
   Boolean: Scalars['Boolean']['output'];
   LoyaltyCatalogSelector: LoyaltyCatalogSelector;
   LoyaltyCatalogSelectorInput: LoyaltyCatalogSelectorInput;
+  LoyaltyDeletePayload: LoyaltyDeletePayload;
   LoyaltyEarningModifier: LoyaltyEarningModifier;
   LoyaltyEarningModifierInput: LoyaltyEarningModifierInput;
   LoyaltyEarningRule: LoyaltyEarningRule;
+  LoyaltyEarningRuleCreateInput: LoyaltyEarningRuleCreateInput;
+  LoyaltyEarningRuleDeleteInput: LoyaltyEarningRuleDeleteInput;
   LoyaltyEarningRuleInput: LoyaltyEarningRuleInput;
+  LoyaltyEarningRulePayload: LoyaltyEarningRulePayload;
+  LoyaltyEarningRuleUpdateInput: LoyaltyEarningRuleUpdateInput;
+  LoyaltyEarningRuleUsage: LoyaltyEarningRuleUsage;
+  LoyaltyEarningRuleUsageWhereInput: LoyaltyEarningRuleUsageWhereInput;
+  LoyaltyEventEvaluation: LoyaltyEventEvaluation;
+  LoyaltyEventEvaluationWhereInput: LoyaltyEventEvaluationWhereInput;
+  LoyaltyEventFact: LoyaltyEventFact;
+  LoyaltyEventFactWhereInput: LoyaltyEventFactWhereInput;
   LoyaltyExpiringPoints: LoyaltyExpiringPoints;
   LoyaltyLedgerEntry: LoyaltyLedgerEntry;
   LoyaltyLotAllocation: LoyaltyLotAllocation;
+  LoyaltyMaintenanceResult: LoyaltyMaintenanceResult;
+  LoyaltyMaintenanceRunInput: LoyaltyMaintenanceRunInput;
+  LoyaltyMaintenanceRunPayload: LoyaltyMaintenanceRunPayload;
+  LoyaltyMonetaryCreditLot: LoyaltyMonetaryCreditLot;
+  LoyaltyMonetaryLedgerEntry: LoyaltyMonetaryLedgerEntry;
+  LoyaltyMonetaryLotAllocation: LoyaltyMonetaryLotAllocation;
+  LoyaltyMonetaryTransaction: LoyaltyMonetaryTransaction;
+  LoyaltyMonetaryWallet: LoyaltyMonetaryWallet;
+  LoyaltyMonetaryWalletAdjustInput: LoyaltyMonetaryWalletAdjustInput;
+  LoyaltyMonetaryWalletBalance: LoyaltyMonetaryWalletBalance;
+  LoyaltyMonetaryWalletBalanceRebuildInput: LoyaltyMonetaryWalletBalanceRebuildInput;
+  LoyaltyMonetaryWalletOperationPayload: LoyaltyMonetaryWalletOperationPayload;
+  LoyaltyMonetaryWalletPayload: LoyaltyMonetaryWalletPayload;
+  LoyaltyMonetaryWalletStatusUpdateInput: LoyaltyMonetaryWalletStatusUpdateInput;
+  LoyaltyMonetaryWalletWhereInput: LoyaltyMonetaryWalletWhereInput;
   LoyaltyMoney: LoyaltyMoney;
   LoyaltyMutation: LoyaltyMutation;
   LoyaltyPointLot: LoyaltyPointLot;
   LoyaltyPointsAdjustInput: LoyaltyPointsAdjustInput;
   LoyaltyPointsAdjustPayload: LoyaltyPointsAdjustPayload;
+  LoyaltyPointsConvertToMonetaryInput: LoyaltyPointsConvertToMonetaryInput;
+  LoyaltyPointsConvertToMonetaryPayload: LoyaltyPointsConvertToMonetaryPayload;
   LoyaltyProgram: LoyaltyProgram;
   LoyaltyProgramConnection: LoyaltyProgramConnection;
   LoyaltyProgramCreateInput: LoyaltyProgramCreateInput;
@@ -1983,8 +3015,12 @@ export type ResolversParentTypes = ResolversObject<{
   LoyaltyProgramVersion: LoyaltyProgramVersion;
   LoyaltyProgramVersionCreateInput: LoyaltyProgramVersionCreateInput;
   LoyaltyProgramVersionCreatePayload: LoyaltyProgramVersionCreatePayload;
+  LoyaltyProgramVersionDeleteInput: LoyaltyProgramVersionDeleteInput;
+  LoyaltyProgramVersionDeletePayload: LoyaltyProgramVersionDeletePayload;
   LoyaltyProgramVersionPublishInput: LoyaltyProgramVersionPublishInput;
   LoyaltyProgramVersionPublishPayload: LoyaltyProgramVersionPublishPayload;
+  LoyaltyProgramVersionUpdateInput: LoyaltyProgramVersionUpdateInput;
+  LoyaltyProgramVersionUpdatePayload: LoyaltyProgramVersionUpdatePayload;
   LoyaltyProgramWhereInput: LoyaltyProgramWhereInput;
   LoyaltyQuery: Omit<LoyaltyQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   LoyaltyReservation: LoyaltyReservation;
@@ -1995,13 +3031,37 @@ export type ResolversParentTypes = ResolversObject<{
   LoyaltyReservationReleasePayload: LoyaltyReservationReleasePayload;
   LoyaltyReservationWhereInput: LoyaltyReservationWhereInput;
   LoyaltyRewardDefinition: LoyaltyRewardDefinition;
+  LoyaltyRewardDefinitionCreateInput: LoyaltyRewardDefinitionCreateInput;
+  LoyaltyRewardDefinitionDeleteInput: LoyaltyRewardDefinitionDeleteInput;
   LoyaltyRewardDefinitionInput: LoyaltyRewardDefinitionInput;
+  LoyaltyRewardDefinitionPayload: LoyaltyRewardDefinitionPayload;
+  LoyaltyRewardDefinitionUpdateInput: LoyaltyRewardDefinitionUpdateInput;
+  LoyaltyRewardEntitlement: LoyaltyRewardEntitlement;
+  LoyaltyRewardEntitlementEvent: LoyaltyRewardEntitlementEvent;
+  LoyaltyRewardEntitlementIssueInput: LoyaltyRewardEntitlementIssueInput;
+  LoyaltyRewardEntitlementPayload: LoyaltyRewardEntitlementPayload;
+  LoyaltyRewardEntitlementTransitionInput: LoyaltyRewardEntitlementTransitionInput;
+  LoyaltyRewardEntitlementWhereInput: LoyaltyRewardEntitlementWhereInput;
   LoyaltyTier: LoyaltyTier;
+  LoyaltyTierCreateInput: LoyaltyTierCreateInput;
+  LoyaltyTierDeleteInput: LoyaltyTierDeleteInput;
+  LoyaltyTierEvaluateInput: LoyaltyTierEvaluateInput;
+  LoyaltyTierEvaluatePayload: LoyaltyTierEvaluatePayload;
   LoyaltyTierInput: LoyaltyTierInput;
   LoyaltyTierMembership: LoyaltyTierMembership;
   LoyaltyTierMembershipEvent: LoyaltyTierMembershipEvent;
+  LoyaltyTierMembershipRevokeInput: LoyaltyTierMembershipRevokeInput;
+  LoyaltyTierPayload: LoyaltyTierPayload;
   LoyaltyTierPolicy: LoyaltyTierPolicy;
+  LoyaltyTierPolicyDeleteInput: LoyaltyTierPolicyDeleteInput;
   LoyaltyTierPolicyInput: LoyaltyTierPolicyInput;
+  LoyaltyTierPolicyPayload: LoyaltyTierPolicyPayload;
+  LoyaltyTierPolicyUpsertInput: LoyaltyTierPolicyUpsertInput;
+  LoyaltyTierRewardBenefit: LoyaltyTierRewardBenefit;
+  LoyaltyTierRewardBenefitCreateInput: LoyaltyTierRewardBenefitCreateInput;
+  LoyaltyTierRewardBenefitDeleteInput: LoyaltyTierRewardBenefitDeleteInput;
+  LoyaltyTierRewardBenefitPayload: LoyaltyTierRewardBenefitPayload;
+  LoyaltyTierUpdateInput: LoyaltyTierUpdateInput;
   LoyaltyTransaction: LoyaltyTransaction;
   LoyaltyTransactionConnection: LoyaltyTransactionConnection;
   LoyaltyTransactionEdge: LoyaltyTransactionEdge;
@@ -2041,13 +3101,16 @@ export type LoyaltyAccountResolvers<ContextType = ServiceContext, ParentType ext
   expiringPoints?: Resolver<Array<ResolversTypes['LoyaltyExpiringPoints']>, ParentType, ContextType, RequireFields<LoyaltyAccountExpiringPointsArgs, 'first'>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   mergedIntoAccount?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType>;
+  monetaryWallets?: Resolver<Array<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
   openedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   program?: Resolver<ResolversTypes['LoyaltyProgram'], ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  rewardEntitlements?: Resolver<Array<ResolversTypes['LoyaltyRewardEntitlement']>, ParentType, ContextType, RequireFields<LoyaltyAccountRewardEntitlementsArgs, 'first'>>;
   status?: Resolver<ResolversTypes['LoyaltyAccountStatus'], ParentType, ContextType>;
   suspendedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   suspendedReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   tierMembership?: Resolver<Maybe<ResolversTypes['LoyaltyTierMembership']>, ParentType, ContextType>;
+  tierMemberships?: Resolver<Array<ResolversTypes['LoyaltyTierMembership']>, ParentType, ContextType, RequireFields<LoyaltyAccountTierMembershipsArgs, 'first'>>;
   transactions?: Resolver<ResolversTypes['LoyaltyTransactionConnection'], ParentType, ContextType, Partial<LoyaltyAccountTransactionsArgs>>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2064,6 +3127,13 @@ export type LoyaltyAccountBalanceResolvers<ContextType = ServiceContext, ParentT
   reservedPoints?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyAccountBalanceRebuildPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyAccountBalanceRebuildPayload'] = ResolversParentTypes['LoyaltyAccountBalanceRebuildPayload']> = ResolversObject<{
+  account?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType>;
+  balance?: Resolver<Maybe<ResolversTypes['LoyaltyAccountBalance']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2089,6 +3159,12 @@ export type LoyaltyAccountStatusUpdatePayloadResolvers<ContextType = ServiceCont
 export type LoyaltyCatalogSelectorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyCatalogSelector'] = ResolversParentTypes['LoyaltyCatalogSelector']> = ResolversObject<{
   ids?: Resolver<Array<ResolversTypes['ID']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['LoyaltyCatalogSelectorType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyDeletePayload'] = ResolversParentTypes['LoyaltyDeletePayload']> = ResolversObject<{
+  deletedId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2126,6 +3202,62 @@ export type LoyaltyEarningRuleResolvers<ContextType = ServiceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type LoyaltyEarningRulePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyEarningRulePayload'] = ResolversParentTypes['LoyaltyEarningRulePayload']> = ResolversObject<{
+  earningRule?: Resolver<Maybe<ResolversTypes['LoyaltyEarningRule']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyEarningRuleUsageResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyEarningRuleUsage'] = ResolversParentTypes['LoyaltyEarningRuleUsage']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyEarningRuleUsage']>, { __typename: 'LoyaltyEarningRuleUsage' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  earningRule?: Resolver<ResolversTypes['LoyaltyEarningRule'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  monetaryAmounts?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  occurrenceCount?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  pointsAwarded?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  scopeKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  windowEndedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  windowStartedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyEventEvaluationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyEventEvaluation'] = ResolversParentTypes['LoyaltyEventEvaluation']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyEventEvaluation']>, { __typename: 'LoyaltyEventEvaluation' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  account?: Resolver<ResolversTypes['LoyaltyAccount'], ParentType, ContextType>;
+  decision?: Resolver<ResolversTypes['LoyaltyEventEvaluationDecision'], ParentType, ContextType>;
+  earningRule?: Resolver<ResolversTypes['LoyaltyEarningRule'], ParentType, ContextType>;
+  evaluatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  eventFact?: Resolver<ResolversTypes['LoyaltyEventFact'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  monetaryAmount?: Resolver<Maybe<ResolversTypes['LoyaltyMoney']>, ParentType, ContextType>;
+  pointsAwarded?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  reasonCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  result?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  resultSchemaVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  transaction?: Resolver<Maybe<ResolversTypes['LoyaltyTransaction']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyEventFactResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyEventFact'] = ResolversParentTypes['LoyaltyEventFact']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyEventFact']>, { __typename: 'LoyaltyEventFact' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  customerId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  evaluations?: Resolver<Array<ResolversTypes['LoyaltyEventEvaluation']>, ParentType, ContextType>;
+  eventType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  externalEventId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  payload?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  payloadHash?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  payloadSchemaVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  producer?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  receivedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  subjectId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  subjectType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type LoyaltyExpiringPointsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyExpiringPoints'] = ResolversParentTypes['LoyaltyExpiringPoints']> = ResolversObject<{
   expiresAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   lotId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -2157,6 +3289,126 @@ export type LoyaltyLotAllocationResolvers<ContextType = ServiceContext, ParentTy
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type LoyaltyMaintenanceResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMaintenanceResult'] = ResolversParentTypes['LoyaltyMaintenanceResult']> = ResolversObject<{
+  activatedMonetaryLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  activatedPointLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  activatedProgramVersions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  evaluatedTiers?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  expiredMonetaryLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  expiredPointLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  expiredRewards?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  rebuiltBalances?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMaintenanceRunPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMaintenanceRunPayload'] = ResolversParentTypes['LoyaltyMaintenanceRunPayload']> = ResolversObject<{
+  result?: Resolver<Maybe<ResolversTypes['LoyaltyMaintenanceResult']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryCreditLotResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryCreditLot'] = ResolversParentTypes['LoyaltyMonetaryCreditLot']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyMonetaryCreditLot']>, { __typename: 'LoyaltyMonetaryCreditLot' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  activatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  allocations?: Resolver<Array<ResolversTypes['LoyaltyMonetaryLotAllocation']>, ParentType, ContextType>;
+  amountIssued?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  expiresAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  originEntry?: Resolver<ResolversTypes['LoyaltyMonetaryLedgerEntry'], ParentType, ContextType>;
+  remainingAmount?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  wallet?: Resolver<ResolversTypes['LoyaltyMonetaryWallet'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryLedgerEntryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryLedgerEntry'] = ResolversParentTypes['LoyaltyMonetaryLedgerEntry']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyMonetaryLedgerEntry']>, { __typename: 'LoyaltyMonetaryLedgerEntry' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amount?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  bucket?: Resolver<ResolversTypes['LoyaltyMonetaryBalanceBucket'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  sequence?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  transaction?: Resolver<ResolversTypes['LoyaltyMonetaryTransaction'], ParentType, ContextType>;
+  wallet?: Resolver<ResolversTypes['LoyaltyMonetaryWallet'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryLotAllocationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryLotAllocation'] = ResolversParentTypes['LoyaltyMonetaryLotAllocation']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyMonetaryLotAllocation']>, { __typename: 'LoyaltyMonetaryLotAllocation' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  amount?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  debitEntry?: Resolver<ResolversTypes['LoyaltyMonetaryLedgerEntry'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  lot?: Resolver<ResolversTypes['LoyaltyMonetaryCreditLot'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryTransactionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryTransaction'] = ResolversParentTypes['LoyaltyMonetaryTransaction']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, { __typename: 'LoyaltyMonetaryTransaction' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  actorId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  actorType?: Resolver<ResolversTypes['LoyaltyActorType'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  effectiveAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  entries?: Resolver<Array<ResolversTypes['LoyaltyMonetaryLedgerEntry']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['LoyaltyMonetaryTransactionKind'], ParentType, ContextType>;
+  metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  program?: Resolver<ResolversTypes['LoyaltyProgram'], ParentType, ContextType>;
+  programVersion?: Resolver<Maybe<ResolversTypes['LoyaltyProgramVersion']>, ParentType, ContextType>;
+  reasonCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  requestHash?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  sourceId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sourceRevision?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  sourceType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  wallet?: Resolver<ResolversTypes['LoyaltyMonetaryWallet'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryWalletResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryWallet'] = ResolversParentTypes['LoyaltyMonetaryWallet']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, { __typename: 'LoyaltyMonetaryWallet' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  account?: Resolver<ResolversTypes['LoyaltyAccount'], ParentType, ContextType>;
+  balance?: Resolver<ResolversTypes['LoyaltyMonetaryWalletBalance'], ParentType, ContextType>;
+  closedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  creditLots?: Resolver<Array<ResolversTypes['LoyaltyMonetaryCreditLot']>, ParentType, ContextType>;
+  currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  mergedIntoWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
+  openedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  program?: Resolver<ResolversTypes['LoyaltyProgram'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['LoyaltyMonetaryWalletStatus'], ParentType, ContextType>;
+  transactions?: Resolver<Array<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType, RequireFields<LoyaltyMonetaryWalletTransactionsArgs, 'first'>>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  walletType?: Resolver<ResolversTypes['LoyaltyMonetaryWalletType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryWalletBalanceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryWalletBalance'] = ResolversParentTypes['LoyaltyMonetaryWalletBalance']> = ResolversObject<{
+  available?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  debt?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  lastTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType>;
+  pending?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  reserved?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryWalletOperationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryWalletOperationPayload'] = ResolversParentTypes['LoyaltyMonetaryWalletOperationPayload']> = ResolversObject<{
+  monetaryWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
+  transaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyMonetaryWalletPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMonetaryWalletPayload'] = ResolversParentTypes['LoyaltyMonetaryWalletPayload']> = ResolversObject<{
+  monetaryWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type LoyaltyMoneyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMoney'] = ResolversParentTypes['LoyaltyMoney']> = ResolversObject<{
   amountMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   currencyCode?: Resolver<ResolversTypes['CurrencyCode'], ParentType, ContextType>;
@@ -2164,13 +3416,39 @@ export type LoyaltyMoneyResolvers<ContextType = ServiceContext, ParentType exten
 }>;
 
 export type LoyaltyMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMutation'] = ResolversParentTypes['LoyaltyMutation']> = ResolversObject<{
+  accountBalanceRebuild?: Resolver<ResolversTypes['LoyaltyAccountBalanceRebuildPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationAccountBalanceRebuildArgs, 'input'>>;
   accountStatusUpdate?: Resolver<ResolversTypes['LoyaltyAccountStatusUpdatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationAccountStatusUpdateArgs, 'input'>>;
+  earningRuleCreate?: Resolver<ResolversTypes['LoyaltyEarningRulePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationEarningRuleCreateArgs, 'input'>>;
+  earningRuleDelete?: Resolver<ResolversTypes['LoyaltyDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationEarningRuleDeleteArgs, 'input'>>;
+  earningRuleUpdate?: Resolver<ResolversTypes['LoyaltyEarningRulePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationEarningRuleUpdateArgs, 'input'>>;
+  maintenanceRun?: Resolver<ResolversTypes['LoyaltyMaintenanceRunPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationMaintenanceRunArgs, 'input'>>;
+  monetaryWalletAdjust?: Resolver<ResolversTypes['LoyaltyMonetaryWalletOperationPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationMonetaryWalletAdjustArgs, 'input'>>;
+  monetaryWalletBalanceRebuild?: Resolver<ResolversTypes['LoyaltyMonetaryWalletPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationMonetaryWalletBalanceRebuildArgs, 'input'>>;
+  monetaryWalletStatusUpdate?: Resolver<ResolversTypes['LoyaltyMonetaryWalletPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationMonetaryWalletStatusUpdateArgs, 'input'>>;
   pointsAdjust?: Resolver<ResolversTypes['LoyaltyPointsAdjustPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationPointsAdjustArgs, 'input'>>;
+  pointsConvertToMonetary?: Resolver<ResolversTypes['LoyaltyPointsConvertToMonetaryPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationPointsConvertToMonetaryArgs, 'input'>>;
   programCreate?: Resolver<ResolversTypes['LoyaltyProgramCreatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramCreateArgs, 'input'>>;
   programUpdate?: Resolver<ResolversTypes['LoyaltyProgramUpdatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramUpdateArgs, 'input'>>;
   programVersionCreate?: Resolver<ResolversTypes['LoyaltyProgramVersionCreatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramVersionCreateArgs, 'input'>>;
+  programVersionDelete?: Resolver<ResolversTypes['LoyaltyProgramVersionDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramVersionDeleteArgs, 'input'>>;
   programVersionPublish?: Resolver<ResolversTypes['LoyaltyProgramVersionPublishPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramVersionPublishArgs, 'input'>>;
+  programVersionUpdate?: Resolver<ResolversTypes['LoyaltyProgramVersionUpdatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationProgramVersionUpdateArgs, 'input'>>;
   reservationRelease?: Resolver<ResolversTypes['LoyaltyReservationReleasePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationReservationReleaseArgs, 'input'>>;
+  rewardDefinitionCreate?: Resolver<ResolversTypes['LoyaltyRewardDefinitionPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardDefinitionCreateArgs, 'input'>>;
+  rewardDefinitionDelete?: Resolver<ResolversTypes['LoyaltyDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardDefinitionDeleteArgs, 'input'>>;
+  rewardDefinitionUpdate?: Resolver<ResolversTypes['LoyaltyRewardDefinitionPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardDefinitionUpdateArgs, 'input'>>;
+  rewardEntitlementIssue?: Resolver<ResolversTypes['LoyaltyRewardEntitlementPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardEntitlementIssueArgs, 'input'>>;
+  rewardEntitlementRelease?: Resolver<ResolversTypes['LoyaltyRewardEntitlementPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardEntitlementReleaseArgs, 'input'>>;
+  rewardEntitlementRevoke?: Resolver<ResolversTypes['LoyaltyRewardEntitlementPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationRewardEntitlementRevokeArgs, 'input'>>;
+  tierCreate?: Resolver<ResolversTypes['LoyaltyTierPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierCreateArgs, 'input'>>;
+  tierDelete?: Resolver<ResolversTypes['LoyaltyDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierDeleteArgs, 'input'>>;
+  tierEvaluate?: Resolver<ResolversTypes['LoyaltyTierEvaluatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierEvaluateArgs, 'input'>>;
+  tierMembershipRevoke?: Resolver<ResolversTypes['LoyaltyTierEvaluatePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierMembershipRevokeArgs, 'input'>>;
+  tierPolicyDelete?: Resolver<ResolversTypes['LoyaltyDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierPolicyDeleteArgs, 'input'>>;
+  tierPolicyUpsert?: Resolver<ResolversTypes['LoyaltyTierPolicyPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierPolicyUpsertArgs, 'input'>>;
+  tierRewardBenefitCreate?: Resolver<ResolversTypes['LoyaltyTierRewardBenefitPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierRewardBenefitCreateArgs, 'input'>>;
+  tierRewardBenefitDelete?: Resolver<ResolversTypes['LoyaltyDeletePayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierRewardBenefitDeleteArgs, 'input'>>;
+  tierUpdate?: Resolver<ResolversTypes['LoyaltyTierPayload'], ParentType, ContextType, RequireFields<LoyaltyMutationTierUpdateArgs, 'input'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2192,6 +3470,16 @@ export type LoyaltyPointLotResolvers<ContextType = ServiceContext, ParentType ex
 export type LoyaltyPointsAdjustPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyPointsAdjustPayload'] = ResolversParentTypes['LoyaltyPointsAdjustPayload']> = ResolversObject<{
   account?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType>;
   transaction?: Resolver<Maybe<ResolversTypes['LoyaltyTransaction']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyPointsConvertToMonetaryPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyPointsConvertToMonetaryPayload'] = ResolversParentTypes['LoyaltyPointsConvertToMonetaryPayload']> = ResolversObject<{
+  account?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType>;
+  amount?: Resolver<Maybe<ResolversTypes['LoyaltyMoney']>, ParentType, ContextType>;
+  monetaryTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType>;
+  monetaryWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
+  pointsTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyTransaction']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2307,7 +3595,19 @@ export type LoyaltyProgramVersionCreatePayloadResolvers<ContextType = ServiceCon
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type LoyaltyProgramVersionDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyProgramVersionDeletePayload'] = ResolversParentTypes['LoyaltyProgramVersionDeletePayload']> = ResolversObject<{
+  deletedProgramVersionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type LoyaltyProgramVersionPublishPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyProgramVersionPublishPayload'] = ResolversParentTypes['LoyaltyProgramVersionPublishPayload']> = ResolversObject<{
+  programVersion?: Resolver<Maybe<ResolversTypes['LoyaltyProgramVersion']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyProgramVersionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyProgramVersionUpdatePayload'] = ResolversParentTypes['LoyaltyProgramVersionUpdatePayload']> = ResolversObject<{
   programVersion?: Resolver<Maybe<ResolversTypes['LoyaltyProgramVersion']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2317,12 +3617,30 @@ export type LoyaltyQueryResolvers<ContextType = ServiceContext, ParentType exten
   account?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType, RequireFields<LoyaltyQueryAccountArgs, 'id'>>;
   accounts?: Resolver<ResolversTypes['LoyaltyAccountConnection'], ParentType, ContextType, Partial<LoyaltyQueryAccountsArgs>>;
   customerAccount?: Resolver<Maybe<ResolversTypes['LoyaltyAccount']>, ParentType, ContextType, RequireFields<LoyaltyQueryCustomerAccountArgs, 'customerId'>>;
+  earningRule?: Resolver<Maybe<ResolversTypes['LoyaltyEarningRule']>, ParentType, ContextType, RequireFields<LoyaltyQueryEarningRuleArgs, 'id'>>;
+  earningRuleUsages?: Resolver<Array<ResolversTypes['LoyaltyEarningRuleUsage']>, ParentType, ContextType, RequireFields<LoyaltyQueryEarningRuleUsagesArgs, 'first' | 'where'>>;
+  eventEvaluation?: Resolver<Maybe<ResolversTypes['LoyaltyEventEvaluation']>, ParentType, ContextType, RequireFields<LoyaltyQueryEventEvaluationArgs, 'id'>>;
+  eventEvaluations?: Resolver<Array<ResolversTypes['LoyaltyEventEvaluation']>, ParentType, ContextType, RequireFields<LoyaltyQueryEventEvaluationsArgs, 'first' | 'where'>>;
+  eventFact?: Resolver<Maybe<ResolversTypes['LoyaltyEventFact']>, ParentType, ContextType, RequireFields<LoyaltyQueryEventFactArgs, 'id'>>;
+  eventFacts?: Resolver<Array<ResolversTypes['LoyaltyEventFact']>, ParentType, ContextType, RequireFields<LoyaltyQueryEventFactsArgs, 'first'>>;
+  monetaryTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType, RequireFields<LoyaltyQueryMonetaryTransactionArgs, 'id'>>;
+  monetaryTransactions?: Resolver<Array<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType, RequireFields<LoyaltyQueryMonetaryTransactionsArgs, 'first' | 'walletId'>>;
+  monetaryWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType, RequireFields<LoyaltyQueryMonetaryWalletArgs, 'id'>>;
+  monetaryWallets?: Resolver<Array<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType, RequireFields<LoyaltyQueryMonetaryWalletsArgs, 'first' | 'where'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<LoyaltyQueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<LoyaltyQueryNodesArgs, 'ids'>>;
   program?: Resolver<Maybe<ResolversTypes['LoyaltyProgram']>, ParentType, ContextType, RequireFields<LoyaltyQueryProgramArgs, 'id'>>;
+  programVersion?: Resolver<Maybe<ResolversTypes['LoyaltyProgramVersion']>, ParentType, ContextType, RequireFields<LoyaltyQueryProgramVersionArgs, 'id'>>;
   programs?: Resolver<ResolversTypes['LoyaltyProgramConnection'], ParentType, ContextType, Partial<LoyaltyQueryProgramsArgs>>;
   reservation?: Resolver<Maybe<ResolversTypes['LoyaltyReservation']>, ParentType, ContextType, RequireFields<LoyaltyQueryReservationArgs, 'id'>>;
   reservations?: Resolver<ResolversTypes['LoyaltyReservationConnection'], ParentType, ContextType, Partial<LoyaltyQueryReservationsArgs>>;
+  rewardDefinition?: Resolver<Maybe<ResolversTypes['LoyaltyRewardDefinition']>, ParentType, ContextType, RequireFields<LoyaltyQueryRewardDefinitionArgs, 'id'>>;
+  rewardEntitlement?: Resolver<Maybe<ResolversTypes['LoyaltyRewardEntitlement']>, ParentType, ContextType, RequireFields<LoyaltyQueryRewardEntitlementArgs, 'id'>>;
+  rewardEntitlements?: Resolver<Array<ResolversTypes['LoyaltyRewardEntitlement']>, ParentType, ContextType, RequireFields<LoyaltyQueryRewardEntitlementsArgs, 'first' | 'where'>>;
+  tier?: Resolver<Maybe<ResolversTypes['LoyaltyTier']>, ParentType, ContextType, RequireFields<LoyaltyQueryTierArgs, 'id'>>;
+  tierMembership?: Resolver<Maybe<ResolversTypes['LoyaltyTierMembership']>, ParentType, ContextType, RequireFields<LoyaltyQueryTierMembershipArgs, 'id'>>;
+  tierMemberships?: Resolver<Array<ResolversTypes['LoyaltyTierMembership']>, ParentType, ContextType, RequireFields<LoyaltyQueryTierMembershipsArgs, 'accountId' | 'first'>>;
+  tierPolicy?: Resolver<Maybe<ResolversTypes['LoyaltyTierPolicy']>, ParentType, ContextType, RequireFields<LoyaltyQueryTierPolicyArgs, 'id'>>;
   transaction?: Resolver<Maybe<ResolversTypes['LoyaltyTransaction']>, ParentType, ContextType, RequireFields<LoyaltyQueryTransactionArgs, 'id'>>;
   transactions?: Resolver<ResolversTypes['LoyaltyTransactionConnection'], ParentType, ContextType, Partial<LoyaltyQueryTransactionsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2405,12 +3723,70 @@ export type LoyaltyRewardDefinitionResolvers<ContextType = ServiceContext, Paren
   endsAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   issuanceLimit?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
+  issuedQuantity?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   perAccountLimit?: Resolver<Maybe<ResolversTypes['BigInt']>, ParentType, ContextType>;
   programVersion?: Resolver<ResolversTypes['LoyaltyProgramVersion'], ParentType, ContextType>;
   rewardType?: Resolver<ResolversTypes['LoyaltyRewardType'], ParentType, ContextType>;
   startsAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   validityDays?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyRewardDefinitionPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyRewardDefinitionPayload'] = ResolversParentTypes['LoyaltyRewardDefinitionPayload']> = ResolversObject<{
+  rewardDefinition?: Resolver<Maybe<ResolversTypes['LoyaltyRewardDefinition']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyRewardEntitlementResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyRewardEntitlement'] = ResolversParentTypes['LoyaltyRewardEntitlement']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyRewardEntitlement']>, { __typename: 'LoyaltyRewardEntitlement' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  account?: Resolver<ResolversTypes['LoyaltyAccount'], ParentType, ContextType>;
+  configurationSchemaVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  configurationSnapshot?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  definition?: Resolver<ResolversTypes['LoyaltyRewardDefinition'], ParentType, ContextType>;
+  events?: Resolver<Array<ResolversTypes['LoyaltyRewardEntitlementEvent']>, ParentType, ContextType>;
+  expiredAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  externalReference?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  issuanceTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyTransaction']>, ParentType, ContextType>;
+  issuedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  monetaryTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType>;
+  quantity?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
+  redeemedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  redeemedOrderId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  reservedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  reservedForCheckoutId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  revokedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  sourceEventFact?: Resolver<Maybe<ResolversTypes['LoyaltyEventFact']>, ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['LoyaltyRewardEntitlementStatus'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  validFrom?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  validTo?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyRewardEntitlementEventResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyRewardEntitlementEvent'] = ResolversParentTypes['LoyaltyRewardEntitlementEvent']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyRewardEntitlementEvent']>, { __typename: 'LoyaltyRewardEntitlementEvent' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  actorId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  actorType?: Resolver<ResolversTypes['LoyaltyActorType'], ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  entitlement?: Resolver<ResolversTypes['LoyaltyRewardEntitlement'], ParentType, ContextType>;
+  eventType?: Resolver<ResolversTypes['LoyaltyRewardEntitlementEventType'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  previousStatus?: Resolver<Maybe<ResolversTypes['LoyaltyRewardEntitlementStatus']>, ParentType, ContextType>;
+  reasonCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  status?: Resolver<ResolversTypes['LoyaltyRewardEntitlementStatus'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyRewardEntitlementPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyRewardEntitlementPayload'] = ResolversParentTypes['LoyaltyRewardEntitlementPayload']> = ResolversObject<{
+  rewardEntitlement?: Resolver<Maybe<ResolversTypes['LoyaltyRewardEntitlement']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2425,6 +3801,13 @@ export type LoyaltyTierResolvers<ContextType = ServiceContext, ParentType extend
   qualification?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   qualificationSchemaVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   rank?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  rewardBenefits?: Resolver<Array<ResolversTypes['LoyaltyTierRewardBenefit']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyTierEvaluatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierEvaluatePayload'] = ResolversParentTypes['LoyaltyTierEvaluatePayload']> = ResolversObject<{
+  tierMembership?: Resolver<Maybe<ResolversTypes['LoyaltyTierMembership']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2462,6 +3845,12 @@ export type LoyaltyTierMembershipEventResolvers<ContextType = ServiceContext, Pa
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type LoyaltyTierPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierPayload'] = ResolversParentTypes['LoyaltyTierPayload']> = ResolversObject<{
+  tier?: Resolver<Maybe<ResolversTypes['LoyaltyTier']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type LoyaltyTierPolicyResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierPolicy'] = ResolversParentTypes['LoyaltyTierPolicy']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyTierPolicy']>, { __typename: 'LoyaltyTierPolicy' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   calendarPeriod?: Resolver<Maybe<ResolversTypes['LoyaltyTierCalendarPeriod']>, ParentType, ContextType>;
@@ -2476,6 +3865,29 @@ export type LoyaltyTierPolicyResolvers<ContextType = ServiceContext, ParentType 
   requalificationPolicy?: Resolver<ResolversTypes['LoyaltyTierRequalificationPolicy'], ParentType, ContextType>;
   rollingWindowDays?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   windowType?: Resolver<ResolversTypes['LoyaltyTierEvaluationWindowType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyTierPolicyPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierPolicyPayload'] = ResolversParentTypes['LoyaltyTierPolicyPayload']> = ResolversObject<{
+  tierPolicy?: Resolver<Maybe<ResolversTypes['LoyaltyTierPolicy']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyTierRewardBenefitResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierRewardBenefit'] = ResolversParentTypes['LoyaltyTierRewardBenefit']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyTierRewardBenefit']>, { __typename: 'LoyaltyTierRewardBenefit' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  grantPolicy?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  grantPolicySchemaVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  rewardDefinition?: Resolver<ResolversTypes['LoyaltyRewardDefinition'], ParentType, ContextType>;
+  tier?: Resolver<ResolversTypes['LoyaltyTier'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type LoyaltyTierRewardBenefitPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyTierRewardBenefitPayload'] = ResolversParentTypes['LoyaltyTierRewardBenefitPayload']> = ResolversObject<{
+  tierRewardBenefit?: Resolver<Maybe<ResolversTypes['LoyaltyTierRewardBenefit']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['LoyaltyUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2534,7 +3946,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Customer' | 'LoyaltyAccount' | 'LoyaltyEarningRule' | 'LoyaltyLedgerEntry' | 'LoyaltyLotAllocation' | 'LoyaltyPointLot' | 'LoyaltyProgram' | 'LoyaltyProgramVersion' | 'LoyaltyReservation' | 'LoyaltyReservationEvent' | 'LoyaltyRewardDefinition' | 'LoyaltyTier' | 'LoyaltyTierMembership' | 'LoyaltyTierMembershipEvent' | 'LoyaltyTierPolicy' | 'LoyaltyTransaction', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Customer' | 'LoyaltyAccount' | 'LoyaltyEarningRule' | 'LoyaltyEarningRuleUsage' | 'LoyaltyEventEvaluation' | 'LoyaltyEventFact' | 'LoyaltyLedgerEntry' | 'LoyaltyLotAllocation' | 'LoyaltyMonetaryCreditLot' | 'LoyaltyMonetaryLedgerEntry' | 'LoyaltyMonetaryLotAllocation' | 'LoyaltyMonetaryTransaction' | 'LoyaltyMonetaryWallet' | 'LoyaltyPointLot' | 'LoyaltyProgram' | 'LoyaltyProgramVersion' | 'LoyaltyReservation' | 'LoyaltyReservationEvent' | 'LoyaltyRewardDefinition' | 'LoyaltyRewardEntitlement' | 'LoyaltyRewardEntitlementEvent' | 'LoyaltyTier' | 'LoyaltyTierMembership' | 'LoyaltyTierMembershipEvent' | 'LoyaltyTierPolicy' | 'LoyaltyTierRewardBenefit' | 'LoyaltyTransaction', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2564,19 +3976,36 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   JSON?: GraphQLScalarType;
   LoyaltyAccount?: LoyaltyAccountResolvers<ContextType>;
   LoyaltyAccountBalance?: LoyaltyAccountBalanceResolvers<ContextType>;
+  LoyaltyAccountBalanceRebuildPayload?: LoyaltyAccountBalanceRebuildPayloadResolvers<ContextType>;
   LoyaltyAccountConnection?: LoyaltyAccountConnectionResolvers<ContextType>;
   LoyaltyAccountEdge?: LoyaltyAccountEdgeResolvers<ContextType>;
   LoyaltyAccountStatusUpdatePayload?: LoyaltyAccountStatusUpdatePayloadResolvers<ContextType>;
   LoyaltyCatalogSelector?: LoyaltyCatalogSelectorResolvers<ContextType>;
+  LoyaltyDeletePayload?: LoyaltyDeletePayloadResolvers<ContextType>;
   LoyaltyEarningModifier?: LoyaltyEarningModifierResolvers<ContextType>;
   LoyaltyEarningRule?: LoyaltyEarningRuleResolvers<ContextType>;
+  LoyaltyEarningRulePayload?: LoyaltyEarningRulePayloadResolvers<ContextType>;
+  LoyaltyEarningRuleUsage?: LoyaltyEarningRuleUsageResolvers<ContextType>;
+  LoyaltyEventEvaluation?: LoyaltyEventEvaluationResolvers<ContextType>;
+  LoyaltyEventFact?: LoyaltyEventFactResolvers<ContextType>;
   LoyaltyExpiringPoints?: LoyaltyExpiringPointsResolvers<ContextType>;
   LoyaltyLedgerEntry?: LoyaltyLedgerEntryResolvers<ContextType>;
   LoyaltyLotAllocation?: LoyaltyLotAllocationResolvers<ContextType>;
+  LoyaltyMaintenanceResult?: LoyaltyMaintenanceResultResolvers<ContextType>;
+  LoyaltyMaintenanceRunPayload?: LoyaltyMaintenanceRunPayloadResolvers<ContextType>;
+  LoyaltyMonetaryCreditLot?: LoyaltyMonetaryCreditLotResolvers<ContextType>;
+  LoyaltyMonetaryLedgerEntry?: LoyaltyMonetaryLedgerEntryResolvers<ContextType>;
+  LoyaltyMonetaryLotAllocation?: LoyaltyMonetaryLotAllocationResolvers<ContextType>;
+  LoyaltyMonetaryTransaction?: LoyaltyMonetaryTransactionResolvers<ContextType>;
+  LoyaltyMonetaryWallet?: LoyaltyMonetaryWalletResolvers<ContextType>;
+  LoyaltyMonetaryWalletBalance?: LoyaltyMonetaryWalletBalanceResolvers<ContextType>;
+  LoyaltyMonetaryWalletOperationPayload?: LoyaltyMonetaryWalletOperationPayloadResolvers<ContextType>;
+  LoyaltyMonetaryWalletPayload?: LoyaltyMonetaryWalletPayloadResolvers<ContextType>;
   LoyaltyMoney?: LoyaltyMoneyResolvers<ContextType>;
   LoyaltyMutation?: LoyaltyMutationResolvers<ContextType>;
   LoyaltyPointLot?: LoyaltyPointLotResolvers<ContextType>;
   LoyaltyPointsAdjustPayload?: LoyaltyPointsAdjustPayloadResolvers<ContextType>;
+  LoyaltyPointsConvertToMonetaryPayload?: LoyaltyPointsConvertToMonetaryPayloadResolvers<ContextType>;
   LoyaltyProgram?: LoyaltyProgramResolvers<ContextType>;
   LoyaltyProgramConnection?: LoyaltyProgramConnectionResolvers<ContextType>;
   LoyaltyProgramCreatePayload?: LoyaltyProgramCreatePayloadResolvers<ContextType>;
@@ -2587,7 +4016,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   LoyaltyProgramUpdatePayload?: LoyaltyProgramUpdatePayloadResolvers<ContextType>;
   LoyaltyProgramVersion?: LoyaltyProgramVersionResolvers<ContextType>;
   LoyaltyProgramVersionCreatePayload?: LoyaltyProgramVersionCreatePayloadResolvers<ContextType>;
+  LoyaltyProgramVersionDeletePayload?: LoyaltyProgramVersionDeletePayloadResolvers<ContextType>;
   LoyaltyProgramVersionPublishPayload?: LoyaltyProgramVersionPublishPayloadResolvers<ContextType>;
+  LoyaltyProgramVersionUpdatePayload?: LoyaltyProgramVersionUpdatePayloadResolvers<ContextType>;
   LoyaltyQuery?: LoyaltyQueryResolvers<ContextType>;
   LoyaltyReservation?: LoyaltyReservationResolvers<ContextType>;
   LoyaltyReservationConnection?: LoyaltyReservationConnectionResolvers<ContextType>;
@@ -2595,10 +4026,19 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   LoyaltyReservationEvent?: LoyaltyReservationEventResolvers<ContextType>;
   LoyaltyReservationReleasePayload?: LoyaltyReservationReleasePayloadResolvers<ContextType>;
   LoyaltyRewardDefinition?: LoyaltyRewardDefinitionResolvers<ContextType>;
+  LoyaltyRewardDefinitionPayload?: LoyaltyRewardDefinitionPayloadResolvers<ContextType>;
+  LoyaltyRewardEntitlement?: LoyaltyRewardEntitlementResolvers<ContextType>;
+  LoyaltyRewardEntitlementEvent?: LoyaltyRewardEntitlementEventResolvers<ContextType>;
+  LoyaltyRewardEntitlementPayload?: LoyaltyRewardEntitlementPayloadResolvers<ContextType>;
   LoyaltyTier?: LoyaltyTierResolvers<ContextType>;
+  LoyaltyTierEvaluatePayload?: LoyaltyTierEvaluatePayloadResolvers<ContextType>;
   LoyaltyTierMembership?: LoyaltyTierMembershipResolvers<ContextType>;
   LoyaltyTierMembershipEvent?: LoyaltyTierMembershipEventResolvers<ContextType>;
+  LoyaltyTierPayload?: LoyaltyTierPayloadResolvers<ContextType>;
   LoyaltyTierPolicy?: LoyaltyTierPolicyResolvers<ContextType>;
+  LoyaltyTierPolicyPayload?: LoyaltyTierPolicyPayloadResolvers<ContextType>;
+  LoyaltyTierRewardBenefit?: LoyaltyTierRewardBenefitResolvers<ContextType>;
+  LoyaltyTierRewardBenefitPayload?: LoyaltyTierRewardBenefitPayloadResolvers<ContextType>;
   LoyaltyTransaction?: LoyaltyTransactionResolvers<ContextType>;
   LoyaltyTransactionConnection?: LoyaltyTransactionConnectionResolvers<ContextType>;
   LoyaltyTransactionEdge?: LoyaltyTransactionEdgeResolvers<ContextType>;

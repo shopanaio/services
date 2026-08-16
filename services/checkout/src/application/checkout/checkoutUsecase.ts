@@ -22,6 +22,7 @@ import { RemoveDeliveryGroupRecipientUseCase } from "@src/application/usecases/r
 import { CreateCheckoutTagUseCase } from "@src/application/usecases/createCheckoutTagUseCase";
 import { UpdateCheckoutTagUseCase } from "@src/application/usecases/updateCheckoutTagUseCase";
 import { DeleteCheckoutTagUseCase } from "@src/application/usecases/deleteCheckoutTagUseCase";
+import { RemoveLoyaltyRedemptionUseCase, UpdateLoyaltyRedemptionUseCase } from "@src/application/usecases/updateLoyaltyRedemptionUseCase";
 import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckoutDtoByIdUseCase";
 import { GetCheckoutCompletionUseCase } from "@src/application/usecases/getCheckoutCompletionUseCase";
 import type {
@@ -57,6 +58,8 @@ export class CheckoutUsecase {
   public readonly createCheckoutTag: CreateCheckoutTagUseCase;
   public readonly updateCheckoutTag: UpdateCheckoutTagUseCase;
   public readonly deleteCheckoutTag: DeleteCheckoutTagUseCase;
+  public readonly updateLoyaltyRedemption: UpdateLoyaltyRedemptionUseCase;
+  public readonly removeLoyaltyRedemption: RemoveLoyaltyRedemptionUseCase;
 
   constructor(deps: {
     logger?: Logger;
@@ -114,5 +117,7 @@ export class CheckoutUsecase {
     this.createCheckoutTag = new CreateCheckoutTagUseCase(baseDeps);
     this.updateCheckoutTag = new UpdateCheckoutTagUseCase(baseDeps);
     this.deleteCheckoutTag = new DeleteCheckoutTagUseCase(baseDeps);
+    this.updateLoyaltyRedemption = new UpdateLoyaltyRedemptionUseCase(baseDeps);
+    this.removeLoyaltyRedemption = new RemoveLoyaltyRedemptionUseCase(baseDeps);
   }
 }

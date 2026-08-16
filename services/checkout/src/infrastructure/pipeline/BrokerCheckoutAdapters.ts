@@ -4,7 +4,9 @@ import {
   DeliveryCheckoutActions,
   PaymentsCheckoutActions,
   PricingCheckoutActions,
+  LoyaltyCheckoutActions,
   type Customers,
+  type QuoteCheckoutLoyaltyRedemptionResult,
 } from "@shopana/broker-types";
 import {
   parseCalculateDeliveryOptionsRequest,
@@ -26,12 +28,16 @@ import type {
   FinalizePricingQuoteResult,
   GetAvailablePaymentMethodsRequest,
   GetAvailablePaymentMethodsResult,
+  QuoteCheckoutLoyaltyRequest,
+  CheckoutLoyaltyQuoteResult,
 } from "../../application/pipeline/contracts/index.js";
 import type {
   DeliveryCheckoutPort,
   PaymentsCheckoutPort,
   PricingCheckoutPort,
+  LoyaltyCheckoutPort,
 } from "../../application/pipeline/ports/index.js";
+import { canonicalJsonRevision } from "../../application/pipeline/canonicalJson.js";
 import {
   CheckoutMutationError,
   type CheckoutBuyerEligibilityPort,
@@ -123,6 +129,49 @@ export class BrokerPaymentsCheckoutAdapter implements PaymentsCheckoutPort {
         "Checkout payment methods are temporarily unavailable.",
       );
     }
+  }
+}
+
+export class BrokerLoyaltyCheckoutAdapter implements LoyaltyCheckoutPort {
+  constructor(private readonly broker: ServiceBroker) {}
+
+  async quote(raw: QuoteCheckoutLoyaltyRequest): Promise<CheckoutLoyaltyQuoteResult> {
+    const payable = raw.finalQuote.totals.payableTotal;
+    if (raw.intent === null) {
+      return {
+        status: "NONE",
+        revision: canonicalJsonRevision({ status: "NONE", payable }),
+        payableAfterLoyalty: payable,
+      };
+    }
+    let result: QuoteCheckoutLoyaltyRedemptionResult;
+    try {
+      result = await this.broker.call(LoyaltyCheckoutActions.quoteRedemption, {
+        context: raw.context,
+        requestedPoints: raw.intent.requestedPoints,
+        ...(raw.intent.programId === null ? {} : { programId: raw.intent.programId }),
+      });
+    } catch (cause) {
+      throw stageFailure(
+        cause,
+        "CHECKOUT_LOYALTY_UNAVAILABLE",
+        "Loyalty redemption is temporarily unavailable.",
+      );
+    }
+    if (result.status === "QUOTED") {
+      return {
+        status: "QUOTED",
+        revision: result.quote.revision,
+        quote: result.quote,
+        context: raw.context,
+        payableAfterLoyalty: result.quote.payableAfterLoyalty,
+      };
+    }
+    return {
+      ...result,
+      revision: canonicalJsonRevision(result),
+      payableAfterLoyalty: payable,
+    };
   }
 }
 

@@ -40,6 +40,7 @@ import {
 } from "../math.js";
 
 const SHA256 = /^[0-9a-f]{64}$/;
+const CHECKOUT_RESERVATION_TTL_MS = 60 * 60_000;
 
 export class CheckoutRedemptionService {
   private readonly points: PointsLedgerService;
@@ -150,7 +151,9 @@ export class CheckoutRedemptionService {
     }
     const discountMinor = divideRounded(requested * version.redeemAmountMinor, version.redeemPoints, "DOWN");
     if (discountMinor <= 0n) return this.rejected("BELOW_MINIMUM_REDEMPTION", "Requested points produce no redeemable amount", false);
-    const expiresAt = context.deadlineAt;
+    const expiresAt = new Date(
+      Date.parse(context.requestedAt) + CHECKOUT_RESERVATION_TTL_MS,
+    ).toISOString();
     const quoteBase = {
       quoteId: randomUUID(),
       accountId: account.id,

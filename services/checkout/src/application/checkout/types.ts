@@ -142,6 +142,16 @@ export type CheckoutPaymentMethodUpdateInput = {
   customerInput?: CheckoutPipelineJsonObject;
 } & CheckoutContext;
 
+export type CheckoutLoyaltyRedemptionUpdateInput = {
+  checkoutId: string;
+  requestedPoints: string | null;
+  programId: string | null;
+} & CheckoutContext;
+
+export type CheckoutLoyaltyRedemptionRemoveInput = {
+  checkoutId: string;
+} & CheckoutContext;
+
 export type CheckoutDeliveryAddressAddInput = {
   checkoutId: string;
   addresses: CheckoutDeliveryAddressFields[];

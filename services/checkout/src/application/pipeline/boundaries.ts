@@ -23,6 +23,8 @@ import type {
   FinalizePricingQuoteResult,
   GetAvailablePaymentMethodsRequest,
   GetAvailablePaymentMethodsResult,
+  QuoteCheckoutLoyaltyRequest,
+  CheckoutLoyaltyQuoteResult,
   ValidateCheckoutRequest,
   ValidateCheckoutResult,
 } from "./contracts/index.js";
@@ -39,6 +41,7 @@ import {
   finalizePricingQuoteResultSchema,
   getAvailablePaymentMethodsRequestSchema,
   getAvailablePaymentMethodsResultSchema,
+  checkoutLoyaltyQuoteResultSchema,
   validateCheckoutRequestSchema,
   validateCheckoutResultSchema,
 } from "./schemas.js";
@@ -347,8 +350,50 @@ export function parseGetAvailablePaymentMethodsRequest(
   assertFinalCurrencies(request.finalQuote, request.context.currencyCode);
   assertPaymentDeliveryCurrencies(request.delivery, request.context.currencyCode);
   assertFinalPricingArithmetic(request.finalQuote);
+  const loyaltyDiscount = request.loyaltyRedemption === null
+    ? 0n
+    : BigInt(request.loyaltyRedemption.discount.amountMinor);
+  if (
+    request.payableAmount.currencyCode !== request.context.currencyCode ||
+    BigInt(request.finalQuote.totals.payableTotal.amountMinor) - loyaltyDiscount !==
+      BigInt(request.payableAmount.amountMinor)
+  ) {
+    throw new CheckoutPipelineBoundaryError(
+      "Payment payable amount does not match the final quote and loyalty redemption",
+    );
+  }
   assertDeliveryTotal(toPricingDeliverySnapshot(request.delivery), request.finalQuote);
   return request;
+}
+
+export function parseCheckoutLoyaltyQuoteResult(
+  request: QuoteCheckoutLoyaltyRequest,
+  value: unknown,
+): CheckoutLoyaltyQuoteResult {
+  assertPayloadSize(value, "loyalty quote result");
+  const result = checkoutLoyaltyQuoteResultSchema.parse(value) as CheckoutLoyaltyQuoteResult;
+  if (result.payableAfterLoyalty.currencyCode !== request.context.currencyCode) {
+    throw new CheckoutPipelineBoundaryError("Loyalty quote uses another currency");
+  }
+  if (result.status === "QUOTED") {
+    assertEqual(result.context.checkoutId, request.context.checkoutId, "Loyalty context checkout mismatch");
+    assertEqual(result.context.checkoutVersion, request.context.checkoutVersion, "Loyalty context version mismatch");
+    assertEqual(result.quote.basedOnCheckoutVersion, request.context.checkoutVersion, "Loyalty quote checkout version mismatch");
+    assertEqual(result.quote.basedOnPricingQuoteRevision, request.finalQuote.revision, "Loyalty quote pricing revision mismatch");
+    assertEqual(result.quote.revision, result.revision, "Loyalty quote revision mismatch");
+    if (
+      BigInt(request.finalQuote.totals.payableTotal.amountMinor) -
+        BigInt(result.quote.discount.amountMinor) !==
+      BigInt(result.payableAfterLoyalty.amountMinor)
+    ) {
+      throw new CheckoutPipelineBoundaryError("Loyalty quote payable amount is inconsistent");
+    }
+  } else if (
+    result.payableAfterLoyalty.amountMinor !== request.finalQuote.totals.payableTotal.amountMinor
+  ) {
+    throw new CheckoutPipelineBoundaryError("Non-quoted loyalty result changed the payable amount");
+  }
+  return result;
 }
 
 export function parseValidateCheckoutRequest(
@@ -915,6 +960,11 @@ export function parseGetAvailablePaymentMethodsResult(
     request.delivery.revision,
     "Payment result has stale delivery revision",
   );
+  assertEqual(
+    result.basedOnLoyaltyQuoteRevision,
+    request.loyaltyRedemption?.quoteRevision ?? null,
+    "Payment result has stale loyalty quote revision",
+  );
   assertPaymentSelectionSource(
     request.selection,
     result.selection,
@@ -1035,6 +1085,10 @@ function assertSuccessfulStages(
     },
     result.finalPricing.data,
   );
+  if (result.loyalty.status !== "SUCCESS") {
+    return;
+  }
+  const loyalty = result.loyalty.data;
   if (result.payment.status !== "SUCCESS") {
     return;
   }
@@ -1046,6 +1100,12 @@ function assertSuccessfulStages(
       },
       selection: request.cartIntent.selectedPaymentMethod,
       finalQuote,
+      payableAmount: loyalty.payableAfterLoyalty,
+      loyaltyRedemption: loyalty.status === "QUOTED" ? {
+        quoteId: loyalty.quote.quoteId,
+        quoteRevision: loyalty.quote.revision,
+        discount: loyalty.quote.discount,
+      } : null,
       delivery: toCheckoutPaymentDeliverySnapshot(delivery, preliminary),
     },
     result.payment.data,
@@ -1058,6 +1118,7 @@ function assertSuccessfulStages(
         preliminary,
         delivery,
         finalQuote,
+        payableAmount: loyalty.payableAfterLoyalty,
         payment,
       },
       result.validation.data,
@@ -1070,6 +1131,7 @@ function assertOutcomeSequence(result: CheckoutRecalculationResult): void {
     ["PRICING_PRELIMINARY", result.preliminaryPricing],
     ["DELIVERY", result.delivery],
     ["PRICING_FINAL", result.finalPricing],
+    ["LOYALTY", result.loyalty],
     ["PAYMENT", result.payment],
     ["VALIDATION", result.validation],
   ] as const;
@@ -1108,6 +1170,7 @@ function assertAggregateIssues(result: CheckoutRecalculationResult): void {
     ...result.preliminaryPricing.issues,
     ...result.delivery.issues,
     ...result.finalPricing.issues,
+    ...result.loyalty.issues,
     ...result.payment.issues,
     ...result.validation.issues,
   ];
@@ -1595,6 +1658,7 @@ function assertTrace(result: CheckoutRecalculationResult): void {
     ["PRICING_PRELIMINARY", result.preliminaryPricing],
     ["DELIVERY", result.delivery],
     ["PRICING_FINAL", result.finalPricing],
+    ["LOYALTY", result.loyalty],
     ["PAYMENT", result.payment],
     ["VALIDATION", result.validation],
   ] as const;

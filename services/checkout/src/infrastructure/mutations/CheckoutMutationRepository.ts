@@ -245,15 +245,19 @@ function canonicalProjection(result: CheckoutRecalculationResult) {
     throw new Error("Only a complete checkout pipeline result can be committed");
   }
   const totals = result.finalPricing.data.totals;
+  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+    ? result.loyalty.data.quote
+    : null;
   return {
     subtotal: totals.merchandiseSubtotal.amountMinor,
     shippingTotal: totals.deliveryTotal.amountMinor,
     discountTotal: (
       BigInt(totals.merchandiseDiscountTotal.amountMinor) +
       BigInt(totals.deliveryDiscountTotal.amountMinor)
+      + BigInt(loyalty?.discount.amountMinor ?? "0")
     ).toString(),
     taxTotal: totals.taxTotal.amountMinor,
-    grandTotal: totals.payableTotal.amountMinor,
+    grandTotal: loyalty?.payableAfterLoyalty.amountMinor ?? totals.payableTotal.amountMinor,
     valid: result.validation.data.valid,
   };
 }

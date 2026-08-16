@@ -7,6 +7,7 @@ import type {
 } from "./common.js";
 import type { CalculateDeliveryOptionsResult } from "./delivery.js";
 import type { GetAvailablePaymentMethodsResult } from "./payment.js";
+import type { CheckoutLoyaltyQuoteResult, CheckoutLoyaltyRedemptionIntent } from "./loyalty.js";
 import type {
   CalculatePreliminaryPricingResult,
   FinalizePricingQuoteResult,
@@ -29,7 +30,8 @@ export type CheckoutPipelineChange =
   | "DELIVERY_ADDRESS_UPDATE"
   | "DELIVERY_RECIPIENT_UPDATE"
   | "DELIVERY_OPTION_UPDATE"
-  | "PAYMENT_METHOD_UPDATE";
+  | "PAYMENT_METHOD_UPDATE"
+  | "LOYALTY_REDEMPTION_UPDATE";
 
 export type CheckoutRecalculationRequest = Readonly<{
   /**
@@ -39,6 +41,7 @@ export type CheckoutRecalculationRequest = Readonly<{
   context: CheckoutPipelineExecutionContext;
   change: CheckoutPipelineChange;
   cartIntent: CheckoutCartIntent;
+  loyaltyRedemption: CheckoutLoyaltyRedemptionIntent | null;
 }>;
 
 /**
@@ -64,6 +67,7 @@ export type CheckoutRecalculationResult = Readonly<{
     FinalizePricingQuoteResult,
     "PRICING_FINAL"
   >;
+  loyalty: CheckoutPipelineStageOutcome<CheckoutLoyaltyQuoteResult, "LOYALTY">;
   payment: CheckoutPipelineStageOutcome<
     GetAvailablePaymentMethodsResult,
     "PAYMENT"

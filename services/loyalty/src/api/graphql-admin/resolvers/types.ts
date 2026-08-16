@@ -26,6 +26,23 @@ import {
   LoyaltyReservationResolver,
 } from "../../../resolvers/admin/ReservationResolvers.js";
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
+import {
+  LoyaltyEarningRuleUsageResolver,
+  LoyaltyEventEvaluationResolver,
+  LoyaltyEventFactResolver,
+} from "../../../resolvers/admin/EventResolvers.js";
+import {
+  LoyaltyRewardEntitlementEventResolver,
+  LoyaltyRewardEntitlementResolver,
+  LoyaltyTierRewardBenefitResolver,
+} from "../../../resolvers/admin/RewardResolvers.js";
+import {
+  LoyaltyMonetaryCreditLotResolver,
+  LoyaltyMonetaryLedgerEntryResolver,
+  LoyaltyMonetaryLotAllocationResolver,
+  LoyaltyMonetaryTransactionResolver,
+  LoyaltyMonetaryWalletResolver,
+} from "../../../resolvers/admin/WalletResolvers.js";
 
 const nodeTypes = [
   [LoyaltyProgramResolver, "LoyaltyProgram"],
@@ -43,6 +60,17 @@ const nodeTypes = [
   [LoyaltyLotAllocationResolver, "LoyaltyLotAllocation"],
   [LoyaltyReservationResolver, "LoyaltyReservation"],
   [LoyaltyReservationEventResolver, "LoyaltyReservationEvent"],
+  [LoyaltyEventFactResolver, "LoyaltyEventFact"],
+  [LoyaltyEventEvaluationResolver, "LoyaltyEventEvaluation"],
+  [LoyaltyEarningRuleUsageResolver, "LoyaltyEarningRuleUsage"],
+  [LoyaltyRewardEntitlementResolver, "LoyaltyRewardEntitlement"],
+  [LoyaltyRewardEntitlementEventResolver, "LoyaltyRewardEntitlementEvent"],
+  [LoyaltyTierRewardBenefitResolver, "LoyaltyTierRewardBenefit"],
+  [LoyaltyMonetaryWalletResolver, "LoyaltyMonetaryWallet"],
+  [LoyaltyMonetaryTransactionResolver, "LoyaltyMonetaryTransaction"],
+  [LoyaltyMonetaryLedgerEntryResolver, "LoyaltyMonetaryLedgerEntry"],
+  [LoyaltyMonetaryCreditLotResolver, "LoyaltyMonetaryCreditLot"],
+  [LoyaltyMonetaryLotAllocationResolver, "LoyaltyMonetaryLotAllocation"],
 ] as const;
 
 function reference(Resolver: any, type: GlobalIdType) {
@@ -75,4 +103,15 @@ export const typeResolvers = {
   LoyaltyLotAllocation: { __resolveReference: reference(LoyaltyLotAllocationResolver, GlobalIdEntity.LoyaltyLotAllocation) },
   LoyaltyReservation: { __resolveReference: reference(LoyaltyReservationResolver, GlobalIdEntity.LoyaltyReservation) },
   LoyaltyReservationEvent: { __resolveReference: reference(LoyaltyReservationEventResolver, GlobalIdEntity.LoyaltyReservationEvent) },
+  LoyaltyEventFact: { __resolveReference: reference(LoyaltyEventFactResolver, GlobalIdEntity.LoyaltyEventFact) },
+  LoyaltyEventEvaluation: { __resolveReference: reference(LoyaltyEventEvaluationResolver, GlobalIdEntity.LoyaltyEventEvaluation) },
+  LoyaltyEarningRuleUsage: { __resolveReference: reference(LoyaltyEarningRuleUsageResolver, GlobalIdEntity.LoyaltyEarningRuleUsage) },
+  LoyaltyRewardEntitlement: { __resolveReference: reference(LoyaltyRewardEntitlementResolver, GlobalIdEntity.LoyaltyRewardEntitlement) },
+  LoyaltyRewardEntitlementEvent: { __resolveReference: reference(LoyaltyRewardEntitlementEventResolver, GlobalIdEntity.LoyaltyRewardEntitlementEvent) },
+  LoyaltyTierRewardBenefit: { __resolveReference: reference(LoyaltyTierRewardBenefitResolver, GlobalIdEntity.LoyaltyTierRewardBenefit) },
+  LoyaltyMonetaryWallet: { __resolveReference: reference(LoyaltyMonetaryWalletResolver, GlobalIdEntity.LoyaltyMonetaryWallet) },
+  LoyaltyMonetaryTransaction: { __resolveReference: reference(LoyaltyMonetaryTransactionResolver, GlobalIdEntity.LoyaltyMonetaryTransaction) },
+  LoyaltyMonetaryLedgerEntry: { __resolveReference: reference(LoyaltyMonetaryLedgerEntryResolver, GlobalIdEntity.LoyaltyMonetaryLedgerEntry) },
+  LoyaltyMonetaryCreditLot: { __resolveReference: reference(LoyaltyMonetaryCreditLotResolver, GlobalIdEntity.LoyaltyMonetaryCreditLot) },
+  LoyaltyMonetaryLotAllocation: { __resolveReference: reference(LoyaltyMonetaryLotAllocationResolver, GlobalIdEntity.LoyaltyMonetaryLotAllocation) },
 } as unknown as Partial<Resolvers>;

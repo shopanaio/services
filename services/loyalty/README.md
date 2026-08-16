@@ -170,6 +170,20 @@ Customers state.
 4. `loyalty.releaseCheckoutLoyaltyRedemption` on cancellation/failure
 5. `loyalty.reverseCheckoutLoyaltyRedemption` for an eligible refund
 
+Storefront Checkout exposes `checkoutLoyaltyRedemptionUpdate` (an omitted point
+amount requests the maximum allowed by policy) and
+`checkoutLoyaltyRedemptionRemove`. Checkout runs Loyalty after the immutable
+final Pricing quote and before Payments method discovery. Payments therefore
+evaluates providers and creates its collection against `payableAfterLoyalty`,
+while the original Pricing quote and the Loyalty quote remain separately
+revisioned and auditable.
+
+`placeOrder` reserves the quoted points before inventory/order side effects.
+It commits the reservation only after an order reaches a payable state, and
+releases it on order or payment failure. Pending provider flows carry the
+reservation into the durable payment monitor, which commits on settlement or
+releases on terminal failure.
+
 Reservation and commit operations are expected to lock the account, append
 ledger entries, allocate lots, update the balance projection, and write the
 reservation audit event in one PostgreSQL transaction.

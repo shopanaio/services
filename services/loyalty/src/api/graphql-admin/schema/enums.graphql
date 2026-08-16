@@ -208,3 +208,67 @@ enum LoyaltyTierRequalificationPolicy {
   AUTOMATIC
   MANUAL
 }
+
+enum LoyaltyEventEvaluationDecision {
+  AWARDED
+  INELIGIBLE
+  LIMIT_REACHED
+  BUDGET_EXHAUSTED
+  IGNORED
+}
+
+enum LoyaltyRewardEntitlementStatus {
+  ISSUED
+  RESERVED
+  REDEEMED
+  EXPIRED
+  REVOKED
+}
+
+enum LoyaltyRewardEntitlementEventType {
+  ISSUED
+  RESERVED
+  RELEASED
+  REDEEMED
+  EXPIRED
+  REVOKED
+}
+
+enum LoyaltyMonetaryWalletType {
+  CASHBACK
+  STORE_CREDIT
+}
+
+enum LoyaltyMonetaryWalletStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  MERGED
+}
+
+enum LoyaltyMonetaryBalanceBucket {
+  PENDING
+  AVAILABLE
+  RESERVED
+  DEBT
+}
+
+enum LoyaltyMonetaryTransactionKind {
+  EARN_PENDING
+  ACTIVATE
+  RESERVE
+  RELEASE
+  SPEND
+  EXPIRE
+  REVERSE_EARN
+  RESTORE_SPEND
+  ADJUST_CREDIT
+  ADJUST_DEBIT
+  MERGE_TRANSFER
+  DEBT_RECOVERY
+}
+
+enum LoyaltyMonetaryAdjustmentDirection {
+  CREDIT
+  DEBIT
+}

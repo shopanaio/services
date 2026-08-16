@@ -20,6 +20,8 @@ function request(): any {
     context: { executionId: "execution", checkoutId: "00000000-0000-0000-0000-000000000001", expectedCheckoutVersion: 2, targetCheckoutVersion: 3, currencyCode: "USD", correlationId: "correlation", deadlineAt: "2099-01-01T00:00:00.000Z", requestedAt: "2026-01-01T00:00:00.000Z", storeId: "00000000-0000-0000-0000-000000000002", localeCode: "en", channelCode: "web", effectiveAt: "2026-01-01T00:00:00.000Z", buyerEligibility: null },
     selection: null,
     finalQuote: { executionId: "execution", checkoutId: "00000000-0000-0000-0000-000000000001", basedOnCheckoutVersion: 2, currencyCode: "USD", quoteId: "quote", revision: "quote-v1", discountEvaluationRevision: "discount-v1", basedOnPreliminaryDiscountEvaluationRevision: "discount-v0", basedOnPreliminaryRevision: "preliminary-v1", basedOnDeliveryRevision: "delivery-v1", lines: [], appliedDiscounts: [], discountCodeResolutions: [], usageRequirements: [], totals: { merchandiseSubtotal: money, merchandiseDiscountTotal: zero, merchandiseTotal: money, taxTotal: zero, deliverySubtotal: zero, deliveryDiscountTotal: zero, deliveryTotal: zero, payableTotal: money } },
+    payableAmount: money,
+    loyaltyRedemption: null,
     delivery: { executionId: "execution", checkoutId: "00000000-0000-0000-0000-000000000001", basedOnCheckoutVersion: 2, currencyCode: "USD", revision: "delivery-v1", basedOnPreliminaryRevision: "preliminary-v1", destinations: [], groups: [] },
   };
 }

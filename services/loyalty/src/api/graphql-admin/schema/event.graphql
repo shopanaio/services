@@ -1,0 +1,64 @@
+type LoyaltyEventFact implements Node @key(fields: "id") {
+  id: ID!
+  producer: String!
+  externalEventId: String!
+  eventType: String!
+  subjectType: String!
+  subjectId: String!
+  customerId: ID
+  occurredAt: DateTime!
+  payloadSchemaVersion: Int!
+  payloadHash: String!
+  payload: JSON!
+  receivedAt: DateTime!
+  evaluations: [LoyaltyEventEvaluation!]!
+}
+
+type LoyaltyEventEvaluation implements Node @key(fields: "id") {
+  id: ID!
+  eventFact: LoyaltyEventFact!
+  earningRule: LoyaltyEarningRule!
+  account: LoyaltyAccount!
+  decision: LoyaltyEventEvaluationDecision!
+  reasonCode: String!
+  pointsAwarded: BigInt
+  monetaryAmount: LoyaltyMoney
+  transaction: LoyaltyTransaction
+  resultSchemaVersion: Int!
+  result: JSON!
+  evaluatedAt: DateTime!
+}
+
+type LoyaltyEarningRuleUsage implements Node @key(fields: "id") {
+  id: ID!
+  earningRule: LoyaltyEarningRule!
+  scopeKey: String!
+  windowStartedAt: DateTime!
+  windowEndedAt: DateTime
+  occurrenceCount: BigInt!
+  pointsAwarded: BigInt!
+  monetaryAmounts: JSON!
+  revision: Int!
+  updatedAt: DateTime!
+}
+
+input LoyaltyEventFactWhereInput {
+  customerIds: [ID!]
+  producers: [String!]
+  eventTypes: [String!]
+  occurredFrom: DateTime
+  occurredTo: DateTime
+}
+
+input LoyaltyEventEvaluationWhereInput {
+  eventFactId: ID
+  accountId: ID
+  earningRuleId: ID
+  decisions: [LoyaltyEventEvaluationDecision!]
+}
+
+input LoyaltyEarningRuleUsageWhereInput {
+  earningRuleId: ID!
+  scopeKey: String
+  effectiveAt: DateTime
+}

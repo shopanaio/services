@@ -34,6 +34,17 @@ export class ResolverRegistry {
   async lotAllocation(id: string) { const { LoyaltyLotAllocationResolver } = await import("./LedgerResolvers.js"); return new LoyaltyLotAllocationResolver(id, this.ctx); }
   async reservation(id: string) { const { LoyaltyReservationResolver } = await import("./ReservationResolvers.js"); return new LoyaltyReservationResolver(id, this.ctx); }
   async reservationEvent(id: string) { const { LoyaltyReservationEventResolver } = await import("./ReservationResolvers.js"); return new LoyaltyReservationEventResolver(id, this.ctx); }
+  async eventFact(id: string) { const { LoyaltyEventFactResolver } = await import("./EventResolvers.js"); return new LoyaltyEventFactResolver(id, this.ctx); }
+  async eventEvaluation(id: string) { const { LoyaltyEventEvaluationResolver } = await import("./EventResolvers.js"); return new LoyaltyEventEvaluationResolver(id, this.ctx); }
+  async earningRuleUsage(id: string) { const { LoyaltyEarningRuleUsageResolver } = await import("./EventResolvers.js"); return new LoyaltyEarningRuleUsageResolver(id, this.ctx); }
+  async rewardEntitlement(id: string) { const { LoyaltyRewardEntitlementResolver } = await import("./RewardResolvers.js"); return new LoyaltyRewardEntitlementResolver(id, this.ctx); }
+  async rewardEntitlementEvent(id: string) { const { LoyaltyRewardEntitlementEventResolver } = await import("./RewardResolvers.js"); return new LoyaltyRewardEntitlementEventResolver(id, this.ctx); }
+  async tierRewardBenefit(id: string) { const { LoyaltyTierRewardBenefitResolver } = await import("./RewardResolvers.js"); return new LoyaltyTierRewardBenefitResolver(id, this.ctx); }
+  async monetaryWallet(id: string) { const { LoyaltyMonetaryWalletResolver } = await import("./WalletResolvers.js"); return new LoyaltyMonetaryWalletResolver(id, this.ctx); }
+  async monetaryTransaction(id: string) { const { LoyaltyMonetaryTransactionResolver } = await import("./WalletResolvers.js"); return new LoyaltyMonetaryTransactionResolver(id, this.ctx); }
+  async monetaryEntry(id: string) { const { LoyaltyMonetaryLedgerEntryResolver } = await import("./WalletResolvers.js"); return new LoyaltyMonetaryLedgerEntryResolver(id, this.ctx); }
+  async monetaryCreditLot(id: string) { const { LoyaltyMonetaryCreditLotResolver } = await import("./WalletResolvers.js"); return new LoyaltyMonetaryCreditLotResolver(id, this.ctx); }
+  async monetaryLotAllocation(id: string) { const { LoyaltyMonetaryLotAllocationResolver } = await import("./WalletResolvers.js"); return new LoyaltyMonetaryLotAllocationResolver(id, this.ctx); }
   async programConnection(input: ProgramConnectionInput) { const { ProgramConnectionResolver } = await import("./ConnectionResolvers.js"); return new ProgramConnectionResolver(input, this.ctx); }
   async accountConnection(input: AccountConnectionInput) { const { AccountConnectionResolver } = await import("./ConnectionResolvers.js"); return new AccountConnectionResolver(input, this.ctx); }
   async transactionConnection(input: TransactionConnectionInput) { const { TransactionConnectionResolver } = await import("./ConnectionResolvers.js"); return new TransactionConnectionResolver(input, this.ctx); }

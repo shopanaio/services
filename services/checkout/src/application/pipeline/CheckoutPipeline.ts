@@ -13,6 +13,8 @@ import type {
   FinalizePricingQuoteResult,
   GetAvailablePaymentMethodsRequest,
   GetAvailablePaymentMethodsResult,
+  CheckoutLoyaltyQuoteResult,
+  QuoteCheckoutLoyaltyRequest,
   ValidateCheckoutRequest,
   ValidateCheckoutResult,
 } from "./contracts/index.js";
@@ -20,6 +22,7 @@ import type {
   DeliveryCheckoutPort,
   PaymentsCheckoutPort,
   PricingCheckoutPort,
+  LoyaltyCheckoutPort,
 } from "./ports/index.js";
 import { CheckoutValidationRunner } from "./CheckoutValidationRunner.js";
 import {
@@ -34,6 +37,7 @@ import {
   parseFinalizePricingQuoteResult,
   parseGetAvailablePaymentMethodsRequest,
   parseGetAvailablePaymentMethodsResult,
+  parseCheckoutLoyaltyQuoteResult,
   parseValidateCheckoutRequest,
   parseValidateCheckoutResult,
   toCheckoutDeliveryDestinations,
@@ -52,6 +56,7 @@ export interface CheckoutPipelinePorts {
   readonly pricing: PricingCheckoutPort;
   readonly delivery: DeliveryCheckoutPort;
   readonly payments: PaymentsCheckoutPort;
+  readonly loyalty: LoyaltyCheckoutPort;
 }
 
 export interface CheckoutPipelineRuntime {
@@ -70,6 +75,7 @@ const stageFailureDefaults: Record<CheckoutPipelineStage, readonly [string, stri
   PRICING_PRELIMINARY: ["CHECKOUT_PRELIMINARY_PRICING_FAILED", "Checkout preliminary pricing could not be calculated."],
   DELIVERY: ["CHECKOUT_DELIVERY_FAILED", "Checkout delivery options could not be calculated."],
   PRICING_FINAL: ["CHECKOUT_FINAL_PRICING_FAILED", "Checkout final pricing could not be calculated."],
+  LOYALTY: ["CHECKOUT_LOYALTY_FAILED", "Checkout loyalty redemption could not be calculated."],
   PAYMENT: ["CHECKOUT_PAYMENT_FAILED", "Checkout payment methods could not be calculated."],
   VALIDATION: ["CHECKOUT_VALIDATION_FAILED", "Checkout validation could not be completed."],
 };
@@ -295,6 +301,21 @@ function paymentIssues(result: GetAvailablePaymentMethodsResult): CheckoutPipeli
   }));
 }
 
+function loyaltyIssues(result: CheckoutLoyaltyQuoteResult): CheckoutPipelineIssue[] {
+  if (result.status === "NONE" || result.status === "QUOTED") return [];
+  return [{
+    stage: "LOYALTY",
+    code: result.code,
+    message: result.status === "REJECTED"
+      ? result.message
+      : "Loyalty points cannot be applied to this checkout.",
+    severity: "ERROR",
+    effect: "STOP",
+    field: ["loyaltyRedemption"],
+    retryable: result.retryable,
+  }];
+}
+
 function validationIssues(result: ValidateCheckoutResult): CheckoutPipelineIssue[] {
   return result.operations.map((operation) => ({
     stage: "VALIDATION",
@@ -481,11 +502,52 @@ export class CheckoutPipeline {
           issues: (result) => finalPricingIssues(preliminaryData!, result),
         }));
 
-    const paymentBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS"
+    const loyaltyBuild = finalPricing.status === "SUCCESS"
+      ? buildStageRequest<QuoteCheckoutLoyaltyRequest, CheckoutLoyaltyQuoteResult, "LOYALTY">("LOYALTY", () => ({
+          context: {
+            executionId: request.context.executionId,
+            checkoutId: request.context.checkoutId,
+            checkoutVersion: request.context.expectedCheckoutVersion + 1,
+            storeId: request.context.storeId,
+            customerId: request.context.buyer?.customerId ?? null,
+            currencyCode: request.context.currencyCode,
+            channelCode: request.context.channelCode,
+            effectiveAt: request.context.effectiveAt,
+            requestedAt: request.context.requestedAt,
+            deadlineAt: request.context.deadlineAt,
+            correlationId: request.context.correlationId,
+            pricingQuoteId: finalPricing.data.quoteId,
+            pricingQuoteRevision: finalPricing.data.revision,
+            payableBeforeLoyalty: finalPricing.data.totals.payableTotal,
+            customerEligibilityRevision: request.context.buyer?.segmentMembershipRevision ?? "guest",
+            segmentIds: request.context.buyer?.segmentIds ?? [],
+            segmentMembershipRevision: request.context.buyer?.segmentMembershipRevision ?? "guest",
+          },
+          intent: request.loyaltyRedemption,
+          finalQuote: finalPricing.data,
+        }))
+      : noStageRequest<QuoteCheckoutLoyaltyRequest, CheckoutLoyaltyQuoteResult, "LOYALTY">();
+    const loyalty = loyaltyBuild.failure ?? (loyaltyBuild.request === undefined
+      ? this.skipped<CheckoutLoyaltyQuoteResult, "LOYALTY">("LOYALTY", firstBlockingStage!, this.runtime.now())
+      : await runStage<QuoteCheckoutLoyaltyRequest, CheckoutLoyaltyQuoteResult, "LOYALTY">({
+          stage: "LOYALTY",
+          request: loyaltyBuild.request,
+          call: (value) => this.dependencies.loyalty.quote(value),
+          parseResult: parseCheckoutLoyaltyQuoteResult,
+          issues: loyaltyIssues,
+        }));
+
+    const paymentBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && loyalty.status === "SUCCESS"
       ? buildStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">("PAYMENT", () => parseGetAvailablePaymentMethodsRequest({
           context: toPaymentsCheckoutEvaluationContext(request.context),
           selection: request.cartIntent.selectedPaymentMethod,
           finalQuote: finalPricing.data,
+          payableAmount: loyalty.data.payableAfterLoyalty,
+          loyaltyRedemption: loyalty.data.status === "QUOTED" ? {
+            quoteId: loyalty.data.quote.quoteId,
+            quoteRevision: loyalty.data.quote.revision,
+            discount: loyalty.data.quote.discount,
+          } : null,
           delivery: toCheckoutPaymentDeliverySnapshot(delivery.data, preliminaryPricing.data),
         }))
       : noStageRequest<GetAvailablePaymentMethodsRequest, GetAvailablePaymentMethodsResult, "PAYMENT">();
@@ -499,13 +561,14 @@ export class CheckoutPipeline {
           issues: paymentIssues,
         }));
 
-    const validationBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && payment.status === "SUCCESS"
+    const validationBuild = preliminaryPricing.status === "SUCCESS" && delivery.status === "SUCCESS" && finalPricing.status === "SUCCESS" && loyalty.status === "SUCCESS" && payment.status === "SUCCESS"
       ? buildStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult, "VALIDATION">("VALIDATION", () => parseValidateCheckoutRequest({
           context: request.context,
           cartIntent: request.cartIntent,
           preliminary: preliminaryPricing.data,
           delivery: delivery.data,
           finalQuote: finalPricing.data,
+          payableAmount: loyalty.data.payableAfterLoyalty,
           payment: payment.data,
         }))
       : noStageRequest<ValidateCheckoutRequest, ValidateCheckoutResult, "VALIDATION">();
@@ -519,7 +582,7 @@ export class CheckoutPipeline {
           issues: validationIssues,
         }));
 
-    const stages = [preliminaryPricing, delivery, finalPricing, payment, validation] as const;
+    const stages = [preliminaryPricing, delivery, finalPricing, loyalty, payment, validation] as const;
     const issues = stages.flatMap((stage) => stage.issues);
     const executionCompleted = this.runtime.now();
     const resultRevisionPayload = {
@@ -528,7 +591,7 @@ export class CheckoutPipeline {
       basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
       change: request.change,
       stages: stages.map((outcome, index) => {
-        const stage = (["PRICING_PRELIMINARY", "DELIVERY", "PRICING_FINAL", "PAYMENT", "VALIDATION"] as const)[index]!;
+        const stage = (["PRICING_PRELIMINARY", "DELIVERY", "PRICING_FINAL", "LOYALTY", "PAYMENT", "VALIDATION"] as const)[index]!;
         if (outcome.status === "SUCCESS") return { stage, status: outcome.status, revision: outcome.data.revision, issues: outcome.issues };
         if (outcome.status === "FAILED") return { stage, status: outcome.status, failure: outcome.failure, issues: outcome.issues };
         return { stage, status: outcome.status, reason: outcome.reason, issues: outcome.issues };
@@ -542,6 +605,7 @@ export class CheckoutPipeline {
       preliminaryPricing,
       delivery,
       finalPricing,
+      loyalty,
       payment,
       validation,
       issues,

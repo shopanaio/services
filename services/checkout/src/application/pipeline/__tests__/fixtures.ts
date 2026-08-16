@@ -118,6 +118,7 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
     discoveryRevision: "payment-discovery-v1",
     customizationRevision: "payment-customization-v1",
     basedOnFinalQuoteRevision: finalQuote.revision,
+    basedOnLoyaltyQuoteRevision: null,
     basedOnDeliveryRevision: delivery.revision,
     methods: [],
     selection: { status: "NONE" },
@@ -129,11 +130,12 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
     preliminary,
     delivery,
     finalQuote,
+    payableAmount: finalQuote.totals.payableTotal,
     payment,
   };
 }
 
 export function recalculationRequestFixture(): CheckoutRecalculationRequest {
   const { context, cartIntent } = validationRequestFixture();
-  return { context, change: "CREATE", cartIntent };
+  return { context, change: "CREATE", cartIntent, loyaltyRedemption: null };
 }

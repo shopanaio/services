@@ -123,19 +123,24 @@ membership and dynamic rule/query definitions in the Shopify style. These are
 separate concepts and are not collapsed into one array column.
 
 Group and segment `revision` fields are aggregate concurrency state: accepted
-definition, state and membership commands increment them. Segment
-`definition_revision` is independent: only changes to `type`, `query` or the
-structural JSON `definition` increment it. Name, description, color, status and
-membership-only changes leave it unchanged. A segment's optional `color` is
-presentation metadata owned by the merchant and validated as `#RRGGBB` when
-present.
+definition, state and membership commands increment them. Segment type is
+immutable after create. `definition_revision` is independent and changes only
+when the server-generated canonical query/AST semantics change. The client never
+writes structural JSON `definition`. `evaluation_generation` is a separate
+monotonic materialization epoch incremented on definition changes, each dynamic
+segment activation and relevant Store currency/timezone changes. Name,
+description, color and membership-only changes leave definition revision and
+evaluation generation unchanged. A segment's optional `color` is presentation
+metadata owned by the merchant and validated as `#RRGGBB` when present.
 
 Each RULE `customer_segment_membership` stores the current segment
-`definition_revision` in `evaluated_definition_revision`; non-RULE memberships
-must store `NULL`. Checkout reads only active, non-deleted segments and treats a
-RULE membership as current when both revisions are equal. It evaluates time
-against the caller-provided `effectiveAt`: `evaluated_at` is inclusive and
-`expires_at` is exclusive. The checkout index begins with
+`definition_revision` and `evaluation_generation` in the corresponding
+evaluated fields; non-RULE memberships must store `NULL` in both. Checkout reads
+only active, non-deleted segments and treats a RULE membership as current when
+both values equal the segment values. It also verifies an active, non-deleted
+customer in the same Store. Time is evaluated against the caller-provided
+`effectiveAt`: `evaluated_at` is inclusive and `expires_at` is exclusive. The
+checkout index begins with
 `(store_id, customer_id, expires_at, segment_id)`.
 
 ### Moderation

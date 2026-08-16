@@ -28,6 +28,22 @@ export class LoyaltyAccountResolver extends LoyaltyType<string, Account> {
     const membership = await this.$ctx.loaders.activeTierMembership.load(this.$props);
     return membership ? this.resolvers.tierMembership(membership.id) : null;
   }
+  async tierMemberships(args: { first?: number | null }) {
+    return Promise.all((await this.$ctx.kernel.repository.tier.listMembershipsForAccount(
+      this.$props,
+      Math.max(1, Math.min(args.first ?? 100, 100)),
+    )).map(({ id }) => this.resolvers.tierMembership(id)));
+  }
+  async rewardEntitlements(args: { first?: number | null }) {
+    return Promise.all((await this.$ctx.kernel.repository.reward.listEntitlements(
+      this.$props,
+      Math.max(1, Math.min(args.first ?? 100, 100)),
+    )).map(({ id }) => this.resolvers.rewardEntitlement(id)));
+  }
+  async monetaryWallets() {
+    return Promise.all((await this.$ctx.kernel.repository.wallet.listForAccount(this.$props))
+      .map(({ id }) => this.resolvers.monetaryWallet(id)));
+  }
   async mergedIntoAccount() {
     const id = await this.$get("mergedIntoAccountId");
     return id ? this.resolvers.account(id) : null;

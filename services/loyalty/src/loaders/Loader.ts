@@ -6,6 +6,7 @@ import { ProgramLoader } from "./ProgramLoader.js";
 import { ReservationLoader } from "./ReservationLoader.js";
 import { TierLoader } from "./TierLoader.js";
 import { StorefrontLoader, type StorefrontLoaderOptions } from "./StorefrontLoader.js";
+import { AdminDomainLoader } from "./AdminDomainLoader.js";
 
 /** Request-scoped DataLoader registry for Loyalty Admin and Storefront reads. */
 export class Loader {
@@ -48,6 +49,23 @@ export class Loader {
   readonly earningRuleUsage;
   readonly rewardDefinitionUsage;
   readonly effectiveAt;
+  readonly eventFact;
+  readonly eventEvaluation;
+  readonly eventEvaluationsByFact;
+  readonly earningRuleUsageById;
+  readonly rewardEntitlementEvent;
+  readonly rewardEntitlementEvents;
+  readonly tierRewardBenefit;
+  readonly tierRewardBenefits;
+  readonly monetaryWallet;
+  readonly monetaryWalletBalance;
+  readonly monetaryTransaction;
+  readonly monetaryEntries;
+  readonly monetaryEntry;
+  readonly monetaryCreditLot;
+  readonly monetaryCreditLots;
+  readonly monetaryLotAllocation;
+  readonly monetaryLotAllocations;
 
   [key: string]: DataLoader<any, any> | string;
 
@@ -58,6 +76,7 @@ export class Loader {
     const ledger = new LedgerLoader(repository);
     const reservation = new ReservationLoader(repository);
     const storefront = new StorefrontLoader(repository, storefrontOptions);
+    const admin = new AdminDomainLoader(repository);
     this.program = program.program;
     this.programVersion = program.version;
     this.programVersions = program.versionsByProgram;
@@ -97,5 +116,22 @@ export class Loader {
     this.earningRuleUsage = storefront.earningRuleUsage;
     this.rewardDefinitionUsage = storefront.rewardDefinitionUsage;
     this.effectiveAt = storefrontOptions?.effectiveAt ?? new Date().toISOString();
+    this.eventFact = admin.eventFact;
+    this.eventEvaluation = admin.eventEvaluation;
+    this.eventEvaluationsByFact = admin.eventEvaluationsByFact;
+    this.earningRuleUsageById = admin.earningRuleUsageById;
+    this.rewardEntitlementEvent = admin.rewardEntitlementEvent;
+    this.rewardEntitlementEvents = admin.rewardEntitlementEvents;
+    this.tierRewardBenefit = admin.tierRewardBenefit;
+    this.tierRewardBenefits = admin.tierRewardBenefits;
+    this.monetaryWallet = admin.monetaryWallet;
+    this.monetaryWalletBalance = admin.monetaryWalletBalance;
+    this.monetaryTransaction = admin.monetaryTransaction;
+    this.monetaryEntries = admin.monetaryEntries;
+    this.monetaryEntry = admin.monetaryEntry;
+    this.monetaryCreditLot = admin.monetaryCreditLot;
+    this.monetaryCreditLots = admin.monetaryCreditLots;
+    this.monetaryLotAllocation = admin.monetaryLotAllocation;
+    this.monetaryLotAllocations = admin.monetaryLotAllocations;
   }
 }

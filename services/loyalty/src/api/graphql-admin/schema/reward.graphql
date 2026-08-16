@@ -1,0 +1,118 @@
+type LoyaltyRewardEntitlement implements Node @key(fields: "id") {
+  id: ID!
+  definition: LoyaltyRewardDefinition!
+  account: LoyaltyAccount!
+  sourceEventFact: LoyaltyEventFact
+  issuanceTransaction: LoyaltyTransaction
+  monetaryTransaction: LoyaltyMonetaryTransaction
+  status: LoyaltyRewardEntitlementStatus!
+  configurationSchemaVersion: Int!
+  configurationSnapshot: JSON!
+  quantity: BigInt!
+  validFrom: DateTime!
+  validTo: DateTime
+  reservedForCheckoutId: ID
+  redeemedOrderId: ID
+  externalReference: String
+  issuedAt: DateTime!
+  reservedAt: DateTime
+  redeemedAt: DateTime
+  expiredAt: DateTime
+  revokedAt: DateTime
+  revision: Int!
+  events: [LoyaltyRewardEntitlementEvent!]!
+  updatedAt: DateTime!
+}
+
+type LoyaltyRewardEntitlementEvent implements Node @key(fields: "id") {
+  id: ID!
+  entitlement: LoyaltyRewardEntitlement!
+  eventType: LoyaltyRewardEntitlementEventType!
+  previousStatus: LoyaltyRewardEntitlementStatus
+  status: LoyaltyRewardEntitlementStatus!
+  idempotencyKey: String!
+  actorType: LoyaltyActorType!
+  actorId: ID
+  reasonCode: String!
+  occurredAt: DateTime!
+  metadata: JSON!
+  createdAt: DateTime!
+}
+
+type LoyaltyTierRewardBenefit implements Node @key(fields: "id") {
+  id: ID!
+  tier: LoyaltyTier!
+  rewardDefinition: LoyaltyRewardDefinition!
+  grantPolicySchemaVersion: Int!
+  grantPolicy: JSON!
+  createdAt: DateTime!
+}
+
+input LoyaltyRewardEntitlementWhereInput {
+  accountIds: [ID!]
+  rewardDefinitionIds: [ID!]
+  statuses: [LoyaltyRewardEntitlementStatus!]
+  validAt: DateTime
+}
+
+input LoyaltyRewardEntitlementIssueInput {
+  accountId: ID!
+  rewardDefinitionId: ID!
+  quantity: BigInt = "1"
+  externalReference: String
+  occurredAt: DateTime
+  idempotencyKey: String!
+}
+
+input LoyaltyRewardEntitlementTransitionInput {
+  entitlementId: ID!
+  expectedRevision: Int!
+  reasonCode: String!
+  occurredAt: DateTime
+  idempotencyKey: String!
+}
+
+input LoyaltyTierRewardBenefitCreateInput {
+  tierId: ID!
+  rewardDefinitionId: ID!
+  grantPolicySchemaVersion: Int = 1
+  grantPolicy: JSON! = { type: "ON_QUALIFICATION" }
+  idempotencyKey: String!
+}
+
+input LoyaltyTierRewardBenefitDeleteInput {
+  tierRewardBenefitId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyRewardEntitlementPayload {
+  rewardEntitlement: LoyaltyRewardEntitlement
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyTierRewardBenefitPayload {
+  tierRewardBenefit: LoyaltyTierRewardBenefit
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyTierEvaluateInput {
+  accountId: ID!
+  programVersionId: ID
+  effectiveAt: DateTime
+  forceRequalification: Boolean = false
+  reasonCode: String!
+  idempotencyKey: String!
+}
+
+input LoyaltyTierMembershipRevokeInput {
+  membershipId: ID!
+  expectedRevision: Int!
+  effectiveAt: DateTime
+  reasonCode: String!
+  idempotencyKey: String!
+}
+
+type LoyaltyTierEvaluatePayload {
+  tierMembership: LoyaltyTierMembership
+  userErrors: [LoyaltyUserError!]!
+}

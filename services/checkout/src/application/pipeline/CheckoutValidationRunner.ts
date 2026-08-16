@@ -736,7 +736,7 @@ export function createNativeCheckoutValidationOperations(
   for (const reset of request.delivery.orphanedSelectionResets) {
     operations.push(nativeOperation("DELIVERY_OPTION_ORPHANED", "The selected delivery option no longer belongs to a delivery group.", ["delivery", "selectedOptions", reset.groupId]));
   }
-  const paymentRequired = BigInt(request.finalQuote.totals.payableTotal.amountMinor) > 0n;
+  const paymentRequired = BigInt(request.payableAmount.amountMinor) > 0n;
   if (paymentRequired && request.payment.methods.length === 0) {
     operations.push(nativeOperation("PAYMENT_METHODS_UNAVAILABLE", "No payment methods are available for this checkout.", ["payment", "methods"]));
   }

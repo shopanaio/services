@@ -7,6 +7,7 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -15,22 +16,43 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  BigInt: { input: number; output: number; }
+  BigInt: { input: string; output: string; }
+  /** A CSS color represented as a hexadecimal string. */
+  Color: { input: any; output: any; }
+  /** An opaque cursor used for pagination. */
+  Cursor: { input: any; output: any; }
+  /** An ISO 8601-encoded date and time string. */
   DateTime: { input: any; output: any; }
+  /** An arbitrary-precision signed decimal number. */
   Decimal: { input: any; output: any; }
+  /** An email address. */
   Email: { input: any; output: any; }
+  /** A string containing HTML code. */
+  HTML: { input: any; output: any; }
+  /** An ISO 8601-encoded date and time string. */
+  ISO8601DateTime: { input: any; output: any; }
+  /** A JSON-serializable value. */
   JSON: { input: unknown; output: unknown; }
+  /** An RFC 3986 and RFC 3987 compliant URI string. */
+  URL: { input: any; output: any; }
+  /** An unsigned 64-bit integer serialized as a decimal string. */
+  UnsignedInt64: { input: any; output: any; }
 };
-
 /** A checkout with multiple items. */
 export type ApiCheckout = ApiNode & {
   __typename?: 'Checkout';
   /** Applied promo codes for the checkout. */
   appliedPromoCodes: Array<ApiCheckoutPromoCode>;
+  /** Billing address used by payment providers and the resulting order. */
+  billingAddress: Maybe<ApiCheckoutBillingAddress>;
+  /** Canonical sales channel used by pricing and eligibility rules. */
+  channelCode: Scalars['String']['output'];
   /** All cost calculations for the checkout. */
   cost: ApiCheckoutCost;
   /** When this checkout was first created. */
   createdAt: Scalars['DateTime']['output'];
+  /** Display and settlement currency of this checkout snapshot. */
+  currencyCode: ApiCurrencyCode;
   /** Customer identity associated with the checkout. */
   customerIdentity: ApiCheckoutCustomerIdentity;
   /** Customer note or special instructions for the checkout. */
@@ -41,8 +63,15 @@ export type ApiCheckout = ApiNode & {
   id: Scalars['ID']['output'];
   /** Ordered issues emitted by the checkout pipeline. */
   issues: Array<ApiCheckoutIssue>;
-  /** List of items in the checkout (paginated). */
+  /**
+   * Ordered root items in the checkout. Bundle components are exposed through
+   * CheckoutLine.children.
+   */
   lines: Array<ApiCheckoutLine>;
+  /** Locale used by checkout calculation and customer-facing messages. */
+  localeCode: ApiLocaleCode;
+  /** Loyalty points selected as tender after the final Pricing quote. */
+  loyaltyRedemption: Maybe<ApiCheckoutLoyaltyRedemption>;
   /** Notifications for the user regarding the checkout. */
   notifications: Array<ApiCheckoutNotification>;
   /** Payment aggregate for this checkout. */
@@ -59,6 +88,61 @@ export type ApiCheckout = ApiNode & {
   valid: Scalars['Boolean']['output'];
   /** Optimistic concurrency version of the committed checkout. */
   version: Scalars['Int']['output'];
+};
+
+/**
+ * A normalized international billing address captured independently from
+ * delivery destinations. Payment-provider-specific fields belong to data.
+ */
+export type ApiCheckoutBillingAddress = {
+  __typename?: 'CheckoutBillingAddress';
+  address1: Maybe<Scalars['String']['output']>;
+  address2: Maybe<Scalars['String']['output']>;
+  city: Maybe<Scalars['String']['output']>;
+  company: Maybe<Scalars['String']['output']>;
+  country: Maybe<Scalars['String']['output']>;
+  countryCode: Maybe<ApiCountryCode>;
+  /** Payment-provider-specific billing-address extension data. */
+  data: Maybe<Scalars['JSON']['output']>;
+  firstName: Maybe<Scalars['String']['output']>;
+  formatted: Array<Scalars['String']['output']>;
+  formattedArea: Maybe<Scalars['String']['output']>;
+  lastName: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+  phone: Maybe<Scalars['String']['output']>;
+  province: Maybe<Scalars['String']['output']>;
+  provinceCode: Maybe<Scalars['String']['output']>;
+  zip: Maybe<Scalars['String']['output']>;
+};
+
+/**
+ * Portable international postal fields for a checkout billing address.
+ * Payment-provider-specific fields belong to data.
+ */
+export type ApiCheckoutBillingAddressInput = {
+  address1: InputMaybe<Scalars['String']['input']>;
+  address2: InputMaybe<Scalars['String']['input']>;
+  city: InputMaybe<Scalars['String']['input']>;
+  company: InputMaybe<Scalars['String']['input']>;
+  countryCode: InputMaybe<ApiCountryCode>;
+  /** Payment-provider-specific billing-address extension data. */
+  data: InputMaybe<Scalars['JSON']['input']>;
+  firstName: InputMaybe<Scalars['String']['input']>;
+  lastName: InputMaybe<Scalars['String']['input']>;
+  phone: InputMaybe<Scalars['String']['input']>;
+  provinceCode: InputMaybe<Scalars['String']['input']>;
+  zip: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Input for replacing or clearing the checkout billing address. */
+export type ApiCheckoutBillingAddressUpdateInput = {
+  /** New address. Passing null clears the current billing address. */
+  billingAddress: InputMaybe<ApiCheckoutBillingAddressInput>;
+  checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /**
@@ -88,7 +172,7 @@ export type ApiCheckoutCost = {
   subtotalAmount: ApiMoney;
   /** Final amount to be paid, including item cost, shipping, and taxes. */
   totalAmount: ApiMoney;
-  /** Total discount from both item-level and checkout-level promotions. */
+  /** Total reduction from promotions and an applied loyalty redemption. */
   totalDiscountAmount: ApiMoney;
   /** Total shipping cost (only MERCHANT_COLLECTED payments). */
   totalShippingAmount: ApiMoney;
@@ -111,18 +195,9 @@ export type ApiCheckoutCreateInput = {
   /** Initial items to add to the new checkout. */
   items: Array<ApiCheckoutLineAddInput>;
   /** Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru") */
-  localeCode: Scalars['String']['input'];
+  localeCode: ApiLocaleCode;
   /** Optional tag definitions to initialize for this checkout. */
   tags: InputMaybe<Array<ApiCheckoutTagInput>>;
-};
-
-/** Payload returned after creating a checkout. */
-export type ApiCheckoutCreatePayload = {
-  __typename?: 'CheckoutCreatePayload';
-  /** The newly created checkout. */
-  checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
 };
 
 /** Input data for updating the display currency of the checkout. */
@@ -131,6 +206,10 @@ export type ApiCheckoutCurrencyCodeUpdateInput = {
   checkoutId: Scalars['ID']['input'];
   /** Currency code according to ISO 4217 (e.g., "USD", "EUR"). */
   currencyCode: ApiCurrencyCode;
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 export type ApiCheckoutCustomerIdentity = {
@@ -160,15 +239,14 @@ export type ApiCheckoutCustomerIdentityUpdateInput = {
    * ISO 3166-1 alpha-2.
    */
   countryCode: InputMaybe<ApiCountryCode>;
-  /**
-   * Customer identifier in external/internal system.
-   * Used to link the checkout with an existing customer.
-   */
-  customerId: InputMaybe<Scalars['ID']['input']>;
   /** Customer's email address. If specified, will be linked to the checkout. */
   email: InputMaybe<Scalars['Email']['input']>;
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
   /** First name of the customer. */
   firstName: InputMaybe<Scalars['String']['input']>;
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** Last name of the customer. */
   lastName: InputMaybe<Scalars['String']['input']>;
   /** Middle name of the customer. */
@@ -181,6 +259,10 @@ export type ApiCheckoutCustomerIdentityUpdateInput = {
 export type ApiCheckoutCustomerNoteUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /**
    * Text of the customer note (delivery instructions, etc.).
    * Empty value clears the note.
@@ -188,7 +270,7 @@ export type ApiCheckoutCustomerNoteUpdateInput = {
   note: InputMaybe<Scalars['String']['input']>;
 };
 
-/** Delivery address associated with a checkout. */
+/** A normalized international delivery address associated with a checkout. */
 export type ApiCheckoutDeliveryAddress = {
   __typename?: 'CheckoutDeliveryAddress';
   /** Primary address line. */
@@ -197,18 +279,43 @@ export type ApiCheckoutDeliveryAddress = {
   address2: Maybe<Scalars['String']['output']>;
   /** City name. */
   city: Maybe<Scalars['String']['output']>;
+  /** Company or organization receiving the delivery. */
+  company: Maybe<Scalars['String']['output']>;
+  /** Localized country or territory name. */
+  country: Maybe<Scalars['String']['output']>;
   /** Country code (ISO 3166-1 alpha-2). */
   countryCode: Maybe<ApiCountryCode>;
-  /** Data associated with the delivery address. */
+  /** Carrier-specific address extension data. */
   data: Maybe<Scalars['JSON']['output']>;
+  /** Recipient first name captured with this destination. */
+  firstName: Maybe<Scalars['String']['output']>;
+  /** Address lines formatted for the active storefront locale. */
+  formatted: Array<Scalars['String']['output']>;
+  /** Compact city, region, and country representation. */
+  formattedArea: Maybe<Scalars['String']['output']>;
   /** Unique identifier for the delivery address. */
   id: Maybe<Scalars['ID']['output']>;
-  /** Postal code. */
-  postalCode: Maybe<Scalars['String']['output']>;
+  /** Recipient last name captured with this destination. */
+  lastName: Maybe<Scalars['String']['output']>;
+  /** Recipient name formatted for the active storefront locale. */
+  name: Scalars['String']['output'];
+  /** Contact phone captured with this destination. */
+  phone: Maybe<Scalars['String']['output']>;
+  /** Localized region, state, or province name. */
+  province: Maybe<Scalars['String']['output']>;
   /** Province code. */
   provinceCode: Maybe<Scalars['String']['output']>;
+  /** Postal or ZIP code. */
+  zip: Maybe<Scalars['String']['output']>;
 };
 
+/**
+ * Portable international postal fields for a checkout delivery address.
+ *
+ * Carrier-specific fields such as a Nova Poshta settlement, warehouse, or branch
+ * identifier belong to data and are validated by the selected delivery option's
+ * customerInputContract.
+ */
 export type ApiCheckoutDeliveryAddressInput = {
   /** Primary address line. */
   address1: InputMaybe<Scalars['String']['input']>;
@@ -216,20 +323,25 @@ export type ApiCheckoutDeliveryAddressInput = {
   address2: InputMaybe<Scalars['String']['input']>;
   /** City name. */
   city: InputMaybe<Scalars['String']['input']>;
+  /** Company or organization receiving the delivery. */
+  company: InputMaybe<Scalars['String']['input']>;
   /** Country code (ISO 3166-1 alpha-2). */
   countryCode: InputMaybe<ApiCountryCode>;
-  /** Data associated with the delivery address. */
+  /**
+   * Carrier-specific address extension data. The shape is defined by the
+   * selected delivery option's customerInputContract.
+   */
   data: InputMaybe<Scalars['JSON']['input']>;
-  /** Email address for this delivery address. */
-  email: InputMaybe<Scalars['Email']['input']>;
-  /** First name for delivery. */
+  /** Recipient's first name. */
   firstName: InputMaybe<Scalars['String']['input']>;
-  /** Last name for delivery. */
+  /** Recipient's last name. */
   lastName: InputMaybe<Scalars['String']['input']>;
-  /** Postal code. */
-  postalCode: InputMaybe<Scalars['String']['input']>;
+  /** Phone number for delivery. */
+  phone: InputMaybe<Scalars['String']['input']>;
   /** Province code. */
   provinceCode: InputMaybe<Scalars['String']['input']>;
+  /** Postal or ZIP code. */
+  zip: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Delivery address update element: which address to update and with what data. */
@@ -249,6 +361,10 @@ export type ApiCheckoutDeliveryAddressesAddInput = {
   addresses: Array<ApiCheckoutDeliveryDestinationInput>;
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing one or more delivery addresses from the checkout. */
@@ -257,12 +373,20 @@ export type ApiCheckoutDeliveryAddressesRemoveInput = {
   addressIds: Array<Scalars['ID']['input']>;
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for batch updating previously added delivery addresses. */
 export type ApiCheckoutDeliveryAddressesUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of updates for delivery addresses. */
   updates: Array<ApiCheckoutDeliveryAddressUpdateInput>;
 };
@@ -311,6 +435,10 @@ export type ApiCheckoutDeliveryMethodUpdateInput = {
   customerInput: InputMaybe<Scalars['JSON']['input']>;
   /** Identifier of the delivery group for which the delivery method is selected. */
   deliveryGroupId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** Opaque handle returned by the current checkout snapshot. */
   optionHandle: Scalars['String']['input'];
 };
@@ -351,6 +479,10 @@ export type ApiCheckoutDeliveryRecipientUpdateInput = {
 export type ApiCheckoutDeliveryRecipientsAddInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of recipients to be added for delivery groups. */
   recipients: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
 };
@@ -361,22 +493,22 @@ export type ApiCheckoutDeliveryRecipientsRemoveInput = {
   checkoutId: Scalars['ID']['input'];
   /** Identifiers of delivery groups whose recipients should be removed. */
   deliveryGroupIds: Array<Scalars['ID']['input']>;
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for batch updating recipients for delivery groups. */
 export type ApiCheckoutDeliveryRecipientsUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of updates for recipients. */
   updates: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
-};
-
-export type ApiCheckoutFieldError = {
-  __typename?: 'CheckoutFieldError';
-  /** The field that caused the error. */
-  field: Scalars['String']['output'];
-  /** The error message. */
-  message: Scalars['String']['output'];
 };
 
 export type ApiCheckoutIssue = {
@@ -404,6 +536,10 @@ export enum ApiCheckoutIssueSeverity {
 export type ApiCheckoutLanguageCodeUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /**
    * Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
    * Affects localization and formatting.
@@ -414,6 +550,8 @@ export type ApiCheckoutLanguageCodeUpdateInput = {
 /** A single item in a checkout. */
 export type ApiCheckoutLine = ApiNode & {
   __typename?: 'CheckoutLine';
+  /** Customer-visible checkout attributes captured for this line. */
+  attributes: Scalars['JSON']['output'];
   /** A list of components that make up this checkout line, such as individual products in a bundle. */
   children: Array<ApiCheckoutLine>;
   /** Exact component item selected for this child line. Null for root lines. */
@@ -422,14 +560,20 @@ export type ApiCheckoutLine = ApiNode & {
   cost: ApiCheckoutLineCost;
   /** Global unique identifier for the checkout line. */
   id: Scalars['ID']['output'];
-  /** Image URL of the purchasable. */
-  imageSrc: Maybe<Scalars['String']['output']>;
+  /** Image of the purchasable resolved by the Media subgraph. */
+  image: Maybe<ApiMediaImage>;
   /** Original price before any adjustments (e.g., child price config). */
   originalPrice: ApiMoney;
+  /** Parent bundle line. Null for a root checkout line. */
+  parent: Maybe<ApiCheckoutLine>;
   /** Price adjustment applied to this line (for child items in bundles). */
   priceConfig: Maybe<ApiCheckoutLinePriceConfig>;
+  /** Federated catalog object represented by purchasableId. */
+  purchasable: ApiPurchasable;
   /** ID of the purchasable. */
   purchasableId: Scalars['ID']['output'];
+  /** Purchase mode and selected selling plan captured for this line. */
+  purchase: ApiCheckoutLinePurchase;
   /** Quantity of the item being purchased. */
   quantity: Scalars['Int']['output'];
   /** SKU of the purchasable. */
@@ -484,14 +628,18 @@ export type ApiCheckoutLinePriceConfig = {
   type: ApiChildPriceType;
 };
 
+/** Purchase mode captured in the committed checkout snapshot. */
+export type ApiCheckoutLinePurchase = {
+  __typename?: 'CheckoutLinePurchase';
+  type: ApiCheckoutLinePurchaseType;
+};
+
 export type ApiCheckoutLinePurchaseInput = {
-  sellingPlanId: InputMaybe<Scalars['ID']['input']>;
   type: ApiCheckoutLinePurchaseType;
 };
 
 export enum ApiCheckoutLinePurchaseType {
-  OneTime = 'ONE_TIME',
-  Subscription = 'SUBSCRIPTION'
+  OneTime = 'ONE_TIME'
 }
 
 /** Single replacement operation. */
@@ -522,49 +670,34 @@ export type ApiCheckoutLineUpdateInput = {
 export type ApiCheckoutLinesAddInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of checkout items to add. */
   lines: Array<ApiCheckoutLineAddInput>;
-};
-
-/** Payload returned after adding an item to the checkout. */
-export type ApiCheckoutLinesAddPayload = {
-  __typename?: 'CheckoutLinesAddPayload';
-  /** The updated checkout. */
-  checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
 };
 
 /** Input data for clearing all items from a checkout. */
 export type ApiCheckoutLinesClearInput = {
   /** ID of the checkout to clear. */
   checkoutId: Scalars['ID']['input'];
-};
-
-/** Payload returned after clearing all items from the checkout. */
-export type ApiCheckoutLinesClearPayload = {
-  __typename?: 'CheckoutLinesClearPayload';
-  /** The updated (now empty) checkout. */
-  checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing one or more items from the checkout. */
 export type ApiCheckoutLinesDeleteInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** IDs of the lines to remove. */
   lineIds: Array<Scalars['ID']['input']>;
-};
-
-/** Payload returned after removing an item from the checkout. */
-export type ApiCheckoutLinesDeletePayload = {
-  __typename?: 'CheckoutLinesDeletePayload';
-  /** The updated checkout. */
-  checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
 };
 
 /**
@@ -575,34 +708,59 @@ export type ApiCheckoutLinesDeletePayload = {
 export type ApiCheckoutLinesReplaceInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of replacement operations to apply. */
   lines: Array<ApiCheckoutLineReplaceInput>;
-};
-
-/** Payload returned after replacing one checkout line with another. */
-export type ApiCheckoutLinesReplacePayload = {
-  __typename?: 'CheckoutLinesReplacePayload';
-  /** The updated checkout. */
-  checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
 };
 
 /** Input data for updating the quantity of a specific checkout item. */
 export type ApiCheckoutLinesUpdateInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** List of checkout items to update. */
   lines: Array<ApiCheckoutLineUpdateInput>;
 };
 
-/** Payload returned after updating a checkout item's quantity. */
-export type ApiCheckoutLinesUpdatePayload = {
-  __typename?: 'CheckoutLinesUpdatePayload';
-  /** The updated checkout. */
+export type ApiCheckoutLoyaltyRedemption = {
+  __typename?: 'CheckoutLoyaltyRedemption';
+  accountId: Scalars['ID']['output'];
+  availablePoints: Scalars['BigInt']['output'];
+  discount: ApiMoney;
+  expiresAt: Scalars['DateTime']['output'];
+  payableAfterLoyalty: ApiMoney;
+  programCode: Scalars['String']['output'];
+  programId: Scalars['ID']['output'];
+  programVersion: Scalars['Int']['output'];
+  quoteId: Scalars['String']['output'];
+  redeemablePoints: Scalars['BigInt']['output'];
+  requestedPoints: Maybe<Scalars['BigInt']['output']>;
+  revision: Scalars['String']['output'];
+};
+
+export type ApiCheckoutLoyaltyRedemptionRemoveInput = {
+  checkoutId: Scalars['ID']['input'];
+};
+
+export type ApiCheckoutLoyaltyRedemptionUpdateInput = {
+  checkoutId: Scalars['ID']['input'];
+  programId: InputMaybe<Scalars['ID']['input']>;
+  requestedPoints: InputMaybe<Scalars['BigInt']['input']>;
+};
+
+/** Uniform result returned by every mutation that changes a checkout. */
+export type ApiCheckoutMutationPayload = {
+  __typename?: 'CheckoutMutationPayload';
+  /** The committed checkout snapshot, or null when the mutation failed. */
   checkout: Maybe<ApiCheckout>;
-  /** List of field-specific or general errors. */
-  errors: Maybe<Array<ApiCheckoutFieldError>>;
+  /** Validation, concurrency, and business errors produced by the operation. */
+  userErrors: Array<ApiCheckoutUserError>;
 };
 
 /** A non-blocking warning generated by checkout operations. */
@@ -676,6 +834,10 @@ export type ApiCheckoutPaymentMethodUpdateInput = {
    * It remains private selection intent and is never returned by Storefront API.
    */
   customerInput: InputMaybe<Scalars['JSON']['input']>;
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** Opaque handle returned by the current checkout snapshot. */
   methodHandle: Scalars['String']['input'];
 };
@@ -703,6 +865,10 @@ export type ApiCheckoutPromoCodeAddInput = {
   checkoutId: Scalars['ID']['input'];
   /** Text code of the coupon/promo code. */
   code: Scalars['String']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing a previously applied promo code from the checkout. */
@@ -711,6 +877,10 @@ export type ApiCheckoutPromoCodeRemoveInput = {
   checkoutId: Scalars['ID']['input'];
   /** Text code of the coupon/promo code to be cancelled. */
   code: Scalars['String']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Recipient details for the delivery group. */
@@ -773,6 +943,10 @@ export type ApiCheckoutTag = ApiNode & {
 export type ApiCheckoutTagCreateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** Tag configuration. */
   tag: ApiCheckoutTagInput;
 };
@@ -781,6 +955,10 @@ export type ApiCheckoutTagCreateInput = {
 export type ApiCheckoutTagDeleteInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** Tag identifier (global ID). */
   tagId: Scalars['ID']['input'];
 };
@@ -797,12 +975,29 @@ export type ApiCheckoutTagInput = {
 export type ApiCheckoutTagUpdateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
+  /** Checkout.version expected by the client. */
+  expectedCheckoutVersion: Scalars['Int']['input'];
+  /** Client-generated opaque key used to safely replay this mutation. */
+  idempotencyKey: Scalars['String']['input'];
   /** New slug, if tag needs to be renamed. */
   slug: InputMaybe<Scalars['String']['input']>;
   /** Tag identifier (global ID). */
   tagId: Scalars['ID']['input'];
   /** Updated uniqueness flag. */
   unique: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** A customer-facing checkout mutation error safe to display in storefronts. */
+export type ApiCheckoutUserError = ApiDisplayableError & {
+  __typename?: 'CheckoutUserError';
+  /** Stable machine-readable error code. */
+  code: Scalars['String']['output'];
+  /** Path to the input field associated with the error, when available. */
+  field: Maybe<Array<Scalars['String']['output']>>;
+  /** Human-readable error message. */
+  message: Scalars['String']['output'];
+  /** Whether retrying the same request may succeed without changing input. */
+  retryable: Scalars['Boolean']['output'];
 };
 
 /**
@@ -826,413 +1021,263 @@ export enum ApiChildPriceType {
   Override = 'OVERRIDE'
 }
 
+/** Shared fields exposed by every Relay-style connection. */
+export type ApiConnection = {
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Supported country codes. */
 export enum ApiCountryCode {
-  /** Andorra */
+  Ac = 'AC',
   Ad = 'AD',
-  /** United Arab Emirates */
   Ae = 'AE',
-  /** Afghanistan */
   Af = 'AF',
-  /** Antigua and Barbuda */
   Ag = 'AG',
-  /** Albania */
+  Ai = 'AI',
   Al = 'AL',
-  /** Armenia */
   Am = 'AM',
-  /** Angola */
+  An = 'AN',
   Ao = 'AO',
-  /** Argentina */
   Ar = 'AR',
-  /** Austria */
   At = 'AT',
-  /** Australia */
   Au = 'AU',
-  /** Aruba */
   Aw = 'AW',
-  /** Åland Islands */
   Ax = 'AX',
-  /** Azerbaijan */
   Az = 'AZ',
-  /** Bosnia and Herzegovina */
   Ba = 'BA',
-  /** Barbados */
   Bb = 'BB',
-  /** Bangladesh */
   Bd = 'BD',
-  /** Belgium */
   Be = 'BE',
-  /** Burkina Faso */
   Bf = 'BF',
-  /** Bulgaria */
   Bg = 'BG',
-  /** Bahrain */
   Bh = 'BH',
-  /** Burundi */
   Bi = 'BI',
-  /** Benin */
   Bj = 'BJ',
-  /** Bermuda */
+  Bl = 'BL',
   Bm = 'BM',
-  /** Brunei */
   Bn = 'BN',
-  /** Bolivia */
   Bo = 'BO',
-  /** Brazil */
+  Bq = 'BQ',
   Br = 'BR',
-  /** Bahamas */
   Bs = 'BS',
-  /** Bhutan */
   Bt = 'BT',
-  /** Botswana */
+  Bv = 'BV',
   Bw = 'BW',
-  /** Belarus */
   By = 'BY',
-  /** Belize */
   Bz = 'BZ',
-  /** Canada */
   Ca = 'CA',
-  /** Democratic Republic of the Congo */
+  Cc = 'CC',
   Cd = 'CD',
-  /** Central African Republic */
   Cf = 'CF',
-  /** Republic of the Congo */
   Cg = 'CG',
-  /** Switzerland */
   Ch = 'CH',
-  /** Ivory Coast */
   Ci = 'CI',
-  /** Chile */
+  Ck = 'CK',
   Cl = 'CL',
-  /** Cameroon */
   Cm = 'CM',
-  /** China */
   Cn = 'CN',
-  /** Colombia */
   Co = 'CO',
-  /** Costa Rica */
   Cr = 'CR',
-  /** Cuba */
   Cu = 'CU',
-  /** Cape Verde */
   Cv = 'CV',
-  /** Curaçao */
   Cw = 'CW',
-  /** Cyprus */
+  Cx = 'CX',
   Cy = 'CY',
-  /** Czech Republic */
   Cz = 'CZ',
-  /** Germany */
   De = 'DE',
-  /** Djibouti */
   Dj = 'DJ',
-  /** Denmark */
   Dk = 'DK',
-  /** Dominica */
   Dm = 'DM',
-  /** Dominican Republic */
   Do = 'DO',
-  /** Algeria */
   Dz = 'DZ',
-  /** Ecuador */
   Ec = 'EC',
-  /** Estonia */
   Ee = 'EE',
-  /** Egypt */
   Eg = 'EG',
-  /** Western Sahara */
   Eh = 'EH',
-  /** Eritrea */
   Er = 'ER',
-  /** Spain */
   Es = 'ES',
-  /** Ethiopia */
   Et = 'ET',
-  /** Finland */
   Fi = 'FI',
-  /** Fiji */
   Fj = 'FJ',
-  /** Micronesia */
+  Fk = 'FK',
   Fm = 'FM',
-  /** Faroe Islands */
   Fo = 'FO',
-  /** France */
   Fr = 'FR',
-  /** Gabon */
   Ga = 'GA',
-  /** United Kingdom */
   Gb = 'GB',
-  /** Grenada */
   Gd = 'GD',
-  /** Georgia */
   Ge = 'GE',
-  /** Guernsey */
+  Gf = 'GF',
   Gg = 'GG',
-  /** Ghana */
   Gh = 'GH',
-  /** Greenland */
+  Gi = 'GI',
   Gl = 'GL',
-  /** Gambia */
   Gm = 'GM',
-  /** Guinea */
   Gn = 'GN',
-  /** Equatorial Guinea */
+  Gp = 'GP',
   Gq = 'GQ',
-  /** Greece */
   Gr = 'GR',
-  /** Guatemala */
+  Gs = 'GS',
   Gt = 'GT',
-  /** Guinea-Bissau */
   Gw = 'GW',
-  /** Guyana */
   Gy = 'GY',
-  /** Honduras */
+  Hk = 'HK',
+  Hm = 'HM',
   Hn = 'HN',
-  /** Croatia */
   Hr = 'HR',
-  /** Haiti */
   Ht = 'HT',
-  /** Hungary */
   Hu = 'HU',
-  /** Indonesia */
   Id = 'ID',
-  /** Ireland */
   Ie = 'IE',
-  /** Israel */
   Il = 'IL',
-  /** Isle of Man */
   Im = 'IM',
-  /** India */
   In = 'IN',
-  /** Iraq */
+  Io = 'IO',
   Iq = 'IQ',
-  /** Iran */
   Ir = 'IR',
-  /** Iceland */
   Is = 'IS',
-  /** Italy */
   It = 'IT',
-  /** Jersey */
   Je = 'JE',
-  /** Jamaica */
   Jm = 'JM',
-  /** Jordan */
   Jo = 'JO',
-  /** Japan */
   Jp = 'JP',
-  /** Kenya */
   Ke = 'KE',
-  /** Kyrgyzstan */
   Kg = 'KG',
-  /** Cambodia */
   Kh = 'KH',
-  /** Comoros */
+  Ki = 'KI',
   Km = 'KM',
-  /** Saint Kitts and Nevis */
   Kn = 'KN',
-  /** North Korea */
   Kp = 'KP',
-  /** South Korea */
   Kr = 'KR',
-  /** Kuwait */
   Kw = 'KW',
-  /** Kazakhstan */
+  Ky = 'KY',
   Kz = 'KZ',
-  /** Laos */
   La = 'LA',
-  /** Lebanon */
   Lb = 'LB',
-  /** Saint Lucia */
   Lc = 'LC',
-  /** Liechtenstein */
   Li = 'LI',
-  /** Sri Lanka */
   Lk = 'LK',
-  /** Liberia */
   Lr = 'LR',
-  /** Lesotho */
   Ls = 'LS',
-  /** Lithuania */
   Lt = 'LT',
-  /** Luxembourg */
   Lu = 'LU',
-  /** Latvia */
   Lv = 'LV',
-  /** Morocco */
+  Ly = 'LY',
   Ma = 'MA',
-  /** Monaco */
   Mc = 'MC',
-  /** Moldova */
   Md = 'MD',
-  /** Montenegro */
   Me = 'ME',
-  /** Madagascar */
+  Mf = 'MF',
   Mg = 'MG',
-  /** Marshall Islands */
   Mh = 'MH',
-  /** North Macedonia */
   Mk = 'MK',
-  /** Mali */
   Ml = 'ML',
-  /** Myanmar */
   Mm = 'MM',
-  /** Mongolia */
   Mn = 'MN',
-  /** Mauritania */
+  Mo = 'MO',
+  Mq = 'MQ',
   Mr = 'MR',
-  /** Malta */
+  Ms = 'MS',
   Mt = 'MT',
-  /** Mauritius */
   Mu = 'MU',
-  /** Maldives */
   Mv = 'MV',
-  /** Malawi */
   Mw = 'MW',
-  /** Mexico */
   Mx = 'MX',
-  /** Malaysia */
   My = 'MY',
-  /** Mozambique */
   Mz = 'MZ',
-  /** Namibia */
   Na = 'NA',
-  /** New Caledonia */
   Nc = 'NC',
-  /** Niger */
   Ne = 'NE',
-  /** Nigeria */
+  Nf = 'NF',
   Ng = 'NG',
-  /** Nicaragua */
   Ni = 'NI',
-  /** Netherlands */
   Nl = 'NL',
-  /** Norway */
   No = 'NO',
-  /** Nepal */
   Np = 'NP',
-  /** New Zealand */
+  Nr = 'NR',
+  Nu = 'NU',
   Nz = 'NZ',
-  /** Oman */
   Om = 'OM',
-  /** Panama */
   Pa = 'PA',
-  /** Peru */
   Pe = 'PE',
-  /** Papua New Guinea */
+  Pf = 'PF',
   Pg = 'PG',
-  /** Philippines */
   Ph = 'PH',
-  /** Pakistan */
   Pk = 'PK',
-  /** Poland */
   Pl = 'PL',
-  /** Palestine */
+  Pm = 'PM',
+  Pn = 'PN',
   Ps = 'PS',
-  /** Portugal */
   Pt = 'PT',
-  /** Palau */
   Pw = 'PW',
-  /** Paraguay */
   Py = 'PY',
-  /** Qatar */
   Qa = 'QA',
-  /** Romania */
+  Re = 'RE',
   Ro = 'RO',
-  /** Serbia */
   Rs = 'RS',
-  /** Russia */
   Ru = 'RU',
-  /** Rwanda */
   Rw = 'RW',
-  /** Saudi Arabia */
   Sa = 'SA',
-  /** Solomon Islands */
   Sb = 'SB',
-  /** Seychelles */
   Sc = 'SC',
-  /** Sudan */
   Sd = 'SD',
-  /** Sweden */
   Se = 'SE',
-  /** Singapore */
   Sg = 'SG',
-  /** Slovenia */
+  Sh = 'SH',
   Si = 'SI',
-  /** Slovakia */
+  Sj = 'SJ',
   Sk = 'SK',
-  /** Sierra Leone */
   Sl = 'SL',
-  /** San Marino */
   Sm = 'SM',
-  /** Senegal */
   Sn = 'SN',
-  /** Suriname */
+  So = 'SO',
   Sr = 'SR',
-  /** South Sudan */
   Ss = 'SS',
-  /** El Salvador */
+  St = 'ST',
   Sv = 'SV',
-  /** Syria */
+  Sx = 'SX',
   Sy = 'SY',
-  /** Swaziland (Eswatini) */
   Sz = 'SZ',
-  /** Chad */
+  Ta = 'TA',
+  Tc = 'TC',
   Td = 'TD',
-  /** Togo */
+  Tf = 'TF',
   Tg = 'TG',
-  /** Thailand */
   Th = 'TH',
-  /** Tajikistan */
   Tj = 'TJ',
-  /** Timor-Leste (East Timor) */
+  Tk = 'TK',
   Tl = 'TL',
-  /** Turkmenistan */
   Tm = 'TM',
-  /** Tunisia */
   Tn = 'TN',
-  /** Tonga */
   To = 'TO',
-  /** Turkey */
   Tr = 'TR',
-  /** Trinidad and Tobago */
   Tt = 'TT',
-  /** Tanzania */
+  Tv = 'TV',
+  Tw = 'TW',
   Tz = 'TZ',
-  /** Ukraine */
   Ua = 'UA',
-  /** Uganda */
   Ug = 'UG',
-  /** United States */
+  Um = 'UM',
   Us = 'US',
-  /** Uruguay */
   Uy = 'UY',
-  /** Uzbekistan */
   Uz = 'UZ',
-  /** Vatican City */
   Va = 'VA',
-  /** Saint Vincent and the Grenadines */
   Vc = 'VC',
-  /** Venezuela */
   Ve = 'VE',
-  /** British Virgin Islands */
   Vg = 'VG',
-  /** US Virgin Islands */
   Vi = 'VI',
-  /** Vietnam */
   Vn = 'VN',
-  /** Vanuatu */
   Vu = 'VU',
-  /** Samoa */
+  Wf = 'WF',
   Ws = 'WS',
-  /** Kosovo */
   Xk = 'XK',
-  /** Yemen */
   Ye = 'YE',
-  /** South Africa */
+  Yt = 'YT',
   Za = 'ZA',
-  /** Zambia */
   Zm = 'ZM',
-  /** Zimbabwe */
-  Zw = 'ZW'
+  Zw = 'ZW',
+  Zz = 'ZZ'
 }
 
 /** Currency codes according to ISO 4217 */
@@ -1581,6 +1626,21 @@ export enum ApiDimensionUnit {
   Mm = 'mm'
 }
 
+/** Physical dimensions expressed in a common length unit. */
+export type ApiDimensions = {
+  __typename?: 'Dimensions';
+  height: Scalars['Float']['output'];
+  length: Scalars['Float']['output'];
+  unit: ApiDimensionUnit;
+  width: Scalars['Float']['output'];
+};
+
+/** Represents an error in the input of a mutation. */
+export type ApiDisplayableError = {
+  field: Maybe<Array<Scalars['String']['output']>>;
+  message: Scalars['String']['output'];
+};
+
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
 export enum ApiLocaleCode {
   /** Akan */
@@ -1857,70 +1917,86 @@ export enum ApiLocaleCode {
   Zu = 'zu'
 }
 
+/** An image owned and resolved by the Media subgraph. */
+export type ApiMediaImage = {
+  __typename?: 'MediaImage';
+  id: Scalars['ID']['output'];
+};
+
+/** A precise monetary value with its associated currency. */
 export type ApiMoney = {
   __typename?: 'Money';
-  /** The amount of money */
   amount: Scalars['Decimal']['output'];
-  /** The currency code */
   currencyCode: ApiCurrencyCode;
 };
 
 export type ApiMutation = {
   __typename?: 'Mutation';
+  /** Sets, replaces, or clears the billing address for the checkout. */
+  checkoutBillingAddressUpdate: ApiCheckoutMutationPayload;
   /** Creates a new checkout. */
-  checkoutCreate: ApiCheckout;
+  checkoutCreate: ApiCheckoutMutationPayload;
   /** Updates the display currency of the checkout (ISO 4217, e.g. "USD", "EUR"). */
-  checkoutCurrencyCodeUpdate: ApiCheckout;
+  checkoutCurrencyCodeUpdate: ApiCheckoutMutationPayload;
   /**
    * Updates customer identification data associated with the checkout
-   * (email, customerId and if necessary country/language for calculations).
+   * while authenticated customer ownership is resolved from trusted context.
    */
-  checkoutCustomerIdentityUpdate: ApiCheckout;
+  checkoutCustomerIdentityUpdate: ApiCheckoutMutationPayload;
   /** Updates the customer note attached to the checkout (delivery instructions, etc.). */
-  checkoutCustomerNoteUpdate: ApiCheckout;
+  checkoutCustomerNoteUpdate: ApiCheckoutMutationPayload;
   /** Adds one or more delivery addresses to the checkout (supports multi-shipping). */
-  checkoutDeliveryAddressesAdd: ApiCheckout;
+  checkoutDeliveryAddressesAdd: ApiCheckoutMutationPayload;
   /** Removes one or more delivery addresses previously attached to the checkout. */
-  checkoutDeliveryAddressesRemove: ApiCheckout;
+  checkoutDeliveryAddressesRemove: ApiCheckoutMutationPayload;
   /** Updates previously added delivery addresses (e.g., correcting postal code or city). */
-  checkoutDeliveryAddressesUpdate: ApiCheckout;
+  checkoutDeliveryAddressesUpdate: ApiCheckoutMutationPayload;
   /** Selects or changes the delivery method for the entire checkout or specific address. */
-  checkoutDeliveryMethodUpdate: ApiCheckout;
+  checkoutDeliveryMethodUpdate: ApiCheckoutMutationPayload;
   /** Adds recipients to delivery groups. */
-  checkoutDeliveryRecipientsAdd: ApiCheckout;
+  checkoutDeliveryRecipientsAdd: ApiCheckoutMutationPayload;
   /** Removes recipients from delivery groups. */
-  checkoutDeliveryRecipientsRemove: ApiCheckout;
+  checkoutDeliveryRecipientsRemove: ApiCheckoutMutationPayload;
   /** Updates recipients for delivery groups. */
-  checkoutDeliveryRecipientsUpdate: ApiCheckout;
+  checkoutDeliveryRecipientsUpdate: ApiCheckoutMutationPayload;
   /** Updates the language/locale of the checkout (affects localization and formatting). */
-  checkoutLanguageCodeUpdate: ApiCheckout;
+  checkoutLanguageCodeUpdate: ApiCheckoutMutationPayload;
   /** Adds an item to an existing checkout. */
-  checkoutLinesAdd: ApiCheckoutLinesAddPayload;
+  checkoutLinesAdd: ApiCheckoutMutationPayload;
   /** Clears all items from a checkout. */
-  checkoutLinesClear: ApiCheckoutLinesClearPayload;
+  checkoutLinesClear: ApiCheckoutMutationPayload;
   /** Removes a single item from the checkout. */
-  checkoutLinesDelete: ApiCheckoutLinesDeletePayload;
+  checkoutLinesDelete: ApiCheckoutMutationPayload;
   /** Replaces one checkout line with another by merging quantities and removing the source line. */
-  checkoutLinesReplace: ApiCheckoutLinesReplacePayload;
+  checkoutLinesReplace: ApiCheckoutMutationPayload;
   /** Updates the quantity of a specific checkout item. */
-  checkoutLinesUpdate: ApiCheckoutLinesUpdatePayload;
+  checkoutLinesUpdate: ApiCheckoutMutationPayload;
+  /** Removes the loyalty redemption selection from this checkout. */
+  checkoutLoyaltyRedemptionRemove: ApiCheckoutMutationPayload;
+  /** Applies an exact point amount, or the maximum allowed amount when omitted. */
+  checkoutLoyaltyRedemptionUpdate: ApiCheckoutMutationPayload;
   /** Selects or changes the payment method for the checkout. */
-  checkoutPaymentMethodUpdate: ApiCheckout;
+  checkoutPaymentMethodUpdate: ApiCheckoutMutationPayload;
   /** Applies a promo code/coupon to the checkout. */
-  checkoutPromoCodeAdd: ApiCheckout;
+  checkoutPromoCodeAdd: ApiCheckoutMutationPayload;
   /** Removes a previously applied promo code/coupon from the checkout. */
-  checkoutPromoCodeRemove: ApiCheckout;
+  checkoutPromoCodeRemove: ApiCheckoutMutationPayload;
   /** Creates a new checkout tag. */
-  checkoutTagCreate: ApiCheckout;
+  checkoutTagCreate: ApiCheckoutMutationPayload;
   /** Deletes a checkout tag. */
-  checkoutTagDelete: ApiCheckout;
+  checkoutTagDelete: ApiCheckoutMutationPayload;
   /** Updates a checkout tag. */
-  checkoutTagUpdate: ApiCheckout;
+  checkoutTagUpdate: ApiCheckoutMutationPayload;
   /**
    * Places a committed checkout through the durable order placement workflow.
    * Repeating the same request with the same idempotency key returns the same result.
    */
   placeOrder: ApiPlaceOrderPayload;
+};
+
+
+export type ApiMutationCheckoutBillingAddressUpdateArgs = {
+  input: ApiCheckoutBillingAddressUpdateInput;
 };
 
 
@@ -2009,6 +2085,16 @@ export type ApiMutationCheckoutLinesUpdateArgs = {
 };
 
 
+export type ApiMutationCheckoutLoyaltyRedemptionRemoveArgs = {
+  input: ApiCheckoutLoyaltyRedemptionRemoveInput;
+};
+
+
+export type ApiMutationCheckoutLoyaltyRedemptionUpdateArgs = {
+  input: ApiCheckoutLoyaltyRedemptionUpdateInput;
+};
+
+
 export type ApiMutationCheckoutPaymentMethodUpdateArgs = {
   input: ApiCheckoutPaymentMethodUpdateInput;
 };
@@ -2043,6 +2129,7 @@ export type ApiMutationPlaceOrderArgs = {
   input: ApiPlaceOrderInput;
 };
 
+/** Enables global object identification following the Relay specification. */
 export type ApiNode = {
   id: Scalars['ID']['output'];
 };
@@ -2054,6 +2141,15 @@ export enum ApiNotificationSeverity {
   /** Notification about automatic adjustments (e.g., quantity reduced). */
   Warning = 'WARNING'
 }
+
+/** Returns information about pagination in a connection. */
+export type ApiPageInfo = {
+  __typename?: 'PageInfo';
+  endCursor: Maybe<Scalars['Cursor']['output']>;
+  hasNextPage: Scalars['Boolean']['output'];
+  hasPreviousPage: Scalars['Boolean']['output'];
+  startCursor: Maybe<Scalars['Cursor']['output']>;
+};
 
 /** Payment flow for the method. */
 export enum ApiPaymentFlow {
@@ -2098,14 +2194,23 @@ export type ApiPlaceOrderInput = {
 /** Result of the durable place-order workflow. */
 export type ApiPlaceOrderPayload = {
   __typename?: 'PlaceOrderPayload';
+  /** Checkout snapshot committed by this placement. */
+  checkoutId: Maybe<Scalars['ID']['output']>;
+  /** Checkout.version captured by this placement. */
+  checkoutVersion: Maybe<Scalars['Int']['output']>;
   customerAction: Maybe<ApiPlaceOrderCustomerAction>;
-  orderId: Scalars['ID']['output'];
+  orderId: Maybe<Scalars['ID']['output']>;
   paymentCollectionId: Maybe<Scalars['ID']['output']>;
   paymentFailure: Maybe<ApiPlaceOrderPaymentFailure>;
   paymentOperationId: Maybe<Scalars['ID']['output']>;
   paymentSessionId: Maybe<Scalars['ID']['output']>;
-  placementId: Scalars['ID']['output'];
-  status: ApiPlaceOrderStatus;
+  /** Durable placement identifier used by Query.checkoutPlacement. */
+  placementId: Maybe<Scalars['ID']['output']>;
+  /** Checkout.resultRevision captured by this placement. */
+  resultRevision: Maybe<Scalars['String']['output']>;
+  status: Maybe<ApiPlaceOrderStatus>;
+  /** Validation, stale-snapshot, and business errors produced before placement. */
+  userErrors: Array<ApiCheckoutUserError>;
 };
 
 /** Normalized terminal or retryable payment failure. */
@@ -2158,15 +2263,58 @@ export enum ApiPriceAdjustmentValueType {
   Percentage = 'PERCENTAGE'
 }
 
+/** A purchasable product variant owned by the Catalog subgraph. */
+export type ApiProductVariant = {
+  __typename?: 'ProductVariant';
+  id: Scalars['ID']['output'];
+};
+
+/** The catalog entity purchased by a checkout line. */
+export type ApiPurchasable = ApiProductVariant;
+
 export type ApiQuery = {
   __typename?: 'Query';
   /** Get a checkout by its ID. */
   checkout: Maybe<ApiCheckout>;
+  /**
+   * Returns the latest durable result of a checkout placement.
+   *
+   * This query is suitable for restoring state after a payment-provider redirect
+   * and for polling asynchronous payment completion.
+   */
+  checkoutPlacement: Maybe<ApiPlaceOrderPayload>;
 };
 
 
 export type ApiQueryCheckoutArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type ApiQueryCheckoutPlacementArgs = {
+  id: Scalars['ID']['input'];
+};
+
+/** Localized rich text in plain text, HTML, and structured JSON formats. */
+export type ApiRichText = {
+  __typename?: 'RichText';
+  html: Scalars['HTML']['output'];
+  json: Scalars['JSON']['output'];
+  text: Scalars['String']['output'];
+};
+
+/** Represents a generic error in the input of a mutation. */
+export type ApiUserError = ApiDisplayableError & {
+  __typename?: 'UserError';
+  field: Maybe<Array<Scalars['String']['output']>>;
+  message: Scalars['String']['output'];
+};
+
+/** A weight measurement expressed in a supported unit. */
+export type ApiWeight = {
+  __typename?: 'Weight';
+  unit: ApiWeightUnit;
+  value: Scalars['Float']['output'];
 };
 
 /** Weight measurement units */
@@ -2248,21 +2396,29 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
   info: GraphQLResolveInfo
 ) => TResult | Promise<TResult>;
 
+/** Mapping of union types */
+export type ApiResolversUnionTypes<_RefType extends Record<string, unknown>> = {
+  Purchasable: ( ApiProductVariant );
+};
 
 /** Mapping of interface types */
 export type ApiResolversInterfaceTypes<_RefType extends Record<string, unknown>> = {
-  Node: ( ApiCheckout ) | ( ApiCheckoutLine ) | ( ApiCheckoutTag );
+  Connection: never;
+  DisplayableError: ( ApiCheckoutUserError ) | ( ApiUserError );
+  Node: ( Omit<ApiCheckout, 'deliveryGroups' | 'lines'> & { deliveryGroups: Array<_RefType['CheckoutDeliveryGroup']>, lines: Array<_RefType['CheckoutLine']> } ) | ( Omit<ApiCheckoutLine, 'children' | 'cost' | 'parent' | 'purchasable'> & { children: Array<_RefType['CheckoutLine']>, cost: _RefType['CheckoutLineCost'], parent: Maybe<_RefType['CheckoutLine']>, purchasable: _RefType['Purchasable'] } ) | ( ApiCheckoutTag );
 };
 
 /** Mapping between all available schema types and the resolvers types */
 export type ApiResolversTypes = {
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  Checkout: ResolverTypeWrapper<ApiCheckout>;
+  Checkout: ResolverTypeWrapper<Omit<ApiCheckout, 'deliveryGroups' | 'lines'> & { deliveryGroups: Array<ApiResolversTypes['CheckoutDeliveryGroup']>, lines: Array<ApiResolversTypes['CheckoutLine']> }>;
+  CheckoutBillingAddress: ResolverTypeWrapper<ApiCheckoutBillingAddress>;
+  CheckoutBillingAddressInput: ApiCheckoutBillingAddressInput;
+  CheckoutBillingAddressUpdateInput: ApiCheckoutBillingAddressUpdateInput;
   CheckoutChildLineInput: ApiCheckoutChildLineInput;
   CheckoutCost: ResolverTypeWrapper<ApiCheckoutCost>;
   CheckoutCreateInput: ApiCheckoutCreateInput;
-  CheckoutCreatePayload: ResolverTypeWrapper<ApiCheckoutCreatePayload>;
   CheckoutCurrencyCodeUpdateInput: ApiCheckoutCurrencyCodeUpdateInput;
   CheckoutCustomerIdentity: ResolverTypeWrapper<ApiCheckoutCustomerIdentity>;
   CheckoutCustomerIdentityUpdateInput: ApiCheckoutCustomerIdentityUpdateInput;
@@ -2274,7 +2430,7 @@ export type ApiResolversTypes = {
   CheckoutDeliveryAddressesRemoveInput: ApiCheckoutDeliveryAddressesRemoveInput;
   CheckoutDeliveryAddressesUpdateInput: ApiCheckoutDeliveryAddressesUpdateInput;
   CheckoutDeliveryDestinationInput: ApiCheckoutDeliveryDestinationInput;
-  CheckoutDeliveryGroup: ResolverTypeWrapper<ApiCheckoutDeliveryGroup>;
+  CheckoutDeliveryGroup: ResolverTypeWrapper<Omit<ApiCheckoutDeliveryGroup, 'checkoutLines'> & { checkoutLines: Array<ApiResolversTypes['CheckoutLine']> }>;
   CheckoutDeliveryMethodType: ApiCheckoutDeliveryMethodType;
   CheckoutDeliveryMethodUpdateInput: ApiCheckoutDeliveryMethodUpdateInput;
   CheckoutDeliveryOption: ResolverTypeWrapper<ApiCheckoutDeliveryOption>;
@@ -2283,29 +2439,28 @@ export type ApiResolversTypes = {
   CheckoutDeliveryRecipientsAddInput: ApiCheckoutDeliveryRecipientsAddInput;
   CheckoutDeliveryRecipientsRemoveInput: ApiCheckoutDeliveryRecipientsRemoveInput;
   CheckoutDeliveryRecipientsUpdateInput: ApiCheckoutDeliveryRecipientsUpdateInput;
-  CheckoutFieldError: ResolverTypeWrapper<ApiCheckoutFieldError>;
   CheckoutIssue: ResolverTypeWrapper<ApiCheckoutIssue>;
   CheckoutIssueEffect: ApiCheckoutIssueEffect;
   CheckoutIssueSeverity: ApiCheckoutIssueSeverity;
   CheckoutLanguageCodeUpdateInput: ApiCheckoutLanguageCodeUpdateInput;
-  CheckoutLine: ResolverTypeWrapper<ApiCheckoutLine>;
+  CheckoutLine: ResolverTypeWrapper<Omit<ApiCheckoutLine, 'children' | 'cost' | 'parent' | 'purchasable'> & { children: Array<ApiResolversTypes['CheckoutLine']>, cost: ApiResolversTypes['CheckoutLineCost'], parent: Maybe<ApiResolversTypes['CheckoutLine']>, purchasable: ApiResolversTypes['Purchasable'] }>;
   CheckoutLineAddInput: ApiCheckoutLineAddInput;
   CheckoutLineCost: ResolverTypeWrapper<ApiCheckoutLineCost>;
   CheckoutLinePriceConfig: ResolverTypeWrapper<ApiCheckoutLinePriceConfig>;
+  CheckoutLinePurchase: ResolverTypeWrapper<ApiCheckoutLinePurchase>;
   CheckoutLinePurchaseInput: ApiCheckoutLinePurchaseInput;
   CheckoutLinePurchaseType: ApiCheckoutLinePurchaseType;
   CheckoutLineReplaceInput: ApiCheckoutLineReplaceInput;
   CheckoutLineUpdateInput: ApiCheckoutLineUpdateInput;
   CheckoutLinesAddInput: ApiCheckoutLinesAddInput;
-  CheckoutLinesAddPayload: ResolverTypeWrapper<ApiCheckoutLinesAddPayload>;
   CheckoutLinesClearInput: ApiCheckoutLinesClearInput;
-  CheckoutLinesClearPayload: ResolverTypeWrapper<ApiCheckoutLinesClearPayload>;
   CheckoutLinesDeleteInput: ApiCheckoutLinesDeleteInput;
-  CheckoutLinesDeletePayload: ResolverTypeWrapper<ApiCheckoutLinesDeletePayload>;
   CheckoutLinesReplaceInput: ApiCheckoutLinesReplaceInput;
-  CheckoutLinesReplacePayload: ResolverTypeWrapper<ApiCheckoutLinesReplacePayload>;
   CheckoutLinesUpdateInput: ApiCheckoutLinesUpdateInput;
-  CheckoutLinesUpdatePayload: ResolverTypeWrapper<ApiCheckoutLinesUpdatePayload>;
+  CheckoutLoyaltyRedemption: ResolverTypeWrapper<ApiCheckoutLoyaltyRedemption>;
+  CheckoutLoyaltyRedemptionRemoveInput: ApiCheckoutLoyaltyRedemptionRemoveInput;
+  CheckoutLoyaltyRedemptionUpdateInput: ApiCheckoutLoyaltyRedemptionUpdateInput;
+  CheckoutMutationPayload: ResolverTypeWrapper<Omit<ApiCheckoutMutationPayload, 'checkout'> & { checkout: Maybe<ApiResolversTypes['Checkout']> }>;
   CheckoutNotification: ResolverTypeWrapper<ApiCheckoutNotification>;
   CheckoutNotificationCode: ApiCheckoutNotificationCode;
   CheckoutPayment: ResolverTypeWrapper<ApiCheckoutPayment>;
@@ -2324,23 +2479,33 @@ export type ApiResolversTypes = {
   CheckoutTagDeleteInput: ApiCheckoutTagDeleteInput;
   CheckoutTagInput: ApiCheckoutTagInput;
   CheckoutTagUpdateInput: ApiCheckoutTagUpdateInput;
+  CheckoutUserError: ResolverTypeWrapper<ApiCheckoutUserError>;
   ChildPriceType: ApiChildPriceType;
+  Color: ResolverTypeWrapper<Scalars['Color']['output']>;
+  Connection: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Connection']>;
   CountryCode: ApiCountryCode;
   CurrencyCode: ApiCurrencyCode;
+  Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
   Customer: ResolverTypeWrapper<ApiCustomer>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   Decimal: ResolverTypeWrapper<Scalars['Decimal']['output']>;
   DimensionUnit: ApiDimensionUnit;
+  Dimensions: ResolverTypeWrapper<ApiDimensions>;
+  DisplayableError: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['DisplayableError']>;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
+  HTML: ResolverTypeWrapper<Scalars['HTML']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  ISO8601DateTime: ResolverTypeWrapper<Scalars['ISO8601DateTime']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: ApiLocaleCode;
+  MediaImage: ResolverTypeWrapper<ApiMediaImage>;
   Money: ResolverTypeWrapper<ApiMoney>;
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ApiResolversInterfaceTypes<ApiResolversTypes>['Node']>;
   NotificationSeverity: ApiNotificationSeverity;
+  PageInfo: ResolverTypeWrapper<ApiPageInfo>;
   PaymentFlow: ApiPaymentFlow;
   PlaceOrderCustomerAction: ResolverTypeWrapper<ApiPlaceOrderCustomerAction>;
   PlaceOrderCustomerActionType: ApiPlaceOrderCustomerActionType;
@@ -2351,8 +2516,15 @@ export type ApiResolversTypes = {
   PlaceOrderStatus: ApiPlaceOrderStatus;
   PriceAdjustmentOperation: ApiPriceAdjustmentOperation;
   PriceAdjustmentValueType: ApiPriceAdjustmentValueType;
+  ProductVariant: ResolverTypeWrapper<ApiProductVariant>;
+  Purchasable: ResolverTypeWrapper<ApiResolversUnionTypes<ApiResolversTypes>['Purchasable']>;
   Query: ResolverTypeWrapper<{}>;
+  RichText: ResolverTypeWrapper<ApiRichText>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  URL: ResolverTypeWrapper<Scalars['URL']['output']>;
+  UnsignedInt64: ResolverTypeWrapper<Scalars['UnsignedInt64']['output']>;
+  UserError: ResolverTypeWrapper<ApiUserError>;
+  Weight: ResolverTypeWrapper<ApiWeight>;
   WeightUnit: ApiWeightUnit;
 };
 
@@ -2360,11 +2532,13 @@ export type ApiResolversTypes = {
 export type ApiResolversParentTypes = {
   BigInt: Scalars['BigInt']['output'];
   Boolean: Scalars['Boolean']['output'];
-  Checkout: ApiCheckout;
+  Checkout: Omit<ApiCheckout, 'deliveryGroups' | 'lines'> & { deliveryGroups: Array<ApiResolversParentTypes['CheckoutDeliveryGroup']>, lines: Array<ApiResolversParentTypes['CheckoutLine']> };
+  CheckoutBillingAddress: ApiCheckoutBillingAddress;
+  CheckoutBillingAddressInput: ApiCheckoutBillingAddressInput;
+  CheckoutBillingAddressUpdateInput: ApiCheckoutBillingAddressUpdateInput;
   CheckoutChildLineInput: ApiCheckoutChildLineInput;
   CheckoutCost: ApiCheckoutCost;
   CheckoutCreateInput: ApiCheckoutCreateInput;
-  CheckoutCreatePayload: ApiCheckoutCreatePayload;
   CheckoutCurrencyCodeUpdateInput: ApiCheckoutCurrencyCodeUpdateInput;
   CheckoutCustomerIdentity: ApiCheckoutCustomerIdentity;
   CheckoutCustomerIdentityUpdateInput: ApiCheckoutCustomerIdentityUpdateInput;
@@ -2376,7 +2550,7 @@ export type ApiResolversParentTypes = {
   CheckoutDeliveryAddressesRemoveInput: ApiCheckoutDeliveryAddressesRemoveInput;
   CheckoutDeliveryAddressesUpdateInput: ApiCheckoutDeliveryAddressesUpdateInput;
   CheckoutDeliveryDestinationInput: ApiCheckoutDeliveryDestinationInput;
-  CheckoutDeliveryGroup: ApiCheckoutDeliveryGroup;
+  CheckoutDeliveryGroup: Omit<ApiCheckoutDeliveryGroup, 'checkoutLines'> & { checkoutLines: Array<ApiResolversParentTypes['CheckoutLine']> };
   CheckoutDeliveryMethodUpdateInput: ApiCheckoutDeliveryMethodUpdateInput;
   CheckoutDeliveryOption: ApiCheckoutDeliveryOption;
   CheckoutDeliveryOptionSelection: ApiCheckoutDeliveryOptionSelection;
@@ -2384,26 +2558,25 @@ export type ApiResolversParentTypes = {
   CheckoutDeliveryRecipientsAddInput: ApiCheckoutDeliveryRecipientsAddInput;
   CheckoutDeliveryRecipientsRemoveInput: ApiCheckoutDeliveryRecipientsRemoveInput;
   CheckoutDeliveryRecipientsUpdateInput: ApiCheckoutDeliveryRecipientsUpdateInput;
-  CheckoutFieldError: ApiCheckoutFieldError;
   CheckoutIssue: ApiCheckoutIssue;
   CheckoutLanguageCodeUpdateInput: ApiCheckoutLanguageCodeUpdateInput;
-  CheckoutLine: ApiCheckoutLine;
+  CheckoutLine: Omit<ApiCheckoutLine, 'children' | 'cost' | 'parent' | 'purchasable'> & { children: Array<ApiResolversParentTypes['CheckoutLine']>, cost: ApiResolversParentTypes['CheckoutLineCost'], parent: Maybe<ApiResolversParentTypes['CheckoutLine']>, purchasable: ApiResolversParentTypes['Purchasable'] };
   CheckoutLineAddInput: ApiCheckoutLineAddInput;
   CheckoutLineCost: ApiCheckoutLineCost;
   CheckoutLinePriceConfig: ApiCheckoutLinePriceConfig;
+  CheckoutLinePurchase: ApiCheckoutLinePurchase;
   CheckoutLinePurchaseInput: ApiCheckoutLinePurchaseInput;
   CheckoutLineReplaceInput: ApiCheckoutLineReplaceInput;
   CheckoutLineUpdateInput: ApiCheckoutLineUpdateInput;
   CheckoutLinesAddInput: ApiCheckoutLinesAddInput;
-  CheckoutLinesAddPayload: ApiCheckoutLinesAddPayload;
   CheckoutLinesClearInput: ApiCheckoutLinesClearInput;
-  CheckoutLinesClearPayload: ApiCheckoutLinesClearPayload;
   CheckoutLinesDeleteInput: ApiCheckoutLinesDeleteInput;
-  CheckoutLinesDeletePayload: ApiCheckoutLinesDeletePayload;
   CheckoutLinesReplaceInput: ApiCheckoutLinesReplaceInput;
-  CheckoutLinesReplacePayload: ApiCheckoutLinesReplacePayload;
   CheckoutLinesUpdateInput: ApiCheckoutLinesUpdateInput;
-  CheckoutLinesUpdatePayload: ApiCheckoutLinesUpdatePayload;
+  CheckoutLoyaltyRedemption: ApiCheckoutLoyaltyRedemption;
+  CheckoutLoyaltyRedemptionRemoveInput: ApiCheckoutLoyaltyRedemptionRemoveInput;
+  CheckoutLoyaltyRedemptionUpdateInput: ApiCheckoutLoyaltyRedemptionUpdateInput;
+  CheckoutMutationPayload: Omit<ApiCheckoutMutationPayload, 'checkout'> & { checkout: Maybe<ApiResolversParentTypes['Checkout']> };
   CheckoutNotification: ApiCheckoutNotification;
   CheckoutPayment: ApiCheckoutPayment;
   CheckoutPaymentMethod: ApiCheckoutPaymentMethod;
@@ -2420,23 +2593,40 @@ export type ApiResolversParentTypes = {
   CheckoutTagDeleteInput: ApiCheckoutTagDeleteInput;
   CheckoutTagInput: ApiCheckoutTagInput;
   CheckoutTagUpdateInput: ApiCheckoutTagUpdateInput;
+  CheckoutUserError: ApiCheckoutUserError;
+  Color: Scalars['Color']['output'];
+  Connection: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Connection'];
+  Cursor: Scalars['Cursor']['output'];
   Customer: ApiCustomer;
   DateTime: Scalars['DateTime']['output'];
   Decimal: Scalars['Decimal']['output'];
+  Dimensions: ApiDimensions;
+  DisplayableError: ApiResolversInterfaceTypes<ApiResolversParentTypes>['DisplayableError'];
   Email: Scalars['Email']['output'];
   Float: Scalars['Float']['output'];
+  HTML: Scalars['HTML']['output'];
   ID: Scalars['ID']['output'];
+  ISO8601DateTime: Scalars['ISO8601DateTime']['output'];
   Int: Scalars['Int']['output'];
   JSON: Scalars['JSON']['output'];
+  MediaImage: ApiMediaImage;
   Money: ApiMoney;
   Mutation: {};
   Node: ApiResolversInterfaceTypes<ApiResolversParentTypes>['Node'];
+  PageInfo: ApiPageInfo;
   PlaceOrderCustomerAction: ApiPlaceOrderCustomerAction;
   PlaceOrderInput: ApiPlaceOrderInput;
   PlaceOrderPayload: ApiPlaceOrderPayload;
   PlaceOrderPaymentFailure: ApiPlaceOrderPaymentFailure;
+  ProductVariant: ApiProductVariant;
+  Purchasable: ApiResolversUnionTypes<ApiResolversParentTypes>['Purchasable'];
   Query: {};
+  RichText: ApiRichText;
   String: Scalars['String']['output'];
+  URL: Scalars['URL']['output'];
+  UnsignedInt64: Scalars['UnsignedInt64']['output'];
+  UserError: ApiUserError;
+  Weight: ApiWeight;
 };
 
 export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['BigInt'], any> {
@@ -2445,14 +2635,19 @@ export interface ApiBigIntScalarConfig extends GraphQLScalarTypeConfig<ApiResolv
 
 export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Checkout'] = ApiResolversParentTypes['Checkout']> = {
   appliedPromoCodes: Resolver<Array<ApiResolversTypes['CheckoutPromoCode']>, ParentType, ContextType>;
+  billingAddress: Resolver<Maybe<ApiResolversTypes['CheckoutBillingAddress']>, ParentType, ContextType>;
+  channelCode: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   cost: Resolver<ApiResolversTypes['CheckoutCost'], ParentType, ContextType>;
   createdAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
+  currencyCode: Resolver<ApiResolversTypes['CurrencyCode'], ParentType, ContextType>;
   customerIdentity: Resolver<ApiResolversTypes['CheckoutCustomerIdentity'], ParentType, ContextType>;
   customerNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   deliveryGroups: Resolver<Array<ApiResolversTypes['CheckoutDeliveryGroup']>, ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   issues: Resolver<Array<ApiResolversTypes['CheckoutIssue']>, ParentType, ContextType>;
   lines: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
+  localeCode: Resolver<ApiResolversTypes['LocaleCode'], ParentType, ContextType>;
+  loyaltyRedemption: Resolver<Maybe<ApiResolversTypes['CheckoutLoyaltyRedemption']>, ParentType, ContextType>;
   notifications: Resolver<Array<ApiResolversTypes['CheckoutNotification']>, ParentType, ContextType>;
   payment: Resolver<ApiResolversTypes['CheckoutPayment'], ParentType, ContextType>;
   resultRevision: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
@@ -2464,18 +2659,32 @@ export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extend
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ApiCheckoutBillingAddressResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutBillingAddress'] = ApiResolversParentTypes['CheckoutBillingAddress']> = {
+  address1: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  address2: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  city: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  company: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  country: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
+  data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
+  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  formatted: Resolver<Array<ApiResolversTypes['String']>, ParentType, ContextType>;
+  formattedArea: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  name: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  province: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  zip: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
 export type ApiCheckoutCostResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutCost'] = ApiResolversParentTypes['CheckoutCost']> = {
   subtotalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   totalAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   totalDiscountAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   totalShippingAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
   totalTaxAmount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiCheckoutCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutCreatePayload'] = ApiResolversParentTypes['CheckoutCreatePayload']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2494,11 +2703,20 @@ export type ApiCheckoutDeliveryAddressResolvers<ContextType = GraphQLContext, Pa
   address1: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   address2: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   city: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  company: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  country: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   countryCode: Resolver<Maybe<ApiResolversTypes['CountryCode']>, ParentType, ContextType>;
   data: Resolver<Maybe<ApiResolversTypes['JSON']>, ParentType, ContextType>;
+  firstName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  formatted: Resolver<Array<ApiResolversTypes['String']>, ParentType, ContextType>;
+  formattedArea: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   id: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
-  postalCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  lastName: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  name: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  phone: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  province: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   provinceCode: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  zip: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2536,12 +2754,6 @@ export type ApiCheckoutDeliveryOptionSelectionResolvers<ContextType = GraphQLCon
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCheckoutFieldErrorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutFieldError'] = ApiResolversParentTypes['CheckoutFieldError']> = {
-  field: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  message: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
 export type ApiCheckoutIssueResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutIssue'] = ApiResolversParentTypes['CheckoutIssue']> = {
   code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   effect: Resolver<ApiResolversTypes['CheckoutIssueEffect'], ParentType, ContextType>;
@@ -2554,14 +2766,18 @@ export type ApiCheckoutIssueResolvers<ContextType = GraphQLContext, ParentType e
 };
 
 export type ApiCheckoutLineResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLine'] = ApiResolversParentTypes['CheckoutLine']> = {
+  attributes: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
   children: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
   componentItemId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   cost: Resolver<ApiResolversTypes['CheckoutLineCost'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  imageSrc: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  image: Resolver<Maybe<ApiResolversTypes['MediaImage']>, ParentType, ContextType>;
   originalPrice: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  parent: Resolver<Maybe<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
   priceConfig: Resolver<Maybe<ApiResolversTypes['CheckoutLinePriceConfig']>, ParentType, ContextType>;
+  purchasable: Resolver<ApiResolversTypes['Purchasable'], ParentType, ContextType>;
   purchasableId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  purchase: Resolver<ApiResolversTypes['CheckoutLinePurchase'], ParentType, ContextType>;
   quantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   sku: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   tag: Resolver<Maybe<ApiResolversTypes['CheckoutTag']>, ParentType, ContextType>;
@@ -2586,33 +2802,30 @@ export type ApiCheckoutLinePriceConfigResolvers<ContextType = GraphQLContext, Pa
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCheckoutLinesAddPayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinesAddPayload'] = ApiResolversParentTypes['CheckoutLinesAddPayload']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
+export type ApiCheckoutLinePurchaseResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinePurchase'] = ApiResolversParentTypes['CheckoutLinePurchase']> = {
+  type: Resolver<ApiResolversTypes['CheckoutLinePurchaseType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCheckoutLinesClearPayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinesClearPayload'] = ApiResolversParentTypes['CheckoutLinesClearPayload']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
+export type ApiCheckoutLoyaltyRedemptionResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLoyaltyRedemption'] = ApiResolversParentTypes['CheckoutLoyaltyRedemption']> = {
+  accountId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  availablePoints: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
+  discount: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  expiresAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
+  payableAfterLoyalty: Resolver<ApiResolversTypes['Money'], ParentType, ContextType>;
+  programCode: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  programId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  programVersion: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
+  quoteId: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  redeemablePoints: Resolver<ApiResolversTypes['BigInt'], ParentType, ContextType>;
+  requestedPoints: Resolver<Maybe<ApiResolversTypes['BigInt']>, ParentType, ContextType>;
+  revision: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type ApiCheckoutLinesDeletePayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinesDeletePayload'] = ApiResolversParentTypes['CheckoutLinesDeletePayload']> = {
+export type ApiCheckoutMutationPayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutMutationPayload'] = ApiResolversParentTypes['CheckoutMutationPayload']> = {
   checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiCheckoutLinesReplacePayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinesReplacePayload'] = ApiResolversParentTypes['CheckoutLinesReplacePayload']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-};
-
-export type ApiCheckoutLinesUpdatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutLinesUpdatePayload'] = ApiResolversParentTypes['CheckoutLinesUpdatePayload']> = {
-  checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType>;
-  errors: Resolver<Maybe<Array<ApiResolversTypes['CheckoutFieldError']>>, ParentType, ContextType>;
+  userErrors: Resolver<Array<ApiResolversTypes['CheckoutUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2682,6 +2895,28 @@ export type ApiCheckoutTagResolvers<ContextType = GraphQLContext, ParentType ext
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ApiCheckoutUserErrorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['CheckoutUserError'] = ApiResolversParentTypes['CheckoutUserError']> = {
+  code: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  field: Resolver<Maybe<Array<ApiResolversTypes['String']>>, ParentType, ContextType>;
+  message: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  retryable: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export interface ApiColorScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Color'], any> {
+  name: 'Color';
+}
+
+export type ApiConnectionResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Connection'] = ApiResolversParentTypes['Connection']> = {
+  __resolveType: TypeResolveFn<null, ParentType, ContextType>;
+  pageInfo: Resolver<ApiResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
+};
+
+export interface ApiCursorScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Cursor'], any> {
+  name: 'Cursor';
+}
+
 export type ApiCustomerResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Customer'] = ApiResolversParentTypes['Customer']> = {
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2695,13 +2930,40 @@ export interface ApiDecimalScalarConfig extends GraphQLScalarTypeConfig<ApiResol
   name: 'Decimal';
 }
 
+export type ApiDimensionsResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Dimensions'] = ApiResolversParentTypes['Dimensions']> = {
+  height: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+  length: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+  unit: Resolver<ApiResolversTypes['DimensionUnit'], ParentType, ContextType>;
+  width: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiDisplayableErrorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['DisplayableError'] = ApiResolversParentTypes['DisplayableError']> = {
+  __resolveType: TypeResolveFn<'CheckoutUserError' | 'UserError', ParentType, ContextType>;
+  field: Resolver<Maybe<Array<ApiResolversTypes['String']>>, ParentType, ContextType>;
+  message: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+};
+
 export interface ApiEmailScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['Email'], any> {
   name: 'Email';
+}
+
+export interface ApiHtmlScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['HTML'], any> {
+  name: 'HTML';
+}
+
+export interface ApiIso8601DateTimeScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['ISO8601DateTime'], any> {
+  name: 'ISO8601DateTime';
 }
 
 export interface ApiJsonScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['JSON'], any> {
   name: 'JSON';
 }
+
+export type ApiMediaImageResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['MediaImage'] = ApiResolversParentTypes['MediaImage']> = {
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
 
 export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Money'] = ApiResolversParentTypes['Money']> = {
   amount: Resolver<ApiResolversTypes['Decimal'], ParentType, ContextType>;
@@ -2710,35 +2972,46 @@ export type ApiMoneyResolvers<ContextType = GraphQLContext, ParentType extends A
 };
 
 export type ApiMutationResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Mutation'] = ApiResolversParentTypes['Mutation']> = {
-  checkoutCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCreateArgs, 'input'>>;
-  checkoutCurrencyCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCurrencyCodeUpdateArgs, 'input'>>;
-  checkoutCustomerIdentityUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerIdentityUpdateArgs, 'input'>>;
-  checkoutCustomerNoteUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerNoteUpdateArgs, 'input'>>;
-  checkoutDeliveryAddressesAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesAddArgs, 'input'>>;
-  checkoutDeliveryAddressesRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesRemoveArgs, 'input'>>;
-  checkoutDeliveryAddressesUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesUpdateArgs, 'input'>>;
-  checkoutDeliveryMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryMethodUpdateArgs, 'input'>>;
-  checkoutDeliveryRecipientsAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsAddArgs, 'input'>>;
-  checkoutDeliveryRecipientsRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsRemoveArgs, 'input'>>;
-  checkoutDeliveryRecipientsUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsUpdateArgs, 'input'>>;
-  checkoutLanguageCodeUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLanguageCodeUpdateArgs, 'input'>>;
-  checkoutLinesAdd: Resolver<ApiResolversTypes['CheckoutLinesAddPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesAddArgs, 'input'>>;
-  checkoutLinesClear: Resolver<ApiResolversTypes['CheckoutLinesClearPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesClearArgs, 'input'>>;
-  checkoutLinesDelete: Resolver<ApiResolversTypes['CheckoutLinesDeletePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesDeleteArgs, 'input'>>;
-  checkoutLinesReplace: Resolver<ApiResolversTypes['CheckoutLinesReplacePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesReplaceArgs, 'input'>>;
-  checkoutLinesUpdate: Resolver<ApiResolversTypes['CheckoutLinesUpdatePayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesUpdateArgs, 'input'>>;
-  checkoutPaymentMethodUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPaymentMethodUpdateArgs, 'input'>>;
-  checkoutPromoCodeAdd: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeAddArgs, 'input'>>;
-  checkoutPromoCodeRemove: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeRemoveArgs, 'input'>>;
-  checkoutTagCreate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagCreateArgs, 'input'>>;
-  checkoutTagDelete: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagDeleteArgs, 'input'>>;
-  checkoutTagUpdate: Resolver<ApiResolversTypes['Checkout'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagUpdateArgs, 'input'>>;
+  checkoutBillingAddressUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutBillingAddressUpdateArgs, 'input'>>;
+  checkoutCreate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCreateArgs, 'input'>>;
+  checkoutCurrencyCodeUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCurrencyCodeUpdateArgs, 'input'>>;
+  checkoutCustomerIdentityUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerIdentityUpdateArgs, 'input'>>;
+  checkoutCustomerNoteUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutCustomerNoteUpdateArgs, 'input'>>;
+  checkoutDeliveryAddressesAdd: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesAddArgs, 'input'>>;
+  checkoutDeliveryAddressesRemove: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesRemoveArgs, 'input'>>;
+  checkoutDeliveryAddressesUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryAddressesUpdateArgs, 'input'>>;
+  checkoutDeliveryMethodUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryMethodUpdateArgs, 'input'>>;
+  checkoutDeliveryRecipientsAdd: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsAddArgs, 'input'>>;
+  checkoutDeliveryRecipientsRemove: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsRemoveArgs, 'input'>>;
+  checkoutDeliveryRecipientsUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutDeliveryRecipientsUpdateArgs, 'input'>>;
+  checkoutLanguageCodeUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLanguageCodeUpdateArgs, 'input'>>;
+  checkoutLinesAdd: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesAddArgs, 'input'>>;
+  checkoutLinesClear: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesClearArgs, 'input'>>;
+  checkoutLinesDelete: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesDeleteArgs, 'input'>>;
+  checkoutLinesReplace: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesReplaceArgs, 'input'>>;
+  checkoutLinesUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLinesUpdateArgs, 'input'>>;
+  checkoutLoyaltyRedemptionRemove: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLoyaltyRedemptionRemoveArgs, 'input'>>;
+  checkoutLoyaltyRedemptionUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutLoyaltyRedemptionUpdateArgs, 'input'>>;
+  checkoutPaymentMethodUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPaymentMethodUpdateArgs, 'input'>>;
+  checkoutPromoCodeAdd: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeAddArgs, 'input'>>;
+  checkoutPromoCodeRemove: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutPromoCodeRemoveArgs, 'input'>>;
+  checkoutTagCreate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagCreateArgs, 'input'>>;
+  checkoutTagDelete: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagDeleteArgs, 'input'>>;
+  checkoutTagUpdate: Resolver<ApiResolversTypes['CheckoutMutationPayload'], ParentType, ContextType, RequireFields<ApiMutationCheckoutTagUpdateArgs, 'input'>>;
   placeOrder: Resolver<ApiResolversTypes['PlaceOrderPayload'], ParentType, ContextType, RequireFields<ApiMutationPlaceOrderArgs, 'input'>>;
 };
 
 export type ApiNodeResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Node'] = ApiResolversParentTypes['Node']> = {
   __resolveType: TypeResolveFn<'Checkout' | 'CheckoutLine' | 'CheckoutTag', ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+};
+
+export type ApiPageInfoResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PageInfo'] = ApiResolversParentTypes['PageInfo']> = {
+  endCursor: Resolver<Maybe<ApiResolversTypes['Cursor']>, ParentType, ContextType>;
+  hasNextPage: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType>;
+  hasPreviousPage: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType>;
+  startCursor: Resolver<Maybe<ApiResolversTypes['Cursor']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiPlaceOrderCustomerActionResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PlaceOrderCustomerAction'] = ApiResolversParentTypes['PlaceOrderCustomerAction']> = {
@@ -2752,14 +3025,18 @@ export type ApiPlaceOrderCustomerActionResolvers<ContextType = GraphQLContext, P
 };
 
 export type ApiPlaceOrderPayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PlaceOrderPayload'] = ApiResolversParentTypes['PlaceOrderPayload']> = {
+  checkoutId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
+  checkoutVersion: Resolver<Maybe<ApiResolversTypes['Int']>, ParentType, ContextType>;
   customerAction: Resolver<Maybe<ApiResolversTypes['PlaceOrderCustomerAction']>, ParentType, ContextType>;
-  orderId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  orderId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   paymentCollectionId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   paymentFailure: Resolver<Maybe<ApiResolversTypes['PlaceOrderPaymentFailure']>, ParentType, ContextType>;
   paymentOperationId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   paymentSessionId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
-  placementId: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes['PlaceOrderStatus'], ParentType, ContextType>;
+  placementId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
+  resultRevision: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
+  status: Resolver<Maybe<ApiResolversTypes['PlaceOrderStatus']>, ParentType, ContextType>;
+  userErrors: Resolver<Array<ApiResolversTypes['CheckoutUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -2772,30 +3049,64 @@ export type ApiPlaceOrderPaymentFailureResolvers<ContextType = GraphQLContext, P
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
+export type ApiProductVariantResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['ProductVariant'] = ApiResolversParentTypes['ProductVariant']> = {
+  id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiPurchasableResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Purchasable'] = ApiResolversParentTypes['Purchasable']> = {
+  __resolveType: TypeResolveFn<'ProductVariant', ParentType, ContextType>;
+};
+
 export type ApiQueryResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Query'] = ApiResolversParentTypes['Query']> = {
   checkout: Resolver<Maybe<ApiResolversTypes['Checkout']>, ParentType, ContextType, RequireFields<ApiQueryCheckoutArgs, 'id'>>;
+  checkoutPlacement: Resolver<Maybe<ApiResolversTypes['PlaceOrderPayload']>, ParentType, ContextType, RequireFields<ApiQueryCheckoutPlacementArgs, 'id'>>;
+};
+
+export type ApiRichTextResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['RichText'] = ApiResolversParentTypes['RichText']> = {
+  html: Resolver<ApiResolversTypes['HTML'], ParentType, ContextType>;
+  json: Resolver<ApiResolversTypes['JSON'], ParentType, ContextType>;
+  text: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export interface ApiUrlScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['URL'], any> {
+  name: 'URL';
+}
+
+export interface ApiUnsignedInt64ScalarConfig extends GraphQLScalarTypeConfig<ApiResolversTypes['UnsignedInt64'], any> {
+  name: 'UnsignedInt64';
+}
+
+export type ApiUserErrorResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['UserError'] = ApiResolversParentTypes['UserError']> = {
+  field: Resolver<Maybe<Array<ApiResolversTypes['String']>>, ParentType, ContextType>;
+  message: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type ApiWeightResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['Weight'] = ApiResolversParentTypes['Weight']> = {
+  unit: Resolver<ApiResolversTypes['WeightUnit'], ParentType, ContextType>;
+  value: Resolver<ApiResolversTypes['Float'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiResolvers<ContextType = GraphQLContext> = {
   BigInt: GraphQLScalarType;
   Checkout: ApiCheckoutResolvers<ContextType>;
+  CheckoutBillingAddress: ApiCheckoutBillingAddressResolvers<ContextType>;
   CheckoutCost: ApiCheckoutCostResolvers<ContextType>;
-  CheckoutCreatePayload: ApiCheckoutCreatePayloadResolvers<ContextType>;
   CheckoutCustomerIdentity: ApiCheckoutCustomerIdentityResolvers<ContextType>;
   CheckoutDeliveryAddress: ApiCheckoutDeliveryAddressResolvers<ContextType>;
   CheckoutDeliveryGroup: ApiCheckoutDeliveryGroupResolvers<ContextType>;
   CheckoutDeliveryOption: ApiCheckoutDeliveryOptionResolvers<ContextType>;
   CheckoutDeliveryOptionSelection: ApiCheckoutDeliveryOptionSelectionResolvers<ContextType>;
-  CheckoutFieldError: ApiCheckoutFieldErrorResolvers<ContextType>;
   CheckoutIssue: ApiCheckoutIssueResolvers<ContextType>;
   CheckoutLine: ApiCheckoutLineResolvers<ContextType>;
   CheckoutLineCost: ApiCheckoutLineCostResolvers<ContextType>;
   CheckoutLinePriceConfig: ApiCheckoutLinePriceConfigResolvers<ContextType>;
-  CheckoutLinesAddPayload: ApiCheckoutLinesAddPayloadResolvers<ContextType>;
-  CheckoutLinesClearPayload: ApiCheckoutLinesClearPayloadResolvers<ContextType>;
-  CheckoutLinesDeletePayload: ApiCheckoutLinesDeletePayloadResolvers<ContextType>;
-  CheckoutLinesReplacePayload: ApiCheckoutLinesReplacePayloadResolvers<ContextType>;
-  CheckoutLinesUpdatePayload: ApiCheckoutLinesUpdatePayloadResolvers<ContextType>;
+  CheckoutLinePurchase: ApiCheckoutLinePurchaseResolvers<ContextType>;
+  CheckoutLoyaltyRedemption: ApiCheckoutLoyaltyRedemptionResolvers<ContextType>;
+  CheckoutMutationPayload: ApiCheckoutMutationPayloadResolvers<ContextType>;
   CheckoutNotification: ApiCheckoutNotificationResolvers<ContextType>;
   CheckoutPayment: ApiCheckoutPaymentResolvers<ContextType>;
   CheckoutPaymentMethod: ApiCheckoutPaymentMethodResolvers<ContextType>;
@@ -2804,16 +3115,33 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   CheckoutRecipient: ApiCheckoutRecipientResolvers<ContextType>;
   CheckoutSelectionResetReason: ApiCheckoutSelectionResetReasonResolvers<ContextType>;
   CheckoutTag: ApiCheckoutTagResolvers<ContextType>;
+  CheckoutUserError: ApiCheckoutUserErrorResolvers<ContextType>;
+  Color: GraphQLScalarType;
+  Connection: ApiConnectionResolvers<ContextType>;
+  Cursor: GraphQLScalarType;
   Customer: ApiCustomerResolvers<ContextType>;
   DateTime: GraphQLScalarType;
   Decimal: GraphQLScalarType;
+  Dimensions: ApiDimensionsResolvers<ContextType>;
+  DisplayableError: ApiDisplayableErrorResolvers<ContextType>;
   Email: GraphQLScalarType;
+  HTML: GraphQLScalarType;
+  ISO8601DateTime: GraphQLScalarType;
   JSON: GraphQLScalarType;
+  MediaImage: ApiMediaImageResolvers<ContextType>;
   Money: ApiMoneyResolvers<ContextType>;
   Mutation: ApiMutationResolvers<ContextType>;
   Node: ApiNodeResolvers<ContextType>;
+  PageInfo: ApiPageInfoResolvers<ContextType>;
   PlaceOrderCustomerAction: ApiPlaceOrderCustomerActionResolvers<ContextType>;
   PlaceOrderPayload: ApiPlaceOrderPayloadResolvers<ContextType>;
   PlaceOrderPaymentFailure: ApiPlaceOrderPaymentFailureResolvers<ContextType>;
+  ProductVariant: ApiProductVariantResolvers<ContextType>;
+  Purchasable: ApiPurchasableResolvers<ContextType>;
   Query: ApiQueryResolvers<ContextType>;
+  RichText: ApiRichTextResolvers<ContextType>;
+  URL: GraphQLScalarType;
+  UnsignedInt64: GraphQLScalarType;
+  UserError: ApiUserErrorResolvers<ContextType>;
+  Weight: ApiWeightResolvers<ContextType>;
 };

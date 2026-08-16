@@ -24,6 +24,11 @@ type LoyaltyQuery {
   nodes(ids: [ID!]!): [Node]!
 
   program(id: ID!): LoyaltyProgram
+  programVersion(id: ID!): LoyaltyProgramVersion
+  earningRule(id: ID!): LoyaltyEarningRule
+  rewardDefinition(id: ID!): LoyaltyRewardDefinition
+  tier(id: ID!): LoyaltyTier
+  tierPolicy(id: ID!): LoyaltyTierPolicy
   programs(
     first: Int
     after: String
@@ -59,6 +64,23 @@ type LoyaltyQuery {
     before: String
     where: LoyaltyReservationWhereInput
   ): LoyaltyReservationConnection!
+
+  tierMembership(id: ID!): LoyaltyTierMembership
+  tierMemberships(accountId: ID!, first: Int = 100): [LoyaltyTierMembership!]!
+
+  eventFact(id: ID!): LoyaltyEventFact
+  eventFacts(where: LoyaltyEventFactWhereInput, first: Int = 100): [LoyaltyEventFact!]!
+  eventEvaluation(id: ID!): LoyaltyEventEvaluation
+  eventEvaluations(where: LoyaltyEventEvaluationWhereInput!, first: Int = 100): [LoyaltyEventEvaluation!]!
+  earningRuleUsages(where: LoyaltyEarningRuleUsageWhereInput!, first: Int = 100): [LoyaltyEarningRuleUsage!]!
+
+  rewardEntitlement(id: ID!): LoyaltyRewardEntitlement
+  rewardEntitlements(where: LoyaltyRewardEntitlementWhereInput!, first: Int = 100): [LoyaltyRewardEntitlement!]!
+
+  monetaryWallet(id: ID!): LoyaltyMonetaryWallet
+  monetaryWallets(where: LoyaltyMonetaryWalletWhereInput!, first: Int = 100): [LoyaltyMonetaryWallet!]!
+  monetaryTransaction(id: ID!): LoyaltyMonetaryTransaction
+  monetaryTransactions(walletId: ID!, first: Int = 100): [LoyaltyMonetaryTransaction!]!
 }
 
 type LoyaltyMutation {
@@ -70,6 +92,26 @@ type LoyaltyMutation {
   programVersionPublish(
     input: LoyaltyProgramVersionPublishInput!
   ): LoyaltyProgramVersionPublishPayload!
+  programVersionUpdate(
+    input: LoyaltyProgramVersionUpdateInput!
+  ): LoyaltyProgramVersionUpdatePayload!
+  programVersionDelete(
+    input: LoyaltyProgramVersionDeleteInput!
+  ): LoyaltyProgramVersionDeletePayload!
+
+  earningRuleCreate(input: LoyaltyEarningRuleCreateInput!): LoyaltyEarningRulePayload!
+  earningRuleUpdate(input: LoyaltyEarningRuleUpdateInput!): LoyaltyEarningRulePayload!
+  earningRuleDelete(input: LoyaltyEarningRuleDeleteInput!): LoyaltyDeletePayload!
+  rewardDefinitionCreate(input: LoyaltyRewardDefinitionCreateInput!): LoyaltyRewardDefinitionPayload!
+  rewardDefinitionUpdate(input: LoyaltyRewardDefinitionUpdateInput!): LoyaltyRewardDefinitionPayload!
+  rewardDefinitionDelete(input: LoyaltyRewardDefinitionDeleteInput!): LoyaltyDeletePayload!
+  tierPolicyUpsert(input: LoyaltyTierPolicyUpsertInput!): LoyaltyTierPolicyPayload!
+  tierPolicyDelete(input: LoyaltyTierPolicyDeleteInput!): LoyaltyDeletePayload!
+  tierCreate(input: LoyaltyTierCreateInput!): LoyaltyTierPayload!
+  tierUpdate(input: LoyaltyTierUpdateInput!): LoyaltyTierPayload!
+  tierDelete(input: LoyaltyTierDeleteInput!): LoyaltyDeletePayload!
+  tierRewardBenefitCreate(input: LoyaltyTierRewardBenefitCreateInput!): LoyaltyTierRewardBenefitPayload!
+  tierRewardBenefitDelete(input: LoyaltyTierRewardBenefitDeleteInput!): LoyaltyDeletePayload!
 
   accountStatusUpdate(
     input: LoyaltyAccountStatusUpdateInput!
@@ -78,4 +120,19 @@ type LoyaltyMutation {
   reservationRelease(
     input: LoyaltyReservationReleaseInput!
   ): LoyaltyReservationReleasePayload!
+
+  tierEvaluate(input: LoyaltyTierEvaluateInput!): LoyaltyTierEvaluatePayload!
+  tierMembershipRevoke(input: LoyaltyTierMembershipRevokeInput!): LoyaltyTierEvaluatePayload!
+
+  rewardEntitlementIssue(input: LoyaltyRewardEntitlementIssueInput!): LoyaltyRewardEntitlementPayload!
+  rewardEntitlementRelease(input: LoyaltyRewardEntitlementTransitionInput!): LoyaltyRewardEntitlementPayload!
+  rewardEntitlementRevoke(input: LoyaltyRewardEntitlementTransitionInput!): LoyaltyRewardEntitlementPayload!
+
+  monetaryWalletStatusUpdate(input: LoyaltyMonetaryWalletStatusUpdateInput!): LoyaltyMonetaryWalletPayload!
+  monetaryWalletAdjust(input: LoyaltyMonetaryWalletAdjustInput!): LoyaltyMonetaryWalletOperationPayload!
+  pointsConvertToMonetary(input: LoyaltyPointsConvertToMonetaryInput!): LoyaltyPointsConvertToMonetaryPayload!
+
+  maintenanceRun(input: LoyaltyMaintenanceRunInput!): LoyaltyMaintenanceRunPayload!
+  accountBalanceRebuild(input: LoyaltyAccountBalanceRebuildInput!): LoyaltyAccountBalanceRebuildPayload!
+  monetaryWalletBalanceRebuild(input: LoyaltyMonetaryWalletBalanceRebuildInput!): LoyaltyMonetaryWalletPayload!
 }

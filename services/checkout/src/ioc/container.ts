@@ -18,6 +18,7 @@ import {
   BrokerDeliveryCheckoutAdapter,
   BrokerPaymentsCheckoutAdapter,
   BrokerPricingCheckoutAdapter,
+  BrokerLoyaltyCheckoutAdapter,
 } from "@src/infrastructure/pipeline/index.js";
 import {
   CheckoutCreateIdempotencyRepository,
@@ -71,6 +72,7 @@ export class App {
       pricing: new BrokerPricingCheckoutAdapter(broker),
       delivery: new BrokerDeliveryCheckoutAdapter(broker),
       payments: new BrokerPaymentsCheckoutAdapter(broker),
+      loyalty: new BrokerLoyaltyCheckoutAdapter(broker),
       validationRunner,
     });
     app.checkoutMutationCoordinator = new CheckoutMutationCoordinator({

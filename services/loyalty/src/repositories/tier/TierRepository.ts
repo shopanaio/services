@@ -65,6 +65,13 @@ export class TierRepository extends BaseRepository {
     ));
   }
 
+  async listMembershipsForAccount(accountId: string, limit = 100): Promise<TierMembership[]> {
+    return this.connection.select().from(tierMemberships).where(and(
+      eq(tierMemberships.storeId, this.storeId),
+      eq(tierMemberships.accountId, accountId),
+    )).orderBy(desc(tierMemberships.effectiveFrom), desc(tierMemberships.id)).limit(limit);
+  }
+
   async getMembershipEventsByIds(ids: readonly string[]): Promise<TierMembershipEvent[]> {
     if (ids.length === 0) return [];
     return this.connection.select().from(tierMembershipEvents).where(and(

@@ -3,9 +3,15 @@ import type { CheckoutDto } from "@shopana/checkout-sdk";
 import {
   InventoryCheckoutActions,
   PricingCheckoutActions,
+  LoyaltyCheckoutActions,
   type Inventory,
   type Payments,
   type Pricing,
+  type LoyaltyCheckoutContext,
+  type LoyaltyRedemptionQuote,
+  type ReserveCheckoutLoyaltyRedemptionResult,
+  type CommitCheckoutLoyaltyRedemptionResult,
+  type ReleaseCheckoutLoyaltyRedemptionResult,
 } from "@shopana/broker-types";
 import {
   BrokerWorkflows,
@@ -73,6 +79,14 @@ interface PlaceOrderSnapshot {
   };
   customer: Payments.PaymentProviderCustomerSnapshot | null;
   reservationExpiresAt: string;
+  loyalty: null | { context: LoyaltyCheckoutContext; quote: LoyaltyRedemptionQuote };
+}
+
+export interface LoyaltyReservation {
+  reservationId: string;
+  points: string;
+  quoteId: string;
+  quoteRevision: string;
 }
 
 type PlaceOrderClaim =
@@ -126,12 +140,21 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       }
       throw error;
     }
+    let loyalty: LoyaltyReservation | null;
+    try {
+      loyalty = await this.reserveLoyalty(input, snapshot);
+    } catch (error) {
+      await this.releaseDiscountUsage(input.storeId, discounts);
+      await this.abandonPlacement(snapshot.placementId);
+      throw error;
+    }
     const requestedOrderId = await this.generateOrderId();
     try {
       await this.reserveInventory(input, snapshot, requestedOrderId);
     } catch (error) {
       await this.releaseInventory(input, requestedOrderId);
       await this.releaseDiscountUsage(input.storeId, discounts);
+      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
       await this.abandonPlacement(snapshot.placementId);
       throw error;
     }
@@ -147,6 +170,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     } catch (error) {
       await this.releaseInventory(input, requestedOrderId);
       await this.releaseDiscountUsage(input.storeId, discounts);
+      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
       await this.abandonPlacement(snapshot.placementId);
       throw error;
     }
@@ -157,6 +181,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     } catch (error) {
       await this.releaseInventory(input, requestedOrderId);
       await this.reverseDiscountUsage(input.storeId, committedDiscounts);
+      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
       await this.abandonPlacement(snapshot.placementId);
       throw error;
     }
@@ -164,6 +189,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     let result: PlaceOrderWorkflowResult;
     let paymentOutcome: PaymentOutcome | null = null;
     if (BigInt(snapshot.amount.amountMinor) === 0n) {
+      await this.commitLoyalty(input, snapshot, loyalty, orderId);
       await this.confirmInventory(input.storeId, orderId);
       result = {
         placementId: snapshot.placementId,
@@ -179,6 +205,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       if (!snapshot.selectedPayment) {
         await this.releaseInventory(input, orderId);
         await this.reverseDiscountUsage(input.storeId, committedDiscounts);
+        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
         await this.abandonPlacement(snapshot.placementId);
         throw new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
       }
@@ -188,13 +215,16 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       } catch (error) {
         await this.releaseInventory(input, orderId);
         await this.reverseDiscountUsage(input.storeId, committedDiscounts);
+        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
         await this.abandonPlacement(snapshot.placementId);
         throw error;
       }
       if (result.status === "PAYMENT_FAILED") {
         await this.releaseInventory(input, orderId);
         await this.reverseDiscountUsage(input.storeId, committedDiscounts);
+        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
       } else if (result.status === "AUTHORIZED" || result.status === "PAID") {
+        await this.commitLoyalty(input, snapshot, loyalty, orderId);
         await this.confirmInventory(input.storeId, orderId);
       }
     }
@@ -207,6 +237,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         completed,
         paymentOutcome.sessionParams,
         committedDiscounts,
+        loyalty,
       );
     }
     return completed;
@@ -249,12 +280,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           customerInput: selection.customerInput,
         }
       : null;
-    if (
-      BigInt(finalQuote.data.totals.payableTotal.amountMinor) > 0n &&
-      !selectedPayment
-    ) {
-      throw new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
-    }
     const placement = await this.placements.claim({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
@@ -271,6 +296,15 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       };
     }
     const buyer = checkout.draft.buyerIdentity;
+    const loyalty = checkout.result.loyalty.status === "SUCCESS" && checkout.result.loyalty.data.status === "QUOTED"
+      ? { context: checkout.result.loyalty.data.context, quote: checkout.result.loyalty.data.quote }
+      : null;
+    if (
+      BigInt(loyalty?.quote.payableAfterLoyalty.amountMinor ?? finalQuote.data.totals.payableTotal.amountMinor) > 0n &&
+      !selectedPayment
+    ) {
+      throw new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
+    }
 
     return {
       status: "READY",
@@ -281,7 +315,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         quoteId: finalQuote.data.quoteId,
         quoteRevision: finalQuote.data.revision,
         paymentMethodsRevision: payment.data.revision,
-        amount: finalQuote.data.totals.payableTotal,
+        amount: loyalty?.quote.payableAfterLoyalty ?? finalQuote.data.totals.payableTotal,
         usageRequirements: finalQuote.data.usageRequirements,
         inventoryLines: inventoryLines(finalQuote.data.lines),
         selectedPayment,
@@ -293,7 +327,8 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
               billingAddress: null,
             }
           : null,
-        reservationExpiresAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+        reservationExpiresAt: loyalty?.quote.expiresAt ?? new Date(Date.now() + 60 * 60_000).toISOString(),
+        loyalty,
       },
     };
   }
@@ -319,6 +354,125 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return {
       reservationIds: reserved.reservations.map(({ reservationId }) => reservationId),
     };
+  }
+
+  @WorkflowStep()
+  private async reserveLoyalty(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+  ): Promise<LoyaltyReservation | null> {
+    if (!snapshot.loyalty) return null;
+    const idempotencyKey = `${input.idempotencyKey}:loyalty-reserve`;
+    const requestHash = canonicalJsonSha256({
+      context: snapshot.loyalty.context,
+      quote: snapshot.loyalty.quote,
+      idempotencyKey,
+    });
+    const result = await this.broker.call<
+      ReserveCheckoutLoyaltyRedemptionResult,
+      import("@shopana/broker-types").ReserveCheckoutLoyaltyRedemptionParams
+    >(LoyaltyCheckoutActions.reserveRedemption, {
+      context: snapshot.loyalty.context,
+      quote: snapshot.loyalty.quote,
+      idempotencyKey,
+      requestHash,
+    });
+    if (result.status !== "RESERVED") {
+      throw new Error(`LOYALTY_${result.code}`);
+    }
+    return {
+      reservationId: result.reservationId,
+      points: result.points,
+      quoteId: snapshot.loyalty.quote.quoteId,
+      quoteRevision: snapshot.loyalty.quote.revision,
+    };
+  }
+
+  private async commitLoyalty(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+    reservation: LoyaltyReservation | null,
+    orderId: string,
+  ): Promise<void> {
+    return this.commitLoyaltyAt(
+      input,
+      snapshot,
+      reservation,
+      orderId,
+      new Date(await DBOS.now()).toISOString(),
+    );
+  }
+
+  @WorkflowStep()
+  private async commitLoyaltyAt(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+    reservation: LoyaltyReservation | null,
+    orderId: string,
+    committedAt: string,
+  ): Promise<void> {
+    if (!reservation) return;
+    const idempotencyKey = `${input.idempotencyKey}:loyalty-commit`;
+    const base = {
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      checkoutVersion: snapshot.checkoutVersion,
+      reservationId: reservation.reservationId,
+      quoteId: reservation.quoteId,
+      quoteRevision: reservation.quoteRevision,
+      orderId,
+      orderRevision: 1,
+      committedAt,
+      idempotencyKey,
+    };
+    const result = await this.broker.call<
+      CommitCheckoutLoyaltyRedemptionResult,
+      import("@shopana/broker-types").CommitCheckoutLoyaltyRedemptionParams
+    >(LoyaltyCheckoutActions.commitRedemption, {
+      ...base,
+      requestHash: canonicalJsonSha256(base),
+    });
+    if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+  }
+
+  private async releaseLoyalty(
+    input: PlaceOrderWorkflowInput,
+    reservation: LoyaltyReservation | null,
+    reason: "ORDER_FAILED" | "PAYMENT_FAILED",
+  ): Promise<void> {
+    return this.releaseLoyaltyAt(
+      input,
+      reservation,
+      reason,
+      new Date(await DBOS.now()).toISOString(),
+    );
+  }
+
+  @WorkflowStep()
+  private async releaseLoyaltyAt(
+    input: PlaceOrderWorkflowInput,
+    reservation: LoyaltyReservation | null,
+    reason: "ORDER_FAILED" | "PAYMENT_FAILED",
+    releasedAt: string,
+  ): Promise<void> {
+    if (!reservation) return;
+    const idempotencyKey = `${input.idempotencyKey}:loyalty-release:${reason}`;
+    const base = {
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      reservationId: reservation.reservationId,
+      reason,
+      releasedAt,
+      idempotencyKey,
+    } as const;
+    const result = await this.broker.call<
+      ReleaseCheckoutLoyaltyRedemptionResult,
+      import("@shopana/broker-types").ReleaseCheckoutLoyaltyRedemptionParams
+    >(LoyaltyCheckoutActions.releaseRedemption, {
+      ...base,
+      requestHash: canonicalJsonSha256(base),
+    });
+    if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
   }
 
   @WorkflowStep()
@@ -561,6 +715,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     result: PlaceOrderWorkflowResult,
     sessionParams: Payments.CreatePaymentSessionParams,
     committedDiscounts: CommittedDiscountUsage,
+    loyalty: LoyaltyReservation | null,
   ): Promise<{ workflowId: string; status: "started" }> {
     const workflowId = DBOS.workflowID;
     if (!workflowId || !result.paymentSessionId) {
@@ -576,6 +731,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         initialResult: result,
         sessionParams,
         redemptionIds: committedDiscounts.redemptionIds,
+        loyaltyReservation: loyalty,
         idempotencyKey: input.idempotencyKey,
         correlationId: input.correlationId,
       },

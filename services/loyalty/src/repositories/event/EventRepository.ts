@@ -13,6 +13,89 @@ import {
 } from "../models/index.js";
 
 export class EventRepository extends BaseRepository {
+  async getFactsByIds(ids: readonly string[]): Promise<EventFact[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(eventFacts).where(and(
+      eq(eventFacts.storeId, this.storeId),
+      inArray(eventFacts.id, [...ids]),
+    ));
+  }
+
+  async getEvaluationsByIds(ids: readonly string[]): Promise<EventEvaluation[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(eventEvaluations).where(and(
+      eq(eventEvaluations.storeId, this.storeId),
+      inArray(eventEvaluations.id, [...ids]),
+    ));
+  }
+
+  async getUsagesByIds(ids: readonly string[]): Promise<EarningRuleUsage[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(earningRuleUsages).where(and(
+      eq(earningRuleUsages.storeId, this.storeId),
+      inArray(earningRuleUsages.id, [...ids]),
+    ));
+  }
+
+  async listFacts(input: {
+    customerIds?: readonly string[];
+    producers?: readonly string[];
+    eventTypes?: readonly string[];
+    occurredFrom?: string;
+    occurredTo?: string;
+    limit: number;
+  }): Promise<EventFact[]> {
+    return this.connection.select().from(eventFacts).where(and(
+      eq(eventFacts.storeId, this.storeId),
+      input.customerIds?.length ? inArray(eventFacts.customerId, [...input.customerIds]) : undefined,
+      input.producers?.length ? inArray(eventFacts.producer, [...input.producers]) : undefined,
+      input.eventTypes?.length ? inArray(eventFacts.eventType, [...input.eventTypes]) : undefined,
+      input.occurredFrom ? gte(eventFacts.occurredAt, input.occurredFrom) : undefined,
+      input.occurredTo ? lte(eventFacts.occurredAt, input.occurredTo) : undefined,
+    )).orderBy(desc(eventFacts.occurredAt), desc(eventFacts.id)).limit(input.limit);
+  }
+
+  async listEvaluationsFiltered(input: {
+    eventFactId?: string;
+    accountId?: string;
+    earningRuleId?: string;
+    decisions?: readonly EventEvaluation["decision"][];
+    limit: number;
+  }): Promise<EventEvaluation[]> {
+    return this.connection.select().from(eventEvaluations).where(and(
+      eq(eventEvaluations.storeId, this.storeId),
+      input.eventFactId ? eq(eventEvaluations.eventFactId, input.eventFactId) : undefined,
+      input.accountId ? eq(eventEvaluations.accountId, input.accountId) : undefined,
+      input.earningRuleId ? eq(eventEvaluations.earningRuleId, input.earningRuleId) : undefined,
+      input.decisions?.length ? inArray(eventEvaluations.decision, [...input.decisions]) : undefined,
+    )).orderBy(desc(eventEvaluations.evaluatedAt), desc(eventEvaluations.id)).limit(input.limit);
+  }
+
+  async listUsages(input: {
+    earningRuleId: string;
+    scopeKey?: string;
+    effectiveAt?: string;
+    limit: number;
+  }): Promise<EarningRuleUsage[]> {
+    return this.connection.select().from(earningRuleUsages).where(and(
+      eq(earningRuleUsages.storeId, this.storeId),
+      eq(earningRuleUsages.earningRuleId, input.earningRuleId),
+      input.scopeKey ? eq(earningRuleUsages.scopeKey, input.scopeKey) : undefined,
+      input.effectiveAt ? lte(earningRuleUsages.windowStartedAt, input.effectiveAt) : undefined,
+      input.effectiveAt
+        ? or(isNull(earningRuleUsages.windowEndedAt), gt(earningRuleUsages.windowEndedAt, input.effectiveAt))
+        : undefined,
+    )).orderBy(desc(earningRuleUsages.windowStartedAt), desc(earningRuleUsages.id)).limit(input.limit);
+  }
+
+  async getEvaluationsByFactIds(ids: readonly string[]): Promise<EventEvaluation[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(eventEvaluations).where(and(
+      eq(eventEvaluations.storeId, this.storeId),
+      inArray(eventEvaluations.eventFactId, [...ids]),
+    )).orderBy(desc(eventEvaluations.evaluatedAt), desc(eventEvaluations.id));
+  }
+
   async getCurrentUsages(
     earningRuleIds: readonly string[],
     scopeKeys: readonly string[],

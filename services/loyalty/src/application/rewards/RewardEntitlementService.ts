@@ -36,7 +36,17 @@ export class RewardEntitlementService {
 
   async issue(input: IssueRewardInput): Promise<RewardEntitlement> {
     return this.repository.runInTransaction(async () => {
+      if (input.account.status !== "ACTIVE") {
+        throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Rewards can be issued only to an active loyalty account");
+      }
       const definition = await this.resolveDefinition(input);
+      const version = await this.repository.program.findVersionById(definition.programVersionId);
+      if (!version || version.programId !== input.account.programId) {
+        throw new LoyaltyDomainError(
+          "REWARD_PROGRAM_MISMATCH",
+          "Reward definition and loyalty account must belong to the same program",
+        );
+      }
       const existing = await this.repository.reward.findEntitlementByIdempotency(
         input.account.id,
         definition.id,

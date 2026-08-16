@@ -61,6 +61,10 @@ export async function startServer(config: ServerConfig) {
     "account.graphql",
     "ledger.graphql",
     "reservation.graphql",
+    "event.graphql",
+    "reward.graphql",
+    "wallet.graphql",
+    "maintenance.graphql",
   ];
   const modules = schemaFiles.map((file) => ({
     typeDefs: gql(readFileSync(join(schemaDir, file), "utf8")),

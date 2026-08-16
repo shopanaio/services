@@ -1,0 +1,133 @@
+type LoyaltyMonetaryWallet implements Node @key(fields: "id") {
+  id: ID!
+  program: LoyaltyProgram!
+  account: LoyaltyAccount!
+  walletType: LoyaltyMonetaryWalletType!
+  currencyCode: CurrencyCode!
+  status: LoyaltyMonetaryWalletStatus!
+  mergedIntoWallet: LoyaltyMonetaryWallet
+  revision: Int!
+  balance: LoyaltyMonetaryWalletBalance!
+  transactions(first: Int = 100): [LoyaltyMonetaryTransaction!]!
+  creditLots: [LoyaltyMonetaryCreditLot!]!
+  openedAt: DateTime!
+  closedAt: DateTime
+  updatedAt: DateTime!
+}
+
+type LoyaltyMonetaryWalletBalance {
+  pending: LoyaltyMoney!
+  available: LoyaltyMoney!
+  reserved: LoyaltyMoney!
+  debt: LoyaltyMoney!
+  revision: Int!
+  lastTransaction: LoyaltyMonetaryTransaction
+  updatedAt: DateTime!
+}
+
+type LoyaltyMonetaryTransaction implements Node @key(fields: "id") {
+  id: ID!
+  wallet: LoyaltyMonetaryWallet!
+  program: LoyaltyProgram!
+  programVersion: LoyaltyProgramVersion
+  kind: LoyaltyMonetaryTransactionKind!
+  sourceType: String!
+  sourceId: String
+  sourceRevision: String
+  idempotencyKey: String!
+  requestHash: String!
+  actorType: LoyaltyActorType!
+  actorId: ID
+  reasonCode: String!
+  occurredAt: DateTime!
+  effectiveAt: DateTime!
+  metadata: JSON!
+  entries: [LoyaltyMonetaryLedgerEntry!]!
+  createdAt: DateTime!
+}
+
+type LoyaltyMonetaryLedgerEntry implements Node @key(fields: "id") {
+  id: ID!
+  transaction: LoyaltyMonetaryTransaction!
+  wallet: LoyaltyMonetaryWallet!
+  bucket: LoyaltyMonetaryBalanceBucket!
+  amount: LoyaltyMoney!
+  sequence: Int!
+  createdAt: DateTime!
+}
+
+type LoyaltyMonetaryCreditLot implements Node @key(fields: "id") {
+  id: ID!
+  wallet: LoyaltyMonetaryWallet!
+  originEntry: LoyaltyMonetaryLedgerEntry!
+  amountIssued: LoyaltyMoney!
+  remainingAmount: LoyaltyMoney!
+  activatedAt: DateTime!
+  expiresAt: DateTime
+  allocations: [LoyaltyMonetaryLotAllocation!]!
+  createdAt: DateTime!
+}
+
+type LoyaltyMonetaryLotAllocation implements Node @key(fields: "id") {
+  id: ID!
+  lot: LoyaltyMonetaryCreditLot!
+  debitEntry: LoyaltyMonetaryLedgerEntry!
+  amount: LoyaltyMoney!
+  createdAt: DateTime!
+}
+
+input LoyaltyMonetaryWalletWhereInput {
+  accountIds: [ID!]
+  walletTypes: [LoyaltyMonetaryWalletType!]
+  currencyCodes: [CurrencyCode!]
+  statuses: [LoyaltyMonetaryWalletStatus!]
+}
+
+input LoyaltyMonetaryWalletStatusUpdateInput {
+  walletId: ID!
+  expectedRevision: Int!
+  status: LoyaltyMonetaryWalletStatus!
+  reasonCode: String!
+  idempotencyKey: String!
+}
+
+input LoyaltyMonetaryWalletAdjustInput {
+  walletId: ID!
+  direction: LoyaltyMonetaryAdjustmentDirection!
+  amountMinor: BigInt!
+  reasonCode: String!
+  occurredAt: DateTime
+  expiresAt: DateTime
+  metadata: JSON
+  idempotencyKey: String!
+}
+
+input LoyaltyPointsConvertToMonetaryInput {
+  accountId: ID!
+  programVersionId: ID!
+  walletType: LoyaltyMonetaryWalletType!
+  currencyCode: CurrencyCode!
+  points: BigInt!
+  occurredAt: DateTime
+  idempotencyKey: String!
+}
+
+type LoyaltyMonetaryWalletPayload {
+  monetaryWallet: LoyaltyMonetaryWallet
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyMonetaryWalletOperationPayload {
+  monetaryWallet: LoyaltyMonetaryWallet
+  transaction: LoyaltyMonetaryTransaction
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyPointsConvertToMonetaryPayload {
+  account: LoyaltyAccount
+  monetaryWallet: LoyaltyMonetaryWallet
+  pointsTransaction: LoyaltyTransaction
+  monetaryTransaction: LoyaltyMonetaryTransaction
+  amount: LoyaltyMoney
+  userErrors: [LoyaltyUserError!]!
+}

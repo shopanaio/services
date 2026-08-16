@@ -392,6 +392,9 @@ export class MonetaryWalletService {
     occurredAt: string;
   }): Promise<{ pointsTransactionId: string; monetaryTransactionId: string; amountMinor: bigint }> {
     return this.repository.runInTransaction(async () => {
+      if (input.account.status !== "ACTIVE") {
+        throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Points can be converted only for an active loyalty account");
+      }
       const version = await this.repository.program.findVersionById(input.programVersionId);
       if (!version || version.programId !== input.account.programId) {
         throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Loyalty program version was not found");

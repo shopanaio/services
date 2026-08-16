@@ -64,6 +64,7 @@ type LoyaltyTier implements Node @key(fields: "id") {
   qualificationSchemaVersion: Int!
   qualification: JSON!
   maintenance: JSON
+  rewardBenefits: [LoyaltyTierRewardBenefit!]!
   createdAt: DateTime!
 }
 
@@ -115,6 +116,7 @@ type LoyaltyRewardDefinition implements Node @key(fields: "id") {
   endsAt: DateTime
   issuanceLimit: BigInt
   perAccountLimit: BigInt
+  issuedQuantity: BigInt!
   createdAt: DateTime!
 }
 
@@ -340,5 +342,201 @@ type LoyaltyProgramVersionCreatePayload {
 
 type LoyaltyProgramVersionPublishPayload {
   programVersion: LoyaltyProgramVersion
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyProgramVersionUpdateInput {
+  programVersionId: ID!
+  expectedRevision: Int!
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  clearEffectiveTo: Boolean = false
+  earningEnabled: Boolean
+  redemptionEnabled: Boolean
+  activationDelaySeconds: Int
+  pointsExpiryDays: Int
+  clearPointsExpiryDays: Boolean = false
+  earnPoints: BigInt
+  earnAmountMinor: BigInt
+  minimumEligibleAmountMinor: BigInt
+  redeemPoints: BigInt
+  redeemAmountMinor: BigInt
+  minimumRedeemPoints: BigInt
+  maximumRedeemPointsPerOrder: BigInt
+  clearMaximumRedeemPointsPerOrder: Boolean = false
+  maximumOrderPercentageBps: Int
+  roundingMode: LoyaltyRoundingMode
+  refundPolicy: LoyaltyRefundPolicy
+  debtPolicy: LoyaltyDebtPolicy
+  restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy
+  rules: LoyaltyProgramRulesInput
+  idempotencyKey: String!
+}
+
+input LoyaltyProgramVersionDeleteInput {
+  programVersionId: ID!
+  expectedRevision: Int!
+  idempotencyKey: String!
+}
+
+type LoyaltyProgramVersionUpdatePayload {
+  programVersion: LoyaltyProgramVersion
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyProgramVersionDeletePayload {
+  deletedProgramVersionId: ID
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyEarningRuleCreateInput {
+  programVersionId: ID!
+  code: String!
+  name: String!
+  priority: Int = 0
+  triggerType: LoyaltyEarningTriggerType!
+  triggerSchemaVersion: Int = 1
+  triggerConfig: JSON! = {}
+  conditionSchemaVersion: Int = 1
+  conditions: JSON!
+  actionType: LoyaltyEarningActionType!
+  actionSchemaVersion: Int = 1
+  action: JSON!
+  limitSchemaVersion: Int = 1
+  limits: JSON! = {}
+  stopProcessing: Boolean = false
+  idempotencyKey: String!
+}
+
+input LoyaltyEarningRuleUpdateInput {
+  earningRuleId: ID!
+  name: String
+  priority: Int
+  triggerType: LoyaltyEarningTriggerType
+  triggerSchemaVersion: Int
+  triggerConfig: JSON
+  conditionSchemaVersion: Int
+  conditions: JSON
+  actionType: LoyaltyEarningActionType
+  actionSchemaVersion: Int
+  action: JSON
+  limitSchemaVersion: Int
+  limits: JSON
+  stopProcessing: Boolean
+  idempotencyKey: String!
+}
+
+input LoyaltyEarningRuleDeleteInput {
+  earningRuleId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyEarningRulePayload {
+  earningRule: LoyaltyEarningRule
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyRewardDefinitionCreateInput {
+  programVersionId: ID!
+  code: String!
+  name: String!
+  rewardType: LoyaltyRewardType!
+  configurationSchemaVersion: Int = 1
+  configuration: JSON!
+  validityDays: Int
+  startsAt: DateTime
+  endsAt: DateTime
+  issuanceLimit: BigInt
+  perAccountLimit: BigInt
+  idempotencyKey: String!
+}
+
+input LoyaltyRewardDefinitionUpdateInput {
+  rewardDefinitionId: ID!
+  name: String
+  rewardType: LoyaltyRewardType
+  configurationSchemaVersion: Int
+  configuration: JSON
+  validityDays: Int
+  clearValidityDays: Boolean = false
+  startsAt: DateTime
+  clearStartsAt: Boolean = false
+  endsAt: DateTime
+  clearEndsAt: Boolean = false
+  issuanceLimit: BigInt
+  clearIssuanceLimit: Boolean = false
+  perAccountLimit: BigInt
+  clearPerAccountLimit: Boolean = false
+  idempotencyKey: String!
+}
+
+input LoyaltyRewardDefinitionDeleteInput {
+  rewardDefinitionId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyRewardDefinitionPayload {
+  rewardDefinition: LoyaltyRewardDefinition
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyTierPolicyUpsertInput {
+  programVersionId: ID!
+  windowType: LoyaltyTierEvaluationWindowType!
+  rollingWindowDays: Int
+  calendarPeriod: LoyaltyTierCalendarPeriod
+  programYearStartsMonth: Int
+  membershipDurationDays: Int
+  gracePeriodDays: Int = 0
+  downgradePolicy: LoyaltyTierDowngradePolicy = IMMEDIATE
+  requalificationPolicy: LoyaltyTierRequalificationPolicy = AUTOMATIC
+  metricSchemaVersion: Int = 1
+  idempotencyKey: String!
+}
+
+input LoyaltyTierPolicyDeleteInput {
+  programVersionId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyTierPolicyPayload {
+  tierPolicy: LoyaltyTierPolicy
+  userErrors: [LoyaltyUserError!]!
+}
+
+input LoyaltyTierCreateInput {
+  programVersionId: ID!
+  code: String!
+  name: String!
+  rank: Int!
+  qualificationSchemaVersion: Int = 1
+  qualification: JSON!
+  maintenance: JSON
+  idempotencyKey: String!
+}
+
+input LoyaltyTierUpdateInput {
+  tierId: ID!
+  name: String
+  rank: Int
+  qualificationSchemaVersion: Int
+  qualification: JSON
+  maintenance: JSON
+  clearMaintenance: Boolean = false
+  idempotencyKey: String!
+}
+
+input LoyaltyTierDeleteInput {
+  tierId: ID!
+  idempotencyKey: String!
+}
+
+type LoyaltyTierPayload {
+  tier: LoyaltyTier
+  userErrors: [LoyaltyUserError!]!
+}
+
+type LoyaltyDeletePayload {
+  deletedId: ID
   userErrors: [LoyaltyUserError!]!
 }

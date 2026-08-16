@@ -26,3 +26,4 @@ export { checkoutPaymentMethodUpdate } from "./checkoutPaymentMethodUpdate";
 export { checkoutTagCreate } from "./checkoutTagCreate";
 export { checkoutTagUpdate } from "./checkoutTagUpdate";
 export { checkoutTagDelete } from "./checkoutTagDelete";
+export { checkoutLoyaltyRedemptionUpdate, checkoutLoyaltyRedemptionRemove } from "./checkoutLoyaltyRedemption";

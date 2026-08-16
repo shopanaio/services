@@ -138,6 +138,7 @@ function createDraft(
       isUnique: tag.isUnique,
     })),
     lineTagAssignments: [],
+    loyaltyRedemption: null,
   };
   addLines(draft, business.items.map(assignIds));
   if (lineIndex !== lineIds.length) {

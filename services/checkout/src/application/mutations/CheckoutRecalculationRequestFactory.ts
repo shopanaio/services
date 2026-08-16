@@ -70,6 +70,7 @@ export class CheckoutRecalculationRequestFactory {
       },
       change: input.change,
       cartIntent: input.draft.cartIntent,
+      loyaltyRedemption: input.draft.loyaltyRedemption,
     });
   }
 

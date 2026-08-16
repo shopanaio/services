@@ -2,6 +2,7 @@ import type {
   CheckoutCartIntent,
   CheckoutPipelineJsonObject,
   CheckoutPipelineIssue,
+  CheckoutLoyaltyRedemptionIntent,
   CheckoutRecalculationResult,
 } from "../pipeline/contracts/index.js";
 
@@ -56,6 +57,7 @@ export interface CheckoutMutationDraft {
   customerNote: string | null;
   tags: readonly CheckoutTagDefinition[];
   lineTagAssignments: readonly CheckoutLineTagAssignment[];
+  loyaltyRedemption: CheckoutLoyaltyRedemptionIntent | null;
 }
 
 export interface CheckoutCommittedSnapshot {
@@ -192,6 +194,7 @@ export function assertCompletePipelineResult(
     result.preliminaryPricing,
     result.delivery,
     result.finalPricing,
+    result.loyalty,
     result.payment,
     result.validation,
   ];

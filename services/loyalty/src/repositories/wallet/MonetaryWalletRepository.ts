@@ -22,6 +22,89 @@ import {
 } from "../models/index.js";
 
 export class MonetaryWalletRepository extends BaseRepository {
+  async getWalletsByIds(ids: readonly string[]): Promise<MonetaryWallet[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryWallets).where(and(
+      eq(monetaryWallets.storeId, this.storeId),
+      inArray(monetaryWallets.id, [...ids]),
+    ));
+  }
+
+  async listWalletsFiltered(input: {
+    accountIds?: readonly string[];
+    walletTypes?: readonly MonetaryWallet["walletType"][];
+    currencyCodes?: readonly string[];
+    statuses?: readonly MonetaryWallet["status"][];
+    limit: number;
+  }): Promise<MonetaryWallet[]> {
+    return this.connection.select().from(monetaryWallets).where(and(
+      eq(monetaryWallets.storeId, this.storeId),
+      input.accountIds?.length ? inArray(monetaryWallets.accountId, [...input.accountIds]) : undefined,
+      input.walletTypes?.length ? inArray(monetaryWallets.walletType, [...input.walletTypes]) : undefined,
+      input.currencyCodes?.length ? inArray(monetaryWallets.currencyCode, [...input.currencyCodes]) : undefined,
+      input.statuses?.length ? inArray(monetaryWallets.status, [...input.statuses]) : undefined,
+    )).orderBy(desc(monetaryWallets.updatedAt), desc(monetaryWallets.id)).limit(input.limit);
+  }
+
+  async getTransactionsByIds(ids: readonly string[]): Promise<MonetaryTransaction[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryTransactions).where(and(
+      eq(monetaryTransactions.storeId, this.storeId),
+      inArray(monetaryTransactions.id, [...ids]),
+    ));
+  }
+
+  async getEntriesByIds(ids: readonly string[]): Promise<MonetaryLedgerEntry[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryLedgerEntries).where(and(
+      eq(monetaryLedgerEntries.storeId, this.storeId),
+      inArray(monetaryLedgerEntries.id, [...ids]),
+    ));
+  }
+
+  async getEntriesByTransactionIds(ids: readonly string[]): Promise<MonetaryLedgerEntry[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryLedgerEntries).where(and(
+      eq(monetaryLedgerEntries.storeId, this.storeId),
+      inArray(monetaryLedgerEntries.transactionId, [...ids]),
+    )).orderBy(asc(monetaryLedgerEntries.transactionId), asc(monetaryLedgerEntries.sequence));
+  }
+
+  async getCreditLotsByIds(ids: readonly string[]): Promise<MonetaryCreditLot[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryCreditLots).where(and(
+      eq(monetaryCreditLots.storeId, this.storeId),
+      inArray(monetaryCreditLots.id, [...ids]),
+    ));
+  }
+
+  async getCreditLotsByWalletIds(ids: readonly string[]): Promise<MonetaryCreditLot[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryCreditLots).where(and(
+      eq(monetaryCreditLots.storeId, this.storeId),
+      inArray(monetaryCreditLots.walletId, [...ids]),
+    )).orderBy(asc(monetaryCreditLots.walletId), asc(monetaryCreditLots.expiresAt), asc(monetaryCreditLots.id));
+  }
+
+  async getLotAllocationsByIds(ids: readonly string[]): Promise<MonetaryLotAllocation[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryLotAllocations).where(and(
+      eq(monetaryLotAllocations.storeId, this.storeId),
+      inArray(monetaryLotAllocations.id, [...ids]),
+    ));
+  }
+
+  async getLotAllocationsByLotIds(ids: readonly string[]): Promise<MonetaryLotAllocation[]> {
+    return this.listLotAllocations(ids);
+  }
+
+  async getBalancesByWalletIds(ids: readonly string[]): Promise<MonetaryWalletBalance[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(monetaryWalletBalances).where(and(
+      eq(monetaryWalletBalances.storeId, this.storeId),
+      inArray(monetaryWalletBalances.walletId, [...ids]),
+    ));
+  }
   async findById(id: string): Promise<MonetaryWallet | null> {
     const rows = await this.connection
       .select()

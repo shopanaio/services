@@ -146,6 +146,8 @@ function request(
         payableTotal: zero,
       },
     },
+    payableAmount: zero,
+    loyaltyRedemption: null,
     delivery: {
       executionId,
       checkoutId: "00000000-0000-0000-0000-000000000001",
@@ -166,6 +168,7 @@ function positiveRequest(
   const amount = { amountMinor: "100", currencyCode: "USD" };
   return {
     ...value,
+    payableAmount: amount,
     finalQuote: {
       ...value.finalQuote,
       totals: {

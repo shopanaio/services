@@ -1,7 +1,11 @@
-import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { AccountLifecycleService } from "../../application/accounts/AccountLifecycleService.js";
 import { CheckoutRedemptionService } from "../../application/checkout/CheckoutRedemptionService.js";
+import { PointsLedgerService } from "../../application/ledger/PointsLedgerService.js";
+import { RewardEntitlementService } from "../../application/rewards/RewardEntitlementService.js";
+import { TierEvaluationService } from "../../application/tiers/TierEvaluationService.js";
+import { MonetaryWalletService } from "../../application/wallet/MonetaryWalletService.js";
 import { LoyaltyDomainError } from "../../application/errors.js";
 import { canonicalHash } from "../../application/math.js";
 import {
@@ -10,22 +14,73 @@ import {
 } from "../../application/program/ProgramLifecycleService.js";
 import type { ManualLoyaltyAdjustmentResult } from "../../workflows/ManualAdjustmentWorkflow.js";
 import {
+  LoyaltyAccountBalanceRebuildInputSchema,
   LoyaltyAccountStatusUpdateInputSchema,
+  LoyaltyEarningRuleCreateInputSchema,
+  LoyaltyEarningRuleDeleteInputSchema,
+  LoyaltyEarningRuleUpdateInputSchema,
+  LoyaltyMaintenanceRunInputSchema,
+  LoyaltyMonetaryWalletAdjustInputSchema,
+  LoyaltyMonetaryWalletBalanceRebuildInputSchema,
+  LoyaltyMonetaryWalletStatusUpdateInputSchema,
   LoyaltyPointsAdjustInputSchema,
+  LoyaltyPointsConvertToMonetaryInputSchema,
   LoyaltyProgramCreateInputSchema,
   LoyaltyProgramUpdateInputSchema,
   LoyaltyProgramVersionCreateInputSchema,
+  LoyaltyProgramVersionDeleteInputSchema,
   LoyaltyProgramVersionPublishInputSchema,
+  LoyaltyProgramVersionUpdateInputSchema,
   LoyaltyReservationReleaseInputSchema,
+  LoyaltyRewardDefinitionCreateInputSchema,
+  LoyaltyRewardDefinitionDeleteInputSchema,
+  LoyaltyRewardDefinitionUpdateInputSchema,
+  LoyaltyRewardEntitlementIssueInputSchema,
+  LoyaltyRewardEntitlementTransitionInputSchema,
+  LoyaltyTierCreateInputSchema,
+  LoyaltyTierDeleteInputSchema,
+  LoyaltyTierEvaluateInputSchema,
+  LoyaltyTierMembershipRevokeInputSchema,
+  LoyaltyTierPolicyDeleteInputSchema,
+  LoyaltyTierPolicyUpsertInputSchema,
+  LoyaltyTierRewardBenefitCreateInputSchema,
+  LoyaltyTierRewardBenefitDeleteInputSchema,
+  LoyaltyTierUpdateInputSchema,
 } from "./generated/schemas.js";
 import type {
+  LoyaltyMutationAccountBalanceRebuildArgs,
   LoyaltyMutationAccountStatusUpdateArgs,
+  LoyaltyMutationEarningRuleCreateArgs,
+  LoyaltyMutationEarningRuleDeleteArgs,
+  LoyaltyMutationEarningRuleUpdateArgs,
+  LoyaltyMutationMaintenanceRunArgs,
+  LoyaltyMutationMonetaryWalletAdjustArgs,
+  LoyaltyMutationMonetaryWalletBalanceRebuildArgs,
+  LoyaltyMutationMonetaryWalletStatusUpdateArgs,
   LoyaltyMutationPointsAdjustArgs,
+  LoyaltyMutationPointsConvertToMonetaryArgs,
   LoyaltyMutationProgramCreateArgs,
   LoyaltyMutationProgramUpdateArgs,
   LoyaltyMutationProgramVersionCreateArgs,
+  LoyaltyMutationProgramVersionDeleteArgs,
   LoyaltyMutationProgramVersionPublishArgs,
+  LoyaltyMutationProgramVersionUpdateArgs,
   LoyaltyMutationReservationReleaseArgs,
+  LoyaltyMutationRewardDefinitionCreateArgs,
+  LoyaltyMutationRewardDefinitionDeleteArgs,
+  LoyaltyMutationRewardDefinitionUpdateArgs,
+  LoyaltyMutationRewardEntitlementIssueArgs,
+  LoyaltyMutationRewardEntitlementReleaseArgs,
+  LoyaltyMutationRewardEntitlementRevokeArgs,
+  LoyaltyMutationTierCreateArgs,
+  LoyaltyMutationTierDeleteArgs,
+  LoyaltyMutationTierEvaluateArgs,
+  LoyaltyMutationTierMembershipRevokeArgs,
+  LoyaltyMutationTierPolicyDeleteArgs,
+  LoyaltyMutationTierPolicyUpsertArgs,
+  LoyaltyMutationTierRewardBenefitCreateArgs,
+  LoyaltyMutationTierRewardBenefitDeleteArgs,
+  LoyaltyMutationTierUpdateArgs,
 } from "./generated/types.js";
 import { LoyaltyType } from "./LoyaltyType.js";
 import { normalizeProgramRulesInput } from "./policyIds.js";
@@ -268,11 +323,531 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     }
   }
 
+  @ZodResolver(LoyaltyProgramVersionUpdateInputSchema())
+  async programVersionUpdate({ input }: LoyaltyMutationProgramVersionUpdateArgs) {
+    return this.result("programVersion", async () => {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const changes: Record<string, unknown> = {};
+      copyDefined(changes, input, [
+        "effectiveFrom", "earningEnabled", "redemptionEnabled", "activationDelaySeconds",
+        "earnPoints", "earnAmountMinor", "minimumEligibleAmountMinor", "redeemPoints",
+        "redeemAmountMinor", "minimumRedeemPoints", "maximumOrderPercentageBps",
+        "roundingMode", "refundPolicy", "debtPolicy", "restoredPointsExpiryPolicy",
+      ]);
+      if (input.earnPoints != null) changes.earnPoints = BigInt(input.earnPoints);
+      if (input.earnAmountMinor != null) changes.earnAmountMinor = BigInt(input.earnAmountMinor);
+      if (input.minimumEligibleAmountMinor != null) changes.minimumEligibleAmountMinor = BigInt(input.minimumEligibleAmountMinor);
+      if (input.redeemPoints != null) changes.redeemPoints = BigInt(input.redeemPoints);
+      if (input.redeemAmountMinor != null) changes.redeemAmountMinor = BigInt(input.redeemAmountMinor);
+      if (input.minimumRedeemPoints != null) changes.minimumRedeemPoints = BigInt(input.minimumRedeemPoints);
+      if (input.clearEffectiveTo) changes.effectiveTo = null;
+      else if (input.effectiveTo != null) changes.effectiveTo = input.effectiveTo;
+      if (input.clearPointsExpiryDays) changes.pointsExpiryDays = null;
+      else if (input.pointsExpiryDays != null) changes.pointsExpiryDays = input.pointsExpiryDays;
+      if (input.clearMaximumRedeemPointsPerOrder) changes.maximumRedeemPointsPerOrder = null;
+      else if (input.maximumRedeemPointsPerOrder != null) changes.maximumRedeemPointsPerOrder = BigInt(input.maximumRedeemPointsPerOrder);
+      if (input.rules != null) {
+        changes.rules = normalizeProgramRulesInput(input.rules as unknown as Record<string, unknown>);
+      }
+      const version = await this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision);
+      this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
+      this.$ctx.loaders.programVersions.clear(version.programId);
+      return this.resolvers.programVersion(version.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyProgramVersionDeleteInputSchema())
+  async programVersionDelete({ input }: LoyaltyMutationProgramVersionDeleteArgs) {
+    try {
+      const id = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const version = await this.$ctx.kernel.repository.program.findVersionById(id);
+      await this.programs.deleteDraftVersion(id, input.expectedRevision);
+      this.$ctx.loaders.programVersion.clear(id);
+      if (version) this.$ctx.loaders.programVersions.clear(version.programId);
+      return { deletedProgramVersionId: this.encodeId(id, GlobalIdEntity.LoyaltyProgramVersion), userErrors: [] };
+    } catch (error) {
+      return { deletedProgramVersionId: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyEarningRuleCreateInputSchema())
+  async earningRuleCreate({ input }: LoyaltyMutationEarningRuleCreateArgs) {
+    return this.result("earningRule", async () => {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const rule = await this.programs.createEarningRule(versionId, {
+        code: input.code,
+        name: input.name,
+        priority: input.priority ?? 0,
+        triggerType: input.triggerType,
+        triggerSchemaVersion: input.triggerSchemaVersion ?? 1,
+        triggerConfig: input.triggerConfig ?? {},
+        conditionSchemaVersion: input.conditionSchemaVersion ?? 1,
+        conditions: input.conditions,
+        actionType: input.actionType,
+        actionSchemaVersion: input.actionSchemaVersion ?? 1,
+        action: input.action,
+        limitSchemaVersion: input.limitSchemaVersion ?? 1,
+        limits: input.limits ?? {},
+        stopProcessing: input.stopProcessing ?? false,
+      });
+      this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
+      this.$ctx.loaders.earningRulesByVersion.clear(versionId);
+      return this.resolvers.earningRule(rule.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyEarningRuleUpdateInputSchema())
+  async earningRuleUpdate({ input }: LoyaltyMutationEarningRuleUpdateArgs) {
+    return this.result("earningRule", async () => {
+      const id = this.decodeId(input.earningRuleId, GlobalIdEntity.LoyaltyEarningRule);
+      const changes: Record<string, unknown> = {};
+      copyDefined(changes, input, [
+        "name", "priority", "triggerType", "triggerSchemaVersion", "triggerConfig",
+        "conditionSchemaVersion", "conditions", "actionType", "actionSchemaVersion",
+        "action", "limitSchemaVersion", "limits", "stopProcessing",
+      ]);
+      const rule = await this.programs.updateEarningRule(id, changes as never);
+      this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
+      this.$ctx.loaders.earningRulesByVersion.clear(rule.programVersionId);
+      return this.resolvers.earningRule(rule.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyEarningRuleDeleteInputSchema())
+  async earningRuleDelete({ input }: LoyaltyMutationEarningRuleDeleteArgs) {
+    const current = await this.loadForDelete(
+      input.earningRuleId,
+      GlobalIdEntity.LoyaltyEarningRule,
+      (id) => this.$ctx.kernel.repository.earningRule.findById(id),
+    );
+    return this.deleteResult(input.earningRuleId, GlobalIdEntity.LoyaltyEarningRule, async (id) => {
+      await this.programs.deleteEarningRule(id);
+      this.$ctx.loaders.earningRule.clear(id);
+      if (current) this.$ctx.loaders.earningRulesByVersion.clear(current.programVersionId);
+    });
+  }
+
+  @ZodResolver(LoyaltyRewardDefinitionCreateInputSchema())
+  async rewardDefinitionCreate({ input }: LoyaltyMutationRewardDefinitionCreateArgs) {
+    return this.result("rewardDefinition", async () => {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const definition = await this.programs.createRewardDefinition(versionId, rewardDefinitionInput(input));
+      this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
+      this.$ctx.loaders.rewardDefinitionsByVersion.clear(versionId);
+      return this.resolvers.rewardDefinition(definition.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyRewardDefinitionUpdateInputSchema())
+  async rewardDefinitionUpdate({ input }: LoyaltyMutationRewardDefinitionUpdateArgs) {
+    return this.result("rewardDefinition", async () => {
+      const id = this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition);
+      const changes: Record<string, unknown> = {};
+      copyDefined(changes, input, ["name", "rewardType", "configurationSchemaVersion", "configuration"]);
+      nullableChange(changes, input, "validityDays", "clearValidityDays", (value) => value);
+      nullableChange(changes, input, "startsAt", "clearStartsAt", (value) => value);
+      nullableChange(changes, input, "endsAt", "clearEndsAt", (value) => value);
+      nullableChange(changes, input, "issuanceLimit", "clearIssuanceLimit", (value) => BigInt(value));
+      nullableChange(changes, input, "perAccountLimit", "clearPerAccountLimit", (value) => BigInt(value));
+      const definition = await this.programs.updateRewardDefinition(id, changes as never);
+      this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
+      this.$ctx.loaders.rewardDefinitionsByVersion.clear(definition.programVersionId);
+      return this.resolvers.rewardDefinition(definition.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyRewardDefinitionDeleteInputSchema())
+  async rewardDefinitionDelete({ input }: LoyaltyMutationRewardDefinitionDeleteArgs) {
+    const current = await this.loadForDelete(
+      input.rewardDefinitionId,
+      GlobalIdEntity.LoyaltyRewardDefinition,
+      (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id),
+    );
+    return this.deleteResult(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition, async (id) => {
+      await this.programs.deleteRewardDefinition(id);
+      this.$ctx.loaders.rewardDefinition.clear(id);
+      if (current) this.$ctx.loaders.rewardDefinitionsByVersion.clear(current.programVersionId);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierPolicyUpsertInputSchema())
+  async tierPolicyUpsert({ input }: LoyaltyMutationTierPolicyUpsertArgs) {
+    return this.result("tierPolicy", async () => {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const policy = await this.programs.upsertTierPolicy(versionId, {
+        windowType: input.windowType,
+        rollingWindowDays: input.rollingWindowDays ?? null,
+        calendarPeriod: input.calendarPeriod ?? null,
+        programYearStartsMonth: input.programYearStartsMonth ?? null,
+        membershipDurationDays: input.membershipDurationDays ?? null,
+        gracePeriodDays: input.gracePeriodDays ?? 0,
+        downgradePolicy: input.downgradePolicy ?? "IMMEDIATE",
+        requalificationPolicy: input.requalificationPolicy ?? "AUTOMATIC",
+        metricSchemaVersion: input.metricSchemaVersion ?? 1,
+      });
+      this.$ctx.loaders.tierPolicy.clear(policy.id).prime(policy.id, policy);
+      this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
+      return this.resolvers.tierPolicy(policy.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierPolicyDeleteInputSchema())
+  async tierPolicyDelete({ input }: LoyaltyMutationTierPolicyDeleteArgs) {
+    try {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const policy = await this.$ctx.kernel.repository.tier.findPolicy(versionId);
+      await this.programs.deleteTierPolicy(versionId);
+      this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
+      if (policy) this.$ctx.loaders.tierPolicy.clear(policy.id);
+      return { deletedId: policy ? this.encodeId(policy.id, GlobalIdEntity.LoyaltyTierPolicy) : null, userErrors: [] };
+    } catch (error) {
+      return { deletedId: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyTierCreateInputSchema())
+  async tierCreate({ input }: LoyaltyMutationTierCreateArgs) {
+    return this.result("tier", async () => {
+      const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
+      const tier = await this.programs.createTier(versionId, {
+        code: input.code,
+        name: input.name,
+        rank: input.rank,
+        qualificationSchemaVersion: input.qualificationSchemaVersion ?? 1,
+        qualification: input.qualification,
+        maintenance: input.maintenance ?? null,
+      });
+      this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
+      this.$ctx.loaders.tiersByVersion.clear(versionId);
+      return this.resolvers.tier(tier.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierUpdateInputSchema())
+  async tierUpdate({ input }: LoyaltyMutationTierUpdateArgs) {
+    return this.result("tier", async () => {
+      const id = this.decodeId(input.tierId, GlobalIdEntity.LoyaltyTier);
+      const changes: Record<string, unknown> = {};
+      copyDefined(changes, input, ["name", "rank", "qualificationSchemaVersion", "qualification"]);
+      nullableChange(changes, input, "maintenance", "clearMaintenance", (value) => value);
+      const tier = await this.programs.updateTier(id, changes as never);
+      this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
+      this.$ctx.loaders.tiersByVersion.clear(tier.programVersionId);
+      return this.resolvers.tier(tier.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierDeleteInputSchema())
+  async tierDelete({ input }: LoyaltyMutationTierDeleteArgs) {
+    const current = await this.loadForDelete(
+      input.tierId,
+      GlobalIdEntity.LoyaltyTier,
+      (id) => this.$ctx.kernel.repository.tier.findTierById(id),
+    );
+    return this.deleteResult(input.tierId, GlobalIdEntity.LoyaltyTier, async (id) => {
+      await this.programs.deleteTier(id);
+      this.$ctx.loaders.tier.clear(id);
+      this.$ctx.loaders.tierRewardBenefits.clear(id);
+      if (current) this.$ctx.loaders.tiersByVersion.clear(current.programVersionId);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierRewardBenefitCreateInputSchema())
+  async tierRewardBenefitCreate({ input }: LoyaltyMutationTierRewardBenefitCreateArgs) {
+    return this.result("tierRewardBenefit", async () => {
+      const benefit = await this.programs.createTierRewardBenefit({
+        tierId: this.decodeId(input.tierId, GlobalIdEntity.LoyaltyTier),
+        rewardDefinitionId: this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition),
+        grantPolicySchemaVersion: input.grantPolicySchemaVersion ?? 1,
+        grantPolicy: input.grantPolicy ?? { type: "ON_QUALIFICATION" },
+      });
+      this.$ctx.loaders.tierRewardBenefit.clear(benefit.id).prime(benefit.id, benefit);
+      this.$ctx.loaders.tierRewardBenefits.clear(benefit.tierId);
+      return this.resolvers.tierRewardBenefit(benefit.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierRewardBenefitDeleteInputSchema())
+  async tierRewardBenefitDelete({ input }: LoyaltyMutationTierRewardBenefitDeleteArgs) {
+    const current = await this.loadForDelete(
+      input.tierRewardBenefitId,
+      GlobalIdEntity.LoyaltyTierRewardBenefit,
+      (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id),
+    );
+    return this.deleteResult(input.tierRewardBenefitId, GlobalIdEntity.LoyaltyTierRewardBenefit, async (id) => {
+      await this.programs.deleteTierRewardBenefit(id);
+      this.$ctx.loaders.tierRewardBenefit.clear(id);
+      if (current) this.$ctx.loaders.tierRewardBenefits.clear(current.tierId);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierEvaluateInputSchema())
+  async tierEvaluate({ input }: LoyaltyMutationTierEvaluateArgs) {
+    return this.result("tierMembership", async () => {
+      const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
+      const account = await this.$ctx.kernel.repository.account.findById(accountId);
+      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      const effectiveAt = input.effectiveAt ?? new Date().toISOString();
+      const versionId = input.programVersionId
+        ? this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion)
+        : (await this.$ctx.kernel.repository.program.findEffectiveVersion(account.programId, effectiveAt))?.id;
+      if (!versionId) throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Effective loyalty program version was not found");
+      const membership = await new TierEvaluationService(this.$ctx.kernel.repository).evaluate({
+        account,
+        programVersionId: versionId,
+        effectiveAt,
+        forceRequalification: input.forceRequalification ?? false,
+        reasonCode: input.reasonCode,
+      });
+      this.$ctx.loaders.activeTierMembership.clear(account.id);
+      if (!membership) return null;
+      this.$ctx.loaders.tierMembership.clear(membership.id).prime(membership.id, membership);
+      return this.resolvers.tierMembership(membership.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyTierMembershipRevokeInputSchema())
+  async tierMembershipRevoke({ input }: LoyaltyMutationTierMembershipRevokeArgs) {
+    return this.result("tierMembership", async () => {
+      const id = this.decodeId(input.membershipId, GlobalIdEntity.LoyaltyTierMembership);
+      const membership = await new TierEvaluationService(this.$ctx.kernel.repository).revoke({
+        membershipId: id,
+        expectedRevision: input.expectedRevision,
+        effectiveAt: input.effectiveAt ?? new Date().toISOString(),
+        reasonCode: input.reasonCode,
+        actorId: this.$ctx.user.id,
+      });
+      this.$ctx.loaders.tierMembership.clear(id).prime(id, membership);
+      this.$ctx.loaders.activeTierMembership.clear(membership.accountId);
+      this.$ctx.loaders.tierMembershipEvents.clear(id);
+      return this.resolvers.tierMembership(id);
+    });
+  }
+
+  @ZodResolver(LoyaltyRewardEntitlementIssueInputSchema())
+  async rewardEntitlementIssue({ input }: LoyaltyMutationRewardEntitlementIssueArgs) {
+    return this.result("rewardEntitlement", async () => {
+      const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
+      const account = await this.$ctx.kernel.repository.account.findById(accountId);
+      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      const entitlement = await new RewardEntitlementService(this.$ctx.kernel.repository).issue({
+        account,
+        definitionId: this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition),
+        quantity: BigInt(input.quantity ?? "1"),
+        externalReference: input.externalReference ?? null,
+        idempotencyKey: input.idempotencyKey,
+        occurredAt: input.occurredAt ?? new Date().toISOString(),
+        actorType: "ADMIN_USER",
+        actorId: this.$ctx.user.id,
+      });
+      this.$ctx.loaders.rewardEntitlement.clear(entitlement.id).prime(entitlement.id, entitlement);
+      return this.resolvers.rewardEntitlement(entitlement.id);
+    });
+  }
+
+  @ZodResolver(LoyaltyRewardEntitlementTransitionInputSchema())
+  async rewardEntitlementRelease({ input }: LoyaltyMutationRewardEntitlementReleaseArgs) {
+    return this.rewardTransition(input, { type: "RELEASE" });
+  }
+
+  @ZodResolver(LoyaltyRewardEntitlementTransitionInputSchema())
+  async rewardEntitlementRevoke({ input }: LoyaltyMutationRewardEntitlementRevokeArgs) {
+    return this.rewardTransition(input, { type: "REVOKE" });
+  }
+
+  @ZodResolver(LoyaltyMonetaryWalletStatusUpdateInputSchema())
+  async monetaryWalletStatusUpdate({ input }: LoyaltyMutationMonetaryWalletStatusUpdateArgs) {
+    return this.result("monetaryWallet", async () => {
+      const id = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
+      if (input.status === "MERGED") throw new LoyaltyDomainError("INVALID_WALLET_STATUS", "MERGED is managed only by customer merge");
+      const current = await this.$ctx.kernel.repository.wallet.findById(id);
+      if (!current) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      if (current.status === "MERGED") throw new LoyaltyDomainError("WALLET_MERGED", "Merged monetary wallets cannot change state");
+      if (current.status === "CLOSED") {
+        if (input.status === "CLOSED") return this.resolvers.monetaryWallet(id);
+        throw new LoyaltyDomainError("WALLET_CLOSED", "A closed monetary wallet cannot be reopened");
+      }
+      if (current.status === input.status) return this.resolvers.monetaryWallet(id);
+      const wallet = await this.$ctx.kernel.repository.wallet.updateWalletState(id, input.expectedRevision, {
+        status: input.status,
+        mergedIntoWalletId: null,
+        closedAt: input.status === "CLOSED" ? new Date().toISOString() : null,
+      });
+      if (!wallet) throw new LoyaltyDomainError("WALLET_CONCURRENT_CHANGE", "Monetary wallet changed concurrently", true);
+      this.$ctx.loaders.monetaryWallet.clear(id).prime(id, wallet);
+      return this.resolvers.monetaryWallet(id);
+    });
+  }
+
+  @ZodResolver(LoyaltyMonetaryWalletAdjustInputSchema())
+  async monetaryWalletAdjust({ input }: LoyaltyMutationMonetaryWalletAdjustArgs) {
+    try {
+      const walletId = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
+      const wallet = await this.$ctx.kernel.repository.wallet.findById(walletId);
+      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      const amountMinor = BigInt(input.amountMinor);
+      if (amountMinor <= 0n) throw new LoyaltyDomainError("INVALID_MONETARY_AMOUNT", "Monetary adjustment must be positive");
+      const occurredAt = input.occurredAt ?? new Date().toISOString();
+      const requestHash = canonicalHash({ ...input, walletId });
+      const service = new MonetaryWalletService(this.$ctx.kernel.repository);
+      const operation = input.direction === "CREDIT"
+        ? await service.credit({
+            wallet, programVersionId: null, kind: "ADJUST_CREDIT", sourceType: "ADMIN",
+            idempotencyKey: input.idempotencyKey, requestHash, actorType: "ADMIN_USER",
+            actorId: this.$ctx.user.id, reasonCode: input.reasonCode, occurredAt, effectiveAt: occurredAt,
+            amountMinor, activationAt: occurredAt, expiresAt: input.expiresAt ?? null,
+            metadata: input.metadata ?? {},
+          })
+        : await service.debitAvailableWithLots({
+            wallet, programVersionId: null, kind: "ADJUST_DEBIT", sourceType: "ADMIN",
+            idempotencyKey: input.idempotencyKey, requestHash, actorType: "ADMIN_USER",
+            actorId: this.$ctx.user.id, reasonCode: input.reasonCode, occurredAt, effectiveAt: occurredAt,
+            amountMinor, metadata: input.metadata ?? {},
+          });
+      this.$ctx.loaders.monetaryWalletBalance.clear(walletId);
+      this.$ctx.loaders.monetaryTransaction.clear(operation.transaction.id).prime(operation.transaction.id, operation.transaction);
+      return {
+        monetaryWallet: await this.resolvers.monetaryWallet(walletId),
+        transaction: await this.resolvers.monetaryTransaction(operation.transaction.id),
+        userErrors: [],
+      };
+    } catch (error) {
+      return { monetaryWallet: null, transaction: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyPointsConvertToMonetaryInputSchema())
+  async pointsConvertToMonetary({ input }: LoyaltyMutationPointsConvertToMonetaryArgs) {
+    try {
+      const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
+      const account = await this.$ctx.kernel.repository.account.findById(accountId);
+      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      const occurredAt = input.occurredAt ?? new Date().toISOString();
+      const result = await new MonetaryWalletService(this.$ctx.kernel.repository).convertPointsToMoney({
+        account,
+        walletType: input.walletType,
+        programVersionId: this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion),
+        currencyCode: input.currencyCode,
+        points: BigInt(input.points),
+        idempotencyKey: input.idempotencyKey,
+        requestHash: canonicalHash({ ...input, accountId }),
+        occurredAt,
+      });
+      const wallet = await this.$ctx.kernel.repository.wallet.findForAccount(accountId, input.walletType, input.currencyCode);
+      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      this.$ctx.loaders.accountBalance.clear(accountId);
+      this.$ctx.loaders.monetaryWalletBalance.clear(wallet.id);
+      return {
+        account: await this.resolvers.account(accountId),
+        monetaryWallet: await this.resolvers.monetaryWallet(wallet.id),
+        pointsTransaction: await this.resolvers.transaction(result.pointsTransactionId),
+        monetaryTransaction: await this.resolvers.monetaryTransaction(result.monetaryTransactionId),
+        amount: { amountMinor: result.amountMinor.toString(), currencyCode: input.currencyCode },
+        userErrors: [],
+      };
+    } catch (error) {
+      return { account: null, monetaryWallet: null, pointsTransaction: null, monetaryTransaction: null, amount: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyMaintenanceRunInputSchema())
+  async maintenanceRun({ input }: LoyaltyMutationMaintenanceRunArgs) {
+    try {
+      const result = await this.$ctx.kernel.getServices().broker.runWorkflow("loyalty.maintenance", {
+        storeId: this.$ctx.store.id,
+        organizationId: this.$ctx.store.organizationId,
+        effectiveAt: input.effectiveAt,
+        limit: input.limit ?? 100,
+        rebuildBalances: input.rebuildBalances ?? false,
+      }, {
+        source: "content",
+        resourceId: this.$ctx.store.id,
+        operation: "loyaltyMaintenance",
+        content: input,
+        tenantId: this.$ctx.store.id,
+      }, { adminContext: this.$ctx.adminContext });
+      return { result, userErrors: [] };
+    } catch (error) {
+      return { result: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyAccountBalanceRebuildInputSchema())
+  async accountBalanceRebuild({ input }: LoyaltyMutationAccountBalanceRebuildArgs) {
+    try {
+      const accountId = this.decodeId(input.accountId, GlobalIdEntity.LoyaltyAccount);
+      const account = await this.$ctx.kernel.repository.account.findById(accountId);
+      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      await new PointsLedgerService(this.$ctx.kernel.repository).rebuildBalance(accountId);
+      this.$ctx.loaders.accountBalance.clear(accountId);
+      return {
+        account: await this.resolvers.account(accountId),
+        balance: new (await import("./AccountResolvers.js")).LoyaltyAccountBalanceResolver(accountId, this.$ctx),
+        userErrors: [],
+      };
+    } catch (error) {
+      return { account: null, balance: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  @ZodResolver(LoyaltyMonetaryWalletBalanceRebuildInputSchema())
+  async monetaryWalletBalanceRebuild({ input }: LoyaltyMutationMonetaryWalletBalanceRebuildArgs) {
+    return this.result("monetaryWallet", async () => {
+      const walletId = this.decodeId(input.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
+      const wallet = await this.$ctx.kernel.repository.wallet.findById(walletId);
+      if (!wallet) throw new LoyaltyDomainError("WALLET_NOT_FOUND", "Monetary wallet was not found");
+      await new MonetaryWalletService(this.$ctx.kernel.repository).rebuildBalance(walletId);
+      this.$ctx.loaders.monetaryWalletBalance.clear(walletId);
+      return this.resolvers.monetaryWallet(walletId);
+    });
+  }
+
+  private async rewardTransition(input: Record<string, any>, transition: { type: "RELEASE" | "REVOKE" }) {
+    return this.result("rewardEntitlement", async () => {
+      const id = this.decodeId(input.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement);
+      const entitlement = await new RewardEntitlementService(this.$ctx.kernel.repository).transition({
+        entitlementId: id,
+        expectedRevision: input.expectedRevision,
+        transition,
+        idempotencyKey: input.idempotencyKey,
+        occurredAt: input.occurredAt ?? new Date().toISOString(),
+        actorType: "ADMIN_USER",
+        actorId: this.$ctx.user.id,
+        reasonCode: input.reasonCode,
+      });
+      this.$ctx.loaders.rewardEntitlement.clear(id).prime(id, entitlement);
+      this.$ctx.loaders.rewardEntitlementEvents.clear(id);
+      return this.resolvers.rewardEntitlement(id);
+    });
+  }
+
+  private async deleteResult(idValue: string, type: GlobalIdType, work: (id: string) => Promise<void>) {
+    try {
+      const id = this.decodeId(idValue, type);
+      await work(id);
+      return { deletedId: this.encodeId(id, type), userErrors: [] };
+    } catch (error) {
+      return { deletedId: null, userErrors: [toUserError(error)] };
+    }
+  }
+
+  private async loadForDelete<T>(
+    idValue: string,
+    type: GlobalIdType,
+    load: (id: string) => Promise<T | null>,
+  ): Promise<T | null> {
+    try {
+      return await load(this.decodeId(idValue, type));
+    } catch {
+      return null;
+    }
+  }
+
   private get programs() {
     return new ProgramLifecycleService(this.$ctx.kernel.repository, new NoExternalLoyaltyReferences());
   }
 
-  private async result(key: "program" | "programVersion" | "account", work: () => Promise<unknown>) {
+  private async result(key: string, work: () => Promise<unknown>) {
     try {
       return { [key]: await work(), userErrors: [] };
     } catch (error) {
@@ -290,5 +865,35 @@ function toUserError(error: unknown): UserError {
     field: [],
     code: "LOYALTY_OPERATION_FAILED",
     retryable: false,
+  };
+}
+
+function copyDefined(target: Record<string, unknown>, source: Record<string, any>, keys: readonly string[]): void {
+  for (const key of keys) if (source[key] !== undefined && source[key] !== null) target[key] = source[key];
+}
+
+function nullableChange(
+  target: Record<string, unknown>,
+  source: Record<string, any>,
+  valueKey: string,
+  clearKey: string,
+  map: (value: any) => unknown,
+): void {
+  if (source[clearKey]) target[valueKey] = null;
+  else if (source[valueKey] !== undefined && source[valueKey] !== null) target[valueKey] = map(source[valueKey]);
+}
+
+function rewardDefinitionInput(input: Record<string, any>) {
+  return {
+    code: input.code,
+    name: input.name,
+    rewardType: input.rewardType,
+    configurationSchemaVersion: input.configurationSchemaVersion ?? 1,
+    configuration: input.configuration,
+    validityDays: input.validityDays ?? null,
+    startsAt: input.startsAt ?? null,
+    endsAt: input.endsAt ?? null,
+    issuanceLimit: input.issuanceLimit == null ? null : BigInt(input.issuanceLimit),
+    perAccountLimit: input.perAccountLimit == null ? null : BigInt(input.perAccountLimit),
   };
 }

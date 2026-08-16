@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, LoyaltyAccountStatus, LoyaltyAccountStatusUpdateInput, LoyaltyAccountWhereInput, LoyaltyActorType, LoyaltyBalanceBucket, LoyaltyCatalogSelectorInput, LoyaltyCatalogSelectorType, LoyaltyDebtPolicy, LoyaltyEarningActionType, LoyaltyEarningModifierInput, LoyaltyEarningRuleInput, LoyaltyEarningTriggerType, LoyaltyEligibleSpendBasis, LoyaltyLotAllocationType, LoyaltyModifierStackingMode, LoyaltyPointsAdjustInput, LoyaltyPointsAdjustmentDirection, LoyaltyProgramCreateInput, LoyaltyProgramEarningRulesInput, LoyaltyProgramEligibilityInput, LoyaltyProgramEligibilityType, LoyaltyProgramRulesInput, LoyaltyProgramStatus, LoyaltyProgramUpdateInput, LoyaltyProgramVersionCreateInput, LoyaltyProgramVersionPublishInput, LoyaltyProgramVersionStatus, LoyaltyProgramWhereInput, LoyaltyRefundPolicy, LoyaltyReservationEventType, LoyaltyReservationReleaseInput, LoyaltyReservationStatus, LoyaltyReservationWhereInput, LoyaltyRestoredPointsExpiryPolicy, LoyaltyRewardDefinitionInput, LoyaltyRewardType, LoyaltyRoundingMode, LoyaltySegmentMatchMode, LoyaltyTierCalendarPeriod, LoyaltyTierDowngradePolicy, LoyaltyTierEvaluationWindowType, LoyaltyTierInput, LoyaltyTierMembershipEventType, LoyaltyTierMembershipStatus, LoyaltyTierPolicyInput, LoyaltyTierRequalificationPolicy, LoyaltyTransactionKind, LoyaltyTransactionSource, LoyaltyTransactionWhereInput, PriceAdjustmentOperation, PriceAdjustmentValueType, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, LoyaltyAccountBalanceRebuildInput, LoyaltyAccountStatus, LoyaltyAccountStatusUpdateInput, LoyaltyAccountWhereInput, LoyaltyActorType, LoyaltyBalanceBucket, LoyaltyCatalogSelectorInput, LoyaltyCatalogSelectorType, LoyaltyDebtPolicy, LoyaltyEarningActionType, LoyaltyEarningModifierInput, LoyaltyEarningRuleCreateInput, LoyaltyEarningRuleDeleteInput, LoyaltyEarningRuleInput, LoyaltyEarningRuleUpdateInput, LoyaltyEarningRuleUsageWhereInput, LoyaltyEarningTriggerType, LoyaltyEligibleSpendBasis, LoyaltyEventEvaluationDecision, LoyaltyEventEvaluationWhereInput, LoyaltyEventFactWhereInput, LoyaltyLotAllocationType, LoyaltyMaintenanceRunInput, LoyaltyModifierStackingMode, LoyaltyMonetaryAdjustmentDirection, LoyaltyMonetaryBalanceBucket, LoyaltyMonetaryTransactionKind, LoyaltyMonetaryWalletAdjustInput, LoyaltyMonetaryWalletBalanceRebuildInput, LoyaltyMonetaryWalletStatus, LoyaltyMonetaryWalletStatusUpdateInput, LoyaltyMonetaryWalletType, LoyaltyMonetaryWalletWhereInput, LoyaltyPointsAdjustInput, LoyaltyPointsAdjustmentDirection, LoyaltyPointsConvertToMonetaryInput, LoyaltyProgramCreateInput, LoyaltyProgramEarningRulesInput, LoyaltyProgramEligibilityInput, LoyaltyProgramEligibilityType, LoyaltyProgramRulesInput, LoyaltyProgramStatus, LoyaltyProgramUpdateInput, LoyaltyProgramVersionCreateInput, LoyaltyProgramVersionDeleteInput, LoyaltyProgramVersionPublishInput, LoyaltyProgramVersionStatus, LoyaltyProgramVersionUpdateInput, LoyaltyProgramWhereInput, LoyaltyRefundPolicy, LoyaltyReservationEventType, LoyaltyReservationReleaseInput, LoyaltyReservationStatus, LoyaltyReservationWhereInput, LoyaltyRestoredPointsExpiryPolicy, LoyaltyRewardDefinitionCreateInput, LoyaltyRewardDefinitionDeleteInput, LoyaltyRewardDefinitionInput, LoyaltyRewardDefinitionUpdateInput, LoyaltyRewardEntitlementEventType, LoyaltyRewardEntitlementIssueInput, LoyaltyRewardEntitlementStatus, LoyaltyRewardEntitlementTransitionInput, LoyaltyRewardEntitlementWhereInput, LoyaltyRewardType, LoyaltyRoundingMode, LoyaltySegmentMatchMode, LoyaltyTierCalendarPeriod, LoyaltyTierCreateInput, LoyaltyTierDeleteInput, LoyaltyTierDowngradePolicy, LoyaltyTierEvaluateInput, LoyaltyTierEvaluationWindowType, LoyaltyTierInput, LoyaltyTierMembershipEventType, LoyaltyTierMembershipRevokeInput, LoyaltyTierMembershipStatus, LoyaltyTierPolicyDeleteInput, LoyaltyTierPolicyInput, LoyaltyTierPolicyUpsertInput, LoyaltyTierRequalificationPolicy, LoyaltyTierRewardBenefitCreateInput, LoyaltyTierRewardBenefitDeleteInput, LoyaltyTierUpdateInput, LoyaltyTransactionKind, LoyaltyTransactionSource, LoyaltyTransactionWhereInput, PriceAdjustmentOperation, PriceAdjustmentValueType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -33,9 +33,21 @@ export const LoyaltyEarningTriggerTypeSchema = z.nativeEnum(LoyaltyEarningTrigge
 
 export const LoyaltyEligibleSpendBasisSchema = z.nativeEnum(LoyaltyEligibleSpendBasis);
 
+export const LoyaltyEventEvaluationDecisionSchema = z.nativeEnum(LoyaltyEventEvaluationDecision);
+
 export const LoyaltyLotAllocationTypeSchema = z.nativeEnum(LoyaltyLotAllocationType);
 
 export const LoyaltyModifierStackingModeSchema = z.nativeEnum(LoyaltyModifierStackingMode);
+
+export const LoyaltyMonetaryAdjustmentDirectionSchema = z.nativeEnum(LoyaltyMonetaryAdjustmentDirection);
+
+export const LoyaltyMonetaryBalanceBucketSchema = z.nativeEnum(LoyaltyMonetaryBalanceBucket);
+
+export const LoyaltyMonetaryTransactionKindSchema = z.nativeEnum(LoyaltyMonetaryTransactionKind);
+
+export const LoyaltyMonetaryWalletStatusSchema = z.nativeEnum(LoyaltyMonetaryWalletStatus);
+
+export const LoyaltyMonetaryWalletTypeSchema = z.nativeEnum(LoyaltyMonetaryWalletType);
 
 export const LoyaltyPointsAdjustmentDirectionSchema = z.nativeEnum(LoyaltyPointsAdjustmentDirection);
 
@@ -52,6 +64,10 @@ export const LoyaltyReservationEventTypeSchema = z.nativeEnum(LoyaltyReservation
 export const LoyaltyReservationStatusSchema = z.nativeEnum(LoyaltyReservationStatus);
 
 export const LoyaltyRestoredPointsExpiryPolicySchema = z.nativeEnum(LoyaltyRestoredPointsExpiryPolicy);
+
+export const LoyaltyRewardEntitlementEventTypeSchema = z.nativeEnum(LoyaltyRewardEntitlementEventType);
+
+export const LoyaltyRewardEntitlementStatusSchema = z.nativeEnum(LoyaltyRewardEntitlementStatus);
 
 export const LoyaltyRewardTypeSchema = z.nativeEnum(LoyaltyRewardType);
 
@@ -80,6 +96,13 @@ export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperat
 export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
+
+export function LoyaltyAccountBalanceRebuildInputSchema(): z.ZodObject<Properties<LoyaltyAccountBalanceRebuildInput>> {
+  return z.object({
+    accountId: z.string(),
+    idempotencyKey: z.string()
+  })
+}
 
 export function LoyaltyAccountStatusUpdateInputSchema(): z.ZodObject<Properties<LoyaltyAccountStatusUpdateInput>> {
   return z.object({
@@ -123,6 +146,34 @@ export function LoyaltyEarningModifierInputSchema(): z.ZodObject<Properties<Loya
   })
 }
 
+export function LoyaltyEarningRuleCreateInputSchema(): z.ZodObject<Properties<LoyaltyEarningRuleCreateInput>> {
+  return z.object({
+    action: z.record(z.unknown()),
+    actionSchemaVersion: z.number().default(1).nullish(),
+    actionType: LoyaltyEarningActionTypeSchema,
+    code: z.string(),
+    conditionSchemaVersion: z.number().default(1).nullish(),
+    conditions: z.record(z.unknown()),
+    idempotencyKey: z.string(),
+    limitSchemaVersion: z.number().default(1).nullish(),
+    limits: z.record(z.unknown()),
+    name: z.string(),
+    priority: z.number().default(0).nullish(),
+    programVersionId: z.string(),
+    stopProcessing: z.boolean().default(false).nullish(),
+    triggerConfig: z.record(z.unknown()),
+    triggerSchemaVersion: z.number().default(1).nullish(),
+    triggerType: LoyaltyEarningTriggerTypeSchema
+  })
+}
+
+export function LoyaltyEarningRuleDeleteInputSchema(): z.ZodObject<Properties<LoyaltyEarningRuleDeleteInput>> {
+  return z.object({
+    earningRuleId: z.string(),
+    idempotencyKey: z.string()
+  })
+}
+
 export function LoyaltyEarningRuleInputSchema(): z.ZodObject<Properties<LoyaltyEarningRuleInput>> {
   return z.object({
     action: z.record(z.unknown()),
@@ -142,6 +193,101 @@ export function LoyaltyEarningRuleInputSchema(): z.ZodObject<Properties<LoyaltyE
   })
 }
 
+export function LoyaltyEarningRuleUpdateInputSchema(): z.ZodObject<Properties<LoyaltyEarningRuleUpdateInput>> {
+  return z.object({
+    action: z.record(z.unknown()).nullish(),
+    actionSchemaVersion: z.number().nullish(),
+    actionType: LoyaltyEarningActionTypeSchema.nullish(),
+    conditionSchemaVersion: z.number().nullish(),
+    conditions: z.record(z.unknown()).nullish(),
+    earningRuleId: z.string(),
+    idempotencyKey: z.string(),
+    limitSchemaVersion: z.number().nullish(),
+    limits: z.record(z.unknown()).nullish(),
+    name: z.string().nullish(),
+    priority: z.number().nullish(),
+    stopProcessing: z.boolean().nullish(),
+    triggerConfig: z.record(z.unknown()).nullish(),
+    triggerSchemaVersion: z.number().nullish(),
+    triggerType: LoyaltyEarningTriggerTypeSchema.nullish()
+  })
+}
+
+export function LoyaltyEarningRuleUsageWhereInputSchema(): z.ZodObject<Properties<LoyaltyEarningRuleUsageWhereInput>> {
+  return z.object({
+    earningRuleId: z.string(),
+    effectiveAt: z.string().nullish(),
+    scopeKey: z.string().nullish()
+  })
+}
+
+export function LoyaltyEventEvaluationWhereInputSchema(): z.ZodObject<Properties<LoyaltyEventEvaluationWhereInput>> {
+  return z.object({
+    accountId: z.string().nullish(),
+    decisions: z.array(LoyaltyEventEvaluationDecisionSchema).nullish(),
+    earningRuleId: z.string().nullish(),
+    eventFactId: z.string().nullish()
+  })
+}
+
+export function LoyaltyEventFactWhereInputSchema(): z.ZodObject<Properties<LoyaltyEventFactWhereInput>> {
+  return z.object({
+    customerIds: z.array(z.string()).nullish(),
+    eventTypes: z.array(z.string()).nullish(),
+    occurredFrom: z.string().nullish(),
+    occurredTo: z.string().nullish(),
+    producers: z.array(z.string()).nullish()
+  })
+}
+
+export function LoyaltyMaintenanceRunInputSchema(): z.ZodObject<Properties<LoyaltyMaintenanceRunInput>> {
+  return z.object({
+    effectiveAt: z.string(),
+    idempotencyKey: z.string(),
+    limit: z.number().default(100).nullish(),
+    rebuildBalances: z.boolean().default(false).nullish()
+  })
+}
+
+export function LoyaltyMonetaryWalletAdjustInputSchema(): z.ZodObject<Properties<LoyaltyMonetaryWalletAdjustInput>> {
+  return z.object({
+    amountMinor: z.string(),
+    direction: LoyaltyMonetaryAdjustmentDirectionSchema,
+    expiresAt: z.string().nullish(),
+    idempotencyKey: z.string(),
+    metadata: z.record(z.unknown()).nullish(),
+    occurredAt: z.string().nullish(),
+    reasonCode: z.string(),
+    walletId: z.string()
+  })
+}
+
+export function LoyaltyMonetaryWalletBalanceRebuildInputSchema(): z.ZodObject<Properties<LoyaltyMonetaryWalletBalanceRebuildInput>> {
+  return z.object({
+    idempotencyKey: z.string(),
+    walletId: z.string()
+  })
+}
+
+export function LoyaltyMonetaryWalletStatusUpdateInputSchema(): z.ZodObject<Properties<LoyaltyMonetaryWalletStatusUpdateInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    idempotencyKey: z.string(),
+    reasonCode: z.string(),
+    status: LoyaltyMonetaryWalletStatusSchema,
+    walletId: z.string()
+  })
+}
+
+export function LoyaltyMonetaryWalletWhereInputSchema(): z.ZodObject<Properties<LoyaltyMonetaryWalletWhereInput>> {
+  return z.object({
+    accountIds: z.array(z.string()).nullish(),
+    currencyCodes: z.array(CurrencyCodeSchema).nullish(),
+    statuses: z.array(LoyaltyMonetaryWalletStatusSchema).nullish(),
+    walletTypes: z.array(LoyaltyMonetaryWalletTypeSchema).nullish()
+  })
+}
+
 export function LoyaltyPointsAdjustInputSchema(): z.ZodObject<Properties<LoyaltyPointsAdjustInput>> {
   return z.object({
     accountId: z.string(),
@@ -153,6 +299,18 @@ export function LoyaltyPointsAdjustInputSchema(): z.ZodObject<Properties<Loyalty
     metadata: z.record(z.unknown()).nullish(),
     points: z.string(),
     reasonCode: z.string()
+  })
+}
+
+export function LoyaltyPointsConvertToMonetaryInputSchema(): z.ZodObject<Properties<LoyaltyPointsConvertToMonetaryInput>> {
+  return z.object({
+    accountId: z.string(),
+    currencyCode: CurrencyCodeSchema,
+    idempotencyKey: z.string(),
+    occurredAt: z.string().nullish(),
+    points: z.string(),
+    programVersionId: z.string(),
+    walletType: LoyaltyMonetaryWalletTypeSchema
   })
 }
 
@@ -238,6 +396,14 @@ export function LoyaltyProgramVersionCreateInputSchema(): z.ZodObject<Properties
   })
 }
 
+export function LoyaltyProgramVersionDeleteInputSchema(): z.ZodObject<Properties<LoyaltyProgramVersionDeleteInput>> {
+  return z.object({
+    expectedRevision: z.number(),
+    idempotencyKey: z.string(),
+    programVersionId: z.string()
+  })
+}
+
 export function LoyaltyProgramVersionPublishInputSchema(): z.ZodObject<Properties<LoyaltyProgramVersionPublishInput>> {
   return z.object({
     effectiveFrom: z.string(),
@@ -245,6 +411,36 @@ export function LoyaltyProgramVersionPublishInputSchema(): z.ZodObject<Propertie
     expectedRevision: z.number(),
     idempotencyKey: z.string(),
     programVersionId: z.string()
+  })
+}
+
+export function LoyaltyProgramVersionUpdateInputSchema(): z.ZodObject<Properties<LoyaltyProgramVersionUpdateInput>> {
+  return z.object({
+    activationDelaySeconds: z.number().nullish(),
+    clearEffectiveTo: z.boolean().default(false).nullish(),
+    clearMaximumRedeemPointsPerOrder: z.boolean().default(false).nullish(),
+    clearPointsExpiryDays: z.boolean().default(false).nullish(),
+    debtPolicy: LoyaltyDebtPolicySchema.nullish(),
+    earnAmountMinor: z.string().nullish(),
+    earnPoints: z.string().nullish(),
+    earningEnabled: z.boolean().nullish(),
+    effectiveFrom: z.string().nullish(),
+    effectiveTo: z.string().nullish(),
+    expectedRevision: z.number(),
+    idempotencyKey: z.string(),
+    maximumOrderPercentageBps: z.number().nullish(),
+    maximumRedeemPointsPerOrder: z.string().nullish(),
+    minimumEligibleAmountMinor: z.string().nullish(),
+    minimumRedeemPoints: z.string().nullish(),
+    pointsExpiryDays: z.number().nullish(),
+    programVersionId: z.string(),
+    redeemAmountMinor: z.string().nullish(),
+    redeemPoints: z.string().nullish(),
+    redemptionEnabled: z.boolean().nullish(),
+    refundPolicy: LoyaltyRefundPolicySchema.nullish(),
+    restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicySchema.nullish(),
+    roundingMode: LoyaltyRoundingModeSchema.nullish(),
+    rules: z.lazy(() => LoyaltyProgramRulesInputSchema().nullish())
   })
 }
 
@@ -280,6 +476,30 @@ export function LoyaltyReservationWhereInputSchema(): z.ZodObject<Properties<Loy
   })
 }
 
+export function LoyaltyRewardDefinitionCreateInputSchema(): z.ZodObject<Properties<LoyaltyRewardDefinitionCreateInput>> {
+  return z.object({
+    code: z.string(),
+    configuration: z.record(z.unknown()),
+    configurationSchemaVersion: z.number().default(1).nullish(),
+    endsAt: z.string().nullish(),
+    idempotencyKey: z.string(),
+    issuanceLimit: z.string().nullish(),
+    name: z.string(),
+    perAccountLimit: z.string().nullish(),
+    programVersionId: z.string(),
+    rewardType: LoyaltyRewardTypeSchema,
+    startsAt: z.string().nullish(),
+    validityDays: z.number().nullish()
+  })
+}
+
+export function LoyaltyRewardDefinitionDeleteInputSchema(): z.ZodObject<Properties<LoyaltyRewardDefinitionDeleteInput>> {
+  return z.object({
+    idempotencyKey: z.string(),
+    rewardDefinitionId: z.string()
+  })
+}
+
 export function LoyaltyRewardDefinitionInputSchema(): z.ZodObject<Properties<LoyaltyRewardDefinitionInput>> {
   return z.object({
     code: z.string(),
@@ -295,6 +515,88 @@ export function LoyaltyRewardDefinitionInputSchema(): z.ZodObject<Properties<Loy
   })
 }
 
+export function LoyaltyRewardDefinitionUpdateInputSchema(): z.ZodObject<Properties<LoyaltyRewardDefinitionUpdateInput>> {
+  return z.object({
+    clearEndsAt: z.boolean().default(false).nullish(),
+    clearIssuanceLimit: z.boolean().default(false).nullish(),
+    clearPerAccountLimit: z.boolean().default(false).nullish(),
+    clearStartsAt: z.boolean().default(false).nullish(),
+    clearValidityDays: z.boolean().default(false).nullish(),
+    configuration: z.record(z.unknown()).nullish(),
+    configurationSchemaVersion: z.number().nullish(),
+    endsAt: z.string().nullish(),
+    idempotencyKey: z.string(),
+    issuanceLimit: z.string().nullish(),
+    name: z.string().nullish(),
+    perAccountLimit: z.string().nullish(),
+    rewardDefinitionId: z.string(),
+    rewardType: LoyaltyRewardTypeSchema.nullish(),
+    startsAt: z.string().nullish(),
+    validityDays: z.number().nullish()
+  })
+}
+
+export function LoyaltyRewardEntitlementIssueInputSchema(): z.ZodObject<Properties<LoyaltyRewardEntitlementIssueInput>> {
+  return z.object({
+    accountId: z.string(),
+    externalReference: z.string().nullish(),
+    idempotencyKey: z.string(),
+    occurredAt: z.string().nullish(),
+    quantity: z.string().default("1").nullish(),
+    rewardDefinitionId: z.string()
+  })
+}
+
+export function LoyaltyRewardEntitlementTransitionInputSchema(): z.ZodObject<Properties<LoyaltyRewardEntitlementTransitionInput>> {
+  return z.object({
+    entitlementId: z.string(),
+    expectedRevision: z.number(),
+    idempotencyKey: z.string(),
+    occurredAt: z.string().nullish(),
+    reasonCode: z.string()
+  })
+}
+
+export function LoyaltyRewardEntitlementWhereInputSchema(): z.ZodObject<Properties<LoyaltyRewardEntitlementWhereInput>> {
+  return z.object({
+    accountIds: z.array(z.string()).nullish(),
+    rewardDefinitionIds: z.array(z.string()).nullish(),
+    statuses: z.array(LoyaltyRewardEntitlementStatusSchema).nullish(),
+    validAt: z.string().nullish()
+  })
+}
+
+export function LoyaltyTierCreateInputSchema(): z.ZodObject<Properties<LoyaltyTierCreateInput>> {
+  return z.object({
+    code: z.string(),
+    idempotencyKey: z.string(),
+    maintenance: z.record(z.unknown()).nullish(),
+    name: z.string(),
+    programVersionId: z.string(),
+    qualification: z.record(z.unknown()),
+    qualificationSchemaVersion: z.number().default(1).nullish(),
+    rank: z.number()
+  })
+}
+
+export function LoyaltyTierDeleteInputSchema(): z.ZodObject<Properties<LoyaltyTierDeleteInput>> {
+  return z.object({
+    idempotencyKey: z.string(),
+    tierId: z.string()
+  })
+}
+
+export function LoyaltyTierEvaluateInputSchema(): z.ZodObject<Properties<LoyaltyTierEvaluateInput>> {
+  return z.object({
+    accountId: z.string(),
+    effectiveAt: z.string().nullish(),
+    forceRequalification: z.boolean().default(false).nullish(),
+    idempotencyKey: z.string(),
+    programVersionId: z.string().nullish(),
+    reasonCode: z.string()
+  })
+}
+
 export function LoyaltyTierInputSchema(): z.ZodObject<Properties<LoyaltyTierInput>> {
   return z.object({
     code: z.string(),
@@ -303,6 +605,23 @@ export function LoyaltyTierInputSchema(): z.ZodObject<Properties<LoyaltyTierInpu
     qualification: z.record(z.unknown()),
     qualificationSchemaVersion: z.number().default(1).nullish(),
     rank: z.number()
+  })
+}
+
+export function LoyaltyTierMembershipRevokeInputSchema(): z.ZodObject<Properties<LoyaltyTierMembershipRevokeInput>> {
+  return z.object({
+    effectiveAt: z.string().nullish(),
+    expectedRevision: z.number(),
+    idempotencyKey: z.string(),
+    membershipId: z.string(),
+    reasonCode: z.string()
+  })
+}
+
+export function LoyaltyTierPolicyDeleteInputSchema(): z.ZodObject<Properties<LoyaltyTierPolicyDeleteInput>> {
+  return z.object({
+    idempotencyKey: z.string(),
+    programVersionId: z.string()
   })
 }
 
@@ -317,6 +636,52 @@ export function LoyaltyTierPolicyInputSchema(): z.ZodObject<Properties<LoyaltyTi
     requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default("AUTOMATIC").nullish(),
     rollingWindowDays: z.number().nullish(),
     windowType: LoyaltyTierEvaluationWindowTypeSchema
+  })
+}
+
+export function LoyaltyTierPolicyUpsertInputSchema(): z.ZodObject<Properties<LoyaltyTierPolicyUpsertInput>> {
+  return z.object({
+    calendarPeriod: LoyaltyTierCalendarPeriodSchema.nullish(),
+    downgradePolicy: LoyaltyTierDowngradePolicySchema.default("IMMEDIATE").nullish(),
+    gracePeriodDays: z.number().default(0).nullish(),
+    idempotencyKey: z.string(),
+    membershipDurationDays: z.number().nullish(),
+    metricSchemaVersion: z.number().default(1).nullish(),
+    programVersionId: z.string(),
+    programYearStartsMonth: z.number().nullish(),
+    requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default("AUTOMATIC").nullish(),
+    rollingWindowDays: z.number().nullish(),
+    windowType: LoyaltyTierEvaluationWindowTypeSchema
+  })
+}
+
+export function LoyaltyTierRewardBenefitCreateInputSchema(): z.ZodObject<Properties<LoyaltyTierRewardBenefitCreateInput>> {
+  return z.object({
+    grantPolicy: z.record(z.unknown()),
+    grantPolicySchemaVersion: z.number().default(1).nullish(),
+    idempotencyKey: z.string(),
+    rewardDefinitionId: z.string(),
+    tierId: z.string()
+  })
+}
+
+export function LoyaltyTierRewardBenefitDeleteInputSchema(): z.ZodObject<Properties<LoyaltyTierRewardBenefitDeleteInput>> {
+  return z.object({
+    idempotencyKey: z.string(),
+    tierRewardBenefitId: z.string()
+  })
+}
+
+export function LoyaltyTierUpdateInputSchema(): z.ZodObject<Properties<LoyaltyTierUpdateInput>> {
+  return z.object({
+    clearMaintenance: z.boolean().default(false).nullish(),
+    idempotencyKey: z.string(),
+    maintenance: z.record(z.unknown()).nullish(),
+    name: z.string().nullish(),
+    qualification: z.record(z.unknown()).nullish(),
+    qualificationSchemaVersion: z.number().nullish(),
+    rank: z.number().nullish(),
+    tierId: z.string()
   })
 }
 

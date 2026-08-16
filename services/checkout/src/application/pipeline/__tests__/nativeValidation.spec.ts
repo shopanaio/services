@@ -108,6 +108,7 @@ describe("native checkout readiness", () => {
         ...request.finalQuote,
         totals: { ...request.finalQuote.totals, payableTotal: positive },
       },
+      payableAmount: positive,
     } as unknown as ValidateCheckoutRequest;
 
     expect(rules(withReadinessFailures)).toEqual([
@@ -135,6 +136,7 @@ describe("native checkout readiness", () => {
           payableTotal: { amountMinor: "1", currencyCode: "USD" },
         },
       },
+      payableAmount: { amountMinor: "1", currencyCode: "USD" },
       payment: {
         ...request.payment,
         methods: [{ handle: "method-1" }],

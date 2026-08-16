@@ -27,6 +27,8 @@ import {
   checkoutDeliveryRecipientsUpdate,
   checkoutLinesReplace,
   placeOrder,
+  checkoutLoyaltyRedemptionUpdate,
+  checkoutLoyaltyRedemptionRemove,
 } from "./checkout/index";
 import {
   requireStorefrontPermission,
@@ -66,6 +68,8 @@ const checkoutResolvers = {
       checkoutDeliveryAddressesUpdate,
     ),
     checkoutPaymentMethodUpdate: withCheckoutWrite(checkoutPaymentMethodUpdate),
+    checkoutLoyaltyRedemptionUpdate: withCheckoutWrite(checkoutLoyaltyRedemptionUpdate),
+    checkoutLoyaltyRedemptionRemove: withCheckoutWrite(checkoutLoyaltyRedemptionRemove),
     checkoutDeliveryMethodUpdate: withCheckoutWrite(
       checkoutDeliveryMethodUpdate,
     ),

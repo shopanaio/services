@@ -26,6 +26,10 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
   const quote = result.finalPricing.data;
   const delivery = result.delivery.data;
   const totals = quote.totals;
+  const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
+    ? result.loyalty.data.quote
+    : null;
+  const payableAmount = loyalty?.payableAfterLoyalty ?? totals.payableTotal;
   const lineToDto = (line: CheckoutQuotedLine, parentLineId: string | null): CheckoutLineDto => {
     const sourceLineId = preliminary.sourceLineResolutions.find(
       (resolution) =>
@@ -77,13 +81,13 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
       totalDiscountAmount: money({
         amountMinor: (
           BigInt(totals.merchandiseDiscountTotal.amountMinor) +
-          BigInt(totals.deliveryDiscountTotal.amountMinor)
+          BigInt(totals.deliveryDiscountTotal.amountMinor) + BigInt(loyalty?.discount.amountMinor ?? "0")
         ).toString(),
         currencyCode: totals.payableTotal.currencyCode,
       }),
       totalTaxAmount: money(totals.taxTotal),
       totalShippingAmount: money(totals.deliveryTotal),
-      totalAmount: money(totals.payableTotal),
+      totalAmount: money(payableAmount),
     },
     customerIdentity: {
       countryCode: draft.buyerIdentity?.countryCode ?? null,
@@ -173,7 +177,18 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     status: result.validation.data.valid ? "ready" : "new",
     expiresAt: null,
     version: checkout.version,
-    metadata: { resultRevision: result.resultRevision },
+    metadata: {
+      resultRevision: result.resultRevision,
+      loyaltyRedemption: loyalty ? {
+        quoteId: loyalty.quoteId,
+        quoteRevision: loyalty.revision,
+        accountId: loyalty.accountId,
+        programId: loyalty.program.programId,
+        programVersionId: loyalty.program.programVersionId,
+        points: loyalty.redeemablePoints,
+        discount: loyalty.discount,
+      } : null,
+    },
     deletedAt: null,
   };
 }

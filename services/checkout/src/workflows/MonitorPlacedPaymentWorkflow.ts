@@ -2,9 +2,12 @@ import { Injectable } from "@nestjs/common";
 import {
   InventoryCheckoutActions,
   PricingCheckoutActions,
+  LoyaltyCheckoutActions,
   type Inventory,
   type Payments,
   type Pricing,
+  type CommitCheckoutLoyaltyRedemptionResult,
+  type ReleaseCheckoutLoyaltyRedemptionResult,
 } from "@shopana/broker-types";
 import {
   BrokerWorkflows,
@@ -15,7 +18,8 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import { CheckoutPlacementRepository } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
-import type { PlaceOrderWorkflowResult } from "./PlaceOrderWorkflow.js";
+import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
+import type { LoyaltyReservation, PlaceOrderWorkflowResult } from "./PlaceOrderWorkflow.js";
 
 export interface MonitorPlacedPaymentInput {
   organizationId: string;
@@ -25,6 +29,7 @@ export interface MonitorPlacedPaymentInput {
   initialResult: PlaceOrderWorkflowResult;
   sessionParams: Payments.CreatePaymentSessionParams;
   redemptionIds: readonly string[];
+  loyaltyReservation: LoyaltyReservation | null;
   idempotencyKey: string;
   correlationId: string;
 }
@@ -59,6 +64,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       if (!operation) throw new Error("PAYMENT_OPERATION_NOT_FOUND");
 
       if (isSettled(session.state)) {
+        await this.commitLoyalty(input);
         await this.confirmInventory(input.storeId, input.orderId);
         return this.replacePlacementResult(
           input.placementId,
@@ -68,6 +74,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       if (isTerminalFailure(session.state)) {
         await this.releaseInventory(input);
         await this.reverseDiscountUsage(input);
+        await this.releaseLoyalty(input);
         return this.replacePlacementResult(
           input.placementId,
           paymentResult(input.initialResult, session, operation.operationId),
@@ -194,6 +201,76 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       redemptionIds: input.redemptionIds,
       reason: "Checkout payment expired or failed before settlement.",
     });
+  }
+
+  private async commitLoyalty(input: MonitorPlacedPaymentInput): Promise<void> {
+    return this.commitLoyaltyAt(
+      input,
+      new Date(await DBOS.now()).toISOString(),
+    );
+  }
+
+  @WorkflowStep()
+  private async commitLoyaltyAt(
+    input: MonitorPlacedPaymentInput,
+    committedAt: string,
+  ): Promise<void> {
+    const reservation = input.loyaltyReservation;
+    if (!reservation) return;
+    const idempotencyKey = `${input.idempotencyKey}:loyalty-commit`;
+    const base = {
+      storeId: input.storeId,
+      checkoutId: input.sessionParams.checkoutId,
+      checkoutVersion: input.sessionParams.expectedCheckoutVersion,
+      reservationId: reservation.reservationId,
+      quoteId: reservation.quoteId,
+      quoteRevision: reservation.quoteRevision,
+      orderId: input.orderId,
+      orderRevision: 1,
+      committedAt,
+      idempotencyKey,
+    };
+    const result = await this.broker.call<
+      CommitCheckoutLoyaltyRedemptionResult,
+      import("@shopana/broker-types").CommitCheckoutLoyaltyRedemptionParams
+    >(LoyaltyCheckoutActions.commitRedemption, {
+      ...base,
+      requestHash: canonicalJsonSha256(base),
+    });
+    if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+  }
+
+  private async releaseLoyalty(input: MonitorPlacedPaymentInput): Promise<void> {
+    return this.releaseLoyaltyAt(
+      input,
+      new Date(await DBOS.now()).toISOString(),
+    );
+  }
+
+  @WorkflowStep()
+  private async releaseLoyaltyAt(
+    input: MonitorPlacedPaymentInput,
+    releasedAt: string,
+  ): Promise<void> {
+    const reservation = input.loyaltyReservation;
+    if (!reservation) return;
+    const idempotencyKey = `${input.idempotencyKey}:loyalty-release:PAYMENT_FAILED`;
+    const base = {
+      storeId: input.storeId,
+      checkoutId: input.sessionParams.checkoutId,
+      reservationId: reservation.reservationId,
+      reason: "PAYMENT_FAILED" as const,
+      releasedAt,
+      idempotencyKey,
+    };
+    const result = await this.broker.call<
+      ReleaseCheckoutLoyaltyRedemptionResult,
+      import("@shopana/broker-types").ReleaseCheckoutLoyaltyRedemptionParams
+    >(LoyaltyCheckoutActions.releaseRedemption, {
+      ...base,
+      requestHash: canonicalJsonSha256(base),
+    });
+    if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
   }
 
   @WorkflowStep()

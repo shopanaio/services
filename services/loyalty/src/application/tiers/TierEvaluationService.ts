@@ -13,6 +13,41 @@ import { RewardEntitlementService } from "../rewards/RewardEntitlementService.js
 export class TierEvaluationService {
   constructor(private readonly repository: Repository) {}
 
+  async revoke(input: {
+    membershipId: string;
+    expectedRevision: number;
+    effectiveAt: string;
+    reasonCode: string;
+    actorId: string;
+  }): Promise<TierMembership> {
+    return this.repository.runInTransaction(async () => {
+      const current = await this.repository.tier.getMembershipsByIds([input.membershipId]).then((rows) => rows[0] ?? null);
+      if (!current) throw new LoyaltyDomainError("TIER_MEMBERSHIP_NOT_FOUND", "Loyalty tier membership was not found");
+      if (current.status === "REVOKED") return current;
+      if (current.revision !== input.expectedRevision) {
+        throw new LoyaltyDomainError("TIER_CONCURRENT_CHANGE", "Tier membership changed concurrently", true);
+      }
+      if (current.status !== "ACTIVE") throw new LoyaltyDomainError("TIER_MEMBERSHIP_NOT_ACTIVE", "Only an active tier membership can be revoked");
+      const updated = await this.repository.tier.updateMembership(current.id, current.revision, {
+        status: "REVOKED",
+        effectiveTo: input.effectiveAt,
+      });
+      if (!updated) throw new LoyaltyDomainError("TIER_CONCURRENT_CHANGE", "Tier membership changed concurrently", true);
+      await this.repository.tier.appendMembershipEvent({
+        accountId: current.accountId,
+        membershipId: current.id,
+        previousTierId: current.tierId,
+        tierId: current.tierId,
+        eventType: "REVOKED",
+        evaluationRevision: canonicalHash({ membershipId: current.id, revision: current.revision, actorId: input.actorId }),
+        reasonCode: input.reasonCode,
+        occurredAt: input.effectiveAt,
+        metadata: { actorId: input.actorId },
+      });
+      return updated;
+    });
+  }
+
   async evaluate(input: {
     account: Account;
     programVersionId: string;
@@ -24,6 +59,9 @@ export class TierEvaluationService {
     return this.repository.runInTransaction(async () => {
       const lockedAccount = await this.repository.account.lockById(input.account.id);
       if (!lockedAccount) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      if (lockedAccount.status !== "ACTIVE") {
+        throw new LoyaltyDomainError("ACCOUNT_NOT_ACTIVE", "Tiers can be evaluated only for an active loyalty account");
+      }
       const [policy, tiers, current] = await Promise.all([
         this.repository.tier.findPolicy(input.programVersionId),
         this.repository.tier.listForVersion(input.programVersionId),

@@ -34,6 +34,7 @@ function draft(version = 3): CheckoutMutationDraft {
     customerNote: null,
     tags: [],
     lineTagAssignments: [],
+    loyaltyRedemption: null,
   };
 }
 
@@ -70,8 +71,16 @@ function pipeline(input?: { preliminaryFailure?: boolean }) {
       discoveryRevision: "payment-discovery-v1",
       customizationRevision: "payment-customization-v1",
       basedOnFinalQuoteRevision: request.finalQuote.revision,
+      basedOnLoyaltyQuoteRevision: request.loyaltyRedemption?.quoteRevision ?? null,
       basedOnDeliveryRevision: request.delivery.revision,
       issues: [],
+    })),
+  };
+  const loyalty = {
+    quote: jest.fn(async (request: any) => ({
+      status: "NONE" as const,
+      revision: "loyalty-none-v1",
+      payableAfterLoyalty: request.finalQuote.totals.payableTotal,
     })),
   };
   const validationRunner = new CheckoutValidationRunner({
@@ -82,7 +91,7 @@ function pipeline(input?: { preliminaryFailure?: boolean }) {
     },
     bindings: { loadForTarget: jest.fn(async () => []) },
   });
-  return new CheckoutPipeline({ pricing, delivery, payments, validationRunner });
+  return new CheckoutPipeline({ pricing, delivery, loyalty, payments, validationRunner });
 }
 
 function provenance<T extends object>(value: T, context: any): T {

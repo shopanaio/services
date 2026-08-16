@@ -16,6 +16,7 @@ export type ValidateCheckoutRequest = Readonly<{
   preliminary: CalculatePreliminaryPricingResult;
   delivery: CalculateDeliveryOptionsResult;
   finalQuote: FinalizePricingQuoteResult;
+  payableAmount: FinalizePricingQuoteResult["totals"]["payableTotal"];
   payment: GetAvailablePaymentMethodsResult;
 }>;
 

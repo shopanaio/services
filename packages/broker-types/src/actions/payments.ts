@@ -185,6 +185,13 @@ export interface GetCheckoutAvailablePaymentMethodsParams {
   context: PaymentsCheckoutEvaluationContext;
   selection: PaymentsCheckoutMethodSelectionIntent | null;
   finalQuote: FinalizeCheckoutPricingQuoteResult;
+  /** Amount collected by Payments after Checkout applies tender-like loyalty redemption. */
+  payableAmount: PricingCheckoutMoney;
+  loyaltyRedemption: Readonly<{
+    quoteId: string;
+    quoteRevision: string;
+    discount: PricingCheckoutMoney;
+  }> | null;
   /** Minimal, PII-free and provider-data-free delivery eligibility facts. */
   delivery: PaymentsCheckoutDeliverySnapshot;
 }
@@ -195,6 +202,7 @@ export interface GetCheckoutAvailablePaymentMethodsResult
   discoveryRevision: string;
   customizationRevision: string;
   basedOnFinalQuoteRevision: string;
+  basedOnLoyaltyQuoteRevision: string | null;
   basedOnDeliveryRevision: string;
   methods: readonly PaymentsCheckoutMethod[];
   selection: PaymentsCheckoutMethodSelectionResolution;

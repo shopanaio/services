@@ -53,6 +53,8 @@ export const paymentsCheckoutRequestSchema = z.object({
     usageRequirements: z.array(jsonValue).max(500),
     totals: z.object({ merchandiseSubtotal: money, merchandiseDiscountTotal: money, merchandiseTotal: money, taxTotal: money, deliverySubtotal: money, deliveryDiscountTotal: money, deliveryTotal: money, payableTotal: money }).strict(),
   }).strict(),
+  payableAmount: money,
+  loyaltyRedemption: z.object({ quoteId: id, quoteRevision: revision, discount: money }).strict().nullable(),
   delivery: z.object({
     ...provenance, revision, basedOnPreliminaryRevision: revision,
     destinations: z.array(z.object({ destinationId: id, location: z.object({ countryCode: country, provinceCode: id.nullable(), postalCode: id.nullable() }).strict() }).strict()).max(500),
@@ -69,6 +71,9 @@ export const paymentsCheckoutRequestSchema = z.object({
   for (const total of Object.values(finalQuote.totals)) if (total.currencyCode !== context.currencyCode) ctx.addIssue({ code: z.ZodIssueCode.custom, message: "payment input contains mixed currencies" });
   const totals = finalQuote.totals;
   if (BigInt(totals.merchandiseSubtotal.amountMinor) - BigInt(totals.merchandiseDiscountTotal.amountMinor) !== BigInt(totals.merchandiseTotal.amountMinor) || BigInt(totals.deliverySubtotal.amountMinor) - BigInt(totals.deliveryDiscountTotal.amountMinor) !== BigInt(totals.deliveryTotal.amountMinor) || BigInt(totals.merchandiseTotal.amountMinor) + BigInt(totals.taxTotal.amountMinor) + BigInt(totals.deliveryTotal.amountMinor) !== BigInt(totals.payableTotal.amountMinor)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["finalQuote", "totals"], message: "final quote totals are inconsistent" });
+  const loyaltyDiscount = value.loyaltyRedemption === null ? 0n : BigInt(value.loyaltyRedemption.discount.amountMinor);
+  if (value.payableAmount.currencyCode !== context.currencyCode || value.loyaltyRedemption !== null && value.loyaltyRedemption.discount.currencyCode !== context.currencyCode) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["payableAmount"], message: "loyalty payment amounts use another currency" });
+  if (BigInt(totals.payableTotal.amountMinor) - loyaltyDiscount !== BigInt(value.payableAmount.amountMinor)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["payableAmount"], message: "payable amount does not match final quote and loyalty redemption" });
   const destinationIds = new Set(delivery.destinations.map((item) => item.destinationId));
   const assignedLineIds = new Set<string>();
   if (destinationIds.size !== delivery.destinations.length || new Set(delivery.groups.map((item) => item.groupId)).size !== delivery.groups.length) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["delivery"], message: "delivery identifiers must be unique" });
@@ -108,7 +113,7 @@ const checkoutMethod = z.object({ handle: id, code: id, title: z.string().min(1)
 const selection = z.discriminatedUnion("status", [z.object({ status: z.literal("NONE") }).strict(), z.object({ status: z.literal("SELECTED"), methodHandle: id, customerInput: jsonObject }).strict(), z.object({ status: z.literal("RESET"), previousMethodHandle: id, customerInput: jsonObject, reason: z.object({ code: id, message: z.string().min(1).max(1024) }).strict() }).strict()]);
 export const paymentsCheckoutResultSchema = z.object({
   ...provenance, revision, discoveryRevision: revision, customizationRevision: revision,
-  basedOnFinalQuoteRevision: revision, basedOnDeliveryRevision: revision,
+  basedOnFinalQuoteRevision: revision, basedOnLoyaltyQuoteRevision: revision.nullable(), basedOnDeliveryRevision: revision,
   methods: z.array(checkoutMethod).max(500), selection,
   issues: z.array(z.object({ code: id, message: z.string().min(1).max(1024), severity: z.enum(["WARNING", "ERROR"]), retryable: z.boolean() }).strict()).max(500),
 }).strict().superRefine((value, ctx) => {
