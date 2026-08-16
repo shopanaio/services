@@ -5,6 +5,7 @@ import { CustomerGroupRepository } from "./classification/CustomerGroupRepositor
 import { CustomerSegmentRepository } from "./classification/CustomerSegmentRepository.js";
 import { CustomerTagRepository } from "./classification/CustomerTagRepository.js";
 import { CustomerConsentRepository } from "./consent/CustomerConsentRepository.js";
+import { CustomerComparisonRepository } from "./comparison/CustomerComparisonRepository.js";
 import { CustomerCheckoutEligibilityRepository } from "./checkout/CustomerCheckoutEligibilityRepository.js";
 import { CustomerRepository } from "./customer/CustomerRepository.js";
 import { CustomerExternalReferenceRepository } from "./integration/CustomerExternalReferenceRepository.js";
@@ -36,6 +37,7 @@ export class Repository {
   public readonly storefrontAuth: StorefrontAuthConfigurationRepository;
   public readonly checkoutEligibility: CustomerCheckoutEligibilityRepository;
   public readonly wishlist: CustomerWishlistRepository;
+  public readonly comparison: CustomerComparisonRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -57,6 +59,7 @@ export class Repository {
     storefrontAuth: StorefrontAuthConfigurationRepository,
     checkoutEligibility: CustomerCheckoutEligibilityRepository,
     wishlist: CustomerWishlistRepository,
+    comparison: CustomerComparisonRepository,
     txManager: TransactionManager<Database>
   ) {
     this.customer = customer;
@@ -73,6 +76,7 @@ export class Repository {
     this.storefrontAuth = storefrontAuth;
     this.checkoutEligibility = checkoutEligibility;
     this.wishlist = wishlist;
+    this.comparison = comparison;
     this.txManager = txManager;
   }
 
@@ -93,6 +97,7 @@ export class Repository {
       new StorefrontAuthConfigurationRepository(config.db, txManager),
       new CustomerCheckoutEligibilityRepository(config.db, txManager),
       new CustomerWishlistRepository(config.db, txManager),
+      new CustomerComparisonRepository(config.db, txManager),
       txManager
     );
   }

@@ -8,6 +8,10 @@ import type { ServiceContext } from "../../../context/types.js";
 import { CustomerAddressResolver } from "../../../resolvers/admin/CustomerAddressResolver.js";
 import { CustomerConsentEventResolver } from "../../../resolvers/admin/CustomerConsentEventResolver.js";
 import { CustomerConsentResolver } from "../../../resolvers/admin/CustomerConsentResolver.js";
+import {
+  CustomerComparisonItemResolver,
+  CustomerComparisonResolver,
+} from "../../../resolvers/admin/CustomerComparisonResolver.js";
 import { CustomerDataRequestResolver } from "../../../resolvers/admin/CustomerDataRequestResolver.js";
 import { CustomerGroupMembershipResolver } from "../../../resolvers/admin/CustomerGroupMembershipResolver.js";
 import { CustomerGroupResolver } from "../../../resolvers/admin/CustomerGroupResolver.js";
@@ -34,6 +38,12 @@ export const typeResolvers: Partial<Resolvers> = {
         return "CustomerTaxExemption";
       }
       if (obj instanceof CustomerConsentResolver) return "CustomerConsent";
+      if (obj instanceof CustomerComparisonResolver) {
+        return "CustomerComparison";
+      }
+      if (obj instanceof CustomerComparisonItemResolver) {
+        return "CustomerComparisonItem";
+      }
       if (obj instanceof CustomerConsentEventResolver) {
         return "CustomerConsentEvent";
       }
@@ -75,6 +85,36 @@ export const typeResolvers: Partial<Resolvers> = {
         GlobalIdEntity.Customer
       );
       return CustomerResolver.load(customerId, parseGraphqlInfo(info), ctx);
+    },
+  },
+  CustomerComparison: {
+    __resolveReference: (
+      reference: { __typename: "CustomerComparison"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.CustomerComparison,
+      );
+      return CustomerComparisonResolver.load(id, parseGraphqlInfo(info), ctx);
+    },
+  },
+  CustomerComparisonItem: {
+    __resolveReference: (
+      reference: { __typename: "CustomerComparisonItem"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.CustomerComparisonItem,
+      );
+      return CustomerComparisonItemResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx,
+      );
     },
   },
 };

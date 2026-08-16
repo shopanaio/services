@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import {
+  CustomersComparisonActionNames,
   CustomersCheckoutActionNames,
   type Customers,
 } from "@shopana/broker-types";
@@ -85,13 +86,78 @@ export class CustomersBrokerActions extends BrokerActions {
     return parsed;
   }
 
+  @Action(CustomersComparisonActionNames.getSelection, { readOnly: true })
+  async getCustomerComparisonSelection(
+    params: Customers.GetCustomerComparisonSelectionParams,
+    callContext: BrokerCallContext,
+  ): Promise<Customers.GetCustomerComparisonSelectionResult> {
+    if (
+      callContext.caller.kind !== "action" ||
+      callContext.caller.service !== "catalog"
+    ) {
+      return {
+        ok: false,
+        code: "CUSTOMER_COMPARISON_CALLER_FORBIDDEN",
+        message: "Only Catalog may read persisted comparison selections",
+        retryable: false,
+      };
+    }
+
+    try {
+      const store = await this.getStore(params.storeId);
+      const kernel = Kernel.getInstance();
+      const context = new ServiceContext({
+        requestId:
+          callContext.app?.correlationId ??
+          `customers-comparison-selection-${Date.now()}`,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+        store,
+      });
+      return await runWithContext(context, async () => {
+        const customer = await kernel.repository.customer.findById(
+          params.customerId,
+        );
+        if (!customer || customer.lifecycleStatus !== "ACTIVE") {
+          return {
+            ok: false as const,
+            code: "CUSTOMER_NOT_FOUND" as const,
+            message: "Customer was not found",
+            retryable: false,
+          };
+        }
+        const selection = await kernel.repository.comparison.getSelection(
+          params.customerId,
+        );
+        return {
+          ok: true as const,
+          revision: selection.revision,
+          items: selection.items.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            position: item.position,
+          })),
+        };
+      });
+    } catch {
+      return {
+        ok: false,
+        code: "CUSTOMER_COMPARISON_READ_FAILED",
+        message: "Customer comparison selection could not be read",
+        retryable: true,
+      };
+    }
+  }
+
   private async getStore(storeId: string): Promise<ContextStore> {
     const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
       "project.getStoreById",
       { id: storeId }
     );
     if (!result.store) {
-      throw new Error("Customers checkout store was not found");
+      throw new Error("Customers store was not found");
     }
     return result.store;
   }

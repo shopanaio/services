@@ -64,6 +64,8 @@ export {
 // Customers service checkout actions
 export * as Customers from "./customers.js";
 export {
+  CustomersComparisonActionNames,
+  CustomersComparisonActions,
   CustomersCheckoutActionNames,
   CustomersCheckoutActions,
 } from "./customers.js";
@@ -101,6 +103,8 @@ export type {
   ReverseCheckoutLoyaltyRedemptionResult,
 } from "./loyalty.js";
 export type {
+  GetCustomerComparisonSelectionParams,
+  GetCustomerComparisonSelectionResult,
   CustomerCheckoutIneligibilityReason,
   ResolveCheckoutBuyerEligibilityParams,
   ResolveCheckoutBuyerEligibilityResult,
@@ -140,6 +144,8 @@ export {
   CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH,
   CatalogCheckoutActionNames,
   CatalogCheckoutActions,
+  CatalogComparisonActionNames,
+  CatalogComparisonActions,
   CatalogFacetCandidateActionNames,
   CatalogFacetCandidateActions,
 } from "./catalog.js";
@@ -447,6 +453,9 @@ export type {
   ResolveCheckoutMerchandiseLineResolution,
   ResolveCheckoutMerchandiseParams,
   ResolveCheckoutMerchandiseResult,
+  ResolveCustomerComparisonVariantsParams,
+  ResolveCustomerComparisonVariantsResult,
+  ResolvedCustomerComparisonVariant,
 } from "./catalog.js";
 
 // Listing service actions

@@ -24,6 +24,43 @@ export type CatalogQueryErrorCode =
   | "CATALOG_STORE_NOT_FOUND"
   | "CATALOG_PRODUCT_READ_QUERY_FAILED";
 
+export const CatalogComparisonActionNames = {
+  resolveVariants: "resolveCustomerComparisonVariants",
+} as const;
+
+export const CatalogComparisonActions = {
+  resolveVariants:
+    `catalog.${CatalogComparisonActionNames.resolveVariants}`,
+} as const;
+
+export interface ResolveCustomerComparisonVariantsParams {
+  storeId: string;
+  variantIds: readonly string[];
+  /** When present, return only variants whose current primary category matches. */
+  categoryId?: string;
+}
+
+export interface ResolvedCustomerComparisonVariant {
+  variantId: string;
+  productId: string;
+  primaryCategoryId: string | null;
+}
+
+export type ResolveCustomerComparisonVariantsResult =
+  | Readonly<{
+      ok: true;
+      variants: readonly Readonly<ResolvedCustomerComparisonVariant>[];
+    }>
+  | Readonly<{
+      ok: false;
+      code:
+        | "CATEGORY_NOT_FOUND"
+        | "CATALOG_COMPARISON_CALLER_FORBIDDEN"
+        | "CATALOG_COMPARISON_READ_FAILED";
+      message: string;
+      retryable: boolean;
+    }>;
+
 /** Checkout-oriented Catalog reads. These actions never calculate discounts. */
 export const CATALOG_CHECKOUT_MERCHANDISE_MAX_LINES = 250;
 export const CATALOG_CHECKOUT_MERCHANDISE_MAX_NESTING_DEPTH = 8;

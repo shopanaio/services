@@ -4,6 +4,12 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
+  CustomerComparisonCategoryClearWorkflowInput,
+  CustomerComparisonCategoryClearWorkflowResult,
+  CustomerComparisonVariantAddWorkflowInput,
+  CustomerComparisonVariantAddWorkflowResult,
+  CustomerComparisonVariantRemoveWorkflowInput,
+  CustomerComparisonVariantRemoveWorkflowResult,
   WishlistCreateWorkflowInput,
   WishlistCreateWorkflowResult,
   WishlistDeleteWorkflowInput,
@@ -17,6 +23,9 @@ import type {
   WishlistWorkflowContext,
 } from "../../workflows/dto/index.js";
 import {
+  CustomerComparisonCategoryClearInputSchema,
+  CustomerComparisonVariantAddInputSchema,
+  CustomerComparisonVariantRemoveInputSchema,
   WishlistCreateInputSchema,
   WishlistDeleteInputSchema,
   WishlistProductAddInputSchema,
@@ -24,6 +33,9 @@ import {
   WishlistUpdateInputSchema,
 } from "./generated/schemas.js";
 import type {
+  MutationCustomerComparisonCategoryClearArgs,
+  MutationCustomerComparisonVariantAddArgs,
+  MutationCustomerComparisonVariantRemoveArgs,
   MutationWishlistCreateArgs,
   MutationWishlistDeleteArgs,
   MutationWishlistProductAddArgs,
@@ -243,6 +255,143 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     };
   }
 
+  @ZodResolver(CustomerComparisonVariantAddInputSchema())
+  async customerComparisonVariantAdd(
+    args: MutationCustomerComparisonVariantAddArgs,
+  ) {
+    const preflight = this.mutationPreflight(args.input.idempotencyKey);
+    if ("userErrors" in preflight) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: preflight.userErrors,
+      };
+    }
+    const variantId = safeDecode(
+      args.input.variantId,
+      GlobalIdEntity.ProductVariant,
+    );
+    if (!variantId) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: [invalidId(["variantId"])],
+      };
+    }
+    const input: CustomerComparisonVariantAddWorkflowInput = {
+      params: {
+        variantId,
+        expectedRevision: args.input.expectedRevision,
+      },
+      context: preflight.context,
+    };
+    return this.runComparisonMutation<
+      CustomerComparisonVariantAddWorkflowResult,
+      CustomerComparisonVariantAddWorkflowInput
+    >("customerComparisonVariantAdd", preflight.idempotencyKey, input);
+  }
+
+  @ZodResolver(CustomerComparisonVariantRemoveInputSchema())
+  async customerComparisonVariantRemove(
+    args: MutationCustomerComparisonVariantRemoveArgs,
+  ) {
+    const preflight = this.mutationPreflight(args.input.idempotencyKey);
+    if ("userErrors" in preflight) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: preflight.userErrors,
+      };
+    }
+    const variantId = safeDecode(
+      args.input.variantId,
+      GlobalIdEntity.ProductVariant,
+    );
+    if (!variantId) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: [invalidId(["variantId"])],
+      };
+    }
+    const input: CustomerComparisonVariantRemoveWorkflowInput = {
+      params: {
+        variantId,
+        expectedRevision: args.input.expectedRevision,
+      },
+      context: preflight.context,
+    };
+    return this.runComparisonMutation<
+      CustomerComparisonVariantRemoveWorkflowResult,
+      CustomerComparisonVariantRemoveWorkflowInput
+    >("customerComparisonVariantRemove", preflight.idempotencyKey, input);
+  }
+
+  @ZodResolver(CustomerComparisonCategoryClearInputSchema())
+  async customerComparisonCategoryClear(
+    args: MutationCustomerComparisonCategoryClearArgs,
+  ) {
+    const preflight = this.mutationPreflight(args.input.idempotencyKey);
+    if ("userErrors" in preflight) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: preflight.userErrors,
+      };
+    }
+    const categoryId = safeDecode(
+      args.input.categoryId,
+      GlobalIdEntity.Category,
+    );
+    if (!categoryId) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: [invalidId(["categoryId"])],
+      };
+    }
+    const input: CustomerComparisonCategoryClearWorkflowInput = {
+      params: {
+        categoryId,
+        expectedRevision: args.input.expectedRevision,
+      },
+      context: preflight.context,
+    };
+    return this.runComparisonMutation<
+      CustomerComparisonCategoryClearWorkflowResult,
+      CustomerComparisonCategoryClearWorkflowInput
+    >("customerComparisonCategoryClear", preflight.idempotencyKey, input);
+  }
+
+  private async runComparisonMutation<
+    TResult extends {
+      customerId: string | null;
+      revision: number | null;
+      userErrors: StorefrontUserError[];
+    },
+    TInput,
+  >(operation: string, idempotencyKey: string, input: TInput) {
+    const result = await this.runCustomerWorkflow<TResult, TInput>(
+      operation,
+      idempotencyKey,
+      input,
+    );
+    if (!result.ok) {
+      return {
+        customer: null,
+        revision: null,
+        userErrors: result.userErrors,
+      };
+    }
+    return {
+      customer: result.value.customerId
+        ? await this.resolvers.customer(result.value.customerId)
+        : null,
+      revision: result.value.revision,
+      userErrors: result.value.userErrors,
+    };
+  }
+
   private mutationPreflight(idempotencyKey: string):
     | {
         context: WishlistWorkflowContext;
@@ -282,10 +431,37 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     };
   }
 
+  private async runCustomerWorkflow<TResult, TInput>(
+    operation: string,
+    idempotencyKey: string,
+    input: TInput,
+  ) {
+    return this.runWorkflow<TResult, TInput>(
+      operation,
+      idempotencyKey,
+      input,
+      "Customer comparison operation is temporarily unavailable",
+    );
+  }
+
   private async runWishlistWorkflow<TResult, TInput>(
     operation: string,
     idempotencyKey: string,
     input: TInput,
+  ) {
+    return this.runWorkflow<TResult, TInput>(
+      operation,
+      idempotencyKey,
+      input,
+      "Wishlist operation is temporarily unavailable",
+    );
+  }
+
+  private async runWorkflow<TResult, TInput>(
+    operation: string,
+    idempotencyKey: string,
+    input: TInput,
+    unavailableMessage: string,
   ): Promise<
     | { ok: true; value: TResult }
     | { ok: false; userErrors: StorefrontUserError[] }
@@ -308,7 +484,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         userErrors: [
           userError(
             "WORKFLOW_UNAVAILABLE",
-            "Wishlist operation is temporarily unavailable",
+            unavailableMessage,
             undefined,
             true,
           ),

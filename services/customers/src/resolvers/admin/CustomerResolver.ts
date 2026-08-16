@@ -248,4 +248,11 @@ export class CustomerResolver extends CustomersType<string, Customer> {
       customerId: this.$props,
     });
   }
+
+  async comparison() {
+    const comparison = await this.$ctx.loaders.comparisonByCustomer.load(
+      this.$props,
+    );
+    return comparison ? this.resolvers.comparison(comparison.id) : null;
+  }
 }

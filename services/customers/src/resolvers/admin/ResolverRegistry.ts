@@ -50,6 +50,20 @@ export class ResolverRegistry {
     return new CustomerConnectionResolver(input, this.ctx);
   }
 
+  async comparison(id: string) {
+    const { CustomerComparisonResolver } = await import(
+      "./CustomerComparisonResolver.js"
+    );
+    return new CustomerComparisonResolver(id, this.ctx);
+  }
+
+  async comparisonItem(id: string) {
+    const { CustomerComparisonItemResolver } = await import(
+      "./CustomerComparisonResolver.js"
+    );
+    return new CustomerComparisonItemResolver(id, this.ctx);
+  }
+
   async address(id: string) {
     const { CustomerAddressResolver } = await import(
       "./CustomerAddressResolver.js"

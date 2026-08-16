@@ -7,10 +7,20 @@ import {
   type InferRelayInput,
   type PageInfo,
 } from "@shopana/drizzle-query";
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+} from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
+  product,
+  productCategory,
   productOption,
   productOptionVariantLink,
   variant,
@@ -71,6 +81,12 @@ export interface VariantConnectionResult {
   edges: Array<{ cursor: string; nodeId: string }>;
   pageInfo: PageInfo;
   totalCount: number;
+}
+
+export interface PublishedComparisonVariant {
+  variantId: string;
+  productId: string;
+  primaryCategoryId: string | null;
 }
 
 export class VariantRepository extends BaseRepository {
@@ -429,6 +445,45 @@ export class VariantRepository extends BaseRepository {
           inArray(variant.id, [...variantIds]),
           isNull(variant.deletedAt)
         )
+      );
+  }
+
+  async getPublishedComparisonVariants(
+    variantIds: readonly string[],
+  ): Promise<PublishedComparisonVariant[]> {
+    if (variantIds.length === 0) return [];
+    const now = new Date().toISOString();
+    return this.connection
+      .select({
+        variantId: variant.id,
+        productId: variant.productId,
+        primaryCategoryId: productCategory.categoryId,
+      })
+      .from(variant)
+      .innerJoin(
+        product,
+        and(
+          eq(product.storeId, variant.storeId),
+          eq(product.id, variant.productId),
+        ),
+      )
+      .leftJoin(
+        productCategory,
+        and(
+          eq(productCategory.storeId, variant.storeId),
+          eq(productCategory.productId, variant.productId),
+          eq(productCategory.isPrimary, true),
+        ),
+      )
+      .where(
+        and(
+          eq(variant.storeId, this.storeId),
+          inArray(variant.id, [...new Set(variantIds)]),
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt),
+          isNotNull(product.publishedAt),
+          lte(product.publishedAt, now),
+        ),
       );
   }
 

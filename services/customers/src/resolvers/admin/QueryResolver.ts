@@ -17,6 +17,10 @@ import { CustomerAddressResolver } from "./CustomerAddressResolver.js";
 import { CustomerConnectionResolver } from "./CustomerConnectionResolver.js";
 import { CustomerConsentEventResolver } from "./CustomerConsentEventResolver.js";
 import { CustomerConsentResolver } from "./CustomerConsentResolver.js";
+import {
+  CustomerComparisonItemResolver,
+  CustomerComparisonResolver,
+} from "./CustomerComparisonResolver.js";
 import { CustomerDataRequestConnectionResolver } from "./CustomerDataRequestConnectionResolver.js";
 import { CustomerDataRequestResolver } from "./CustomerDataRequestResolver.js";
 import { CustomerGroupConnectionResolver } from "./CustomerGroupConnectionResolver.js";
@@ -142,6 +146,24 @@ export class CustomersQueryResolver extends CustomersType<
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerConsent);
         if (!id || !(await this.$ctx.loaders.consent.load(id))) return null;
         return new CustomerConsentResolver(id, this.$ctx);
+      }
+      case GlobalIdEntity.CustomerComparison: {
+        const id = this.safeDecodeId(
+          args.id,
+          GlobalIdEntity.CustomerComparison,
+        );
+        if (!id || !(await this.$ctx.loaders.comparison.load(id))) return null;
+        return new CustomerComparisonResolver(id, this.$ctx);
+      }
+      case GlobalIdEntity.CustomerComparisonItem: {
+        const id = this.safeDecodeId(
+          args.id,
+          GlobalIdEntity.CustomerComparisonItem,
+        );
+        if (!id || !(await this.$ctx.loaders.comparisonItem.load(id))) {
+          return null;
+        }
+        return new CustomerComparisonItemResolver(id, this.$ctx);
       }
       case GlobalIdEntity.CustomerConsentEvent: {
         const id = this.safeDecodeId(

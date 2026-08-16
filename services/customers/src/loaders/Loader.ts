@@ -4,6 +4,8 @@ import type {
   CustomerAddress,
   CustomerConsent,
   CustomerConsentEvent,
+  CustomerComparison,
+  CustomerComparisonItem,
   CustomerDataRequest,
   CustomerGroup,
   CustomerGroupMembership,
@@ -23,6 +25,7 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { Repository } from "../repositories/Repository.js";
 import { CustomerAddressLoader } from "./CustomerAddressLoader.js";
 import { CustomerConsentLoader } from "./CustomerConsentLoader.js";
+import { CustomerComparisonLoader } from "./CustomerComparisonLoader.js";
 import { CustomerGroupLoader } from "./CustomerGroupLoader.js";
 import { CustomerLifecycleLoader } from "./CustomerLifecycleLoader.js";
 import { CustomerLoader } from "./CustomerLoader.js";
@@ -77,6 +80,13 @@ export class Loader {
   readonly wishlistItem: DataLoader<string, CustomerWishlistItem | null>;
   readonly defaultWishlist: DataLoader<string, CustomerWishlist | null>;
   readonly publishedWishlistProduct: DataLoader<string, boolean>;
+  readonly comparison: DataLoader<string, CustomerComparison | null>;
+  readonly comparisonByCustomer: DataLoader<
+    string,
+    CustomerComparison | null
+  >;
+  readonly comparisonItem: DataLoader<string, CustomerComparisonItem | null>;
+  readonly comparisonItems: DataLoader<string, CustomerComparisonItem[]>;
 
   constructor(
     public readonly repository: Repository,
@@ -86,6 +96,7 @@ export class Loader {
     const addressLoader = new CustomerAddressLoader(repository);
     const taxLoader = new CustomerTaxLoader(repository);
     const consentLoader = new CustomerConsentLoader(repository);
+    const comparisonLoader = new CustomerComparisonLoader(repository);
     const groupLoader = new CustomerGroupLoader(repository);
     const tagLoader = new CustomerTagLoader(repository);
     const segmentLoader = new CustomerSegmentLoader(repository);
@@ -118,5 +129,9 @@ export class Loader {
     this.wishlistItem = wishlistLoader.wishlistItem;
     this.defaultWishlist = wishlistLoader.defaultWishlist;
     this.publishedWishlistProduct = wishlistLoader.publishedWishlistProduct;
+    this.comparison = comparisonLoader.comparison;
+    this.comparisonByCustomer = comparisonLoader.comparisonByCustomer;
+    this.comparisonItem = comparisonLoader.comparisonItem;
+    this.comparisonItems = comparisonLoader.comparisonItems;
   }
 }

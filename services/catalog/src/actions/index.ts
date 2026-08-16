@@ -5,8 +5,12 @@ import {
   ServiceBroker,
   Action,
   ZodSchema,
+  type BrokerCallContext,
 } from "@shopana/shared-kernel";
-import { CatalogCheckoutActionNames } from "@shopana/broker-types";
+import {
+  CatalogCheckoutActionNames,
+  CatalogComparisonActionNames,
+} from "@shopana/broker-types";
 import type { Catalog } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import type { QueryArgs } from "@shopana/type-resolver";
@@ -154,6 +158,68 @@ export class CatalogBrokerActions extends BrokerActions {
           error instanceof Error
             ? error.message
             : "Failed to resolve product snapshots",
+        retryable: true,
+      };
+    }
+  }
+
+  @Action(CatalogComparisonActionNames.resolveVariants, { readOnly: true })
+  async resolveCustomerComparisonVariants(
+    params: Catalog.ResolveCustomerComparisonVariantsParams,
+    callContext: BrokerCallContext,
+  ): Promise<Catalog.ResolveCustomerComparisonVariantsResult> {
+    if (
+      callContext.caller.kind !== "action" ||
+      callContext.caller.service !== "customers"
+    ) {
+      return {
+        ok: false,
+        code: "CATALOG_COMPARISON_CALLER_FORBIDDEN",
+        message: "Only Customers may validate comparison selections",
+        retryable: false,
+      };
+    }
+
+    try {
+      const store = await this.getStoreContext(params.storeId);
+      if (!store) {
+        return {
+          ok: false,
+          code: "CATALOG_COMPARISON_READ_FAILED",
+          message: "Catalog store was not found",
+          retryable: false,
+        };
+      }
+      const ctx = this.createServiceContext(store);
+      return await runWithContext(ctx, async () => {
+        if (
+          params.categoryId &&
+          !(await this.kernel.repository.category.exists(params.categoryId))
+        ) {
+          return {
+            ok: false as const,
+            code: "CATEGORY_NOT_FOUND" as const,
+            message: "Category was not found",
+            retryable: false,
+          };
+        }
+        const candidates =
+          await this.kernel.repository.variant.getPublishedComparisonVariants(
+            params.variantIds,
+          );
+        const variants = params.categoryId
+          ? candidates.filter(
+              (candidate) =>
+                candidate.primaryCategoryId === params.categoryId,
+            )
+          : candidates;
+        return { ok: true as const, variants };
+      });
+    } catch {
+      return {
+        ok: false,
+        code: "CATALOG_COMPARISON_READ_FAILED",
+        message: "Catalog comparison variants could not be resolved",
         retryable: true,
       };
     }

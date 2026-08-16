@@ -123,6 +123,8 @@ export enum GlobalIdEntity {
   CustomerDataRequest = "CustomerDataRequest",
   CustomerWishlist = "CustomerWishlist",
   CustomerWishlistItem = "CustomerWishlistItem",
+  CustomerComparison = "CustomerComparison",
+  CustomerComparisonItem = "CustomerComparisonItem",
   // Catalog
   Product = "Product",
   ProductVariant = "ProductVariant",

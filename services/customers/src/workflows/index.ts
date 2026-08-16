@@ -1,6 +1,11 @@
 import { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
 import { CustomerDeleteWorkflow } from "./CustomerDeleteWorkflow.js";
 import {
+  CustomerComparisonCategoryClearWorkflow,
+  CustomerComparisonVariantAddWorkflow,
+  CustomerComparisonVariantRemoveWorkflow,
+} from "./CustomerComparisonWorkflows.js";
+import {
   CustomerDataRequestCreateWorkflow,
   CustomerGroupCreateWorkflow,
   CustomerMergeCreateWorkflow,
@@ -60,6 +65,9 @@ export const workflows = [
   WishlistDeleteWorkflow,
   WishlistProductAddWorkflow,
   WishlistProductRemoveWorkflow,
+  CustomerComparisonVariantAddWorkflow,
+  CustomerComparisonVariantRemoveWorkflow,
+  CustomerComparisonCategoryClearWorkflow,
 ];
 
 export { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
@@ -72,4 +80,5 @@ export * from "./CustomerProvisionFromIamWorkflow.js";
 export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
 export * from "./WishlistWorkflows.js";
+export * from "./CustomerComparisonWorkflows.js";
 export * from "./dto/index.js";
