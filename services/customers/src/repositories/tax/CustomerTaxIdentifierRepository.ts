@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   normalizeRelayPagination,
@@ -61,6 +61,7 @@ export type CustomerTaxIdentifierPatch = Partial<
     | "isPrimary"
     | "validFrom"
     | "validTo"
+    | "verifiedAt"
   >
 >;
 
@@ -74,6 +75,62 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
           eq(customerTaxIdentifier.id, id),
+          isNull(customerTaxIdentifier.deletedAt)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async findOwnedById(
+    customerId: string,
+    id: string
+  ): Promise<CustomerTaxIdentifier | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerTaxIdentifier)
+      .where(
+        and(
+          eq(customerTaxIdentifier.storeId, this.storeId),
+          eq(customerTaxIdentifier.customerId, customerId),
+          eq(customerTaxIdentifier.id, id),
+          isNull(customerTaxIdentifier.deletedAt)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async findDuplicate(input: {
+    customerId: string;
+    identifierType: string;
+    countryCode?: string | null;
+    value: string;
+    exceptId?: string;
+  }): Promise<CustomerTaxIdentifier | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerTaxIdentifier)
+      .where(
+        and(
+          eq(customerTaxIdentifier.storeId, this.storeId),
+          eq(customerTaxIdentifier.customerId, input.customerId),
+          eq(customerTaxIdentifier.identifierType, input.identifierType.trim()),
+          input.countryCode == null
+            ? isNull(customerTaxIdentifier.countryCode)
+            : eq(
+                customerTaxIdentifier.countryCode,
+                input.countryCode.trim().toUpperCase()
+              ),
+          eq(
+            customerTaxIdentifier.normalizedValue,
+            normalizeTaxIdentifier(input.value)
+          ),
+          input.exceptId
+            ? ne(customerTaxIdentifier.id, input.exceptId)
+            : undefined,
           isNull(customerTaxIdentifier.deletedAt)
         )
       )
@@ -120,7 +177,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       id: await this.generateUuidV7(),
       storeId: this.storeId,
       identifierType: data.identifierType.trim(),
-      countryCode: data.countryCode?.toUpperCase() ?? null,
+      countryCode: data.countryCode?.trim().toUpperCase() ?? null,
       value: data.value.trim(),
       normalizedValue:
         data.normalizedValue ?? normalizeTaxIdentifier(data.value),
@@ -145,6 +202,17 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
   ): Promise<CustomerTaxIdentifier | null> {
     const current = await this.findById(id);
     if (!current) return null;
+    return this.updateOwned(current.customerId, id, patch);
+  }
+
+  @Transactional()
+  async updateOwned(
+    customerId: string,
+    id: string,
+    patch: CustomerTaxIdentifierPatch
+  ): Promise<CustomerTaxIdentifier | null> {
+    const current = await this.findOwnedById(customerId, id);
+    if (!current) return null;
     if (patch.isPrimary === true) await this.clearPrimary(current.customerId, id);
     const value = patch.value?.trim();
     const rows = await this.connection
@@ -155,7 +223,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           ? { identifierType: patch.identifierType.trim() }
           : {}),
         ...(patch.countryCode !== undefined
-          ? { countryCode: patch.countryCode?.toUpperCase() ?? null }
+          ? { countryCode: patch.countryCode?.trim().toUpperCase() ?? null }
           : {}),
         ...(value !== undefined
           ? {
@@ -166,12 +234,15 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
           : {}),
         ...(patch.status === "VERIFIED" && current.status !== "VERIFIED"
           ? { verifiedAt: new Date().toISOString() }
+          : patch.status !== undefined && patch.status !== "VERIFIED"
+            ? { verifiedAt: null }
           : {}),
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
+          eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.id, id),
           isNull(customerTaxIdentifier.deletedAt)
         )
@@ -181,6 +252,13 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
   }
 
   async softDelete(id: string): Promise<boolean> {
+    const current = await this.findById(id);
+    return current
+      ? this.softDeleteOwned(current.customerId, id)
+      : false;
+  }
+
+  async softDeleteOwned(customerId: string, id: string): Promise<boolean> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(customerTaxIdentifier)
@@ -188,6 +266,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       .where(
         and(
           eq(customerTaxIdentifier.storeId, this.storeId),
+          eq(customerTaxIdentifier.customerId, customerId),
           eq(customerTaxIdentifier.id, id),
           isNull(customerTaxIdentifier.deletedAt)
         )
@@ -253,6 +332,6 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
   }
 }
 
-function normalizeTaxIdentifier(value: string): string {
+export function normalizeTaxIdentifier(value: string): string {
   return value.trim().replace(/\s+/g, "").toUpperCase();
 }

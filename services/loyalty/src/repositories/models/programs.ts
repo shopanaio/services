@@ -199,6 +199,18 @@ export const programVersions = loyaltySchema.table(
       sql`${table.activationDelaySeconds} >= 0`,
     ),
     check(
+      "loyalty_program_version_schedule_check",
+      sql`(${table.status} = 'DRAFT' OR ${table.effectiveFrom} IS NOT NULL)
+        AND (${table.effectiveTo} IS NULL
+          OR (${table.effectiveFrom} IS NOT NULL AND ${table.effectiveTo} > ${table.effectiveFrom}))`,
+    ),
+    check(
+      "loyalty_program_version_published_check",
+      sql`(${table.status} = 'DRAFT' AND ${table.publishedAt} IS NULL
+          AND ${table.publishedById} IS NULL)
+        OR (${table.status} <> 'DRAFT' AND ${table.publishedAt} IS NOT NULL)`,
+    ),
+    check(
       "loyalty_program_version_expiry_check",
       sql`${table.pointsExpiryDays} IS NULL OR ${table.pointsExpiryDays} > 0`,
     ),
@@ -213,6 +225,13 @@ export const programVersions = loyaltySchema.table(
     check(
       "loyalty_program_version_redemption_ratio_check",
       sql`${table.redeemPoints} > 0 AND ${table.redeemAmountMinor} > 0`,
+    ),
+    check(
+      "loyalty_program_version_redemption_limits_check",
+      sql`${table.minimumRedeemPoints} > 0
+        AND (${table.maximumRedeemPointsPerOrder} IS NULL
+          OR ${table.maximumRedeemPointsPerOrder} >= ${table.minimumRedeemPoints})
+        AND ${table.maximumOrderPercentageBps} BETWEEN 0 AND 10000`,
     ),
     check(
       "loyalty_program_version_rules_schema_check",
@@ -297,6 +316,21 @@ export const earningRules = loyaltySchema.table(
         AND jsonb_typeof(${table.conditions}) = 'object'
         AND jsonb_typeof(${table.action}) = 'object'
         AND jsonb_typeof(${table.limits}) = 'object'`,
+    ),
+    check(
+      "loyalty_earning_rule_action_check",
+      sql`(${table.actionType} = 'AWARD_FIXED_POINTS'
+          AND ${table.action}->>'points' ~ '^[1-9][0-9]*$')
+        OR (${table.actionType} = 'AWARD_SPEND_RATIO'
+          AND ${table.action}->>'points' ~ '^[1-9][0-9]*$'
+          AND ${table.action}->>'amountMinor' ~ '^[1-9][0-9]*$')
+        OR (${table.actionType} = 'AWARD_CASHBACK'
+          AND (${table.action}->>'basisPoints')::integer BETWEEN 1 AND 10000
+          AND COALESCE(${table.action}->>'settlement', '') IN ('POINTS', 'MONETARY'))
+        OR (${table.actionType} = 'APPLY_MULTIPLIER'
+          AND (${table.action}->>'multiplierBps')::integer > 0)
+        OR (${table.actionType} = 'ISSUE_REWARD'
+          AND btrim(COALESCE(${table.action}->>'rewardDefinitionCode', '')) <> '')`,
     ),
   ],
 );

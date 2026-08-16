@@ -2,6 +2,12 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { Customer } from "../../repositories/models/index.js";
 import type {
+  CustomerAddressArgs,
+  CustomerAddressesArgs,
+  CustomerDataRequestArgs,
+  CustomerDataRequestsArgs,
+  CustomerTaxExemptionsArgs,
+  CustomerTaxIdentifiersArgs,
   CustomerWishlistArgs,
   CustomerWishlistsArgs,
 } from "./generated/types.js";
@@ -93,24 +99,108 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
 
   async emailAddress() {
     const customer = await this.$preload();
+    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props))
+      .find((item) => item.channel === "EMAIL");
     return customer.email
       ? {
           emailAddress: customer.email,
           verified: customer.emailVerified,
-          marketingConsent: null,
+          marketingConsent: consent
+            ? await this.resolvers.consent(consent.id)
+            : null,
         }
       : null;
   }
 
   async phoneNumber() {
     const customer = await this.$preload();
+    const consent = (await this.$ctx.loaders.consentsByCustomer.load(this.$props))
+      .find((item) => item.channel === "SMS");
     return customer.phoneE164
       ? {
           phoneNumber: customer.phoneE164,
           verified: customer.phoneVerified,
-          marketingConsent: null,
+          marketingConsent: consent
+            ? await this.resolvers.consent(consent.id)
+            : null,
         }
       : null;
+  }
+
+  async defaultShippingAddress() {
+    const address = await this.$ctx.kernel.repository.address.findDefaultShipping(
+      this.$props
+    );
+    return address ? this.resolvers.address(address.id) : null;
+  }
+
+  async defaultBillingAddress() {
+    const address = await this.$ctx.kernel.repository.address.findDefaultBilling(
+      this.$props
+    );
+    return address ? this.resolvers.address(address.id) : null;
+  }
+
+  async address(args: CustomerAddressArgs) {
+    let addressId: string;
+    try {
+      addressId = this.decodeId(args.id, GlobalIdEntity.CustomerAddress);
+    } catch {
+      return null;
+    }
+    const address = await this.$ctx.kernel.repository.address.findOwnedById(
+      this.$props,
+      addressId
+    );
+    return address ? this.resolvers.address(address.id) : null;
+  }
+
+  addresses(args: CustomerAddressesArgs) {
+    return this.resolvers.addressConnection({
+      ...args,
+      customerId: this.$props,
+    });
+  }
+
+  async marketingConsents() {
+    const consents = await this.$ctx.loaders.consentsByCustomer.load(this.$props);
+    return Promise.all(consents.map((consent) => this.resolvers.consent(consent.id)));
+  }
+
+  taxIdentifiers(args: CustomerTaxIdentifiersArgs) {
+    return this.resolvers.taxIdentifierConnection({
+      ...args,
+      customerId: this.$props,
+    });
+  }
+
+  taxExemptions(args: CustomerTaxExemptionsArgs) {
+    return this.resolvers.taxExemptionConnection({
+      ...args,
+      customerId: this.$props,
+    });
+  }
+
+  async dataRequest(args: CustomerDataRequestArgs) {
+    let requestId: string;
+    try {
+      requestId = this.decodeId(args.id, GlobalIdEntity.CustomerDataRequest);
+    } catch {
+      return null;
+    }
+    const request =
+      await this.$ctx.kernel.repository.lifecycle.findOwnedDataRequestById(
+        this.$props,
+        requestId
+      );
+    return request ? this.resolvers.dataRequest(request.id) : null;
+  }
+
+  dataRequests(args: CustomerDataRequestsArgs) {
+    return this.resolvers.dataRequestConnection({
+      ...args,
+      customerId: this.$props,
+    });
   }
 
   wishlists(args: CustomerWishlistsArgs) {

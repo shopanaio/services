@@ -55,6 +55,14 @@ export type CustomerMergeRelayInput = InferRelayInput<
 export type CustomerDataRequestRelayInput = InferRelayInput<
   typeof customerDataRequestRelayQuery
 >;
+export type CustomerDataRequestConnectionInput =
+  CustomerDataRequestRelayInput & { customerId: string };
+
+export type CustomerDataRequestCancelResult =
+  | { status: "cancelled"; dataRequest: CustomerDataRequest }
+  | { status: "not_found" }
+  | { status: "invalid_state" }
+  | { status: "conflict"; actualUpdatedAt: string };
 
 export type CustomerMergeCreateData = Omit<
   NewCustomerMerge,
@@ -131,6 +139,25 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .where(
         and(
           eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.id, id)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async findOwnedDataRequestById(
+    customerId: string,
+    id: string
+  ): Promise<CustomerDataRequest | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerDataRequest)
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, customerId),
           eq(customerDataRequest.id, id)
         )
       )
@@ -334,6 +361,41 @@ export class CustomerLifecycleRepository extends BaseRepository {
     });
   }
 
+  async cancelOwnedDataRequest(input: {
+    customerId: string;
+    id: string;
+    expectedUpdatedAt: string;
+  }): Promise<CustomerDataRequestCancelResult> {
+    const now = new Date().toISOString();
+    const rows = await this.connection
+      .update(customerDataRequest)
+      .set({
+        status: "CANCELLED",
+        rejectionReason: null,
+        finishedAt: now,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, input.customerId),
+          eq(customerDataRequest.id, input.id),
+          eq(customerDataRequest.status, "PENDING"),
+          eq(customerDataRequest.updatedAt, input.expectedUpdatedAt)
+        )
+      )
+      .returning();
+    if (rows[0]) return { status: "cancelled", dataRequest: rows[0] };
+
+    const current = await this.findOwnedDataRequestById(
+      input.customerId,
+      input.id
+    );
+    if (!current) return { status: "not_found" };
+    if (current.status !== "PENDING") return { status: "invalid_state" };
+    return { status: "conflict", actualUpdatedAt: current.updatedAt };
+  }
+
   async deleteDataRequest(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(customerDataRequest)
@@ -368,6 +430,22 @@ export class CustomerLifecycleRepository extends BaseRepository {
       customerDataRequestRelayQuery,
       [{ field: "requestedAt", direction: "desc" }]
     );
+  }
+
+  @ReadOnly()
+  async getOwnedDataRequestConnection(
+    input: CustomerDataRequestConnectionInput
+  ): Promise<RepositoryConnectionResult> {
+    const { customerId, where, ...pagination } = input;
+    return this.getDataRequestConnection({
+      ...pagination,
+      where: {
+        _and: [
+          { customerId: { _eq: customerId } },
+          ...(where ? [where] : []),
+        ],
+      },
+    });
   }
 
   private async executeConnection(

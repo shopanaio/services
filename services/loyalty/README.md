@@ -10,8 +10,9 @@ The service runtime follows the shared Shopana service architecture. Its NestJS
 module initializes the broker, kernel, database and transaction infrastructure,
 request-scoped contexts and loaders, and the Admin and Storefront GraphQL
 subgraph servers. `BootstrapModule` imports `LoyaltyModule` as part of the
-modular-monolith composition root. Domain repositories, actions, event handlers,
-workflows, and resolvers remain intentionally unimplemented.
+modular-monolith composition root. Domain repositories and their Drizzle models
+mirror the SQL-first schema; actions, event handlers, workflows, and resolvers
+remain intentionally unimplemented.
 
 ## Ownership boundaries
 

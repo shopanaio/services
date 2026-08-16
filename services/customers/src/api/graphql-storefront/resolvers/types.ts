@@ -12,6 +12,18 @@ import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
 import { StorefrontCustomerResolver } from "../../../resolvers/storefront/StorefrontCustomerResolver.js";
 import {
+  StorefrontCustomerAddressResolver,
+  StorefrontCustomerDataRequestResolver,
+  StorefrontCustomerTaxExemptionResolver,
+  StorefrontCustomerTaxIdentifierResolver,
+} from "../../../resolvers/storefront/CustomerSelfServiceResolvers.js";
+import {
+  StorefrontCustomerAddressConnectionResolver,
+  StorefrontCustomerDataRequestConnectionResolver,
+  StorefrontCustomerTaxExemptionConnectionResolver,
+  StorefrontCustomerTaxIdentifierConnectionResolver,
+} from "../../../resolvers/storefront/CustomerSelfServiceConnectionResolvers.js";
+import {
   CustomerWishlistConnectionResolver,
   CustomerWishlistItemConnectionResolver,
 } from "../../../resolvers/storefront/WishlistConnectionResolvers.js";
@@ -29,6 +41,18 @@ export const typeResolvers: Partial<Resolvers> = {
       if (value instanceof CustomerWishlistItemResolver) {
         return "CustomerWishlistItem";
       }
+      if (value instanceof StorefrontCustomerAddressResolver) {
+        return "CustomerAddress";
+      }
+      if (value instanceof StorefrontCustomerDataRequestResolver) {
+        return "CustomerDataRequest";
+      }
+      if (value instanceof StorefrontCustomerTaxIdentifierResolver) {
+        return "CustomerTaxIdentifier";
+      }
+      if (value instanceof StorefrontCustomerTaxExemptionResolver) {
+        return "CustomerTaxExemption";
+      }
       return null;
     },
   },
@@ -39,6 +63,18 @@ export const typeResolvers: Partial<Resolvers> = {
       }
       if (value instanceof CustomerWishlistItemConnectionResolver) {
         return "CustomerWishlistItemConnection";
+      }
+      if (value instanceof StorefrontCustomerAddressConnectionResolver) {
+        return "CustomerAddressConnection";
+      }
+      if (value instanceof StorefrontCustomerDataRequestConnectionResolver) {
+        return "CustomerDataRequestConnection";
+      }
+      if (value instanceof StorefrontCustomerTaxIdentifierConnectionResolver) {
+        return "CustomerTaxIdentifierConnection";
+      }
+      if (value instanceof StorefrontCustomerTaxExemptionConnectionResolver) {
+        return "CustomerTaxExemptionConnection";
       }
       return null;
     },
@@ -79,6 +115,38 @@ export const typeResolvers: Partial<Resolvers> = {
       CustomerWishlistItemResolver,
     ),
   },
+  CustomerAddress: {
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.CustomerAddress,
+      (id, ctx) => ctx.loaders.address.load(id),
+      StorefrontCustomerAddressResolver,
+      true,
+    ),
+  },
+  CustomerDataRequest: {
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.CustomerDataRequest,
+      (id, ctx) => ctx.loaders.customerDataRequest.load(id),
+      StorefrontCustomerDataRequestResolver,
+      true,
+    ),
+  },
+  CustomerTaxIdentifier: {
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.CustomerTaxIdentifier,
+      (id, ctx) => ctx.loaders.taxIdentifier.load(id),
+      StorefrontCustomerTaxIdentifierResolver,
+      true,
+    ),
+  },
+  CustomerTaxExemption: {
+    __resolveReference: referenceResolver(
+      GlobalIdEntity.CustomerTaxExemption,
+      (id, ctx) => ctx.loaders.taxExemption.load(id),
+      StorefrontCustomerTaxExemptionResolver,
+      true,
+    ),
+  },
 };
 
 function referenceResolver(
@@ -91,6 +159,7 @@ function referenceResolver(
       ctx: ServiceContext,
     ): Promise<unknown>;
   },
+  requireOwner = false,
 ) {
   return async (
     reference: { id: string },
@@ -102,7 +171,18 @@ function referenceResolver(
       STOREFRONT_PERMISSIONS.CUSTOMER_READ,
     );
     const id = decodeReference(reference.id, type);
-    if (!id || !(await exists(id, ctx))) return null;
+    if (!id) return null;
+    const value = await exists(id, ctx);
+    if (!value) return null;
+    if (
+      requireOwner &&
+      (!ctx.customer?.id ||
+        typeof value !== "object" ||
+        !("customerId" in value) ||
+        value.customerId !== ctx.customer.id)
+    ) {
+      return null;
+    }
     return Resolver.load(id, parseGraphqlInfo(info), ctx);
   };
 }

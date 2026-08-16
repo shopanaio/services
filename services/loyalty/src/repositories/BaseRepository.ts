@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { getContext, type ServiceContext } from "../context/index.js";
 import type { Database } from "../infrastructure/db/database.js";
 
-/** Common tenant-aware infrastructure for future Loyalty repositories. */
+/** Common tenant-aware infrastructure for Loyalty repositories. */
 export abstract class BaseRepository {
   constructor(
     protected readonly db: Database,

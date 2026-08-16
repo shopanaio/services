@@ -117,6 +117,26 @@ export class CustomerAddressRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findOwnedById(
+    customerId: string,
+    id: string
+  ): Promise<CustomerAddress | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerAddress)
+      .where(
+        and(
+          eq(customerAddress.storeId, this.storeId),
+          eq(customerAddress.customerId, customerId),
+          eq(customerAddress.id, id),
+          isNull(customerAddress.deletedAt)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
   async getByIds(ids: readonly string[]): Promise<CustomerAddress[]> {
     if (ids.length === 0) return [];
     return this.connection
@@ -169,7 +189,7 @@ export class CustomerAddressRepository extends BaseRepository {
       ...data,
       id: await this.generateUuidV7(),
       storeId: this.storeId,
-      countryCode: data.countryCode.toUpperCase(),
+      countryCode: data.countryCode.trim().toUpperCase(),
       latitude: normalizeCoordinate(data.latitude),
       longitude: normalizeCoordinate(data.longitude),
       createdAt: now,
@@ -184,13 +204,24 @@ export class CustomerAddressRepository extends BaseRepository {
   }
 
   async update(id: string, patch: CustomerAddressPatch): Promise<CustomerAddress | null> {
+    const current = await this.findById(id);
+    return current
+      ? this.updateOwned(current.customerId, id, patch)
+      : null;
+  }
+
+  async updateOwned(
+    customerId: string,
+    id: string,
+    patch: CustomerAddressPatch
+  ): Promise<CustomerAddress | null> {
     const { latitude, longitude, countryCode, ...fields } = patch;
     const rows = await this.connection
       .update(customerAddress)
       .set({
         ...fields,
         ...(countryCode !== undefined
-          ? { countryCode: countryCode.toUpperCase() }
+          ? { countryCode: countryCode.trim().toUpperCase() }
           : {}),
         ...(latitude !== undefined
           ? { latitude: normalizeCoordinate(latitude) }
@@ -203,6 +234,7 @@ export class CustomerAddressRepository extends BaseRepository {
       .where(
         and(
           eq(customerAddress.storeId, this.storeId),
+          eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, id),
           isNull(customerAddress.deletedAt)
         )
@@ -212,6 +244,13 @@ export class CustomerAddressRepository extends BaseRepository {
   }
 
   async softDelete(id: string): Promise<boolean> {
+    const current = await this.findById(id);
+    return current
+      ? this.softDeleteOwned(current.customerId, id)
+      : false;
+  }
+
+  async softDeleteOwned(customerId: string, id: string): Promise<boolean> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(customerAddress)
@@ -224,6 +263,7 @@ export class CustomerAddressRepository extends BaseRepository {
       .where(
         and(
           eq(customerAddress.storeId, this.storeId),
+          eq(customerAddress.customerId, customerId),
           eq(customerAddress.id, id),
           isNull(customerAddress.deletedAt)
         )

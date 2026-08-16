@@ -37,6 +37,19 @@ import {
   WishlistProductRemoveWorkflow,
   WishlistUpdateWorkflow,
 } from "./WishlistWorkflows.js";
+import {
+  StorefrontCustomerAddressCreateWorkflow,
+  StorefrontCustomerAddressDefaultSetWorkflow,
+  StorefrontCustomerAddressDeleteWorkflow,
+  StorefrontCustomerAddressUpdateWorkflow,
+  StorefrontCustomerDataRequestCancelWorkflow,
+  StorefrontCustomerDataRequestCreateWorkflow,
+  StorefrontCustomerMarketingConsentUpdateWorkflow,
+  StorefrontCustomerTaxIdentifierCreateWorkflow,
+  StorefrontCustomerTaxIdentifierDeleteWorkflow,
+  StorefrontCustomerTaxIdentifierUpdateWorkflow,
+  StorefrontCustomerUpdateWorkflow,
+} from "./StorefrontCustomerWorkflows.js";
 
 export const workflows = [
   CustomerCreateWorkflow,
@@ -68,6 +81,17 @@ export const workflows = [
   CustomerComparisonVariantAddWorkflow,
   CustomerComparisonVariantRemoveWorkflow,
   CustomerComparisonCategoryClearWorkflow,
+  StorefrontCustomerUpdateWorkflow,
+  StorefrontCustomerAddressCreateWorkflow,
+  StorefrontCustomerAddressUpdateWorkflow,
+  StorefrontCustomerAddressDeleteWorkflow,
+  StorefrontCustomerAddressDefaultSetWorkflow,
+  StorefrontCustomerMarketingConsentUpdateWorkflow,
+  StorefrontCustomerDataRequestCreateWorkflow,
+  StorefrontCustomerDataRequestCancelWorkflow,
+  StorefrontCustomerTaxIdentifierCreateWorkflow,
+  StorefrontCustomerTaxIdentifierUpdateWorkflow,
+  StorefrontCustomerTaxIdentifierDeleteWorkflow,
 ];
 
 export { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
@@ -81,4 +105,5 @@ export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
 export * from "./WishlistWorkflows.js";
 export * from "./CustomerComparisonWorkflows.js";
+export * from "./StorefrontCustomerWorkflows.js";
 export * from "./dto/index.js";

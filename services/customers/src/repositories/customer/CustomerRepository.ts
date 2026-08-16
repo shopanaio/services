@@ -133,6 +133,12 @@ export type CustomerPatch = Partial<
   >
 >;
 
+export type CustomerRevisionAcquireResult =
+  | { status: "acquired"; customer: Customer }
+  | { status: "not_found" }
+  | { status: "inactive" }
+  | { status: "conflict"; actualRevision: number };
+
 export class CustomerRepository extends BaseRepository {
   private get currency(): string {
     return this.ctx.currency ?? this.ctx.store.currencyCode;
@@ -376,6 +382,38 @@ export class CustomerRepository extends BaseRepository {
       .where(and(...conditions))
       .returning();
     return rows[0] ?? null;
+  }
+
+  /**
+   * Atomically acquires the aggregate revision for an authenticated customer
+   * command. Storefront writes are deliberately restricted to ACTIVE rows.
+   */
+  async acquireActiveRevision(
+    id: string,
+    expectedRevision: number
+  ): Promise<CustomerRevisionAcquireResult> {
+    const rows = await this.connection
+      .update(customer)
+      .set({
+        updatedAt: new Date().toISOString(),
+        revision: sql`${customer.revision} + 1`,
+      })
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          eq(customer.lifecycleStatus, "ACTIVE"),
+          eq(customer.revision, expectedRevision),
+          isNull(customer.deletedAt)
+        )
+      )
+      .returning();
+    if (rows[0]) return { status: "acquired", customer: rows[0] };
+
+    const current = await this.findById(id);
+    if (!current) return { status: "not_found" };
+    if (current.lifecycleStatus !== "ACTIVE") return { status: "inactive" };
+    return { status: "conflict", actualRevision: current.revision };
   }
 
   /**
