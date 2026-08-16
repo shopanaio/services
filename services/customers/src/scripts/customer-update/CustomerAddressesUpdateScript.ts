@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CustomerAddressPatch } from "../../repositories/address/CustomerAddressRepository.js";
 import type { CustomerAddressesUpdateOperation } from "../../workflows/dto/index.js";
 import {
@@ -17,6 +17,7 @@ export class CustomerAddressesUpdateScript extends BaseScript<
   CustomerAddressesUpdateParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerAddressesUpdateParams
   ): Promise<CustomerSectionResult> {
@@ -64,16 +65,15 @@ export class CustomerAddressesUpdateScript extends BaseScript<
           : currentBilling?.id ?? null,
       });
       if (!updated) {
-        return sectionErrors([
-          {
-            message: "Default address does not belong to this customer",
-            code: "INVALID_ADDRESS",
-          },
-        ]);
+        throw new Error("Validated customer address defaults could not be persisted");
       }
     }
 
-    return sectionSuccess(hasAddressChanges(operations));
+    const changed = hasAddressChanges(operations);
+    if (changed) {
+      await this.invalidateDynamicSegments(customerId, ["address"], "address");
+    }
+    return sectionSuccess(changed);
   }
 
   protected handleError(_error: unknown): CustomerSectionResult {

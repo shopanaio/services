@@ -30,7 +30,7 @@ export class GetCurrentStoreScript extends BaseScript<
     }
 
     return {
-      store,
+      store: { ...store, currencyExponent: currencyExponent(store.currencyCode) },
       userErrors: [],
     };
   }
@@ -47,4 +47,11 @@ export class GetCurrentStoreScript extends BaseScript<
       ],
     };
   }
+}
+
+function currencyExponent(currencyCode: string): number {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currencyCode,
+  }).resolvedOptions().maximumFractionDigits;
 }

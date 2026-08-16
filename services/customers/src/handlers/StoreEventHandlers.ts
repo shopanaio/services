@@ -3,6 +3,7 @@ import type {
   EventHandlerDelivery,
   EventHandlerResponse,
   StoreCreatedEvent,
+  StoreConfigurationUpdatedEvent,
   StoreDeletedEvent,
 } from "@shopana/events";
 import {
@@ -12,6 +13,8 @@ import {
   InjectBroker,
   ServiceBroker,
 } from "@shopana/shared-kernel";
+import { Kernel } from "../kernel/Kernel.js";
+import { CustomerSegmentStoreContextUpdateScript } from "../scripts/classification/index.js";
 import type {
   StorefrontAuthProvisionInput,
   StorefrontAuthProvisionOutput,
@@ -24,6 +27,61 @@ import type {
 export class StoreEventHandlers extends EventHandlers {
   constructor(@InjectBroker("customers") broker: ServiceBroker) {
     super(broker);
+  }
+
+  @EventHandler("storeConfigurationUpdated", { retry: { maxAttempts: 10 } })
+  async handleStoreConfigurationUpdated(params: {
+    event: StoreConfigurationUpdatedEvent;
+    delivery: EventHandlerDelivery;
+  }): Promise<EventHandlerResponse<{ readonly applied: boolean }>> {
+    const { event, delivery } = params;
+    const input = event.payload;
+    try {
+      const result = await Kernel.getInstance().runScript(
+        CustomerSegmentStoreContextUpdateScript,
+        input,
+        {
+          storeId: input.storeId,
+          organizationId: event.context.organizationId,
+          requestId: delivery.idempotencyKey,
+          segmentStoreContext: {
+            timeZone: input.timeZone,
+            currencyCode: input.currencyCode,
+            currencyExponent: input.currencyExponent,
+            configurationRevision: input.configurationRevision,
+          },
+        },
+      );
+      // Starting maintenance for an already-projected duplicate is intentional:
+      // it closes the crash window between the projection transaction commit and
+      // the original workflow dispatch.
+      await this.broker.startWorkflow(
+        "customers.customerSegmentMaintenance",
+        {
+          context: {
+            storeId: input.storeId,
+            organizationId: event.context.organizationId,
+            requestId: delivery.idempotencyKey,
+          },
+        },
+        {
+          source: "content",
+          resourceId: input.storeId,
+          operation: "customerSegmentStoreConfigurationMaintenance",
+          contentHash: `${input.configurationRevision}:${input.timeZone}`,
+        },
+      );
+      return { success: true, data: { applied: result.applied } };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          code: "STORE_SEGMENT_CONTEXT_PROJECTION_FAILED",
+          retryable: true,
+        },
+      };
+    }
   }
 
   @EventHandler("storeCreated", { retry: { maxAttempts: 5 } })

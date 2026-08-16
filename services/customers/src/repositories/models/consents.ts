@@ -76,6 +76,11 @@ export const customerConsent = customersSchema.table(
       table.state,
       table.customerId
     ),
+    index("customer_consent_store_customer_channel_idx").on(
+      table.storeId,
+      table.customerId,
+      table.channel
+    ),
     index("customer_consent_customer_idx").on(table.customerId),
   ]
 );

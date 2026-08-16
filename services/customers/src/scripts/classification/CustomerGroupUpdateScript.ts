@@ -223,6 +223,13 @@ export class CustomerGroupUpdateScript extends BaseScript<
         { groupId: group.id, revision: group.revision },
         "Customer group updated"
       );
+      for (const customerId of [...affectedCustomerIds].sort()) {
+        await this.invalidateDynamicSegments(
+          customerId,
+          ["group"],
+          `group:${params.id}`,
+        );
+      }
       return {
         group: { id: group.id, revision: group.revision },
         affectedCustomerIds: [...affectedCustomerIds],

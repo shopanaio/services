@@ -134,10 +134,23 @@ export {
 export {
   Workflow,
   WorkflowStep,
+  TransactionalStep,
   WORKFLOW_METADATA_KEY,
   WORKFLOW_STEP_METADATA_KEY,
+  TRANSACTIONAL_STEP_METADATA_KEY,
+  TransactionalStepConfigurationError,
+  PostgresDbosTransactionBridge,
+  PostgresDataSource,
+  IsolationLevel,
+  runTransactionalStep,
   type WorkflowMetadata,
   type WorkflowStepMetadata,
+  type TransactionalStepMetadata,
+  type DbosTransactionBridge,
+  type RunTransactionalStepOptions,
+  type TransactionManagerLike,
+  type PostgresTransactionOptions,
+  type TransactionSql,
   // Base class (broker-independent)
   BaseWorkflow,
   type WorkflowDescriptor,
@@ -160,9 +173,12 @@ export {
 export {
   DatabaseModule,
   DATABASE_CLIENT,
+  DATABASE_CONNECTION_OPTIONS,
   InjectDatabaseClient,
+  InjectDatabaseConnectionOptions,
   type DatabaseModuleOptions,
   type DatabaseClient,
+  type DatabaseConnectionOptions,
 } from "./database";
 
 // Saga Engine - re-export from @shopana/dbos + BrokerSaga

@@ -47,6 +47,13 @@ export class CustomerIamLifecycleScript extends BaseScript<
           ? { lifecycleStatus: "ACTIVE" as const }
           : {}),
       });
+      if (updated) {
+        await this.invalidateDynamicSegments(
+          customer.id,
+          ["contact", "status"],
+          "iamLifecycleDeleted",
+        );
+      }
       return { customerId: customer.id, updated: Boolean(updated) };
     }
 
@@ -73,6 +80,13 @@ export class CustomerIamLifecycleScript extends BaseScript<
       return { customerId: customer.id, updated: false };
     }
     const updated = await this.repository.customer.update(customer.id, patch);
+    if (updated) {
+      await this.invalidateDynamicSegments(
+        customer.id,
+        ["status"],
+        "iamLifecycleStatus",
+      );
+    }
     return { customerId: customer.id, updated: Boolean(updated) };
   }
 

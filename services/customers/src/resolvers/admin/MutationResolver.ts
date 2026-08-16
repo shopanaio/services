@@ -632,7 +632,6 @@ export class CustomersMutationResolver extends CustomersType<
         status: args.input.status
           ? (String(args.input.status) as CustomerSegmentCreateWorkflowInput["params"]["status"])
           : undefined,
-        definition: args.input.definition ?? undefined,
         createdById: this.$ctx.hasUser ? this.$ctx.user.id : null,
       },
       context: this.mutationWorkflowContext(),
@@ -669,27 +668,7 @@ export class CustomersMutationResolver extends CustomersType<
       ]);
     }
     if (raw.definition) {
-      operations.definition = pickPresent(raw.definition, [
-        "type",
-        "query",
-        "definition",
-      ]);
-      if (
-        hasOwn(operations.definition, "definition") &&
-        operations.definition.definition !== null &&
-        !isRecord(operations.definition.definition)
-      ) {
-        errors.push({
-          message: "Segment definition must be a JSON object",
-          code: "INVALID_DEFINITION",
-          field: ["operations", "definition", "definition"],
-        });
-      }
-      if (operations.definition.type) {
-        operations.definition.type = String(
-          operations.definition.type
-        ) as NonNullable<typeof operations.definition.type>;
-      }
+      operations.definition = { query: raw.definition.query };
     }
     if (raw.state) {
       operations.state = pickPresent(raw.state, ["status"]);

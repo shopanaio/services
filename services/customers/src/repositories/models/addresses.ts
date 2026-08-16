@@ -34,7 +34,10 @@ export const customerAddress = customersSchema.table(
     city: varchar("city", { length: 128 }).notNull(),
     regionName: varchar("region_name", { length: 128 }),
     regionCode: varchar("region_code", { length: 64 }),
+    regionKey: varchar("region_key", { length: 8 }),
+    cityKey: varchar("city_key", { length: 160 }).notNull(),
     postalCode: varchar("postal_code", { length: 32 }),
+    postalCodeNormalized: varchar("postal_code_normalized", { length: 32 }),
     countryCode: char("country_code", { length: 2 }).notNull(),
     isDefaultShipping: boolean("is_default_shipping").notNull().default(false),
     isDefaultBilling: boolean("is_default_billing").notNull().default(false),
@@ -110,10 +113,34 @@ export const customerAddress = customersSchema.table(
       .on(
         table.storeId,
         table.countryCode,
-        table.regionCode,
-        table.city
+        table.regionKey,
+        table.cityKey
       )
       .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_address_store_country_customer_idx")
+      .on(table.storeId, table.countryCode, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_address_store_customer_country_idx")
+      .on(table.storeId, table.customerId, table.countryCode)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_address_store_region_customer_idx")
+      .on(table.storeId, table.regionKey, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.regionKey} IS NOT NULL`),
+    index("customer_address_store_customer_region_idx")
+      .on(table.storeId, table.customerId, table.regionKey)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.regionKey} IS NOT NULL`),
+    index("customer_address_store_city_customer_idx")
+      .on(table.storeId, table.cityKey, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_address_store_customer_city_idx")
+      .on(table.storeId, table.customerId, table.cityKey)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_address_store_postal_customer_idx")
+      .on(table.storeId, table.postalCodeNormalized, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.postalCodeNormalized} IS NOT NULL`),
+    index("customer_address_store_customer_postal_idx")
+      .on(table.storeId, table.customerId, table.postalCodeNormalized)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.postalCodeNormalized} IS NOT NULL`),
   ]
 );
 

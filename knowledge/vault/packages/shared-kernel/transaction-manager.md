@@ -146,6 +146,24 @@ const result = await txManager.run(async () => {
 - Commits on success
 - Rolls back on error
 
+### runWithExistingTransaction()
+
+Inject a transaction whose lifecycle is owned by another component, such as a
+DBOS datasource:
+
+```typescript
+txManager.runWithExistingTransaction(tx, async () => {
+  await repository.write(input);
+});
+```
+
+The method never calls the root database's `transaction()`. Nested `run()` or
+`@Transactional()` calls reuse the exact injected transaction. Attempting to
+replace an active transaction with a different object throws a configuration
+error. Each `TransactionManager` retains its own isolated
+`AsyncLocalStorage`; all repositories in one aggregate graph must therefore
+share the aggregate repository's manager instance.
+
 ### runReadOnly()
 
 Execute function with read-only connection:

@@ -57,6 +57,18 @@ export type CustomerTagAssignmentConnectionInput =
 
 export class CustomerTagRepository extends BaseRepository {
   @ReadOnly()
+  async customerIdsByTagId(tagId: string): Promise<string[]> {
+    const rows = await this.connection
+      .select({ customerId: customerTagAssignment.customerId })
+      .from(customerTagAssignment)
+      .where(and(
+        eq(customerTagAssignment.storeId, this.storeId),
+        eq(customerTagAssignment.tagId, tagId),
+      ));
+    return [...new Set(rows.map((row) => row.customerId))].sort();
+  }
+
+  @ReadOnly()
   async findById(id: string): Promise<CustomerTag | null> {
     const rows = await this.connection
       .select()

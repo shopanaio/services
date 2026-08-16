@@ -65,6 +65,16 @@ export const customerSegmentStatusEnum = customersSchema.enum(
   ["DRAFT", "ACTIVE", "ARCHIVED"]
 );
 
+export const customerSegmentMaterializationStatusEnum = customersSchema.enum(
+  "customer_segment_materialization_status",
+  ["PENDING", "RUNNING", "READY", "FAILED"]
+);
+
+export const customerSegmentMaterializationRunStatusEnum = customersSchema.enum(
+  "customer_segment_materialization_run_status",
+  ["PENDING", "RUNNING", "SUCCEEDED", "FAILED"]
+);
+
 export const customerMergeStatusEnum = customersSchema.enum(
   "customer_merge_status",
   ["REQUESTED", "IN_PROGRESS", "COMPLETED", "FAILED"]

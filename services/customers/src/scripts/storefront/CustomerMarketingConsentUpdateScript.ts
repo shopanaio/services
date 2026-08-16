@@ -107,6 +107,11 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
         targetState: params.state,
       },
     });
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["consent"],
+      "storefrontConsent",
+    );
 
     return {
       marketingConsent: { id: result.consent.id },

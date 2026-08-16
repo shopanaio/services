@@ -38,6 +38,7 @@ export const customer = customersSchema.table(
       .default("GUEST"),
     email: varchar("email", { length: 320 }),
     normalizedEmail: varchar("normalized_email", { length: 320 }),
+    emailDomainNormalized: varchar("email_domain_normalized", { length: 255 }),
     emailVerified: boolean("email_verified").notNull().default(false),
     phoneE164: varchar("phone_e164", { length: 32 }),
     phoneVerified: boolean("phone_verified").notNull().default(false),
@@ -47,9 +48,12 @@ export const customer = customersSchema.table(
     lastName: varchar("last_name", { length: 128 }),
     suffix: varchar("suffix", { length: 32 }),
     preferredLocale: varchar("preferred_locale", { length: 35 }),
+    preferredLocaleNormalized: varchar("preferred_locale_normalized", { length: 35 }),
     dateOfBirth: date("date_of_birth", { mode: "string" }),
+    birthdayMonthDay: varchar("birthday_month_day", { length: 4 }),
     gender: varchar("gender", { length: 32 }),
     companyName: varchar("company_name", { length: 255 }),
+    companyNameNormalized: varchar("company_name_normalized", { length: 255 }),
     jobTitle: varchar("job_title", { length: 255 }),
     note: text("note"),
     blockedReason: text("blocked_reason"),
@@ -93,7 +97,13 @@ export const customer = customersSchema.table(
     ),
     check(
       "customer_email_projection_check",
-      sql`(${table.email} IS NULL) = (${table.normalizedEmail} IS NULL)`
+      sql`(${table.email} IS NULL) = (${table.normalizedEmail} IS NULL)
+        AND (${table.email} IS NULL) = (${table.emailDomainNormalized} IS NULL)`
+    ),
+    check(
+      "customer_birthday_month_day_check",
+      sql`(${table.dateOfBirth} IS NULL AND ${table.birthdayMonthDay} IS NULL)
+        OR (${table.dateOfBirth} IS NOT NULL AND ${table.birthdayMonthDay} ~ '^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$')`
     ),
     check(
       "customer_email_verified_check",
@@ -152,12 +162,49 @@ export const customer = customersSchema.table(
       .where(
         sql`${table.normalizedEmail} IS NOT NULL AND ${table.deletedAt} IS NULL`
       ),
+    uniqueIndex("customer_store_id_unique").on(table.storeId, table.id),
+    index("customer_store_root_scan_idx")
+      .on(table.storeId, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_store_email_domain_idx")
+      .on(table.storeId, table.emailDomainNormalized, table.id)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.emailDomainNormalized} IS NOT NULL`),
+    index("customer_store_locale_idx")
+      .on(table.storeId, table.preferredLocaleNormalized, table.id)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.preferredLocaleNormalized} IS NOT NULL`),
+    index("customer_store_company_idx")
+      .on(table.storeId, table.companyNameNormalized, table.id)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.companyNameNormalized} IS NOT NULL`),
+    index("customer_store_source_idx")
+      .on(table.storeId, table.source, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_store_created_idx")
+      .on(table.storeId, table.createdAt, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_store_updated_idx")
+      .on(table.storeId, table.updatedAt, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_store_birth_date_idx")
+      .on(table.storeId, table.dateOfBirth, table.id)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.dateOfBirth} IS NOT NULL`),
+    index("customer_store_birthday_idx")
+      .on(table.storeId, table.birthdayMonthDay, table.id)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.birthdayMonthDay} IS NOT NULL`),
+    index("customer_store_email_verified_idx")
+      .on(table.storeId, table.emailVerified, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_store_phone_verified_idx")
+      .on(table.storeId, table.phoneVerified, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     index("customer_store_status_created_idx").on(
       table.storeId,
       table.lifecycleStatus,
       table.createdAt.desc(),
       table.id
     ),
+    index("customer_store_lifecycle_status_idx")
+      .on(table.storeId, table.lifecycleStatus, table.id)
+      .where(sql`${table.deletedAt} IS NULL`),
     index("customer_store_account_status_idx")
       .on(table.storeId, table.accountStatus, table.id)
       .where(sql`${table.deletedAt} IS NULL`),

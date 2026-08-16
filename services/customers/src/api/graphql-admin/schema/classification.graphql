@@ -16,6 +16,13 @@ enum CustomerSegmentStatus {
   ARCHIVED
 }
 
+enum CustomerSegmentMaterializationStatus {
+  PENDING
+  RUNNING
+  READY
+  FAILED
+}
+
 type CustomerGroup implements Node {
   id: ID!
   code: String!
@@ -131,6 +138,9 @@ type CustomerSegment implements Node {
   status: CustomerSegmentStatus!
   query: String
   definition: JSON!
+  definitionRevision: Int!
+  evaluationGeneration: Int!
+  materializationStatus: CustomerSegmentMaterializationStatus
   createdById: String
   """Aggregate revision incremented by definition, state and membership changes."""
   revision: Int!
@@ -260,7 +270,6 @@ input CustomerSegmentCreateInput {
   """Defaults to DRAFT when omitted."""
   status: CustomerSegmentStatus
   query: String
-  definition: JSON
 }
 
 input CustomerSegmentDetailsUpdateInput {
@@ -270,9 +279,71 @@ input CustomerSegmentDetailsUpdateInput {
 }
 
 input CustomerSegmentDefinitionUpdateInput {
-  type: CustomerSegmentType
-  query: String
+  query: String!
+}
+
+enum CustomerSegmentDiagnosticSeverity {
+  ERROR
+  WARNING
+}
+
+type CustomerSegmentQueryDiagnostic {
+  code: String!
+  message: String!
+  severity: CustomerSegmentDiagnosticSeverity!
+  startOffset: Int!
+  endOffset: Int!
+  line: Int!
+  column: Int!
+}
+
+type CustomerSegmentQueryValidationResult {
+  valid: Boolean!
+  canonicalQuery: String
   definition: JSON
+  complexity: Int
+  diagnostics: [CustomerSegmentQueryDiagnostic!]!
+}
+
+enum CustomerSegmentAttributeKind {
+  SCALAR
+  LIST
+  FUNCTION
+  VIRTUAL
+}
+
+enum CustomerSegmentAttributeAvailability {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+type CustomerSegmentFunctionParameterDescriptor {
+  name: String!
+  presentationKey: String!
+  valueType: String!
+  operators: [String!]!
+  enumValues: [String!]!
+  aggregate: Boolean!
+  nullable: Boolean!
+}
+
+type CustomerSegmentAttributeDescriptor {
+  name: String!
+  presentationKey: String!
+  kind: CustomerSegmentAttributeKind!
+  valueType: String!
+  operators: [String!]!
+  enumValues: [String!]!
+  parameters: [CustomerSegmentFunctionParameterDescriptor!]!
+  availability: CustomerSegmentAttributeAvailability!
+  unavailabilityReason: String
+}
+
+type CustomerSegmentPreview {
+  validation: CustomerSegmentQueryValidationResult!
+  customers: CustomerConnection
+  totalCount: Int
+  timedOut: Boolean!
 }
 
 input CustomerSegmentStateUpdateInput {
@@ -366,13 +437,20 @@ type CustomerTagDeletePayload {
 
 type CustomerSegmentCreatePayload {
   segment: CustomerSegment
-  userErrors: [GenericUserError!]!
+  userErrors: [CustomerSegmentUserError!]!
 }
 
 type CustomerSegmentUpdatePayload {
   segment: CustomerSegment
   operationResults: [CustomerOperationResult!]!
-  userErrors: [GenericUserError!]!
+  userErrors: [CustomerSegmentUserError!]!
+}
+
+type CustomerSegmentUserError implements UserError {
+  message: String!
+  field: [String!]
+  code: String!
+  diagnostic: CustomerSegmentQueryDiagnostic
 }
 
 type CustomerSegmentDeletePayload {

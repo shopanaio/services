@@ -352,7 +352,6 @@ export type StoreCurrencySettings = {
 };
 
 export type StoreCurrencySettingsUpdateInput = {
-  currencyCode: CurrencyCode;
   currencyDisplay: CurrencyDisplay;
   currencySign: CurrencySign;
   grouping: CurrencyGrouping;

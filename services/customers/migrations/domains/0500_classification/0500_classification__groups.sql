@@ -62,3 +62,11 @@ CREATE INDEX "customer_group_membership_store_group_idx"
 
 CREATE INDEX "customer_group_membership_customer_idx"
   ON "customers"."customer_group_membership" ("customer_id");
+
+CREATE INDEX "customer_group_membership_store_customer_group_idx"
+  ON "customers"."customer_group_membership"
+  ("store_id", "customer_id", "group_id", "expires_at");
+
+CREATE INDEX "customer_group_membership_store_group_expiry_idx"
+  ON "customers"."customer_group_membership"
+  ("store_id", "group_id", "expires_at", "customer_id");

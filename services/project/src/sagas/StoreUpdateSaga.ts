@@ -275,6 +275,12 @@ export class StoreUpdateSaga extends BrokerSaga<
     }
 
     const userErrors = operationResults.flatMap(({ errors }) => errors);
+    if (userErrors.length === 0) {
+      await this.emitStoreConfigurationUpdated(
+        input,
+        snapshot.defaults.timezone,
+      );
+    }
 
     return {
       storeId: input.storeId,
@@ -677,6 +683,49 @@ export class StoreUpdateSaga extends BrokerSaga<
       "MEDIA_UNLINK_FAILED",
     );
   }
+
+  @SagaStep()
+  private async emitStoreConfigurationUpdated(
+    input: StoreUpdateSagaInput,
+    previousTimeZone: string,
+  ): Promise<void> {
+    const store = await this.kernel.repository.store.findById(
+      input.storeId,
+      input.context.organizationId,
+    );
+    if (!store || store.timezone === previousTimeZone) return;
+    const occurredAt = store.updatedAt.toISOString();
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "storeConfigurationUpdated",
+        payload: {
+          schemaVersion: 1,
+          storeId: store.id,
+          configurationRevision: store.segmentConfigurationRevision,
+          currencyCode: store.currencyCode,
+          currencyExponent: currencyExponent(store.currencyCode),
+          timeZone: store.timezone,
+          occurredAt,
+        },
+        context: {
+          organizationId: input.context.organizationId,
+          userId: input.context.userId,
+        },
+        subject: { type: "store", id: store.id },
+        actor: input.context.userId
+          ? { type: "user", id: input.context.userId }
+          : { type: "service" },
+        emitKey: `store:${store.id}`,
+      },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitStoreConfigurationUpdated",
+        callId: `${store.id}:${store.segmentConfigurationRevision}`,
+      },
+    );
+  }
 }
 
 function brandMediaEntries(previous: BrandMediaIds, next: BrandMediaIds) {
@@ -700,6 +749,13 @@ function brandMediaEntries(previous: BrandMediaIds, next: BrandMediaIds) {
       next: next.coverImageMediaId,
     },
   ];
+}
+
+function currencyExponent(currencyCode: string): number {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currencyCode,
+  }).resolvedOptions().maximumFractionDigits;
 }
 
 function brandMediaIds(brand: StoreBrandData | null): BrandMediaIds {

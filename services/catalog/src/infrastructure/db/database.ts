@@ -1,5 +1,5 @@
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import type { Sql } from "postgres";
+import type { Sql, TransactionSql } from "postgres";
 import * as schema from "../../repositories/models/index.js";
 
 type DrizzleDatabase = PostgresJsDatabase<typeof schema>;
@@ -19,6 +19,16 @@ export function createDatabase(client: Sql): Database {
 
   database = drizzle(client, { schema });
   return database;
+}
+
+/**
+ * Create a request-scoped Drizzle wrapper over the active DBOS datasource
+ * transaction. This must never use the singleton root database cache.
+ */
+export function createTransactionalDatabase(
+  client: TransactionSql
+): Database {
+  return drizzle(client, { schema });
 }
 
 export function getDatabase(): Database {

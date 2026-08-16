@@ -55,12 +55,18 @@ import {
   StorefrontCustomerTaxIdentifierUpdateWorkflow,
   StorefrontCustomerUpdateWorkflow,
 } from "./StorefrontCustomerWorkflows.js";
+import {
+  CustomerSegmentMaintenanceWorkflow,
+  CustomerSegmentMaterializationWorkflow,
+} from "./CustomerSegmentWorkerWorkflows.js";
 
 export const workflows = [
   CustomerCreateWorkflow,
   CustomerGroupCreateWorkflow,
   CustomerTagCreateWorkflow,
   CustomerSegmentCreateWorkflow,
+  CustomerSegmentMaterializationWorkflow,
+  CustomerSegmentMaintenanceWorkflow,
   CustomerMergeCreateWorkflow,
   CustomerMergeProcessWorkflow,
   CustomerDataRequestProcessWorkflow,
@@ -121,4 +127,5 @@ export * from "./CustomerComparisonWorkflows.js";
 export * from "./CustomerMergeProcessWorkflow.js";
 export * from "./CustomerDataRequestProcessWorkflow.js";
 export * from "./StorefrontCustomerWorkflows.js";
+export * from "./CustomerSegmentWorkerWorkflows.js";
 export * from "./dto/index.js";

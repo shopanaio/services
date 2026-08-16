@@ -334,11 +334,35 @@ function parseStore(value: unknown): ContextStore {
     defaultLocale: requiredString(value, "defaultLocale", 255),
     locales: Object.freeze([...locales] as string[]),
     currencyCode: requiredString(value, "currencyCode", 255),
+    currencyExponent: requiredInteger(value, "currencyExponent", 0, 6),
+    segmentConfigurationRevision: requiredInteger(
+      value,
+      "segmentConfigurationRevision",
+      0,
+      Number.MAX_SAFE_INTEGER,
+    ),
   };
   if (!store.locales.includes(store.defaultLocale)) {
     throw new Error("Invalid admin context store");
   }
   return Object.freeze(store);
+}
+
+function requiredInteger(
+  value: Record<string, unknown>,
+  key: string,
+  minimum: number,
+  maximum: number,
+): number {
+  const current = value[key];
+  if (
+    !Number.isSafeInteger(current) ||
+    (current as number) < minimum ||
+    (current as number) > maximum
+  ) {
+    throw new Error("Invalid admin context store");
+  }
+  return current as number;
 }
 
 function permissionKey(permission: {

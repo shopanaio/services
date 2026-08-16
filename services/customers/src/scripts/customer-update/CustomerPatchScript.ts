@@ -1,4 +1,5 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import type { SegmentDependency } from "@shopana/customer-segment-dsl";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { CustomerPatch } from "../../repositories/customer/CustomerRepository.js";
 import {
@@ -17,6 +18,7 @@ export class CustomerPatchScript extends BaseScript<
   CustomerPatchParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerPatchParams
   ): Promise<CustomerSectionResult> {
@@ -66,12 +68,42 @@ export class CustomerPatchScript extends BaseScript<
       throw error;
     }
 
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      patchDependencies(patch),
+      "customerPatch",
+    );
+
     return sectionSuccess();
   }
 
   protected handleError(_error: unknown): CustomerSectionResult {
     return internalSectionError();
   }
+}
+
+function patchDependencies(patch: CustomerPatch): SegmentDependency[] {
+  const keys = new Set(Object.keys(patch));
+  const dependencies = new Set<SegmentDependency>();
+  if (["email", "emailVerified", "phoneE164", "phoneVerified"].some((key) => keys.has(key))) {
+    dependencies.add("contact");
+  }
+  if (["companyName", "jobTitle"].some((key) => keys.has(key))) {
+    dependencies.add("company");
+  }
+  if (keys.has("lifecycleStatus")) dependencies.add("status");
+  if (dependencies.size === 0 || [...keys].some((key) => ![
+    "email",
+    "emailVerified",
+    "phoneE164",
+    "phoneVerified",
+    "companyName",
+    "jobTitle",
+    "lifecycleStatus",
+  ].includes(key))) {
+    dependencies.add("profile");
+  }
+  return [...dependencies];
 }
 
 function validatePatch(patch: CustomerPatch) {

@@ -1,5 +1,9 @@
 import { jest, describe, it, expect, beforeEach } from "@jest/globals";
-import { TransactionManager, type TransactionalDatabase } from "./TransactionManager";
+import {
+  TransactionManager,
+  Transactional,
+  type TransactionalDatabase,
+} from "./TransactionManager";
 
 // Simple mock transaction type
 interface MockTx {
@@ -181,6 +185,137 @@ describe("TransactionManager", () => {
         expect(connection).toBe(mockTx);
         return null;
       });
+    });
+  });
+
+  describe("runWithExistingTransaction()", () => {
+    it("should expose an externally owned transaction without opening a new one", async () => {
+      const { mockDb } = createMockDatabase();
+      const externalTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      const result = await txManager.runWithExistingTransaction(
+        externalTx,
+        async () => {
+          expect(txManager.getConnection()).toBe(externalTx);
+          expect(txManager.getDepth()).toBe(1);
+          return "external-result";
+        }
+      );
+
+      expect(result).toBe("external-result");
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+      expect(txManager.getConnection()).toBe(mockDb);
+      expect(txManager.getDepth()).toBe(0);
+    });
+
+    it("should let nested run() calls reuse the externally owned transaction", async () => {
+      const { mockDb } = createMockDatabase();
+      const externalTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+      const connections: unknown[] = [];
+      const depths: number[] = [];
+
+      await txManager.runWithExistingTransaction(externalTx, async () => {
+        connections.push(txManager.getConnection());
+        depths.push(txManager.getDepth());
+
+        await txManager.run(async () => {
+          connections.push(txManager.getConnection());
+          depths.push(txManager.getDepth());
+          return null;
+        });
+
+        depths.push(txManager.getDepth());
+      });
+
+      expect(connections).toEqual([externalTx, externalTx]);
+      expect(depths).toEqual([1, 2, 1]);
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+    });
+
+    it("should let nested @Transactional() methods reuse the external transaction", async () => {
+      const { mockDb } = createMockDatabase();
+      const externalTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+      const connections: unknown[] = [];
+
+      class TransactionalRepository {
+        constructor(
+          public readonly txManager: TransactionManager<MockDb, MockTx>
+        ) {}
+
+        @Transactional()
+        async write(): Promise<void> {
+          connections.push(this.txManager.getConnection());
+          await this.writeNested();
+        }
+
+        @Transactional()
+        private async writeNested(): Promise<void> {
+          connections.push(this.txManager.getConnection());
+        }
+      }
+
+      const repository = new TransactionalRepository(txManager);
+      await txManager.runWithExistingTransaction(externalTx, () =>
+        repository.write()
+      );
+
+      expect(connections).toEqual([externalTx, externalTx]);
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+    });
+
+    it("should allow nested reuse of the same external transaction", async () => {
+      const { mockDb } = createMockDatabase();
+      const externalTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      await txManager.runWithExistingTransaction(externalTx, async () => {
+        expect(txManager.getDepth()).toBe(1);
+
+        await txManager.runWithExistingTransaction(externalTx, async () => {
+          expect(txManager.getDepth()).toBe(2);
+        });
+
+        expect(txManager.getDepth()).toBe(1);
+      });
+    });
+
+    it("should reject replacing an active transaction", async () => {
+      const { mockDb } = createMockDatabase();
+      const firstTx: MockTx = { query: jest.fn() };
+      const secondTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      await txManager.runWithExistingTransaction(firstTx, async () => {
+        await expect(
+          txManager.runWithExistingTransaction(secondTx, async () => null)
+        ).rejects.toThrow(
+          "Cannot replace the active transaction with a different transaction"
+        );
+
+        expect(txManager.getConnection()).toBe(firstTx);
+        expect(txManager.getDepth()).toBe(1);
+      });
+
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+    });
+
+    it("should restore the previous context after a callback throws", async () => {
+      const { mockDb } = createMockDatabase();
+      const externalTx: MockTx = { query: jest.fn() };
+      const txManager = new TransactionManager<MockDb, MockTx>(mockDb);
+
+      await expect(
+        txManager.runWithExistingTransaction(externalTx, async () => {
+          throw new Error("external failure");
+        })
+      ).rejects.toThrow("external failure");
+
+      expect(txManager.isInTransaction()).toBe(false);
+      expect(txManager.getConnection()).toBe(mockDb);
+      expect(mockDb.transaction).not.toHaveBeenCalled();
     });
   });
 

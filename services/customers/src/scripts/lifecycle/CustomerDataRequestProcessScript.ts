@@ -175,6 +175,11 @@ export class CustomerDataRequestProcessScript extends BaseScript<
         "CUSTOMER_DATA_REQUEST_CORRECTION_CUSTOMER_UNAVAILABLE",
       );
     }
+    await this.invalidateDynamicSegments(
+      request.customerId,
+      ["profile", "contact"],
+      `privacyCorrection:${dataRequestId}`,
+    );
     const completedAt = new Date().toISOString();
     const completed = await this.repository.lifecycle.updateDataRequestStatus(
       dataRequestId,
@@ -255,6 +260,9 @@ export class CustomerDataRequestProcessScript extends BaseScript<
         request.customerId,
       ),
     };
+    await this.repository.segmentMaterialization.cleanupCustomer(
+      request.customerId,
+    );
     const statistics = await this.repository.statistics.deleteForCustomer(
       request.customerId,
     );

@@ -1,4 +1,8 @@
 import { TransactionManager } from "@shopana/shared-kernel";
+import type {
+  DbosTransactionBridge,
+  PostgresTransactionOptions,
+} from "@shopana/shared-kernel";
 import type { Database } from "../infrastructure/db/database";
 import { ProductRepository } from "./product/ProductRepository.js";
 import { VendorRepository } from "./vendor/VendorRepository.js";
@@ -29,6 +33,10 @@ import { ComponentRepository } from "./component/ComponentRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
+  dbosTransactionBridge: DbosTransactionBridge<
+    Database,
+    PostgresTransactionOptions
+  >;
 }
 
 // Re-export Database type for scripts that need to access it
@@ -62,6 +70,10 @@ export class Repository {
   public readonly warehouse: WarehouseRepository;
   public readonly component: ComponentRepository;
   public readonly txManager: TransactionManager<Database>;
+  public readonly dbosTransactionBridge: DbosTransactionBridge<
+    Database,
+    PostgresTransactionOptions
+  >;
 
   /**
    * Get the current database connection (transaction-aware).
@@ -98,7 +110,11 @@ export class Repository {
     stock: StockRepository,
     warehouse: WarehouseRepository,
     component: ComponentRepository,
-    txManager: TransactionManager<Database>
+    txManager: TransactionManager<Database>,
+    dbosTransactionBridge: DbosTransactionBridge<
+      Database,
+      PostgresTransactionOptions
+    >
   ) {
     this.product = product;
     this.vendor = vendor;
@@ -127,13 +143,14 @@ export class Repository {
     this.warehouse = warehouse;
     this.component = component;
     this.txManager = txManager;
+    this.dbosTransactionBridge = dbosTransactionBridge;
   }
 
   /**
    * Create Repository with database instance
    */
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const { db } = config;
+    const { db, dbosTransactionBridge } = config;
 
     // Create transaction manager
     const txManager = new TransactionManager(db);
@@ -196,7 +213,8 @@ export class Repository {
       stock,
       warehouse,
       component,
-      txManager
+      txManager,
+      dbosTransactionBridge
     );
   }
 }

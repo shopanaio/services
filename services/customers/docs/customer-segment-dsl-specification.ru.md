@@ -2494,7 +2494,8 @@ backfill и без compatibility branches.
 - precedence и parentheses;
 - keywords в разном регистре;
 - escaped strings;
-- rejection leading-zero numbers, integer/decimal bounds и empty `MATCHES()`;
+- acceptance empty `MATCHES()`/`NOT_MATCHES()` как existence predicates и
+  rejection leading-zero numbers, integer/decimal bounds;
 - dates, datetimes и relative dates;
 - `IS NULL`/`IS NOT NULL` для nullable function parameters;
 - lexical priority `DateTime > Date > RelativeDate > Number`, keyword boundaries

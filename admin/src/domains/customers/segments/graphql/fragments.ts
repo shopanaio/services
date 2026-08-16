@@ -9,6 +9,7 @@ export const CUSTOMER_SEGMENT_LIST_FRAGMENT = gql`
     color
     type
     status
+    materializationStatus
     customersCount
     createdAt
     updatedAt
@@ -18,6 +19,10 @@ export const CUSTOMER_SEGMENT_LIST_FRAGMENT = gql`
 export const CUSTOMER_SEGMENT_DETAILS_FRAGMENT = gql`
   fragment CustomerSegmentDetailsFields on CustomerSegment {
     ...CustomerSegmentListFields
+    query
+    definition
+    definitionRevision
+    evaluationGeneration
     customerMemberships(first: 250, where: { source: { _eq: MANUAL } }) {
       edges {
         cursor

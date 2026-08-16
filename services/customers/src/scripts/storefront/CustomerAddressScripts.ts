@@ -104,6 +104,11 @@ export class StorefrontCustomerAddressCreateScript extends BaseScript<
       isDefaultShipping: params.defaultShipping === true,
       isDefaultBilling: params.defaultBilling === true,
     });
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["address"],
+      "storefrontAddressCreate",
+    );
     return successfulAddressMutation(
       address.id,
       acquired.customer.id,
@@ -182,6 +187,12 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
       if (!defaultsUpdated) throw new Error("Address defaults could not be set");
     }
 
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["address"],
+      "storefrontAddressUpdate",
+    );
+
     return successfulAddressMutation(
       updated.id,
       acquired.customer.id,
@@ -229,6 +240,11 @@ export class StorefrontCustomerAddressDeleteScript extends BaseScript<
     ) {
       throw new Error("Owned address disappeared during delete");
     }
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["address"],
+      "storefrontAddressDelete",
+    );
     return {
       deletedAddressId: params.addressId,
       customer: customerReference(acquired.customer.id, acquired.customer.revision),
@@ -311,6 +327,11 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
         : billing?.id ?? null,
     });
     if (!updated) throw new Error("Address defaults could not be set");
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["address"],
+      "storefrontAddressDefault",
+    );
     return {
       customer: customerReference(acquired.customer.id, acquired.customer.revision),
       updatedReasons: ["address"],

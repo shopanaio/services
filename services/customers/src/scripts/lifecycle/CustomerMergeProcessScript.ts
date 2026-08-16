@@ -193,6 +193,27 @@ export class CustomerMergeProcessScript extends BaseScript<
       ),
     };
     await this.repository.statistics.rebuildForCustomer(current.targetCustomerId);
+    if (current.sourceCustomerId < current.targetCustomerId) {
+      await this.repository.segmentMaterialization.cleanupCustomer(
+        current.sourceCustomerId,
+      );
+      await this.invalidateDynamicSegments(
+        current.targetCustomerId,
+        ["customer.any"],
+        `merge:${mergeId}`,
+        now,
+      );
+    } else {
+      await this.invalidateDynamicSegments(
+        current.targetCustomerId,
+        ["customer.any"],
+        `merge:${mergeId}`,
+        now,
+      );
+      await this.repository.segmentMaterialization.cleanupCustomer(
+        current.sourceCustomerId,
+      );
+    }
     const revisions = await this.repository.merge.finalizeCustomers(
       locked,
       current.targetCustomerId,

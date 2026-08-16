@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   normalizeRelayPagination,
@@ -64,7 +64,7 @@ export type CustomerSegmentMembershipConnectionInput =
 export type CustomerSegmentPatch = Partial<
   Pick<
     NewCustomerSegment,
-    "name" | "description" | "color" | "type" | "status" | "query" | "definition"
+    "name" | "description" | "color" | "status" | "query" | "definition"
   >
 >;
 
@@ -86,6 +86,18 @@ export interface SegmentMembershipMutationResult {
 }
 
 export class CustomerSegmentRepository extends BaseRepository {
+  @ReadOnly()
+  async listDynamic(): Promise<CustomerSegment[]> {
+    return this.connection
+      .select()
+      .from(customerSegment)
+      .where(and(
+        eq(customerSegment.storeId, this.storeId),
+        eq(customerSegment.type, "DYNAMIC"),
+        isNull(customerSegment.deletedAt),
+      ));
+  }
+
   @ReadOnly()
   async findById(id: string): Promise<CustomerSegment | null> {
     const rows = await this.connection
@@ -244,6 +256,34 @@ export class CustomerSegmentRepository extends BaseRepository {
           isNull(customer.deletedAt)
         )
       )
+      .innerJoin(
+        customerSegment,
+        and(
+          eq(customerSegment.storeId, customerSegmentMembership.storeId),
+          eq(customerSegment.id, customerSegmentMembership.segmentId),
+          eq(customerSegment.status, "ACTIVE"),
+          isNull(customerSegment.deletedAt),
+          or(
+            and(
+              eq(customerSegment.type, "MANUAL"),
+              sql`${customerSegmentMembership.source} <> 'RULE'`,
+            ),
+            and(
+              eq(customerSegment.type, "DYNAMIC"),
+              eq(customerSegment.materializationStatus, "READY"),
+              eq(customerSegmentMembership.source, "RULE"),
+              eq(
+                customerSegmentMembership.evaluatedDefinitionRevision,
+                customerSegment.definitionRevision,
+              ),
+              eq(
+                customerSegmentMembership.evaluatedGeneration,
+                customerSegment.evaluationGeneration,
+              ),
+            ),
+          ),
+        ),
+      )
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
@@ -251,6 +291,7 @@ export class CustomerSegmentRepository extends BaseRepository {
             customerSegmentMembership.segmentId,
             [...new Set(segmentIds)]
           ),
+          sql`${customerSegmentMembership.evaluatedAt} <= transaction_timestamp()`,
           sql`(${customerSegmentMembership.expiresAt} IS NULL OR ${customerSegmentMembership.expiresAt} > now())`
         )
       )
@@ -281,9 +322,12 @@ export class CustomerSegmentRepository extends BaseRepository {
         status: data.status ?? "DRAFT",
         query: data.query ?? null,
         definition: data.definition ?? {},
+        materializationStatus: data.type === "DYNAMIC" ? "PENDING" : null,
         createdById: data.createdById ?? null,
         revision: 0,
         definitionRevision: 0,
+        evaluationGeneration:
+          data.type === "DYNAMIC" && data.status === "ACTIVE" ? 1 : 0,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -296,7 +340,9 @@ export class CustomerSegmentRepository extends BaseRepository {
     id: string,
     patch: CustomerSegmentPatch,
     expectedRevision?: number,
-    definitionChanged = false
+    definitionChanged = false,
+    materializationChanged = definitionChanged,
+    merchantRevisionChanged = true,
   ): Promise<CustomerSegment | null> {
     const conditions = [
       eq(customerSegment.storeId, this.storeId),
@@ -311,10 +357,18 @@ export class CustomerSegmentRepository extends BaseRepository {
       .set({
         ...patch,
         ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-        revision: sql`${customerSegment.revision} + 1`,
+        ...(merchantRevisionChanged
+          ? { revision: sql`${customerSegment.revision} + 1` }
+          : {}),
         ...(definitionChanged
           ? {
               definitionRevision: sql`${customerSegment.definitionRevision} + 1`,
+            }
+          : {}),
+        ...(materializationChanged
+          ? {
+              evaluationGeneration: sql`${customerSegment.evaluationGeneration} + 1`,
+              materializationStatus: "PENDING" as const,
             }
           : {}),
         updatedAt: new Date().toISOString(),
@@ -330,13 +384,15 @@ export class CustomerSegmentRepository extends BaseRepository {
     patch: CustomerSegmentPatch,
     memberships: CustomerSegmentMembershipRelationsPatch | undefined,
     expectedRevision?: number,
-    definitionChanged = false
+    definitionChanged = false,
+    materializationChanged = definitionChanged,
   ): Promise<CustomerSegmentUpdateResult | null> {
     const segment = await this.update(
       id,
       patch,
       expectedRevision,
-      definitionChanged
+      definitionChanged,
+      materializationChanged,
     );
     if (!segment) return null;
     if (!memberships) {

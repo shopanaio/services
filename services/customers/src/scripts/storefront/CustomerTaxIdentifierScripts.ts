@@ -86,6 +86,11 @@ export class StorefrontCustomerTaxIdentifierCreateScript extends BaseScript<
       status: "UNVERIFIED",
       isPrimary: params.isPrimary === true,
     });
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["taxIdentifier"],
+      "storefrontTaxIdentifierCreate",
+    );
     return successfulIdentifier(
       identifier.id,
       acquired.customer.id,
@@ -174,6 +179,11 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
       }
     );
     if (!updated) throw new Error("Owned tax identifier disappeared during update");
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["taxIdentifier"],
+      "storefrontTaxIdentifierUpdate",
+    );
     return successfulIdentifier(
       updated.id,
       acquired.customer.id,
@@ -228,6 +238,11 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
     ) {
       throw new Error("Owned tax identifier disappeared during delete");
     }
+    await this.invalidateDynamicSegments(
+      params.customerId,
+      ["taxIdentifier"],
+      "storefrontTaxIdentifierDelete",
+    );
     return {
       deletedTaxIdentifierId: params.taxIdentifierId,
       customer: {

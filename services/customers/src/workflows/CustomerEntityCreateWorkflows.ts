@@ -128,7 +128,11 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
   async run(
     input: CustomerSegmentCreateWorkflowInput
   ): Promise<CustomerSegmentCreateWorkflowResult> {
-    return this.stepCreate(input);
+    const result = await this.stepCreate(input);
+    if (result.segment && result.userErrors.length === 0) {
+      await this.startMaterialization(input, result.segment.id);
+    }
+    return result;
   }
 
   @WorkflowStep()
@@ -137,6 +141,23 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
       CustomerSegmentCreateScript,
       input.params,
       this.toScriptContext(input.context)
+    );
+  }
+
+  @WorkflowStep()
+  private startMaterialization(
+    input: CustomerSegmentCreateWorkflowInput,
+    segmentId: string,
+  ) {
+    return this.broker.startWorkflow(
+      "customers.customerSegmentMaterialize",
+      { context: this.toScriptContext(input.context) },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "startCustomerSegmentMaterialization",
+        callId: segmentId,
+      },
     );
   }
 }

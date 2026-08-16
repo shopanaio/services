@@ -3,6 +3,10 @@ import {
   ValidationError,
   type Authorizable,
 } from "@shopana/shared-kernel";
+import type {
+  SegmentDependency,
+  SegmentDiagnostic,
+} from "@shopana/customer-segment-dsl";
 import { getContext } from "../context/index.js";
 import { AuthProvider } from "./Authorizable.js";
 import type { CustomersKernelServices } from "./types.js";
@@ -13,6 +17,7 @@ export interface UserError {
   message: string;
   field?: string[];
   code?: string;
+  diagnostic?: SegmentDiagnostic | null;
 }
 
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
@@ -67,5 +72,19 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     params: P
   ): Promise<R> {
     return new ScriptClass(this.services).run(params);
+  }
+
+  protected invalidateDynamicSegments(
+    customerId: string,
+    dependencies: readonly SegmentDependency[],
+    source: string,
+    effectiveAt = new Date().toISOString(),
+  ): Promise<number> {
+    return this.repository.segmentMaterialization.enqueueCustomer(
+      customerId,
+      new Set(dependencies),
+      `${this.context.requestId}:${source}`,
+      effectiveAt,
+    );
   }
 }

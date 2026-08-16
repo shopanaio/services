@@ -17,6 +17,9 @@ related:
 
 # Tech Spec: TransactionalStep для DBOS + Drizzle + TransactionManager
 
+Статус: архитектура реализована; pilot wiring добавлен в Catalog без перевода
+существующих workflows/sagas на `@TransactionalStep()`.
+
 ## Цель
 
 Добавить `@TransactionalStep()` для workflow-методов, которые пишут в PostgreSQL через Drizzle и должны атомарно коммитить:

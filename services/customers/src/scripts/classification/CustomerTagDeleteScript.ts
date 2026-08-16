@@ -22,10 +22,18 @@ export class CustomerTagDeleteScript extends BaseScript<
     if (!tag) {
       return notFound();
     }
+    const customerIds = await this.repository.tag.customerIdsByTagId(params.id);
 
     const deleted = await this.repository.tag.softDelete(params.id);
     if (!deleted) {
       return notFound();
+    }
+    for (const customerId of customerIds) {
+      await this.invalidateDynamicSegments(
+        customerId,
+        ["tag"],
+        `tagDeleted:${params.id}`,
+      );
     }
 
     this.logger.info({ tagId: params.id }, "Customer tag deleted");

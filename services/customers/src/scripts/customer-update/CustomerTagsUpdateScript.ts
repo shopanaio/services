@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CustomerTagsUpdateOperation } from "../../workflows/dto/index.js";
 import {
   internalSectionError,
@@ -16,6 +16,7 @@ export class CustomerTagsUpdateScript extends BaseScript<
   CustomerTagsUpdateParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerTagsUpdateParams
   ): Promise<CustomerSectionResult> {
@@ -48,6 +49,7 @@ export class CustomerTagsUpdateScript extends BaseScript<
       params.operations.tagIds,
       this.context.hasUser ? this.currentUser.id : null
     );
+    await this.invalidateDynamicSegments(params.customerId, ["tag"], "tag");
     return sectionSuccess();
   }
 

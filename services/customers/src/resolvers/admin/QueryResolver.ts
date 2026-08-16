@@ -5,7 +5,11 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
-import type { CustomerConnectionInput } from "../../repositories/customer/CustomerRepository.js";
+import {
+  decodeCustomerIdCursor,
+  encodeCustomerIdCursor,
+  type CustomerConnectionInput,
+} from "../../repositories/customer/CustomerRepository.js";
 import type { CustomerGroupRelayInput } from "../../repositories/classification/CustomerGroupRepository.js";
 import type { CustomerSegmentRelayInput } from "../../repositories/classification/CustomerSegmentRepository.js";
 import type { CustomerTagRelayInput } from "../../repositories/classification/CustomerTagRepository.js";
@@ -34,6 +38,7 @@ import { CustomerResolver } from "./CustomerResolver.js";
 import { CustomerSegmentConnectionResolver } from "./CustomerSegmentConnectionResolver.js";
 import { CustomerSegmentMembershipResolver } from "./CustomerSegmentMembershipResolver.js";
 import { CustomerSegmentResolver } from "./CustomerSegmentResolver.js";
+import { CustomerSegmentPreviewConnectionResolver } from "./CustomerSegmentPreviewConnectionResolver.js";
 import { CustomerTagAssignmentResolver } from "./CustomerTagAssignmentResolver.js";
 import { CustomerTagConnectionResolver } from "./CustomerTagConnectionResolver.js";
 import { CustomerTagResolver } from "./CustomerTagResolver.js";
@@ -41,6 +46,11 @@ import { CustomerTaxExemptionResolver } from "./CustomerTaxExemptionResolver.js"
 import { CustomerTaxIdentifierResolver } from "./CustomerTaxIdentifierResolver.js";
 import { CustomersType } from "./CustomersType.js";
 import type { IAM } from "@shopana/broker-types";
+import { CUSTOMER_SEGMENT_REGISTRY } from "../../segments/registry.js";
+import {
+  resolveSegmentStoreContext,
+  validateCustomerSegmentQuery,
+} from "../../segments/service.js";
 
 @ApolloQuery
 export class QueryResolver extends CustomersType<Record<string, never>> {
@@ -52,6 +62,112 @@ export class QueryResolver extends CustomersType<Record<string, never>> {
 export class CustomersQueryResolver extends CustomersType<
   Record<string, never>
 > {
+  async customerSegmentAttributeCatalog() {
+    await this.assertSegmentReadAccess();
+    return CUSTOMER_SEGMENT_REGISTRY.catalog();
+  }
+
+  async customerSegmentQueryValidate(args: { readonly query: string }) {
+    await this.assertSegmentReadAccess();
+    const storeContext = await resolveSegmentStoreContext(
+      this.$ctx.kernel.repository,
+      this.$ctx.store,
+    );
+    return validateCustomerSegmentQuery(
+      this.$ctx.kernel.repository,
+      args.query,
+      storeContext,
+      new Date().toISOString(),
+    );
+  }
+
+  async customerSegmentPreview(args: {
+    readonly query: string;
+    readonly first?: number | null;
+    readonly after?: string | null;
+  }) {
+    await this.assertSegmentReadAccess();
+    const first = args.first ?? 50;
+    if (!Number.isSafeInteger(first) || first < 1 || first > 100) {
+      throw new GraphQLError("first must be between 1 and 100", {
+        extensions: { code: "BAD_USER_INPUT" },
+      });
+    }
+    const storeContext = await resolveSegmentStoreContext(
+      this.$ctx.kernel.repository,
+      this.$ctx.store,
+    );
+    const effectiveAt = new Date().toISOString();
+    const validation = await validateCustomerSegmentQuery(
+      this.$ctx.kernel.repository,
+      args.query,
+      storeContext,
+      effectiveAt,
+    );
+    if (!validation.valid || !validation.definition) {
+      return {
+        validation,
+        customers: null,
+        totalCount: null,
+        timedOut: false,
+      };
+    }
+    try {
+      const afterCustomerId = args.after ? decodeSegmentPreviewCursor(args.after) : null;
+      const preview = await this.$ctx.kernel.repository.segmentEvaluation.preview({
+        definition: validation.definition,
+        storeContext,
+        effectiveAt,
+        afterCustomerId,
+        limit: first,
+      });
+      const edges = preview.customerIds.map((nodeId) => ({
+        nodeId,
+        cursor: encodeCustomerIdCursor(nodeId),
+      }));
+      const connection = {
+        edges,
+        pageInfo: {
+          hasNextPage: preview.hasNextPage,
+          hasPreviousPage: Boolean(args.after),
+          startCursor: edges[0]?.cursor ?? null,
+          endCursor: edges.at(-1)?.cursor ?? null,
+        },
+        totalCount: preview.totalCount,
+      };
+      return {
+        validation,
+        customers: new CustomerSegmentPreviewConnectionResolver(connection, this.$ctx),
+        totalCount: preview.totalCount,
+        timedOut: false,
+      };
+    } catch (error) {
+      if (isStatementTimeout(error)) {
+        return {
+          validation: {
+            ...validation,
+            diagnostics: [
+              ...validation.diagnostics,
+              {
+                code: "SEGMENT_PREVIEW_TIMEOUT",
+                message: "Segment preview exceeded the two-second budget",
+                severity: "WARNING" as const,
+                startOffset: args.query.length,
+                endOffset: args.query.length,
+                line: args.query.split(/\r\n|\r|\n/u).length,
+                column: (args.query.split(/\r\n|\r|\n/u).at(-1)?.length ?? 0) + 1,
+              },
+            ],
+          },
+          customers: null,
+          totalCount: null,
+          timedOut: true,
+        };
+      }
+      throw error;
+    }
+  }
+
   async customerAccountsSettings() {
     const store = this.$ctx.store;
     const allowed = await this.authProvider.authorize({
@@ -91,6 +207,21 @@ export class CustomersQueryResolver extends CustomersType<
       );
     }
     return result.settings ? toGraphqlCustomerAccountsSettings(result.settings) : null;
+  }
+
+  private async assertSegmentReadAccess(): Promise<void> {
+    const store = this.$ctx.store;
+    const allowed = await this.authProvider.authorize({
+      organizationId: store.organizationId,
+      domain: `store:${store.id}`,
+      resource: "store.data",
+      action: "read",
+    });
+    if (!allowed) {
+      throw new GraphQLError("Customer segments cannot be read", {
+        extensions: { code: "FORBIDDEN" },
+      });
+    }
   }
 
   private safeDecodeId(
@@ -387,4 +518,20 @@ function toGraphqlCustomerAccountsSettings(
       provider: provider.provider.toUpperCase(),
     })),
   };
+}
+
+function isStatementTimeout(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const value = error as { code?: unknown; cause?: unknown };
+  return value.code === "57014" || isStatementTimeout(value.cause);
+}
+
+function decodeSegmentPreviewCursor(cursor: string): string {
+  try {
+    return decodeCustomerIdCursor(cursor);
+  } catch {
+    throw new GraphQLError("Invalid customer segment preview cursor", {
+      extensions: { code: "BAD_USER_INPUT" },
+    });
+  }
 }

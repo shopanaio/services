@@ -201,6 +201,7 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
         result.affectedCustomerIds,
         "segment"
       );
+      await this.startMaterialization(input, result.segment.id);
     }
     return {
       ...result,
@@ -214,6 +215,23 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
       CustomerSegmentUpdateScript,
       input.params,
       this.toScriptContext(input.context)
+    );
+  }
+
+  @WorkflowStep()
+  private startMaterialization(
+    input: CustomerSegmentUpdateWorkflowInput,
+    segmentId: string,
+  ) {
+    return this.broker.startWorkflow(
+      "customers.customerSegmentMaterialize",
+      { context: this.toScriptContext(input.context) },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "startCustomerSegmentMaterialization",
+        callId: `${segmentId}:${input.params.expectedRevision}`,
+      },
     );
   }
 }

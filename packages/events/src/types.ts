@@ -902,6 +902,20 @@ export interface StoreCreatedEvent
     }
   > {}
 
+export interface StoreConfigurationUpdatedEvent
+  extends DomainEvent<
+    "storeConfigurationUpdated",
+    {
+      schemaVersion: 1;
+      storeId: string;
+      configurationRevision: number;
+      currencyCode: string;
+      currencyExponent: number;
+      timeZone: string;
+      occurredAt: string;
+    }
+  > {}
+
 export interface StoreDeletedEvent
   extends DomainEvent<
     "storeDeleted",
@@ -971,6 +985,7 @@ export type ShopanaEvent =
   | LoyaltyPointsRestoredEvent
   | LoyaltyPointsAdjustedEvent
   | StoreCreatedEvent
+  | StoreConfigurationUpdatedEvent
   | StoreDeletedEvent
   | FileHardDeletedEvent
   | NotificationDomainEvent;

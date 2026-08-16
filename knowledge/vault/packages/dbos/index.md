@@ -33,6 +33,7 @@ Durable workflow and saga framework built on DBOS SDK with automatic compensatio
 | Topic | Description |
 |-------|-------------|
 | [[dbos/workflows]] | BaseWorkflow, @Workflow, @WorkflowStep decorators |
+| [[dbos/transactional-steps]] | Atomic database writes and DBOS checkpoints |
 | [[dbos/sagas]] | BaseSaga, @Saga, @SagaStep, automatic compensation |
 | [[dbos/registry]] | WorkflowRegistry for starting and monitoring workflows |
 | [[dbos/idempotency]] | Three idempotency strategies (client, workflow, content) |
@@ -70,6 +71,8 @@ import {
   BaseSaga,
   Workflow,
   WorkflowStep,
+  TransactionalStep,
+  PostgresDbosTransactionBridge,
   Saga,
   SagaStep,
 } from "@shopana/dbos";

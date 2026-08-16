@@ -40,6 +40,9 @@ CREATE TABLE "customers"."customer_consent" (
 CREATE INDEX "customer_consent_store_state_idx"
   ON "customers"."customer_consent" ("store_id", "channel", "state", "customer_id");
 
+CREATE INDEX "customer_consent_store_customer_channel_idx"
+  ON "customers"."customer_consent" ("store_id", "customer_id", "channel");
+
 CREATE INDEX "customer_consent_customer_idx"
   ON "customers"."customer_consent" ("customer_id");
 

@@ -15,7 +15,10 @@ CREATE TABLE "customers"."customer_address" (
   "city" varchar(128) NOT NULL,
   "region_name" varchar(128),
   "region_code" varchar(64),
+  "region_key" varchar(8),
+  "city_key" varchar(160) NOT NULL,
   "postal_code" varchar(32),
+  "postal_code_normalized" varchar(32),
   "country_code" char(2) NOT NULL,
   "is_default_shipping" boolean NOT NULL DEFAULT false,
   "is_default_billing" boolean NOT NULL DEFAULT false,
@@ -63,5 +66,37 @@ CREATE INDEX "customer_address_customer_idx"
   ON "customers"."customer_address" ("customer_id");
 
 CREATE INDEX "customer_address_store_geography_idx"
-  ON "customers"."customer_address" ("store_id", "country_code", "region_code", "city")
+  ON "customers"."customer_address" ("store_id", "country_code", "region_key", "city_key")
   WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_address_store_country_customer_idx"
+  ON "customers"."customer_address" ("store_id", "country_code", "customer_id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_address_store_customer_country_idx"
+  ON "customers"."customer_address" ("store_id", "customer_id", "country_code")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_address_store_region_customer_idx"
+  ON "customers"."customer_address" ("store_id", "region_key", "customer_id")
+  WHERE "deleted_at" IS NULL AND "region_key" IS NOT NULL;
+
+CREATE INDEX "customer_address_store_customer_region_idx"
+  ON "customers"."customer_address" ("store_id", "customer_id", "region_key")
+  WHERE "deleted_at" IS NULL AND "region_key" IS NOT NULL;
+
+CREATE INDEX "customer_address_store_city_customer_idx"
+  ON "customers"."customer_address" ("store_id", "city_key", "customer_id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_address_store_customer_city_idx"
+  ON "customers"."customer_address" ("store_id", "customer_id", "city_key")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_address_store_postal_customer_idx"
+  ON "customers"."customer_address" ("store_id", "postal_code_normalized", "customer_id")
+  WHERE "deleted_at" IS NULL AND "postal_code_normalized" IS NOT NULL;
+
+CREATE INDEX "customer_address_store_customer_postal_idx"
+  ON "customers"."customer_address" ("store_id", "customer_id", "postal_code_normalized")
+  WHERE "deleted_at" IS NULL AND "postal_code_normalized" IS NOT NULL;

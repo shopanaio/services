@@ -65,7 +65,7 @@ export interface StoreCreateOutput {
  * 3. Create store roles
  * 4. Assign admin role to creator
  * 5. Create media asset group
- * 6. Emit storeCreated event
+ * 6. Emit storeCreated and initial storeConfigurationUpdated events
  */
 @Injectable()
 export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOutput> {
@@ -96,6 +96,7 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     await this.workflowAssignAdminRole(storeId, input, workflowContext);
     await this.createMediaAssetGroup(storeId);
     await this.emitStoreCreated(storeId, input);
+    await this.emitStoreConfigurationUpdated(storeId, input);
     return { storeId, organizationId: input.organizationId };
   }
 
@@ -235,6 +236,41 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
     );
   }
 
+  private async emitStoreConfigurationUpdated(
+    id: string,
+    input: StoreCreateInput,
+  ): Promise<void> {
+    const occurredAt = new Date().toISOString();
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "storeConfigurationUpdated",
+        payload: {
+          schemaVersion: 1,
+          storeId: id,
+          configurationRevision: 0,
+          currencyCode: input.currencyCode,
+          currencyExponent: currencyExponent(input.currencyCode),
+          timeZone: input.timezone ?? "UTC",
+          occurredAt,
+        },
+        context: {
+          organizationId: input.organizationId,
+          userId: input.userId,
+        },
+        subject: { type: "store", id },
+        actor: { type: "user", id: input.userId },
+        emitKey: `store:${id}`,
+      },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "emitStoreConfigurationUpdated",
+        callId: id,
+      },
+    );
+  }
+
   async compensateCreateStore(id: string): Promise<void> {
     await this.kernel.repository.store.delete(id);
     this.logger.log({ storeId: id }, "Compensated: deleted store");
@@ -254,4 +290,11 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");
     }
   }
+}
+
+function currencyExponent(currencyCode: string): number {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currencyCode,
+  }).resolvedOptions().maximumFractionDigits;
 }

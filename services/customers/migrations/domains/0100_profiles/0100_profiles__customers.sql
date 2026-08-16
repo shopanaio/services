@@ -8,6 +8,7 @@ CREATE TABLE "customers"."customer" (
   "account_status" "customers"."customer_account_status" NOT NULL DEFAULT 'GUEST',
   "email" varchar(320),
   "normalized_email" varchar(320),
+  "email_domain_normalized" varchar(255),
   "email_verified" boolean NOT NULL DEFAULT false,
   "phone_e164" varchar(32),
   "phone_verified" boolean NOT NULL DEFAULT false,
@@ -17,9 +18,12 @@ CREATE TABLE "customers"."customer" (
   "last_name" varchar(128),
   "suffix" varchar(32),
   "preferred_locale" varchar(35),
+  "preferred_locale_normalized" varchar(35),
   "date_of_birth" date,
+  "birthday_month_day" varchar(4),
   "gender" varchar(32),
   "company_name" varchar(255),
+  "company_name_normalized" varchar(255),
   "job_title" varchar(255),
   "note" text,
   "blocked_reason" text,
@@ -39,7 +43,16 @@ CREATE TABLE "customers"."customer" (
     REFERENCES "customers"."customer" ("id")
     ON DELETE RESTRICT,
   CONSTRAINT "customer_email_projection_check"
-    CHECK (("email" IS NULL) = ("normalized_email" IS NULL)),
+    CHECK (
+      ("email" IS NULL) = ("normalized_email" IS NULL)
+      AND ("email" IS NULL) = ("email_domain_normalized" IS NULL)
+    ),
+  CONSTRAINT "customer_birthday_month_day_check"
+    CHECK (
+      ("date_of_birth" IS NULL AND "birthday_month_day" IS NULL)
+      OR
+      ("date_of_birth" IS NOT NULL AND "birthday_month_day" ~ '^(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$')
+    ),
   CONSTRAINT "customer_iam_principal_status_check"
     CHECK (
       ("iam_principal_id" IS NULL AND "iam_principal_status" IS NULL)
@@ -106,6 +119,10 @@ CREATE UNIQUE INDEX "customer_store_email_unique"
 CREATE INDEX "customer_store_status_created_idx"
   ON "customers"."customer" ("store_id", "lifecycle_status", "created_at" DESC, "id");
 
+CREATE INDEX "customer_store_lifecycle_status_idx"
+  ON "customers"."customer" ("store_id", "lifecycle_status", "id")
+  WHERE "deleted_at" IS NULL;
+
 CREATE INDEX "customer_store_account_status_idx"
   ON "customers"."customer" ("store_id", "account_status", "id")
   WHERE "deleted_at" IS NULL;
@@ -130,3 +147,50 @@ CREATE INDEX "customer_store_activity_idx"
 CREATE INDEX "customer_merge_target_idx"
   ON "customers"."customer" ("merged_into_customer_id")
   WHERE "merged_into_customer_id" IS NOT NULL;
+
+CREATE INDEX "customer_store_root_scan_idx"
+  ON "customers"."customer" ("store_id", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE UNIQUE INDEX "customer_store_id_unique"
+  ON "customers"."customer" ("store_id", "id");
+
+CREATE INDEX "customer_store_email_domain_idx"
+  ON "customers"."customer" ("store_id", "email_domain_normalized", "id")
+  WHERE "deleted_at" IS NULL AND "email_domain_normalized" IS NOT NULL;
+
+CREATE INDEX "customer_store_locale_idx"
+  ON "customers"."customer" ("store_id", "preferred_locale_normalized", "id")
+  WHERE "deleted_at" IS NULL AND "preferred_locale_normalized" IS NOT NULL;
+
+CREATE INDEX "customer_store_company_idx"
+  ON "customers"."customer" ("store_id", "company_name_normalized", "id")
+  WHERE "deleted_at" IS NULL AND "company_name_normalized" IS NOT NULL;
+
+CREATE INDEX "customer_store_source_idx"
+  ON "customers"."customer" ("store_id", "source", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_created_idx"
+  ON "customers"."customer" ("store_id", "created_at", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_updated_idx"
+  ON "customers"."customer" ("store_id", "updated_at", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_birth_date_idx"
+  ON "customers"."customer" ("store_id", "date_of_birth", "id")
+  WHERE "deleted_at" IS NULL AND "date_of_birth" IS NOT NULL;
+
+CREATE INDEX "customer_store_birthday_idx"
+  ON "customers"."customer" ("store_id", "birthday_month_day", "id")
+  WHERE "deleted_at" IS NULL AND "birthday_month_day" IS NOT NULL;
+
+CREATE INDEX "customer_store_email_verified_idx"
+  ON "customers"."customer" ("store_id", "email_verified", "id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_store_phone_verified_idx"
+  ON "customers"."customer" ("store_id", "phone_verified", "id")
+  WHERE "deleted_at" IS NULL;

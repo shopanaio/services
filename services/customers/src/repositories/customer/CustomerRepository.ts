@@ -27,9 +27,17 @@ import {
   customer,
   customerListView,
   customerSegmentMembership,
+  customerSegment,
   type Customer,
   type NewCustomer,
 } from "../models/index.js";
+import {
+  normalizeBirthdayMonthDay,
+  normalizeCustomerSource,
+  normalizeEmailDomain,
+  normalizePreferredLocale,
+  normalizeUnicodeSearchValue,
+} from "../../segments/normalization.js";
 
 const customerQuery = createQuery(customer)
   .mapWhereFields({
@@ -162,6 +170,28 @@ export type CustomerRevisionAcquireResult =
   | { status: "conflict"; actualRevision: number };
 
 export class CustomerRepository extends BaseRepository {
+  @ReadOnly()
+  async scanIds(
+    afterCursor: string | null,
+    limit: number,
+  ): Promise<readonly string[]> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
+      throw new Error("Customer scan limit must be between 1 and 500");
+    }
+    const afterId = afterCursor ? decodeCustomerIdCursor(afterCursor) : null;
+    const rows = await this.connection
+      .select({ id: customer.id })
+      .from(customer)
+      .where(and(
+        eq(customer.storeId, this.storeId),
+        isNull(customer.deletedAt),
+        afterId ? sql`${customer.id} > ${afterId}::uuid` : undefined,
+      ))
+      .orderBy(customer.id)
+      .limit(limit);
+    return rows.map((row) => row.id);
+  }
+
   private get currency(): string {
     return this.ctx.currency ?? this.ctx.store.currencyCode;
   }
@@ -286,6 +316,7 @@ export class CustomerRepository extends BaseRepository {
     const email = data.email?.trim() || null;
     const row: NewCustomer = {
       ...data,
+      ...customerNormalizationProjection(data, email),
       id,
       storeId: this.storeId,
       email,
@@ -293,7 +324,7 @@ export class CustomerRepository extends BaseRepository {
       accountStatus: data.accountStatus ?? "GUEST",
       emailVerified: data.emailVerified ?? false,
       phoneVerified: data.phoneVerified ?? false,
-      source: data.source ?? "unknown",
+      source: normalizeCustomerSource(data.source),
       revision: 0,
       createdAt: now,
       updatedAt: now,
@@ -309,6 +340,7 @@ export class CustomerRepository extends BaseRepository {
     const email = data.email?.trim() || null;
     const row: NewCustomer = {
       ...data,
+      ...customerNormalizationProjection(data, email),
       id,
       storeId: this.storeId,
       email,
@@ -316,7 +348,7 @@ export class CustomerRepository extends BaseRepository {
       accountStatus: data.accountStatus ?? "GUEST",
       emailVerified: data.emailVerified ?? false,
       phoneVerified: data.phoneVerified ?? false,
-      source: data.source ?? "unknown",
+      source: normalizeCustomerSource(data.source),
       revision: 0,
       createdAt: now,
       updatedAt: now,
@@ -352,6 +384,7 @@ export class CustomerRepository extends BaseRepository {
         accountStatus: "REGISTERED",
         email: data.email.trim(),
         normalizedEmail: normalizeEmail(data.email),
+        emailDomainNormalized: normalizeEmailDomain(data.email),
         emailVerified: data.emailVerified,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -380,6 +413,7 @@ export class CustomerRepository extends BaseRepository {
     const now = new Date().toISOString();
     const update = {
       ...patch,
+      ...customerPatchNormalizationProjection(patch),
       updatedAt: now,
       revision: sql`${customer.revision} + 1`,
     };
@@ -389,6 +423,7 @@ export class CustomerRepository extends BaseRepository {
       Object.assign(update, {
         email,
         normalizedEmail: email ? normalizeEmail(email) : null,
+        emailDomainNormalized: normalizeEmailDomain(email),
         ...(email === null ? { emailVerified: false } : {}),
       });
     }
@@ -439,10 +474,12 @@ export class CustomerRepository extends BaseRepository {
       .update(customer)
       .set({
         ...correction,
+        ...customerPatchNormalizationProjection(correction),
         ...(email !== undefined
           ? {
               email,
               normalizedEmail: email ? normalizeEmail(email) : null,
+              emailDomainNormalized: normalizeEmailDomain(email),
               emailVerified: false,
             }
           : {}),
@@ -475,6 +512,7 @@ export class CustomerRepository extends BaseRepository {
         accountStatus: "GUEST",
         email: null,
         normalizedEmail: null,
+        emailDomainNormalized: null,
         emailVerified: false,
         phoneE164: null,
         phoneVerified: false,
@@ -484,9 +522,12 @@ export class CustomerRepository extends BaseRepository {
         lastName: null,
         suffix: null,
         preferredLocale: null,
+        preferredLocaleNormalized: null,
         dateOfBirth: null,
+        birthdayMonthDay: null,
         gender: null,
         companyName: null,
+        companyNameNormalized: null,
         jobTitle: null,
         note: null,
         blockedReason: null,
@@ -552,6 +593,7 @@ export class CustomerRepository extends BaseRepository {
   ): Promise<Customer | null> {
     const update: Record<string, unknown> = {
       ...patch,
+      ...customerPatchNormalizationProjection(patch),
       updatedAt: new Date().toISOString(),
     };
 
@@ -560,6 +602,7 @@ export class CustomerRepository extends BaseRepository {
       Object.assign(update, {
         email,
         normalizedEmail: email ? normalizeEmail(email) : null,
+        emailDomainNormalized: normalizeEmailDomain(email),
         ...(email === null ? { emailVerified: false } : {}),
       });
     }
@@ -733,10 +776,39 @@ export class CustomerRepository extends BaseRepository {
     const rows = await this.connection
       .selectDistinct({ customerId: customerSegmentMembership.customerId })
       .from(customerSegmentMembership)
+      .innerJoin(
+        customerSegment,
+        and(
+          eq(customerSegment.storeId, customerSegmentMembership.storeId),
+          eq(customerSegment.id, customerSegmentMembership.segmentId),
+          eq(customerSegment.status, "ACTIVE"),
+          isNull(customerSegment.deletedAt),
+          or(
+            and(
+              eq(customerSegment.type, "MANUAL"),
+              sql`${customerSegmentMembership.source} <> 'RULE'`,
+            ),
+            and(
+              eq(customerSegment.type, "DYNAMIC"),
+              eq(customerSegment.materializationStatus, "READY"),
+              eq(customerSegmentMembership.source, "RULE"),
+              eq(
+                customerSegmentMembership.evaluatedDefinitionRevision,
+                customerSegment.definitionRevision,
+              ),
+              eq(
+                customerSegmentMembership.evaluatedGeneration,
+                customerSegment.evaluationGeneration,
+              ),
+            ),
+          ),
+        ),
+      )
       .where(
         and(
           eq(customerSegmentMembership.storeId, this.storeId),
           active,
+          sql`${customerSegmentMembership.evaluatedAt} <= transaction_timestamp()`,
           segmentIds && segmentIds.length > 0
             ? inArray(customerSegmentMembership.segmentId, [...segmentIds])
             : undefined
@@ -750,10 +822,78 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function customerNormalizationProjection(
+  data: Pick<CustomerCreateData, "preferredLocale" | "dateOfBirth" | "companyName">,
+  email: string | null,
+) {
+  return {
+    emailDomainNormalized: normalizeEmailDomain(email),
+    preferredLocaleNormalized: normalizePreferredLocale(data.preferredLocale),
+    birthdayMonthDay: normalizeBirthdayMonthDay(data.dateOfBirth),
+    companyNameNormalized: data.companyName?.trim()
+      ? normalizeUnicodeSearchValue(data.companyName)
+      : null,
+  };
+}
+
+function customerPatchNormalizationProjection(
+  patch: Partial<Pick<NewCustomer, "preferredLocale" | "dateOfBirth" | "companyName" | "source">>,
+): Record<string, unknown> {
+  return {
+    ...(patch.preferredLocale !== undefined
+      ? { preferredLocaleNormalized: normalizePreferredLocale(patch.preferredLocale) }
+      : {}),
+    ...(patch.dateOfBirth !== undefined
+      ? { birthdayMonthDay: normalizeBirthdayMonthDay(patch.dateOfBirth) }
+      : {}),
+    ...(patch.companyName !== undefined
+      ? {
+          companyNameNormalized: patch.companyName?.trim()
+            ? normalizeUnicodeSearchValue(patch.companyName)
+            : null,
+        }
+      : {}),
+    ...(patch.source !== undefined ? { source: normalizeCustomerSource(patch.source) } : {}),
+  };
+}
+
 function decodeSegmentId(id: string): string {
   try {
     return decodeGlobalIdByType(id, GlobalIdEntity.CustomerSegment);
   } catch {
     return id;
+  }
+}
+
+export function encodeCustomerIdCursor(customerId: string): string {
+  assertCustomerId(customerId);
+  return Buffer.from(
+    JSON.stringify({ version: 1, customerId: customerId.toLowerCase() }),
+    "utf8",
+  ).toString("base64url");
+}
+
+export function decodeCustomerIdCursor(cursor: string): string {
+  try {
+    const value = JSON.parse(
+      Buffer.from(cursor, "base64url").toString("utf8"),
+    ) as unknown;
+    if (
+      !value ||
+      typeof value !== "object" ||
+      (value as { version?: unknown }).version !== 1 ||
+      typeof (value as { customerId?: unknown }).customerId !== "string"
+    ) throw new Error("invalid");
+    const customerId = (value as { customerId: string }).customerId;
+    assertCustomerId(customerId);
+    return customerId.toLowerCase();
+  } catch {
+    throw new Error("Invalid customer ID cursor");
+  }
+}
+
+function assertCustomerId(customerId: string): void {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(customerId)) {
+    throw new Error("Invalid customer ID cursor value");
   }
 }

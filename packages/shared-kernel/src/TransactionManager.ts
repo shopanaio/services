@@ -173,6 +173,45 @@ export class TransactionManager<
   }
 
   /**
+   * Execute a function with a transaction whose lifecycle is owned externally.
+   *
+   * This is used by DBOS datasource transactions: DBOS opens and commits or
+   * rolls back the transaction, while repositories continue to resolve the
+   * active connection through this manager.
+   *
+   * The method never calls db.transaction(). Nested calls may reuse the exact
+   * same transaction object, but replacing an active transaction is rejected.
+   */
+  async runWithExistingTransaction<TResult>(
+    tx: TTransaction,
+    fn: () => Promise<TResult>
+  ): Promise<TResult> {
+    const existingStore = this.transactionStorage.getStore();
+
+    if (existingStore) {
+      if (existingStore.tx !== tx) {
+        throw new Error(
+          "Cannot replace the active transaction with a different transaction"
+        );
+      }
+
+      existingStore.depth++;
+      try {
+        return await fn();
+      } finally {
+        existingStore.depth--;
+      }
+    }
+
+    const store: TransactionStore<TTransaction> = {
+      tx,
+      depth: 1,
+    };
+
+    return await this.transactionStorage.run(store, fn);
+  }
+
+  /**
    * Execute function WITHOUT transaction (directly to db)
    * Used for read-only operations or when transaction is not needed
    */

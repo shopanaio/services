@@ -142,6 +142,13 @@ export class CustomerTagUpdateScript extends BaseScript<
         }
       }
       this.logger.info({ tagId: tag.id }, "Customer tag updated");
+      for (const customerId of [...affectedCustomerIds].sort()) {
+        await this.invalidateDynamicSegments(
+          customerId,
+          ["tag"],
+          `tag:${params.id}`,
+        );
+      }
       return {
         tag: { id: tag.id },
         affectedCustomerIds: [...affectedCustomerIds],

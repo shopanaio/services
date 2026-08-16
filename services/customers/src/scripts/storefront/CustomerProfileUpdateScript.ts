@@ -94,6 +94,11 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
         changed
       );
       if (!updated) throw new Error("Acquired customer could not be updated");
+      await this.invalidateDynamicSegments(
+        params.customerId,
+        ["profile", "contact"],
+        "storefrontProfile",
+      );
     }
 
     return {

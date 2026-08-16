@@ -45,7 +45,11 @@ CREATE UNIQUE INDEX "customer_tax_identifier_primary_unique"
   WHERE "is_primary" = true AND "deleted_at" IS NULL;
 
 CREATE INDEX "customer_tax_identifier_store_customer_idx"
-  ON "customers"."customer_tax_identifier" ("store_id", "customer_id")
+  ON "customers"."customer_tax_identifier" ("store_id", "customer_id", "status", "valid_from", "valid_to")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_tax_identifier_store_status_validity_idx"
+  ON "customers"."customer_tax_identifier" ("store_id", "status", "valid_from", "valid_to", "customer_id")
   WHERE "deleted_at" IS NULL;
 
 CREATE TABLE "customers"."customer_tax_exemption" (
@@ -86,8 +90,22 @@ CREATE UNIQUE INDEX "customer_tax_exemption_active_unique"
   WHERE "deleted_at" IS NULL;
 
 CREATE INDEX "customer_tax_exemption_store_customer_idx"
-  ON "customers"."customer_tax_exemption" ("store_id", "customer_id", "status")
+  ON "customers"."customer_tax_exemption" ("store_id", "customer_id", "status", "valid_from", "valid_to")
   WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_tax_exemption_store_status_validity_idx"
+  ON "customers"."customer_tax_exemption" ("store_id", "status", "valid_from", "valid_to", "customer_id")
+  WHERE "deleted_at" IS NULL;
+
+CREATE INDEX "customer_tax_exemption_store_country_validity_idx"
+  ON "customers"."customer_tax_exemption" ("store_id", "country_code", "valid_from", "valid_to", "customer_id")
+  WHERE "deleted_at" IS NULL AND "country_code" IS NOT NULL;
+
+CREATE INDEX "customer_tax_exemption_store_customer_country_validity_idx"
+  ON "customers"."customer_tax_exemption" (
+    "store_id", "customer_id", "country_code", "valid_from", "valid_to"
+  )
+  WHERE "deleted_at" IS NULL AND "country_code" IS NOT NULL;
 
 CREATE INDEX "customer_tax_exemption_certificate_idx"
   ON "customers"."customer_tax_exemption" ("certificate_file_id")

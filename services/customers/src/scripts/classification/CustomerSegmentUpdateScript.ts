@@ -9,6 +9,11 @@ import type {
   CustomerSegment,
   CustomerSegmentMembership,
 } from "../../repositories/models/index.js";
+import {
+  SegmentStoreContextNotReadyError,
+  resolveSegmentStoreContext,
+  validateCustomerSegmentQuery,
+} from "../../segments/service.js";
 
 export interface CustomerSegmentUpdateParams {
   id: string;
@@ -20,9 +25,7 @@ export interface CustomerSegmentUpdateParams {
       color?: string | null;
     };
     definition?: {
-      type?: CustomerSegment["type"] | null;
-      query?: string | null;
-      definition?: Record<string, unknown> | null;
+      query: string;
     };
     state?: {
       status?: CustomerSegment["status"] | null;
@@ -62,11 +65,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
     const byMembershipId = new Map<string, CustomerSegmentMembership>();
 
     if (memberships) {
-      const definition = params.operations.definition;
-      const nextType = definition && hasOwn(definition, "type")
-        ? definition.type
-        : current.type;
-      if (nextType !== "MANUAL") {
+      if (current.type !== "MANUAL") {
         errors.push({
           message: "Only manual segments can have explicit customer memberships",
           code: "SEGMENT_NOT_MANUAL",
@@ -213,7 +212,67 @@ export class CustomerSegmentUpdateScript extends BaseScript<
     }
 
     const patch = segmentPatch(params.operations);
+    if (params.operations.definition) {
+      if (current.type !== "DYNAMIC") {
+        return {
+          segment: undefined,
+          affectedCustomerIds: [...affectedCustomerIds],
+          userErrors: [{
+            message: "Only a dynamic segment can update its query",
+            code: "SEGMENT_QUERY_NOT_ALLOWED",
+            field: ["definition", "query"],
+            diagnostic: null,
+          }],
+        };
+      }
+      try {
+        const storeContext = await resolveSegmentStoreContext(
+          this.repository,
+          this.context.store,
+        );
+        const validation = await validateCustomerSegmentQuery(
+          this.repository,
+          params.operations.definition.query,
+          storeContext,
+          new Date().toISOString(),
+        );
+        if (!validation.valid || !validation.definition || !validation.canonicalQuery) {
+          return {
+            segment: undefined,
+            affectedCustomerIds: [...affectedCustomerIds],
+            userErrors: validation.diagnostics
+              .filter((diagnostic) => diagnostic.severity === "ERROR")
+              .map((diagnostic) => ({
+                message: diagnostic.message,
+                code: diagnostic.code,
+                field: ["definition", "query"],
+                diagnostic,
+              })),
+          };
+        }
+        patch.query = validation.canonicalQuery;
+        patch.definition = validation.definition as unknown as Record<string, unknown>;
+      } catch (error) {
+        if (error instanceof SegmentStoreContextNotReadyError) {
+          return {
+            segment: undefined,
+            affectedCustomerIds: [...affectedCustomerIds],
+            userErrors: [{
+              message: error.message,
+              code: error.code,
+              field: ["definition", "query"],
+              diagnostic: null,
+            }],
+          };
+        }
+        throw error;
+      }
+    }
     const definitionChanged = hasDefinitionChanged(current, patch);
+    const materializationChanged =
+      current.type === "DYNAMIC" &&
+      (definitionChanged ||
+        (patch.status === "ACTIVE" && current.status !== "ACTIVE"));
 
     try {
       const result = await this.repository.segment.updateWithMemberships(
@@ -221,9 +280,16 @@ export class CustomerSegmentUpdateScript extends BaseScript<
         patch,
         memberships ? membershipPatch(memberships) : undefined,
         params.expectedRevision,
-        definitionChanged
+        definitionChanged,
+        materializationChanged,
       );
       if (!result) return revisionConflict();
+      if (materializationChanged) {
+        await this.repository.segmentMaterialization.schedule(
+          result.segment,
+          new Date().toISOString(),
+        );
+      }
       this.logger.info(
         { segmentId: result.segment.id, revision: result.segment.revision },
         "Customer segment updated"
@@ -267,19 +333,9 @@ function validateSegment(
   const state = operations.state;
   const name = details && hasOwn(details, "name") ? details.name : current.name;
   const color = details && hasOwn(details, "color") ? details.color : current.color;
-  const type = definitionSection && hasOwn(definitionSection, "type")
-    ? definitionSection.type
-    : current.type;
   const status = state && hasOwn(state, "status")
     ? state.status
     : current.status;
-  const query = definitionSection && hasOwn(definitionSection, "query")
-    ? definitionSection.query
-    : current.query;
-  const definitionValue = definitionSection && hasOwn(definitionSection, "definition")
-    ? definitionSection.definition ?? {}
-    : current.definition;
-  const definition = isRecord(definitionValue) ? definitionValue : {};
 
   if (!name || name.trim().length === 0) {
     errors.push({
@@ -295,30 +351,18 @@ function validateSegment(
       field: ["details", "color"],
     });
   }
-  if (type == null || status == null) {
+  if (status == null) {
     errors.push({
-      message: "Segment type and status cannot be null",
+      message: "Segment status cannot be null",
       code: "INVALID_VALUE",
-      field: type == null ? ["definition", "type"] : ["state", "status"],
+      field: ["state", "status"],
     });
   }
-  if (type === "DYNAMIC" && !query?.trim() && Object.keys(definition).length === 0) {
+  if (definitionSection && !definitionSection.query.trim()) {
     errors.push({
-      message: "A dynamic segment requires a query or definition",
-      code: "MISSING_SEGMENT_DEFINITION",
-      field: ["definition", "definition"],
-    });
-  }
-  if (
-    definitionSection &&
-    hasOwn(definitionSection, "definition") &&
-    definitionSection.definition !== null &&
-    !isRecord(definitionSection.definition)
-  ) {
-    errors.push({
-      message: "Segment definition must be a JSON object",
-      code: "INVALID_DEFINITION",
-      field: ["definition", "definition"],
+      message: "A dynamic segment requires a non-empty query",
+      code: "SEGMENT_QUERY_REQUIRED",
+      field: ["definition", "query"],
     });
   }
   return errors;
@@ -336,16 +380,7 @@ function segmentPatch(
   }
   const definition = operations.definition;
   if (definition) {
-    for (const field of ["type", "query", "definition"] as const) {
-      if (!hasOwn(definition, field)) continue;
-      const value =
-        field === "query" && typeof definition[field] === "string"
-          ? definition[field]?.trim() || null
-          : field === "definition" && definition[field] === null
-          ? {}
-          : definition[field];
-      Object.assign(patch, { [field]: value });
-    }
+    patch.query = definition.query.trim();
   }
   const state = operations.state;
   if (state && hasOwn(state, "status")) {
@@ -358,14 +393,12 @@ function hasDefinitionChanged(
   current: CustomerSegment,
   patch: CustomerSegmentPatch
 ): boolean {
-  const nextType = patch.type ?? current.type;
   const nextQuery = hasOwn(patch, "query") ? patch.query ?? null : current.query;
   const nextDefinition = hasOwn(patch, "definition")
     ? patch.definition ?? {}
     : current.definition;
 
   return (
-    nextType !== current.type ||
     nextQuery !== current.query ||
     canonicalJson(nextDefinition) !== canonicalJson(current.definition)
   );
@@ -463,10 +496,6 @@ function duplicateNameError(): UserError {
     code: "DUPLICATE_SEGMENT_NAME",
     field: ["name"],
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function hasOwn(value: object, field: PropertyKey): boolean {

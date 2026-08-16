@@ -79,6 +79,14 @@ type CustomersQuery {
     orderBy: [CustomerSegmentOrderByInput!]
   ): CustomerSegmentConnection!
 
+  customerSegmentQueryValidate(query: String!): CustomerSegmentQueryValidationResult!
+  customerSegmentPreview(
+    query: String!
+    first: Int = 50
+    after: String
+  ): CustomerSegmentPreview!
+  customerSegmentAttributeCatalog: [CustomerSegmentAttributeDescriptor!]!
+
   customerMerge(id: ID!): CustomerMerge
   customerMerges(
     first: Int

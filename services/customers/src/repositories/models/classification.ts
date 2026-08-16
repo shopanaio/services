@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -16,6 +17,7 @@ import { customer } from "./profiles.js";
 import {
   assignmentSourceEnum,
   customerSegmentStatusEnum,
+  customerSegmentMaterializationStatusEnum,
   customerSegmentTypeEnum,
   customersSchema,
 } from "./schema.js";
@@ -109,6 +111,18 @@ export const customerGroupMembership = customersSchema.table(
       table.customerId
     ),
     index("customer_group_membership_customer_idx").on(table.customerId),
+    index("customer_group_membership_store_customer_group_idx").on(
+      table.storeId,
+      table.customerId,
+      table.groupId,
+      table.expiresAt
+    ),
+    index("customer_group_membership_store_group_expiry_idx").on(
+      table.storeId,
+      table.groupId,
+      table.expiresAt,
+      table.customerId
+    ),
   ]
 );
 
@@ -171,6 +185,11 @@ export const customerTagAssignment = customersSchema.table(
       table.customerId
     ),
     index("customer_tag_assignment_customer_idx").on(table.customerId),
+    index("customer_tag_assignment_store_customer_tag_idx").on(
+      table.storeId,
+      table.customerId,
+      table.tagId
+    ),
   ]
 );
 
@@ -189,6 +208,10 @@ export const customerSegment = customersSchema.table(
     createdById: text("created_by_id"),
     revision: integer("revision").notNull().default(0),
     definitionRevision: integer("definition_revision").notNull().default(0),
+    evaluationGeneration: integer("evaluation_generation").notNull().default(0),
+    materializationStatus: customerSegmentMaterializationStatusEnum(
+      "materialization_status"
+    ),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -204,7 +227,13 @@ export const customerSegment = customersSchema.table(
     ),
     check(
       "customer_segment_dynamic_definition_check",
-      sql`${table.type} <> 'DYNAMIC' OR ${table.query} IS NOT NULL OR ${table.definition} <> '{}'::jsonb`
+      sql`(${table.type} = 'DYNAMIC'
+          AND length(btrim(${table.query})) > 0
+          AND ${table.definition} <> '{}'::jsonb
+          AND ${table.definition} ->> 'version' = '1')
+        OR (${table.type} = 'MANUAL'
+          AND ${table.query} IS NULL
+          AND ${table.definition} = '{}'::jsonb)`
     ),
     check(
       "customer_segment_color_check",
@@ -218,9 +247,19 @@ export const customerSegment = customersSchema.table(
       "customer_segment_definition_revision_nonnegative_check",
       sql`${table.definitionRevision} >= 0`
     ),
+    check(
+      "customer_segment_evaluation_generation_nonnegative_check",
+      sql`${table.evaluationGeneration} >= 0`
+    ),
+    check(
+      "customer_segment_materialization_type_check",
+      sql`(${table.type} = 'DYNAMIC' AND ${table.materializationStatus} IS NOT NULL)
+        OR (${table.type} = 'MANUAL' AND ${table.materializationStatus} IS NULL AND ${table.evaluationGeneration} = 0)`
+    ),
     uniqueIndex("customer_segment_store_name_unique")
       .on(table.storeId, sql`lower(${table.name})`)
       .where(sql`${table.deletedAt} IS NULL`),
+    uniqueIndex("customer_segment_store_id_unique").on(table.storeId, table.id),
     index("customer_segment_store_status_idx")
       .on(table.storeId, table.status, table.type, table.id)
       .where(sql`${table.deletedAt} IS NULL`),
@@ -246,12 +285,23 @@ export const customerSegmentMembership = customersSchema.table(
       .notNull()
       .defaultNow(),
     evaluatedDefinitionRevision: integer("evaluated_definition_revision"),
+    evaluatedGeneration: integer("evaluated_generation"),
     expiresAt: timestamp("expires_at", {
       withTimezone: true,
       mode: "string",
     }),
   },
   (table) => [
+    foreignKey({
+      columns: [table.storeId, table.customerId],
+      foreignColumns: [customer.storeId, customer.id],
+      name: "customer_segment_membership_store_customer_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [table.storeId, table.segmentId],
+      foreignColumns: [customerSegment.storeId, customerSegment.id],
+      name: "customer_segment_membership_store_segment_fk",
+    }).onDelete("cascade"),
     unique("customer_segment_membership_customer_segment_unique").on(
       table.customerId,
       table.segmentId
@@ -262,12 +312,20 @@ export const customerSegmentMembership = customersSchema.table(
     ),
     check(
       "customer_segment_membership_definition_revision_check",
-      sql`(${table.source} = 'RULE' AND ${table.evaluatedDefinitionRevision} IS NOT NULL)
-        OR (${table.source} <> 'RULE' AND ${table.evaluatedDefinitionRevision} IS NULL)`
+      sql`(${table.source} = 'RULE'
+          AND ${table.evaluatedDefinitionRevision} IS NOT NULL
+          AND ${table.evaluatedGeneration} IS NOT NULL)
+        OR (${table.source} <> 'RULE'
+          AND ${table.evaluatedDefinitionRevision} IS NULL
+          AND ${table.evaluatedGeneration} IS NULL)`
     ),
     check(
       "customer_segment_membership_definition_revision_nonnegative_check",
       sql`${table.evaluatedDefinitionRevision} IS NULL OR ${table.evaluatedDefinitionRevision} >= 0`
+    ),
+    check(
+      "customer_segment_membership_generation_nonnegative_check",
+      sql`${table.evaluatedGeneration} IS NULL OR ${table.evaluatedGeneration} >= 0`
     ),
     index("customer_segment_membership_store_segment_idx").on(
       table.storeId,

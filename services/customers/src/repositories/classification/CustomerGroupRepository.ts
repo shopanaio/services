@@ -69,6 +69,18 @@ export interface CustomerGroupMembershipSetData {
 
 export class CustomerGroupRepository extends BaseRepository {
   @ReadOnly()
+  async customerIdsByGroupId(groupId: string): Promise<string[]> {
+    const rows = await this.connection
+      .select({ customerId: customerGroupMembership.customerId })
+      .from(customerGroupMembership)
+      .where(and(
+        eq(customerGroupMembership.storeId, this.storeId),
+        eq(customerGroupMembership.groupId, groupId),
+      ));
+    return [...new Set(rows.map((row) => row.customerId))].sort();
+  }
+
+  @ReadOnly()
   async findById(id: string): Promise<CustomerGroup | null> {
     const rows = await this.connection
       .select()

@@ -193,8 +193,17 @@ export class CustomerStatisticsRepository extends BaseRepository {
           ),
         ),
     ]);
-    const first = orders[0] ?? null;
-    const last = orders[orders.length - 1] ?? null;
+    const completedOrders = orders
+      .filter(
+        (row): row is typeof row & { completedAt: string } =>
+          row.status === "COMPLETED" && row.completedAt !== null,
+      )
+      .sort((left, right) =>
+        left.completedAt.localeCompare(right.completedAt) ||
+        left.orderId.localeCompare(right.orderId),
+      );
+    const first = completedOrders[0] ?? null;
+    const last = completedOrders[completedOrders.length - 1] ?? null;
     const lastCheckoutAt = checkouts.reduce<string | null>(
       (latest, row) => (!latest || row.occurredAt > latest ? row.occurredAt : latest),
       null,
@@ -202,13 +211,13 @@ export class CustomerStatisticsRepository extends BaseRepository {
     await this.upsertStatistics({
       customerId,
       ordersCount: orders.length,
-      completedOrdersCount: orders.filter((row) => row.status === "COMPLETED").length,
+      completedOrdersCount: completedOrders.length,
       cancelledOrdersCount: orders.filter((row) => row.status === "CANCELLED").length,
       returnsCount: new Set(refunds.map((row) => row.orderId)).size,
       firstOrderId: first?.orderId ?? null,
-      firstOrderAt: first?.createdAt ?? null,
+      firstOrderAt: first?.completedAt ?? null,
       lastOrderId: last?.orderId ?? null,
-      lastOrderAt: last?.createdAt ?? null,
+      lastOrderAt: last?.completedAt ?? null,
       lastCheckoutAt,
     });
 

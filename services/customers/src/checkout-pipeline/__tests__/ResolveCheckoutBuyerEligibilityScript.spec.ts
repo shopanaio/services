@@ -117,6 +117,8 @@ async function runScript(read: unknown, failure?: Error) {
       email: null,
       defaultLocale: "en",
       currencyCode: "USD",
+      currencyExponent: 2,
+      segmentConfigurationRevision: 0,
       locales: ["en"],
     },
   });

@@ -51,3 +51,42 @@ export const CUSTOMER_SEGMENT_QUERY = gql`
   }
   ${CUSTOMER_SEGMENT_DETAILS_FRAGMENT}
 `;
+
+export const CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY = gql`
+  query CustomerSegmentAttributeCatalog {
+    customersQuery {
+      customerSegmentAttributeCatalog {
+        name presentationKey kind valueType operators enumValues
+        availability unavailabilityReason
+        parameters {
+          name presentationKey valueType operators enumValues aggregate nullable
+        }
+      }
+    }
+  }
+`;
+
+export const CUSTOMER_SEGMENT_QUERY_VALIDATE = gql`
+  query CustomerSegmentQueryValidate($query: String!) {
+    customersQuery {
+      customerSegmentQueryValidate(query: $query) {
+        valid canonicalQuery complexity
+        diagnostics { code message severity startOffset endOffset line column }
+      }
+    }
+  }
+`;
+
+export const CUSTOMER_SEGMENT_PREVIEW_QUERY = gql`
+  query CustomerSegmentPreview($query: String!, $first: Int!) {
+    customersQuery {
+      customerSegmentPreview(query: $query, first: $first) {
+        timedOut totalCount
+        validation {
+          valid canonicalQuery complexity
+          diagnostics { code message severity startOffset endOffset line column }
+        }
+      }
+    }
+  }
+`;

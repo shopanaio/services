@@ -71,6 +71,20 @@ CREATE TYPE "customers"."customer_segment_status" AS ENUM (
   'ARCHIVED'
 );
 
+CREATE TYPE "customers"."customer_segment_materialization_status" AS ENUM (
+  'PENDING',
+  'RUNNING',
+  'READY',
+  'FAILED'
+);
+
+CREATE TYPE "customers"."customer_segment_materialization_run_status" AS ENUM (
+  'PENDING',
+  'RUNNING',
+  'SUCCEEDED',
+  'FAILED'
+);
+
 CREATE TYPE "customers"."customer_merge_status" AS ENUM (
   'REQUESTED',
   'IN_PROGRESS',

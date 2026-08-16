@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  CurrencyCodeEnum,
   DimensionUnitEnum,
   WeightUnitEnum,
 } from "../../repositories/models/index.js";
@@ -104,7 +103,6 @@ export const storeDefaultsUpdateSchema = contextSchema.extend({
 
 export const storeCurrencySettingsUpdateSchema = contextSchema
   .extend({
-    currencyCode: z.nativeEnum(CurrencyCodeEnum),
     currencyDisplay: z.enum(["symbol", "narrowSymbol", "code", "name"]),
     currencySign: z.enum(["standard", "accounting"]),
     grouping: z.enum(["auto", "always", "min2", "never"]),

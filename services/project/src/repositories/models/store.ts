@@ -60,6 +60,9 @@ export const store = storeSchema.table(
     defaultWeightUnit: weightUnitEnum("default_weight_unit").notNull(),
     defaultDimensionUnit: dimensionUnitEnum("default_dimension_unit").notNull(),
     revision: integer("revision").notNull().default(0),
+    segmentConfigurationRevision: integer("segment_configuration_revision")
+      .notNull()
+      .default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -84,6 +87,10 @@ export const store = storeSchema.table(
     check(
       "store_external_identity_pair_check",
       sql`(${table.externalSystem} IS NULL) = (${table.externalId} IS NULL)`,
+    ),
+    check(
+      "store_segment_configuration_revision_check",
+      sql`${table.segmentConfigurationRevision} >= 0`,
     ),
     uniqueIndex("store_name_key")
       .on(table.name)

@@ -29,9 +29,27 @@ export {
   type CustomerSegmentUpdateResult,
 } from "./CustomerSegmentUpdateScript.js";
 export {
-  CustomerDynamicSegmentInvalidateScript,
-  type CustomerDynamicSegmentInvalidateParams,
-} from "./CustomerDynamicSegmentInvalidateScript.js";
+  CustomerDynamicSegmentEnqueueScript,
+  type CustomerDynamicSegmentEnqueueParams,
+} from "./CustomerDynamicSegmentEnqueueScript.js";
+export {
+  CustomerDynamicSegmentCleanupScript,
+  CustomerDynamicSegmentMergeScript,
+  type CustomerDynamicSegmentCleanupParams,
+  type CustomerDynamicSegmentMergeParams,
+} from "./CustomerDynamicSegmentLifecycleScripts.js";
+export {
+  CustomerSegmentStoreContextUpdateScript,
+  type CustomerSegmentStoreContextUpdateParams,
+  type CustomerSegmentStoreContextUpdateResult,
+} from "./CustomerSegmentStoreContextUpdateScript.js";
+export {
+  CustomerSegmentMaterializationPageScript,
+  CustomerSegmentReevaluationBatchScript,
+  CustomerSegmentTemporalBatchScript,
+  type CustomerSegmentWorkerParams,
+  type CustomerSegmentWorkerResult,
+} from "./CustomerSegmentWorkerScripts.js";
 export {
   CustomerTagCreateScript,
   type CustomerTagCreateParams,

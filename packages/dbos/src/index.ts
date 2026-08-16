@@ -116,6 +116,26 @@ export {
 } from "./step/index.js";
 
 // ============================================================================
+// TRANSACTIONAL STEP EXECUTION
+// ============================================================================
+
+export {
+  TransactionalStep,
+  TRANSACTIONAL_STEP_METADATA_KEY,
+  TransactionalStepConfigurationError,
+  PostgresDbosTransactionBridge,
+  PostgresDataSource,
+  IsolationLevel,
+  runTransactionalStep,
+  type TransactionalStepMetadata,
+  type DbosTransactionBridge,
+  type RunTransactionalStepOptions,
+  type TransactionManagerLike,
+  type PostgresTransactionOptions,
+  type TransactionSql,
+} from "./transaction/index.js";
+
+// ============================================================================
 // WORKFLOW
 // ============================================================================
 

@@ -81,7 +81,10 @@ export const customerTaxIdentifier = customersSchema.table(
       .on(table.customerId)
       .where(sql`${table.isPrimary} = true AND ${table.deletedAt} IS NULL`),
     index("customer_tax_identifier_store_customer_idx")
-      .on(table.storeId, table.customerId)
+      .on(table.storeId, table.customerId, table.status, table.validFrom, table.validTo)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_tax_identifier_store_status_validity_idx")
+      .on(table.storeId, table.status, table.validFrom, table.validTo, table.customerId)
       .where(sql`${table.deletedAt} IS NULL`),
   ]
 );
@@ -132,8 +135,17 @@ export const customerTaxExemption = customersSchema.table(
       )
       .where(sql`${table.deletedAt} IS NULL`),
     index("customer_tax_exemption_store_customer_idx")
-      .on(table.storeId, table.customerId, table.status)
+      .on(table.storeId, table.customerId, table.status, table.validFrom, table.validTo)
       .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_tax_exemption_store_status_validity_idx")
+      .on(table.storeId, table.status, table.validFrom, table.validTo, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL`),
+    index("customer_tax_exemption_store_country_validity_idx")
+      .on(table.storeId, table.countryCode, table.validFrom, table.validTo, table.customerId)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.countryCode} IS NOT NULL`),
+    index("customer_tax_exemption_store_customer_country_validity_idx")
+      .on(table.storeId, table.customerId, table.countryCode, table.validFrom, table.validTo)
+      .where(sql`${table.deletedAt} IS NULL AND ${table.countryCode} IS NOT NULL`),
     index("customer_tax_exemption_certificate_idx")
       .on(table.certificateFileId)
       .where(sql`${table.certificateFileId} IS NOT NULL`),

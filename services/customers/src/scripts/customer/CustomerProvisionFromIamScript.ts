@@ -63,6 +63,11 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       source: "iam_application_signup",
     });
     if (created) {
+      await this.invalidateDynamicSegments(
+        created.id,
+        ["customer.any"],
+        "iamCustomerCreated",
+      );
       return {
         customerId: created.id,
         created: true,
@@ -132,6 +137,11 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       },
     );
     if (claimed) {
+      await this.invalidateDynamicSegments(
+        claimed.id,
+        ["profile", "contact", "status"],
+        "iamCustomerClaimed",
+      );
       return {
         customerId: claimed.id,
         created: false,
@@ -242,6 +252,11 @@ export class CustomerProvisionFromIamScript extends BaseScript<
         true,
       );
     }
+    await this.invalidateDynamicSegments(
+      updated.id,
+      ["profile", "contact", "status"],
+      "iamCustomerSynchronized",
+    );
     return {
       customerId: updated.id,
       created: false,

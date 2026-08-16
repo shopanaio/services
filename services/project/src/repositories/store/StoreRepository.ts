@@ -178,6 +178,7 @@ export class StoreRepository extends BaseRepository {
         unitSystem: data.unitSystem ?? "metric",
         defaultWeightUnit: data.defaultWeightUnit ?? "kg",
         defaultDimensionUnit: data.defaultDimensionUnit ?? "cm",
+        segmentConfigurationRevision: 0,
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
@@ -319,7 +320,14 @@ export class StoreRepository extends BaseRepository {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.displayName !== undefined) updateData.displayName = data.displayName;
     if (data.email !== undefined) updateData.email = data.email;
-    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+    if (data.timezone !== undefined) {
+      updateData.timezone = data.timezone;
+      updateData.segmentConfigurationRevision = sql`CASE
+        WHEN ${store.timezone} IS DISTINCT FROM ${data.timezone}
+        THEN ${store.segmentConfigurationRevision} + 1
+        ELSE ${store.segmentConfigurationRevision}
+      END`;
+    }
     if (data.defaultWeightUnit !== undefined)
       updateData.defaultWeightUnit = data.defaultWeightUnit;
     if (data.defaultDimensionUnit !== undefined)
@@ -328,8 +336,9 @@ export class StoreRepository extends BaseRepository {
       updateData.unitSystem = data.unitSystem;
     if (data.defaultLocale !== undefined)
       updateData.defaultLocale = data.defaultLocale;
-    if (data.currencyCode !== undefined)
-      updateData.currencyCode = data.currencyCode;
+    if (data.currencyCode !== undefined) {
+      throw new Error("Store accounting currency is immutable");
+    }
 
     const [result] = await this.connection
       .update(store)

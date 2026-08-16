@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { BrokerModule } from "@shopana/shared-kernel";
 import { CustomersNestService } from "./customers.nest-service.js";
 import { workflows } from "./workflows/index.js";
@@ -15,9 +16,13 @@ import {
   CustomerExternalReferenceBrokerActions,
   CustomersBrokerActions,
 } from "./actions/index.js";
+import { CustomerSegmentMaintenanceScheduler } from "./segments/CustomerSegmentMaintenanceScheduler.js";
 
 @Module({
-  imports: [BrokerModule.forFeature({ serviceName: "customers" })],
+  imports: [
+    BrokerModule.forFeature({ serviceName: "customers" }),
+    ScheduleModule.forRoot(),
+  ],
   providers: [
     CustomersNestService,
     StoreEventHandlers,
@@ -29,6 +34,7 @@ import {
     CustomerLifecycleJobEventHandlers,
     CustomersBrokerActions,
     CustomerExternalReferenceBrokerActions,
+    CustomerSegmentMaintenanceScheduler,
     ...workflows,
   ],
 })

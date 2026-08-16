@@ -15,9 +15,6 @@ export class StoreCurrencySettingsUpdateScript extends StoreSettingsUpdateScript
     const store = await this.findStore(params);
     if (!store) return this.notFound();
 
-    await this.repository.store.update(params.storeId, {
-      currencyCode: params.currencyCode,
-    });
     await this.repository.storeSettings.upsertCurrencyFormatting(
       params.storeId,
       {

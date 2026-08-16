@@ -1786,9 +1786,12 @@ export type CustomerSegment = Node & {
   customerMemberships: CustomerSegmentMembershipConnection;
   customersCount: Scalars['Int']['output'];
   definition: Scalars['JSON']['output'];
+  definitionRevision: Scalars['Int']['output'];
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   description: Maybe<Scalars['String']['output']>;
+  evaluationGeneration: Scalars['Int']['output'];
   id: Scalars['ID']['output'];
+  materializationStatus: Maybe<CustomerSegmentMaterializationStatus>;
   name: Scalars['String']['output'];
   query: Maybe<Scalars['String']['output']>;
   /** Aggregate revision incremented by definition, state and membership changes. */
@@ -1808,6 +1811,31 @@ export type CustomerSegmentCustomerMembershipsArgs = {
   where?: InputMaybe<CustomerSegmentMembershipWhereInput>;
 };
 
+export enum CustomerSegmentAttributeAvailability {
+  Available = 'AVAILABLE',
+  Unavailable = 'UNAVAILABLE'
+}
+
+export type CustomerSegmentAttributeDescriptor = {
+  __typename?: 'CustomerSegmentAttributeDescriptor';
+  availability: CustomerSegmentAttributeAvailability;
+  enumValues: Array<Scalars['String']['output']>;
+  kind: CustomerSegmentAttributeKind;
+  name: Scalars['String']['output'];
+  operators: Array<Scalars['String']['output']>;
+  parameters: Array<CustomerSegmentFunctionParameterDescriptor>;
+  presentationKey: Scalars['String']['output'];
+  unavailabilityReason: Maybe<Scalars['String']['output']>;
+  valueType: Scalars['String']['output'];
+};
+
+export enum CustomerSegmentAttributeKind {
+  Function = 'FUNCTION',
+  List = 'LIST',
+  Scalar = 'SCALAR',
+  Virtual = 'VIRTUAL'
+}
+
 export type CustomerSegmentConnection = {
   __typename?: 'CustomerSegmentConnection';
   edges: Array<CustomerSegmentEdge>;
@@ -1817,7 +1845,6 @@ export type CustomerSegmentConnection = {
 
 export type CustomerSegmentCreateInput = {
   color?: InputMaybe<Scalars['String']['input']>;
-  definition?: InputMaybe<Scalars['JSON']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   query?: InputMaybe<Scalars['String']['input']>;
@@ -1829,13 +1856,11 @@ export type CustomerSegmentCreateInput = {
 export type CustomerSegmentCreatePayload = {
   __typename?: 'CustomerSegmentCreatePayload';
   segment: Maybe<CustomerSegment>;
-  userErrors: Array<GenericUserError>;
+  userErrors: Array<CustomerSegmentUserError>;
 };
 
 export type CustomerSegmentDefinitionUpdateInput = {
-  definition?: InputMaybe<Scalars['JSON']['input']>;
-  query?: InputMaybe<Scalars['String']['input']>;
-  type?: InputMaybe<CustomerSegmentType>;
+  query: Scalars['String']['input'];
 };
 
 export type CustomerSegmentDeleteInput = {
@@ -1855,11 +1880,34 @@ export type CustomerSegmentDetailsUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+export enum CustomerSegmentDiagnosticSeverity {
+  Error = 'ERROR',
+  Warning = 'WARNING'
+}
+
 export type CustomerSegmentEdge = {
   __typename?: 'CustomerSegmentEdge';
   cursor: Scalars['String']['output'];
   node: CustomerSegment;
 };
+
+export type CustomerSegmentFunctionParameterDescriptor = {
+  __typename?: 'CustomerSegmentFunctionParameterDescriptor';
+  aggregate: Scalars['Boolean']['output'];
+  enumValues: Array<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+  nullable: Scalars['Boolean']['output'];
+  operators: Array<Scalars['String']['output']>;
+  presentationKey: Scalars['String']['output'];
+  valueType: Scalars['String']['output'];
+};
+
+export enum CustomerSegmentMaterializationStatus {
+  Failed = 'FAILED',
+  Pending = 'PENDING',
+  Ready = 'READY',
+  Running = 'RUNNING'
+}
 
 export type CustomerSegmentMembership = Node & {
   __typename?: 'CustomerSegmentMembership';
@@ -1976,6 +2024,34 @@ export enum CustomerSegmentOrderField {
   UpdatedAt = 'updatedAt'
 }
 
+export type CustomerSegmentPreview = {
+  __typename?: 'CustomerSegmentPreview';
+  customers: Maybe<CustomerConnection>;
+  timedOut: Scalars['Boolean']['output'];
+  totalCount: Maybe<Scalars['Int']['output']>;
+  validation: CustomerSegmentQueryValidationResult;
+};
+
+export type CustomerSegmentQueryDiagnostic = {
+  __typename?: 'CustomerSegmentQueryDiagnostic';
+  code: Scalars['String']['output'];
+  column: Scalars['Int']['output'];
+  endOffset: Scalars['Int']['output'];
+  line: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+  severity: CustomerSegmentDiagnosticSeverity;
+  startOffset: Scalars['Int']['output'];
+};
+
+export type CustomerSegmentQueryValidationResult = {
+  __typename?: 'CustomerSegmentQueryValidationResult';
+  canonicalQuery: Maybe<Scalars['String']['output']>;
+  complexity: Maybe<Scalars['Int']['output']>;
+  definition: Maybe<Scalars['JSON']['output']>;
+  diagnostics: Array<CustomerSegmentQueryDiagnostic>;
+  valid: Scalars['Boolean']['output'];
+};
+
 export type CustomerSegmentStateUpdateInput = {
   status?: InputMaybe<CustomerSegmentStatus>;
 };
@@ -2017,7 +2093,15 @@ export type CustomerSegmentUpdatePayload = {
   __typename?: 'CustomerSegmentUpdatePayload';
   operationResults: Array<CustomerOperationResult>;
   segment: Maybe<CustomerSegment>;
-  userErrors: Array<GenericUserError>;
+  userErrors: Array<CustomerSegmentUserError>;
+};
+
+export type CustomerSegmentUserError = UserError & {
+  __typename?: 'CustomerSegmentUserError';
+  code: Scalars['String']['output'];
+  diagnostic: Maybe<CustomerSegmentQueryDiagnostic>;
+  field: Maybe<Array<Scalars['String']['output']>>;
+  message: Scalars['String']['output'];
 };
 
 /** Filter conditions for CustomerSegment */
@@ -2783,6 +2867,9 @@ export type CustomersQuery = {
   customerMerge: Maybe<CustomerMerge>;
   customerMerges: CustomerMergeConnection;
   customerSegment: Maybe<CustomerSegment>;
+  customerSegmentAttributeCatalog: Array<CustomerSegmentAttributeDescriptor>;
+  customerSegmentPreview: CustomerSegmentPreview;
+  customerSegmentQueryValidate: CustomerSegmentQueryValidationResult;
   customerSegments: CustomerSegmentConnection;
   customerTag: Maybe<CustomerTag>;
   customerTags: CustomerTagConnection;
@@ -2874,6 +2961,20 @@ export type CustomersQueryCustomerMergesArgs = {
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type CustomersQueryCustomerSegmentArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerSegmentPreviewArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  query: Scalars['String']['input'];
+};
+
+
+/** Store-scoped customer reads. The current Store is taken from trusted context. */
+export type CustomersQueryCustomerSegmentQueryValidateArgs = {
+  query: Scalars['String']['input'];
 };
 
 
@@ -3543,7 +3644,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Node: ( Customer ) | ( CustomerAddress ) | ( CustomerComparison ) | ( CustomerComparisonItem ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerExternalReference ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier ) | ( Product ) | ( Variant );
-  UserError: ( GenericUserError );
+  UserError: ( CustomerSegmentUserError ) | ( GenericUserError );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -3678,6 +3779,9 @@ export type ResolversTypes = ResolversObject<{
   CustomerOrderField: CustomerOrderField;
   CustomerProfileUpdateInput: CustomerProfileUpdateInput;
   CustomerSegment: ResolverTypeWrapper<CustomerSegment>;
+  CustomerSegmentAttributeAvailability: CustomerSegmentAttributeAvailability;
+  CustomerSegmentAttributeDescriptor: ResolverTypeWrapper<CustomerSegmentAttributeDescriptor>;
+  CustomerSegmentAttributeKind: CustomerSegmentAttributeKind;
   CustomerSegmentConnection: ResolverTypeWrapper<CustomerSegmentConnection>;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: ResolverTypeWrapper<CustomerSegmentCreatePayload>;
@@ -3685,7 +3789,10 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: ResolverTypeWrapper<CustomerSegmentDeletePayload>;
   CustomerSegmentDetailsUpdateInput: CustomerSegmentDetailsUpdateInput;
+  CustomerSegmentDiagnosticSeverity: CustomerSegmentDiagnosticSeverity;
   CustomerSegmentEdge: ResolverTypeWrapper<CustomerSegmentEdge>;
+  CustomerSegmentFunctionParameterDescriptor: ResolverTypeWrapper<CustomerSegmentFunctionParameterDescriptor>;
+  CustomerSegmentMaterializationStatus: CustomerSegmentMaterializationStatus;
   CustomerSegmentMembership: ResolverTypeWrapper<CustomerSegmentMembership>;
   CustomerSegmentMembershipConnection: ResolverTypeWrapper<CustomerSegmentMembershipConnection>;
   CustomerSegmentMembershipEdge: ResolverTypeWrapper<CustomerSegmentMembershipEdge>;
@@ -3698,6 +3805,9 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
   CustomerSegmentOrderField: CustomerSegmentOrderField;
+  CustomerSegmentPreview: ResolverTypeWrapper<CustomerSegmentPreview>;
+  CustomerSegmentQueryDiagnostic: ResolverTypeWrapper<CustomerSegmentQueryDiagnostic>;
+  CustomerSegmentQueryValidationResult: ResolverTypeWrapper<CustomerSegmentQueryValidationResult>;
   CustomerSegmentStateUpdateInput: CustomerSegmentStateUpdateInput;
   CustomerSegmentStatus: CustomerSegmentStatus;
   CustomerSegmentStatusFilter: CustomerSegmentStatusFilter;
@@ -3705,6 +3815,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentTypeFilter: CustomerSegmentTypeFilter;
   CustomerSegmentUpdateInput: CustomerSegmentUpdateInput;
   CustomerSegmentUpdatePayload: ResolverTypeWrapper<CustomerSegmentUpdatePayload>;
+  CustomerSegmentUserError: ResolverTypeWrapper<CustomerSegmentUserError>;
   CustomerSegmentWhereInput: CustomerSegmentWhereInput;
   CustomerStatistics: ResolverTypeWrapper<CustomerStatistics>;
   CustomerStatusUpdateInput: CustomerStatusUpdateInput;
@@ -3893,6 +4004,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerOrderByInput: CustomerOrderByInput;
   CustomerProfileUpdateInput: CustomerProfileUpdateInput;
   CustomerSegment: CustomerSegment;
+  CustomerSegmentAttributeDescriptor: CustomerSegmentAttributeDescriptor;
   CustomerSegmentConnection: CustomerSegmentConnection;
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: CustomerSegmentCreatePayload;
@@ -3901,6 +4013,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentDeletePayload: CustomerSegmentDeletePayload;
   CustomerSegmentDetailsUpdateInput: CustomerSegmentDetailsUpdateInput;
   CustomerSegmentEdge: CustomerSegmentEdge;
+  CustomerSegmentFunctionParameterDescriptor: CustomerSegmentFunctionParameterDescriptor;
   CustomerSegmentMembership: CustomerSegmentMembership;
   CustomerSegmentMembershipConnection: CustomerSegmentMembershipConnection;
   CustomerSegmentMembershipEdge: CustomerSegmentMembershipEdge;
@@ -3911,11 +4024,15 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
+  CustomerSegmentPreview: CustomerSegmentPreview;
+  CustomerSegmentQueryDiagnostic: CustomerSegmentQueryDiagnostic;
+  CustomerSegmentQueryValidationResult: CustomerSegmentQueryValidationResult;
   CustomerSegmentStateUpdateInput: CustomerSegmentStateUpdateInput;
   CustomerSegmentStatusFilter: CustomerSegmentStatusFilter;
   CustomerSegmentTypeFilter: CustomerSegmentTypeFilter;
   CustomerSegmentUpdateInput: CustomerSegmentUpdateInput;
   CustomerSegmentUpdatePayload: CustomerSegmentUpdatePayload;
+  CustomerSegmentUserError: CustomerSegmentUserError;
   CustomerSegmentWhereInput: CustomerSegmentWhereInput;
   CustomerStatistics: CustomerStatistics;
   CustomerStatusUpdateInput: CustomerStatusUpdateInput;
@@ -4444,15 +4561,31 @@ export type CustomerSegmentResolvers<ContextType = ServiceContext, ParentType ex
   customerMemberships?: Resolver<ResolversTypes['CustomerSegmentMembershipConnection'], ParentType, ContextType, Partial<CustomerSegmentCustomerMembershipsArgs>>;
   customersCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   definition?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  definitionRevision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   description?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  evaluationGeneration?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  materializationStatus?: Resolver<Maybe<ResolversTypes['CustomerSegmentMaterializationStatus']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   query?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['CustomerSegmentStatus'], ParentType, ContextType>;
   type?: Resolver<ResolversTypes['CustomerSegmentType'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentAttributeDescriptorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentAttributeDescriptor'] = ResolversParentTypes['CustomerSegmentAttributeDescriptor']> = ResolversObject<{
+  availability?: Resolver<ResolversTypes['CustomerSegmentAttributeAvailability'], ParentType, ContextType>;
+  enumValues?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  kind?: Resolver<ResolversTypes['CustomerSegmentAttributeKind'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  operators?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  parameters?: Resolver<Array<ResolversTypes['CustomerSegmentFunctionParameterDescriptor']>, ParentType, ContextType>;
+  presentationKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  unavailabilityReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  valueType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4465,7 +4598,7 @@ export type CustomerSegmentConnectionResolvers<ContextType = ServiceContext, Par
 
 export type CustomerSegmentCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentCreatePayload'] = ResolversParentTypes['CustomerSegmentCreatePayload']> = ResolversObject<{
   segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['CustomerSegmentUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4478,6 +4611,17 @@ export type CustomerSegmentDeletePayloadResolvers<ContextType = ServiceContext, 
 export type CustomerSegmentEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentEdge'] = ResolversParentTypes['CustomerSegmentEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['CustomerSegment'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentFunctionParameterDescriptorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentFunctionParameterDescriptor'] = ResolversParentTypes['CustomerSegmentFunctionParameterDescriptor']> = ResolversObject<{
+  aggregate?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  enumValues?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  nullable?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  operators?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  presentationKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  valueType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4505,10 +4649,46 @@ export type CustomerSegmentMembershipEdgeResolvers<ContextType = ServiceContext,
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CustomerSegmentPreviewResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentPreview'] = ResolversParentTypes['CustomerSegmentPreview']> = ResolversObject<{
+  customers?: Resolver<Maybe<ResolversTypes['CustomerConnection']>, ParentType, ContextType>;
+  timedOut?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  totalCount?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  validation?: Resolver<ResolversTypes['CustomerSegmentQueryValidationResult'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentQueryDiagnosticResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentQueryDiagnostic'] = ResolversParentTypes['CustomerSegmentQueryDiagnostic']> = ResolversObject<{
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  column?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  endOffset?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  line?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  severity?: Resolver<ResolversTypes['CustomerSegmentDiagnosticSeverity'], ParentType, ContextType>;
+  startOffset?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentQueryValidationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentQueryValidationResult'] = ResolversParentTypes['CustomerSegmentQueryValidationResult']> = ResolversObject<{
+  canonicalQuery?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  complexity?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  definition?: Resolver<Maybe<ResolversTypes['JSON']>, ParentType, ContextType>;
+  diagnostics?: Resolver<Array<ResolversTypes['CustomerSegmentQueryDiagnostic']>, ParentType, ContextType>;
+  valid?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type CustomerSegmentUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentUpdatePayload'] = ResolversParentTypes['CustomerSegmentUpdatePayload']> = ResolversObject<{
   operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   segment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['CustomerSegmentUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerSegmentUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerSegmentUserError'] = ResolversParentTypes['CustomerSegmentUserError']> = ResolversObject<{
+  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  diagnostic?: Resolver<Maybe<ResolversTypes['CustomerSegmentQueryDiagnostic']>, ParentType, ContextType>;
+  field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
+  message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4698,6 +4878,9 @@ export type CustomersQueryResolvers<ContextType = ServiceContext, ParentType ext
   customerMerge?: Resolver<Maybe<ResolversTypes['CustomerMerge']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerMergeArgs, 'id'>>;
   customerMerges?: Resolver<ResolversTypes['CustomerMergeConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerMergesArgs>>;
   customerSegment?: Resolver<Maybe<ResolversTypes['CustomerSegment']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerSegmentArgs, 'id'>>;
+  customerSegmentAttributeCatalog?: Resolver<Array<ResolversTypes['CustomerSegmentAttributeDescriptor']>, ParentType, ContextType>;
+  customerSegmentPreview?: Resolver<ResolversTypes['CustomerSegmentPreview'], ParentType, ContextType, RequireFields<CustomersQueryCustomerSegmentPreviewArgs, 'first' | 'query'>>;
+  customerSegmentQueryValidate?: Resolver<ResolversTypes['CustomerSegmentQueryValidationResult'], ParentType, ContextType, RequireFields<CustomersQueryCustomerSegmentQueryValidateArgs, 'query'>>;
   customerSegments?: Resolver<ResolversTypes['CustomerSegmentConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerSegmentsArgs>>;
   customerTag?: Resolver<Maybe<ResolversTypes['CustomerTag']>, ParentType, ContextType, RequireFields<CustomersQueryCustomerTagArgs, 'id'>>;
   customerTags?: Resolver<ResolversTypes['CustomerTagConnection'], ParentType, ContextType, Partial<CustomersQueryCustomerTagsArgs>>;
@@ -4766,7 +4949,7 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
 }>;
 
 export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['UserError'] = ResolversParentTypes['UserError']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'GenericUserError', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'CustomerSegmentUserError' | 'GenericUserError', ParentType, ContextType>;
   code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -4825,14 +5008,20 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerMonetaryStatisticsEdge?: CustomerMonetaryStatisticsEdgeResolvers<ContextType>;
   CustomerOperationResult?: CustomerOperationResultResolvers<ContextType>;
   CustomerSegment?: CustomerSegmentResolvers<ContextType>;
+  CustomerSegmentAttributeDescriptor?: CustomerSegmentAttributeDescriptorResolvers<ContextType>;
   CustomerSegmentConnection?: CustomerSegmentConnectionResolvers<ContextType>;
   CustomerSegmentCreatePayload?: CustomerSegmentCreatePayloadResolvers<ContextType>;
   CustomerSegmentDeletePayload?: CustomerSegmentDeletePayloadResolvers<ContextType>;
   CustomerSegmentEdge?: CustomerSegmentEdgeResolvers<ContextType>;
+  CustomerSegmentFunctionParameterDescriptor?: CustomerSegmentFunctionParameterDescriptorResolvers<ContextType>;
   CustomerSegmentMembership?: CustomerSegmentMembershipResolvers<ContextType>;
   CustomerSegmentMembershipConnection?: CustomerSegmentMembershipConnectionResolvers<ContextType>;
   CustomerSegmentMembershipEdge?: CustomerSegmentMembershipEdgeResolvers<ContextType>;
+  CustomerSegmentPreview?: CustomerSegmentPreviewResolvers<ContextType>;
+  CustomerSegmentQueryDiagnostic?: CustomerSegmentQueryDiagnosticResolvers<ContextType>;
+  CustomerSegmentQueryValidationResult?: CustomerSegmentQueryValidationResultResolvers<ContextType>;
   CustomerSegmentUpdatePayload?: CustomerSegmentUpdatePayloadResolvers<ContextType>;
+  CustomerSegmentUserError?: CustomerSegmentUserErrorResolvers<ContextType>;
   CustomerStatistics?: CustomerStatisticsResolvers<ContextType>;
   CustomerTag?: CustomerTagResolvers<ContextType>;
   CustomerTagAssignment?: CustomerTagAssignmentResolvers<ContextType>;

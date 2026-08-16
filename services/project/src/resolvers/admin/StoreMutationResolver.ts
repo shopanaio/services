@@ -264,7 +264,6 @@ function mapStoreUpdateInput(
     add("currencySettingsUpdate", {
       type: "currencySettingsUpdate",
       params: {
-        currencyCode: input.currencySettings.currencyCode,
         currencyDisplay:
           currencyDisplayMap[input.currencySettings.currencyDisplay],
         currencySign: currencySignMap[input.currencySettings.currencySign],

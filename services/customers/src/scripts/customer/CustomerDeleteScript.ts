@@ -29,6 +29,7 @@ export class CustomerDeleteScript extends BaseScript<
       return revisionConflict();
     }
 
+    await this.repository.segmentMaterialization.cleanupCustomer(params.id);
     const deleted = await this.repository.customer.softDelete(
       params.id,
       params.expectedRevision

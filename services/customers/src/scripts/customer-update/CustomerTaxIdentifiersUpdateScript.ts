@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CustomerTaxIdentifierPatch } from "../../repositories/tax/CustomerTaxIdentifierRepository.js";
 import type { CustomerTaxIdentifiersUpdateOperation } from "../../workflows/dto/index.js";
 import {
@@ -17,6 +17,7 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
   CustomerTaxIdentifiersUpdateParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerTaxIdentifiersUpdateParams
   ): Promise<CustomerSectionResult> {
@@ -41,7 +42,15 @@ export class CustomerTaxIdentifiersUpdateScript extends BaseScript<
       await this.repository.taxIdentifier.softDelete(id);
     }
 
-    return sectionSuccess(hasChanges(params.operations));
+    const changed = hasChanges(params.operations);
+    if (changed) {
+      await this.invalidateDynamicSegments(
+        params.customerId,
+        ["taxIdentifier"],
+        "taxIdentifier",
+      );
+    }
+    return sectionSuccess(changed);
   }
 
   protected handleError(_error: unknown): CustomerSectionResult {

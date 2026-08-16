@@ -21,6 +21,7 @@ export interface CustomerCheckoutEligibilityReadModel {
     evaluatedAt: string;
     expiresAt: string | null;
     definitionRevision: number | null;
+    evaluationGeneration: number | null;
   }>[];
 }
 
@@ -41,6 +42,8 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
         expiresAt: customerSegmentMembership.expiresAt,
         definitionRevision:
           customerSegmentMembership.evaluatedDefinitionRevision,
+        evaluationGeneration:
+          customerSegmentMembership.evaluatedGeneration,
       })
       .from(customer)
       .leftJoin(
@@ -63,10 +66,22 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
           eq(customerSegment.status, "ACTIVE"),
           isNull(customerSegment.deletedAt),
           or(
-            ne(customerSegmentMembership.source, "RULE"),
-            eq(
-              customerSegmentMembership.evaluatedDefinitionRevision,
-              customerSegment.definitionRevision
+            and(
+              eq(customerSegment.type, "MANUAL"),
+              ne(customerSegmentMembership.source, "RULE"),
+            ),
+            and(
+              eq(customerSegment.type, "DYNAMIC"),
+              eq(customerSegment.materializationStatus, "READY"),
+              eq(customerSegmentMembership.source, "RULE"),
+              eq(
+                customerSegmentMembership.evaluatedDefinitionRevision,
+                customerSegment.definitionRevision
+              ),
+              eq(
+                customerSegmentMembership.evaluatedGeneration,
+                customerSegment.evaluationGeneration,
+              ),
             )
           )
         )
@@ -104,6 +119,7 @@ export class CustomerCheckoutEligibilityRepository extends BaseRepository {
                 evaluatedAt: row.evaluatedAt,
                 expiresAt: row.expiresAt,
                 definitionRevision: row.definitionRevision,
+                evaluationGeneration: row.evaluationGeneration,
               },
             ]
           : []

@@ -1,0 +1,35 @@
+{
+  "name": "@shopana/customer-segment-dsl",
+  "version": "0.1.0",
+  "description": "Typed Customer Segment DSL v1 parser, semantic analyzer and printer",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "source": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src/grammar/customer-segment.peggy"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
+  "dependencies": {
+    "@shopana/shared-graphql-guid": "*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.1.3",
+    "@types/node": "^20.14.14",
+    "jest": "^30.1.3",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE "store"."store" ADD COLUMN "segment_configuration_revision" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "store"."store" ADD CONSTRAINT "store_segment_configuration_revision_check" CHECK ("store"."store"."segment_configuration_revision" >= 0);

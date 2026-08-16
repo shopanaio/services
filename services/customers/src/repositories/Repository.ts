@@ -3,6 +3,9 @@ import type { Database } from "../infrastructure/db/database.js";
 import { CustomerAddressRepository } from "./address/CustomerAddressRepository.js";
 import { CustomerGroupRepository } from "./classification/CustomerGroupRepository.js";
 import { CustomerSegmentRepository } from "./classification/CustomerSegmentRepository.js";
+import { CustomerSegmentEvaluationRepository } from "./classification/CustomerSegmentEvaluationRepository.js";
+import { CustomerSegmentMaterializationRepository } from "./classification/CustomerSegmentMaterializationRepository.js";
+import { CustomerSegmentStoreContextRepository } from "./classification/CustomerSegmentStoreContextRepository.js";
 import { CustomerTagRepository } from "./classification/CustomerTagRepository.js";
 import { CustomerConsentRepository } from "./consent/CustomerConsentRepository.js";
 import { CustomerComparisonRepository } from "./comparison/CustomerComparisonRepository.js";
@@ -33,6 +36,9 @@ export class Repository {
   public readonly group: CustomerGroupRepository;
   public readonly tag: CustomerTagRepository;
   public readonly segment: CustomerSegmentRepository;
+  public readonly segmentEvaluation: CustomerSegmentEvaluationRepository;
+  public readonly segmentMaterialization: CustomerSegmentMaterializationRepository;
+  public readonly segmentStoreContext: CustomerSegmentStoreContextRepository;
   public readonly statistics: CustomerStatisticsRepository;
   public readonly lifecycle: CustomerLifecycleRepository;
   public readonly merge: CustomerMergeRepository;
@@ -57,6 +63,9 @@ export class Repository {
     group: CustomerGroupRepository,
     tag: CustomerTagRepository,
     segment: CustomerSegmentRepository,
+    segmentEvaluation: CustomerSegmentEvaluationRepository,
+    segmentMaterialization: CustomerSegmentMaterializationRepository,
+    segmentStoreContext: CustomerSegmentStoreContextRepository,
     statistics: CustomerStatisticsRepository,
     lifecycle: CustomerLifecycleRepository,
     merge: CustomerMergeRepository,
@@ -76,6 +85,9 @@ export class Repository {
     this.group = group;
     this.tag = tag;
     this.segment = segment;
+    this.segmentEvaluation = segmentEvaluation;
+    this.segmentMaterialization = segmentMaterialization;
+    this.segmentStoreContext = segmentStoreContext;
     this.statistics = statistics;
     this.lifecycle = lifecycle;
     this.merge = merge;
@@ -99,6 +111,9 @@ export class Repository {
       new CustomerGroupRepository(config.db, txManager),
       new CustomerTagRepository(config.db, txManager),
       new CustomerSegmentRepository(config.db, txManager),
+      new CustomerSegmentEvaluationRepository(config.db, txManager),
+      new CustomerSegmentMaterializationRepository(config.db, txManager),
+      new CustomerSegmentStoreContextRepository(config.db, txManager),
       new CustomerStatisticsRepository(config.db, txManager),
       new CustomerLifecycleRepository(config.db, txManager),
       new CustomerMergeRepository(config.db, txManager),

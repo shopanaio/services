@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CustomerTaxExemptionPatch } from "../../repositories/tax/CustomerTaxExemptionRepository.js";
 import type { CustomerTaxExemptionsUpdateOperation } from "../../workflows/dto/index.js";
 import {
@@ -17,6 +17,7 @@ export class CustomerTaxExemptionsUpdateScript extends BaseScript<
   CustomerTaxExemptionsUpdateParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerTaxExemptionsUpdateParams
   ): Promise<CustomerSectionResult> {
@@ -40,7 +41,15 @@ export class CustomerTaxExemptionsUpdateScript extends BaseScript<
       await this.repository.taxExemption.softDelete(id);
     }
 
-    return sectionSuccess(hasChanges(params.operations));
+    const changed = hasChanges(params.operations);
+    if (changed) {
+      await this.invalidateDynamicSegments(
+        params.customerId,
+        ["taxExemption"],
+        "taxExemption",
+      );
+    }
+    return sectionSuccess(changed);
   }
 
   protected handleError(_error: unknown): CustomerSectionResult {

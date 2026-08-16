@@ -22,6 +22,7 @@ import {
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
+import type { SegmentDependency } from "@shopana/customer-segment-dsl";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -162,17 +163,18 @@ export class CustomersBrokerActions extends BrokerActions {
     try {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
+      const requestId = callContext.app?.correlationId ??
+        `customers-statistics-rebuild-${Date.now()}`;
       const context = new ServiceContext({
-        requestId:
-          callContext.app?.correlationId ??
-          `customers-statistics-rebuild-${Date.now()}`,
+        requestId,
         kernel,
         loaders: new Loader(kernel.repository),
         locale: store.defaultLocale,
         currency: store.currencyCode,
         store,
       });
-      return await runWithContext(context, async () => {
+      const effectiveAt = new Date().toISOString();
+      const result = await runWithContext(context, async () => {
         const customerIds = params.customerId
           ? [params.customerId]
           : await kernel.repository.statistics.projectedCustomerIds();
@@ -187,17 +189,28 @@ export class CustomersBrokerActions extends BrokerActions {
             retryable: false,
           };
         }
-        if (customerIds.length > 0) {
-          await kernel.repository.segment.invalidateRuleMemberships(customerIds);
-        }
         let rebuiltCustomers = 0;
         for (const customerId of customerIds) {
           if (await kernel.repository.statistics.rebuildForCustomer(customerId)) {
             rebuiltCustomers += 1;
+            await kernel.repository.segmentMaterialization.enqueueCustomer(
+              customerId,
+              new Set<SegmentDependency>([
+                "statistics.order",
+                "statistics.checkout",
+                "statistics.refund",
+              ]),
+              `${requestId}:${customerId}`,
+              effectiveAt,
+            );
           }
         }
         return { ok: true as const, rebuiltCustomers };
       });
+      if (result.ok && result.rebuiltCustomers > 0) {
+        await this.startSegmentMaintenance(store, requestId, "statisticsRebuild");
+      }
+      return result;
     } catch (error) {
       this.logger.error({ error }, "Customer statistics rebuild failed");
       return {
@@ -219,17 +232,17 @@ export class CustomersBrokerActions extends BrokerActions {
     try {
       const store = await this.getStore(params.storeId);
       const kernel = Kernel.getInstance();
+      const requestId = callContext.app?.correlationId ??
+        `customers-dynamic-segment-rebuild-${Date.now()}`;
       const context = new ServiceContext({
-        requestId:
-          callContext.app?.correlationId ??
-          `customers-dynamic-segment-rebuild-${Date.now()}`,
+        requestId,
         kernel,
         loaders: new Loader(kernel.repository),
         locale: store.defaultLocale,
         currency: store.currencyCode,
         store,
       });
-      return await runWithContext(context, async () => {
+      const result = await runWithContext(context, async () => {
         if (
           params.customerId &&
           !(await kernel.repository.customer.exists(params.customerId))
@@ -241,12 +254,36 @@ export class CustomersBrokerActions extends BrokerActions {
             retryable: false,
           };
         }
-        const invalidatedMemberships =
-          await kernel.repository.segment.invalidateRuleMemberships(
-            params.customerId ? [params.customerId] : undefined,
-          );
+        const effectiveAt = new Date().toISOString();
+        const invalidatedMemberships = params.customerId
+          ? await kernel.repository.txManager.run(() =>
+              kernel.repository.segmentMaterialization.enqueueCustomer(
+                params.customerId!,
+                new Set<SegmentDependency>(["customer.any"]),
+                requestId,
+                effectiveAt,
+              ),
+            )
+          : await kernel.repository.txManager.run(async () => {
+              const removed = await kernel.repository.segment.invalidateRuleMemberships();
+              const segments = await kernel.repository.segment.listDynamic();
+              for (const segment of segments) {
+                if (segment.status === "ACTIVE") {
+                  await kernel.repository.segmentMaterialization.schedule(
+                    segment,
+                    effectiveAt,
+                    true,
+                  );
+                }
+              }
+              return removed;
+            });
         return { ok: true as const, invalidatedMemberships };
       });
+      if (result.ok) {
+        await this.startSegmentMaintenance(store, requestId, "operatorRebuild");
+      }
+      return result;
     } catch (error) {
       this.logger.error({ error }, "Customer dynamic segment rebuild failed");
       return {
@@ -273,6 +310,29 @@ export class CustomersBrokerActions extends BrokerActions {
       message: "Only the trusted platform administration boundary may rebuild projections",
       retryable: false,
     };
+  }
+
+  private async startSegmentMaintenance(
+    store: ContextStore,
+    requestId: string,
+    operation: string,
+  ): Promise<void> {
+    await this.broker.startWorkflow(
+      "customers.customerSegmentMaintenance",
+      {
+        context: {
+          storeId: store.id,
+          organizationId: store.organizationId,
+          requestId,
+        },
+      },
+      {
+        source: "content",
+        resourceId: store.id,
+        operation: `customerSegment${operation}`,
+        contentHash: requestId,
+      },
+    );
   }
 
   private async getStore(storeId: string): Promise<ContextStore> {

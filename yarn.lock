@@ -1616,16 +1616,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dbos-inc/drizzle-datasource@npm:4.23.6":
+"@dbos-inc/postgres-datasource@npm:4.23.6":
   version: 4.23.6
-  resolution: "@dbos-inc/drizzle-datasource@npm:4.23.6"
+  resolution: "@dbos-inc/postgres-datasource@npm:4.23.6"
   dependencies:
-    pg: "npm:^8.11.3"
+    postgres: "npm:^3.4.7"
     superjson: "npm:^1.13"
   peerDependencies:
     "@dbos-inc/dbos-sdk": "*"
-    drizzle-orm: "*"
-  checksum: 10/e5ea24117790097180f76ce3acda88dd48c3412262b60016e3d07a98823bd7150a6647d6a6734e65d86fd4e96d7e81f3111f190ee9e29b352c410d3e75c25259
+  checksum: 10/86a518259a25a1f6d93af55384f5c2d7c2d7a57253f65e8c915b48227265cf162ca216f70f74b164208df24bd1f2d3e30fdbb5f1c56d7589c222d06e301b9965
   languageName: node
   linkType: hard
 
@@ -7142,10 +7141,17 @@ __metadata:
   resolution: "@shopana/app-online-store@workspace:apps/online-store"
   dependencies:
     "@shopana/app-sdk": "workspace:*"
+    "@shopana/drizzle-query": "workspace:*"
+    "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-graphql-guid": "workspace:*"
     "@shopana/shared-kernel": "workspace:*"
     "@shopana/shared-references": "npm:*"
+    "@shopana/type-resolver": "workspace:*"
     "@types/node": "npm:^22.7.4"
+    dataloader: "npm:^2.2.3"
     drizzle-orm: "npm:^0.45.1"
+    graphql: "npm:^16.9.0"
+    tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
   languageName: unknown
   linkType: soft
@@ -7346,7 +7352,6 @@ __metadata:
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-references": "npm:*"
     "@shopana/shared-service-api": "npm:*"
-    "@shopana/storefront-graphql": "workspace:*"
     "@shopana/type-resolver": "npm:*"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.14.14"
@@ -7479,6 +7484,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@shopana/customer-segment-dsl@npm:*, @shopana/customer-segment-dsl@workspace:packages/customer-segment-dsl":
+  version: 0.0.0-use.local
+  resolution: "@shopana/customer-segment-dsl@workspace:packages/customer-segment-dsl"
+  dependencies:
+    "@jest/globals": "npm:^30.1.3"
+    "@shopana/shared-graphql-guid": "npm:*"
+    "@types/node": "npm:^20.14.14"
+    jest: "npm:^30.1.3"
+    ts-jest: "npm:^29.4.6"
+    typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
+  languageName: unknown
+  linkType: soft
+
 "@shopana/customers-service@npm:0.0.1, @shopana/customers-service@workspace:services/customers":
   version: 0.0.0-use.local
   resolution: "@shopana/customers-service@workspace:services/customers"
@@ -7490,8 +7509,10 @@ __metadata:
     "@graphql-codegen/typescript": "npm:^4.0.8"
     "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@nestjs/common": "npm:^10.0.0"
+    "@nestjs/schedule": "npm:^4.1.0"
     "@shopana/broker-types": "npm:*"
     "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/customer-segment-dsl": "npm:*"
     "@shopana/drizzle-query": "npm:*"
     "@shopana/events": "npm:*"
     "@shopana/shared-context": "npm:*"
@@ -7515,6 +7536,7 @@ __metadata:
     postgres: "npm:^3.4.7"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
+    tr46: "npm:5.1.1"
     tsx: "npm:^4.16.2"
     typescript: "npm:^5.5.4"
     zod: "npm:^3.23.8"
@@ -7526,15 +7548,13 @@ __metadata:
   resolution: "@shopana/dbos@workspace:packages/dbos"
   dependencies:
     "@dbos-inc/dbos-sdk": "npm:^4.23.6"
-    "@dbos-inc/drizzle-datasource": "npm:4.23.6"
+    "@dbos-inc/postgres-datasource": "npm:4.23.6"
     "@nestjs/common": "npm:^10.0.0"
     "@types/jest": "npm:^30.0.0"
     "@types/node": "npm:^20.12.7"
-    "@types/pg": "npm:^8"
     canonicalize: "npm:^1.0.8"
-    drizzle-orm: "npm:^0.45.1"
     jest: "npm:^30.1.3"
-    pg: "npm:^8.11.3"
+    postgres: "npm:^3.4.7"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.1"
     ts-jest: "npm:^29.4.6"
@@ -7576,7 +7596,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/drizzle-query@npm:*, @shopana/drizzle-query@workspace:packages/drizzle-query":
+"@shopana/drizzle-query@npm:*, @shopana/drizzle-query@workspace:*, @shopana/drizzle-query@workspace:packages/drizzle-query":
   version: 0.0.0-use.local
   resolution: "@shopana/drizzle-query@workspace:packages/drizzle-query"
   dependencies:
@@ -7761,16 +7781,21 @@ __metadata:
     "@nestjs/common": "npm:^10.0.0"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "workspace:*"
+    "@shopana/drizzle-query": "workspace:*"
     "@shopana/events": "workspace:*"
     "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-graphql-guid": "workspace:*"
     "@shopana/shared-kernel": "workspace:*"
+    "@shopana/shared-references": "workspace:*"
     "@shopana/shared-service-config": "workspace:*"
+    "@shopana/type-resolver": "workspace:*"
     "@types/node": "npm:^20.14.14"
     cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
     drizzle-orm: "npm:^0.45.1"
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
+    graphql-codegen-typescript-validation-schema: "npm:^0.18.1"
     graphql-tag: "npm:^2.12.6"
     node-pg-migrate: "npm:^8.0.4"
     pino: "npm:^9.3.2"
@@ -7779,6 +7804,7 @@ __metadata:
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
     typescript: "npm:^5.5.4"
+    zod: "npm:^3.23.8"
   languageName: unknown
   linkType: soft
 
@@ -7915,6 +7941,7 @@ __metadata:
     "@nestjs/common": "npm:^10.0.0"
     "@shopana/broker-types": "npm:*"
     "@shopana/build-tools": "npm:0.0.1"
+    "@shopana/events": "workspace:*"
     "@shopana/function-runner": "workspace:*"
     "@shopana/shared-kernel": "npm:*"
     "@shopana/shared-service-api": "npm:*"
@@ -8213,7 +8240,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/storefront-graphql@workspace:*, @shopana/storefront-graphql@workspace:packages/storefront-graphql":
+"@shopana/storefront-graphql@workspace:packages/storefront-graphql":
   version: 0.0.0-use.local
   resolution: "@shopana/storefront-graphql@workspace:packages/storefront-graphql"
   dependencies:
@@ -9238,7 +9265,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/pg@npm:^8, @types/pg@npm:^8.11.2":
+"@types/pg@npm:^8.11.2":
   version: 8.20.0
   resolution: "@types/pg@npm:8.20.0"
   dependencies:
@@ -20032,7 +20059,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tr46@npm:^5.1.0":
+"tr46@npm:5.1.1, tr46@npm:^5.1.0":
   version: 5.1.1
   resolution: "tr46@npm:5.1.1"
   dependencies:

@@ -7,9 +7,11 @@ import {
 } from "@nestjs/common";
 import {
   DATABASE_CLIENT,
+  DATABASE_CONNECTION_OPTIONS,
   InjectBroker,
   ServiceBroker,
   type DatabaseClient,
+  type DatabaseConnectionOptions,
 } from "@shopana/shared-kernel";
 import { WORKFLOW_REGISTRY, WorkflowRegistry } from "@shopana/shared-kernel";
 import { getServiceConfig } from "@shopana/shared-service-config";
@@ -30,13 +32,20 @@ export class CatalogNestService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @InjectBroker("catalog") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
-    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient
+    @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
+    @Inject(DATABASE_CONNECTION_OPTIONS)
+    private readonly databaseConnectionOptions: DatabaseConnectionOptions
   ) {}
 
   async onModuleInit() {
     this.logger.debug("Catalog onModuleInit started");
 
-    this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
+    this.kernel = await Kernel.create(
+      this.broker,
+      this.workflow,
+      this.dbClient,
+      this.databaseConnectionOptions
+    );
     this.logger.debug("Kernel created");
 
     this.graphqlServer = await startServer({

@@ -22,10 +22,18 @@ export class CustomerGroupDeleteScript extends BaseScript<
     if (!group) {
       return notFound();
     }
+    const customerIds = await this.repository.group.customerIdsByGroupId(params.id);
 
     const deleted = await this.repository.group.softDelete(params.id);
     if (!deleted) {
       return notFound();
+    }
+    for (const customerId of customerIds) {
+      await this.invalidateDynamicSegments(
+        customerId,
+        ["group"],
+        `groupDeleted:${params.id}`,
+      );
     }
 
     this.logger.info({ groupId: params.id }, "Customer group deleted");

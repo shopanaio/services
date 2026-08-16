@@ -81,7 +81,16 @@ export const mapStoreDefaultsInput = (
 export const mapStoreCurrencyInput = (
   values: StoreCurrencyFormValues,
 ): ApiStoreUpdateInput => ({
-  currencySettings: { ...values },
+  currencySettings: {
+    currencyDisplay: values.currencyDisplay,
+    currencySign: values.currencySign,
+    grouping: values.grouping,
+    signDisplay: values.signDisplay,
+    minimumFractionDigits: values.minimumFractionDigits,
+    maximumFractionDigits: values.maximumFractionDigits,
+    roundingMode: values.roundingMode,
+    trailingZeroDisplay: values.trailingZeroDisplay,
+  },
 });
 
 export const mapStoreOrderProcessingInput = (

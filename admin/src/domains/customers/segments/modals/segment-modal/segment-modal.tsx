@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLazyQuery, useQuery } from "@apollo/client/react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -40,6 +41,11 @@ import {
   buildCustomerSegmentUpdateInput,
   mapCustomerSegmentUserErrors,
 } from "../../mappers";
+import {
+  CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY,
+  CUSTOMER_SEGMENT_PREVIEW_QUERY,
+  CUSTOMER_SEGMENT_QUERY_VALIDATE,
+} from "../../graphql";
 import { segmentFormSchema, type SegmentFormValues } from "./schema";
 
 const useStyles = createStyles(({ token }) => ({
@@ -58,6 +64,18 @@ const useStyles = createStyles(({ token }) => ({
   },
   error: { color: token.colorError, fontSize: 12, marginTop: 4 },
   help: { color: token.colorTextSecondary, fontSize: 13, marginTop: 4 },
+  builderRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(180px, 1.4fr) minmax(140px, 1fr) minmax(180px, 1.4fr) auto",
+    gap: token.paddingSM,
+    alignItems: "start",
+    "@media (max-width: 800px)": { gridTemplateColumns: "1fr" },
+  },
+  builderActions: {
+    display: "flex",
+    gap: token.paddingSM,
+    flexWrap: "wrap",
+  },
   membershipCard: {
     padding: token.padding,
     borderRadius: token.borderRadiusLG,
@@ -88,6 +106,47 @@ const colorOptions = [
   { value: "#595959", label: "Gray" },
 ];
 
+interface SegmentDiagnostic {
+  code: string;
+  message: string;
+  severity: "ERROR" | "WARNING";
+  line: number;
+  column: number;
+}
+
+interface SegmentValidation {
+  valid: boolean;
+  canonicalQuery: string | null;
+  complexity: number | null;
+  diagnostics: SegmentDiagnostic[];
+}
+
+interface SegmentCatalogData {
+  customersQuery: {
+    customerSegmentAttributeCatalog: SegmentCatalogItem[];
+  };
+}
+
+interface SegmentCatalogItem {
+  name: string;
+  kind: "SCALAR" | "LIST" | "FUNCTION" | "VIRTUAL";
+  valueType: string;
+  operators: string[];
+  enumValues: string[];
+  availability: "AVAILABLE" | "UNAVAILABLE";
+  unavailabilityReason: string | null;
+}
+
+interface BuilderCondition {
+  id: number;
+  attribute: string;
+  operator: string;
+  value: string;
+  upperValue: string;
+}
+
+let nextBuilderConditionId = 1;
+
 export function CustomerSegmentModal() {
   const { styles } = useStyles();
   const { message, modal } = App.useApp();
@@ -104,7 +163,29 @@ export function CustomerSegmentModal() {
   const [segmentType, setSegmentType] = useState(CustomerSegmentType.Manual);
   const [segmentStatus, setSegmentStatus] = useState(CustomerSegmentStatus.Active);
   const [query, setQuery] = useState("");
-  const [definition, setDefinition] = useState("{}");
+  const [builderJoin, setBuilderJoin] = useState<"AND" | "OR">("AND");
+  const [builderConditions, setBuilderConditions] = useState<BuilderCondition[]>([]);
+  const [validation, setValidation] = useState<SegmentValidation | null>(null);
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
+  const catalogQuery = useQuery<SegmentCatalogData>(
+    CUSTOMER_SEGMENT_ATTRIBUTE_CATALOG_QUERY,
+  );
+  const [validateQuery, { loading: validating }] = useLazyQuery<{
+    customersQuery: { customerSegmentQueryValidate: SegmentValidation };
+  }>(CUSTOMER_SEGMENT_QUERY_VALIDATE, { fetchPolicy: "no-cache" });
+  const [previewQuery, { loading: previewing }] = useLazyQuery<{
+    customersQuery: {
+      customerSegmentPreview: {
+        timedOut: boolean;
+        totalCount: number | null;
+        validation: SegmentValidation;
+      };
+    };
+  }>(CUSTOMER_SEGMENT_PREVIEW_QUERY, { fetchPolicy: "no-cache" });
+  const catalog = catalogQuery.data?.customersQuery.customerSegmentAttributeCatalog ?? [];
+  const visualAttributes = catalog.filter(
+    (item) => item.kind !== "FUNCTION" && item.availability === "AVAILABLE",
+  );
 
   const methods = useForm<SegmentFormValues>({
     resolver: zodResolver(segmentFormSchema),
@@ -125,16 +206,24 @@ export function CustomerSegmentModal() {
 
   useEffect(() => {
     if (!isEdit || !segmentQuery.segment) return;
-    reset({
-      name: segmentQuery.segment.name,
-      description: segmentQuery.segment.description ?? "",
-      color: segmentQuery.segment.color ?? "#1677ff",
+    const segment = segmentQuery.segment;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      reset({
+        name: segment.name,
+        description: segment.description ?? "",
+        color: segment.color ?? "#1677ff",
+      });
+      setSegmentType(segment.type);
+      setSegmentStatus(segment.status);
+      setQuery(segment.query ?? "");
+      setBuilderConditions([]);
+      setValidation(null);
+      setPreviewCount(null);
+      setAdvancedDirty(false);
     });
-    setSegmentType(segmentQuery.segment.type);
-    setSegmentStatus(segmentQuery.segment.status);
-    setQuery(segmentQuery.segment.query ?? "");
-    setDefinition(JSON.stringify(segmentQuery.segment.definition ?? {}, null, 2));
-    setAdvancedDirty(false);
+    return () => { cancelled = true; };
   }, [isEdit, reset, segmentQuery.segment]);
 
   const memberIds = useMemo(
@@ -172,28 +261,88 @@ export function CustomerSegmentModal() {
     },
   });
 
+  const handleValidateQuery = useCallback(async (): Promise<SegmentValidation | null> => {
+    if (segmentType !== CustomerSegmentType.Dynamic) return null;
+    const result = await validateQuery({ variables: { query } });
+    const next = result.data?.customersQuery.customerSegmentQueryValidate ?? null;
+    setValidation(next);
+    if (next?.canonicalQuery && next.valid) setQuery(next.canonicalQuery);
+    return next;
+  }, [query, segmentType, validateQuery]);
+
+  const handlePreview = useCallback(async () => {
+    const result = await previewQuery({ variables: { query, first: 50 } });
+    const preview = result.data?.customersQuery.customerSegmentPreview;
+    if (!preview) return;
+    setValidation(preview.validation);
+    setPreviewCount(preview.timedOut ? null : preview.totalCount);
+  }, [previewQuery, query]);
+
+  const addBuilderCondition = useCallback(() => {
+    const attribute = visualAttributes[0];
+    if (!attribute) return;
+    setBuilderConditions((current) => [
+      ...current,
+      {
+        id: nextBuilderConditionId++,
+        attribute: attribute.name,
+        operator: attribute.operators[0] ?? "eq",
+        value: "",
+        upperValue: "",
+      },
+    ]);
+    setAdvancedDirty(true);
+  }, [visualAttributes]);
+
+  const updateBuilderCondition = useCallback((
+    id: number,
+    patch: Partial<Omit<BuilderCondition, "id">>,
+  ) => {
+    setBuilderConditions((current) => current.map((condition) =>
+      condition.id === id ? { ...condition, ...patch } : condition,
+    ));
+    setAdvancedDirty(true);
+  }, []);
+
+  const applyVisualBuilder = useCallback(() => {
+    const clauses = builderConditions.map((condition) => {
+      const attribute = visualAttributes.find((item) => item.name === condition.attribute);
+      return attribute ? printBuilderCondition(condition, attribute) : "";
+    }).filter(Boolean);
+    if (clauses.length === 0) return;
+    setQuery(clauses.join(` ${builderJoin} `));
+    setValidation(null);
+    setPreviewCount(null);
+    setAdvancedDirty(true);
+  }, [builderConditions, builderJoin, visualAttributes]);
+
   const onSubmit = useCallback(async (values: SegmentFormValues) => {
     setGlobalErrors([]);
     clearErrors();
     const current = segmentQuery.segment;
-    let parsedDefinition: Record<string, unknown> | null = null;
-    if (isEdit) {
-      try {
-        const parsed = JSON.parse(definition);
-        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error();
-        parsedDefinition = parsed as Record<string, unknown>;
-      } catch {
-        setGlobalErrors(["Segment definition must be a valid JSON object."]);
+    if (segmentType === CustomerSegmentType.Dynamic) {
+      const result = await handleValidateQuery();
+      if (!result?.valid) {
+        setGlobalErrors(["Fix the segment query before saving."]);
         return;
       }
     }
     const result = isEdit && current
       ? await updateSegment(current.id, current.revision, {
           ...buildCustomerSegmentUpdateInput(values),
-          definition: { type: segmentType, query: query.trim() || null, definition: parsedDefinition },
+          ...(current.type === CustomerSegmentType.Dynamic
+            ? { definition: { query: query.trim() } }
+            : {}),
           state: { status: segmentStatus },
         })
-      : await createSegment(buildCustomerSegmentCreateInput(values));
+      : await createSegment(
+          buildCustomerSegmentCreateInput(
+            values,
+            segmentType,
+            segmentStatus,
+            query,
+          ),
+        );
 
     if (!result.segment || result.userErrors.length > 0) {
       const global: string[] = [];
@@ -209,7 +358,7 @@ export function CustomerSegmentModal() {
     setDirty(false);
     message.success(isEdit ? "Segment updated" : "Segment created");
     forcePop();
-  }, [clearErrors, createSegment, definition, forcePop, isEdit, message, query, segmentQuery.segment, segmentStatus, segmentType, setDirty, setError, typedPayload, updateSegment]);
+  }, [clearErrors, createSegment, forcePop, handleValidateQuery, isEdit, message, query, segmentQuery.segment, segmentStatus, segmentType, setDirty, setError, typedPayload, updateSegment]);
 
   const handleDelete = useCallback(async () => {
     const current = segmentQuery.segment;
@@ -273,7 +422,7 @@ export function CustomerSegmentModal() {
             extra={
               <Flex align="center" gap="small">
                 <Tag color="blue">
-                  {segment?.type === CustomerSegmentType.Dynamic ? "Dynamic" : "Manual"}
+                  {segmentType === CustomerSegmentType.Dynamic ? "Dynamic" : "Manual"}
                 </Tag>
                 {isEdit ? (
                   <Button
@@ -367,45 +516,213 @@ export function CustomerSegmentModal() {
           </div>
         </Paper>
 
-        {isEdit ? (
-          <Paper>
-            <PaperHeader title="Definition & state" icon={<InfoCircleOutlined />} />
-            <Flex vertical gap="middle">
-              <div className={styles.fields}>
-                <div>
-                  <label className={styles.label}>Segment type</label>
-                  <Select
-                    value={segmentType}
-                    options={Object.values(CustomerSegmentType).map((value) => ({ value, label: value.toLowerCase() }))}
-                    onChange={(value) => { setSegmentType(value); setAdvancedDirty(true); }}
-                    style={{ width: "100%" }}
-                  />
-                </div>
-                <div>
-                  <label className={styles.label}>Status</label>
-                  <Select
-                    value={segmentStatus}
-                    options={Object.values(CustomerSegmentStatus).map((value) => ({ value, label: value.toLowerCase() }))}
-                    onChange={(value) => { setSegmentStatus(value); setAdvancedDirty(true); }}
-                    style={{ width: "100%" }}
-                  />
-                </div>
+        <Paper>
+          <PaperHeader title="Definition & state" icon={<InfoCircleOutlined />} />
+          <Flex vertical gap="middle">
+            <div className={styles.fields}>
+              <div>
+                <label className={styles.label}>Segment type</label>
+                <Select
+                  value={segmentType}
+                  disabled={isEdit}
+                  options={Object.values(CustomerSegmentType).map((value) => ({
+                    value,
+                    label: value.toLowerCase(),
+                  }))}
+                  onChange={(value) => {
+                    setSegmentType(value);
+                    setValidation(null);
+                    setPreviewCount(null);
+                    setAdvancedDirty(true);
+                  }}
+                  style={{ width: "100%" }}
+                />
+                {isEdit ? <div className={styles.help}>Segment type is immutable.</div> : null}
               </div>
-              {segmentType === CustomerSegmentType.Dynamic ? (
-                <>
-                  <div>
-                    <label className={styles.label}>Query</label>
-                    <Input.TextArea value={query} onChange={(event) => { setQuery(event.target.value); setAdvancedDirty(true); }} rows={4} />
-                  </div>
-                  <div>
-                    <label className={styles.label}>Definition (JSON)</label>
-                    <Input.TextArea value={definition} onChange={(event) => { setDefinition(event.target.value); setAdvancedDirty(true); }} rows={10} style={{ fontFamily: "monospace" }} />
-                  </div>
-                </>
-              ) : null}
-            </Flex>
-          </Paper>
-        ) : null}
+              <div>
+                <label className={styles.label}>Status</label>
+                <Select
+                  value={segmentStatus}
+                  options={Object.values(CustomerSegmentStatus).map((value) => ({ value, label: value.toLowerCase() }))}
+                  onChange={(value) => { setSegmentStatus(value); setAdvancedDirty(true); }}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+            {segmentType === CustomerSegmentType.Dynamic ? (
+              <>
+                <div>
+                  <label className={styles.label}>Visual condition builder</label>
+                  <Flex vertical gap="small">
+                    {builderConditions.map((condition) => {
+                      const attribute = visualAttributes.find(
+                        (item) => item.name === condition.attribute,
+                      );
+                      const valueless = condition.operator === "is_null" ||
+                        condition.operator === "is_not_null";
+                      return (
+                        <div className={styles.builderRow} key={condition.id}>
+                          <Select
+                            showSearch
+                            value={condition.attribute}
+                            options={visualAttributes.map((item) => ({
+                              value: item.name,
+                              label: `${item.name} · ${item.kind.toLowerCase()}`,
+                            }))}
+                            onChange={(value) => {
+                              const next = visualAttributes.find((item) => item.name === value);
+                              updateBuilderCondition(condition.id, {
+                                attribute: value,
+                                operator: next?.operators[0] ?? "eq",
+                                value: "",
+                                upperValue: "",
+                              });
+                            }}
+                          />
+                          <Select
+                            value={condition.operator}
+                            options={(attribute?.operators ?? []).map((operator) => ({
+                              value: operator,
+                              label: operatorLabel(operator),
+                            }))}
+                            onChange={(operator) => updateBuilderCondition(condition.id, { operator })}
+                          />
+                          <Flex gap="small">
+                            {valueless ? (
+                              <Input value="No value" disabled />
+                            ) : attribute?.enumValues.length &&
+                              condition.operator !== "in" && condition.operator !== "not_in" ? (
+                              <Select
+                                value={condition.value || undefined}
+                                placeholder="Value"
+                                options={attribute.enumValues.map((value) => ({ value, label: value }))}
+                                onChange={(value) => updateBuilderCondition(condition.id, { value })}
+                                style={{ width: "100%" }}
+                              />
+                            ) : attribute?.valueType === "Boolean" ? (
+                              <Select
+                                value={condition.value || undefined}
+                                placeholder="Value"
+                                options={[{ value: "TRUE", label: "true" }, { value: "FALSE", label: "false" }]}
+                                onChange={(value) => updateBuilderCondition(condition.id, { value })}
+                                style={{ width: "100%" }}
+                              />
+                            ) : (
+                              <Input
+                                value={condition.value}
+                                placeholder={condition.operator === "in" || condition.operator === "not_in" ? "Comma-separated values" : "Value"}
+                                onChange={(event) => updateBuilderCondition(condition.id, { value: event.target.value })}
+                              />
+                            )}
+                            {condition.operator === "between" ? (
+                              <Input
+                                value={condition.upperValue}
+                                placeholder="Upper value"
+                                onChange={(event) => updateBuilderCondition(condition.id, { upperValue: event.target.value })}
+                              />
+                            ) : null}
+                          </Flex>
+                          <Button
+                            type="text"
+                            danger
+                            aria-label="Remove condition"
+                            icon={<DeleteOutlined />}
+                            onClick={() => {
+                              setBuilderConditions((current) => current.filter((item) => item.id !== condition.id));
+                              setAdvancedDirty(true);
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                    <div className={styles.builderActions}>
+                      <Button onClick={addBuilderCondition} disabled={visualAttributes.length === 0}>
+                        Add condition
+                      </Button>
+                      <Select
+                        value={builderJoin}
+                        options={[{ value: "AND", label: "Match all (AND)" }, { value: "OR", label: "Match any (OR)" }]}
+                        onChange={(value: "AND" | "OR") => { setBuilderJoin(value); setAdvancedDirty(true); }}
+                        style={{ minWidth: 160 }}
+                      />
+                      <Button type="primary" ghost onClick={applyVisualBuilder} disabled={builderConditions.length === 0}>
+                        Apply to query
+                      </Button>
+                    </div>
+                    <div className={styles.help}>
+                      Attribute types and operators come from the server catalog. Aggregate functions remain available in the advanced editor below.
+                    </div>
+                  </Flex>
+                </div>
+                {catalogQuery.error ? <Alert type="error" showIcon message="Could not load the segment attribute catalog" /> : null}
+                <div>
+                  <label className={styles.label}>Insert function template</label>
+                  <Select
+                    showSearch
+                    value={null}
+                    loading={catalogQuery.loading}
+                    placeholder="Choose a server-defined function"
+                    options={catalog.filter((item) => item.kind === "FUNCTION").map((item) => ({
+                      value: item.name,
+                      label: item.name,
+                      disabled: item.availability !== "AVAILABLE",
+                      title: item.unavailabilityReason ?? undefined,
+                    }))}
+                    onChange={(value) => {
+                      setQuery((current) => `${current}${current.trim() ? " AND " : ""}${value} MATCHES ()`);
+                      setValidation(null);
+                      setPreviewCount(null);
+                      setAdvancedDirty(true);
+                    }}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div>
+                  <label className={styles.label} htmlFor="customer-segment-query">Advanced query</label>
+                  <Input.TextArea
+                    id="customer-segment-query"
+                    value={query}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setValidation(null);
+                      setPreviewCount(null);
+                      setAdvancedDirty(true);
+                    }}
+                    rows={6}
+                    style={{ fontFamily: "monospace" }}
+                    status={validation && !validation.valid ? "error" : undefined}
+                  />
+                </div>
+                <Flex gap="small" wrap>
+                  <Button loading={validating} onClick={() => void handleValidateQuery()}>
+                    Validate query
+                  </Button>
+                  <Button loading={previewing} onClick={() => void handlePreview()}>
+                    Preview customers
+                  </Button>
+                  {validation ? (
+                    <Tag color={validation.valid ? "success" : "error"}>
+                      {validation.valid ? `Valid · complexity ${validation.complexity ?? 0}` : "Invalid query"}
+                    </Tag>
+                  ) : null}
+                  {previewCount !== null ? <Tag color="blue">{previewCount} matching customers</Tag> : null}
+                </Flex>
+                {validation?.diagnostics.length ? (
+                  <Alert
+                    type={validation.valid ? "warning" : "error"}
+                    showIcon
+                    message="Query diagnostics"
+                    description={validation.diagnostics.map((item) => (
+                      <div key={`${item.code}:${item.line}:${item.column}`}>
+                        <code>{item.code}</code> at {item.line}:{item.column} — {item.message}
+                      </div>
+                    ))}
+                  />
+                ) : null}
+              </>
+            ) : null}
+          </Flex>
+        </Paper>
 
         <Paper>
           <PaperHeader title="Customers" icon={<TeamOutlined />} />
@@ -413,7 +730,11 @@ export function CustomerSegmentModal() {
             <Flex align="center" justify="space-between" gap="middle" wrap className={styles.membershipCard}>
               <div>
                 <Typography.Title level={3} className={styles.memberCount}>{segment?.customersCount ?? 0}</Typography.Title>
-                <Typography.Text type="secondary">customers assigned manually</Typography.Text>
+                <Typography.Text type="secondary">
+                  {segmentType === CustomerSegmentType.Dynamic
+                    ? "customers in the current published materialization"
+                    : "customers assigned manually"}
+                </Typography.Text>
               </div>
               {isEdit && segment?.type === CustomerSegmentType.Manual ? (
                 <Tooltip title={isDirty ? "Save segment details before changing customers" : undefined}>
@@ -447,4 +768,55 @@ export function CustomerSegmentModal() {
       </ModalLayout>
     </FormProvider>
   );
+}
+
+const OPERATOR_LABELS: Record<string, string> = {
+  eq: "=",
+  neq: "!=",
+  gt: ">",
+  gte: ">=",
+  lt: "<",
+  lte: "<=",
+  between: "BETWEEN",
+  in: "IN",
+  not_in: "NOT IN",
+  is_null: "IS NULL",
+  is_not_null: "IS NOT NULL",
+  contains: "CONTAINS",
+  not_contains: "NOT CONTAINS",
+};
+
+function operatorLabel(operator: string): string {
+  return OPERATOR_LABELS[operator] ?? operator;
+}
+
+function printBuilderCondition(
+  condition: BuilderCondition,
+  attribute: SegmentCatalogItem,
+): string {
+  const operator = operatorLabel(condition.operator);
+  if (condition.operator === "is_null" || condition.operator === "is_not_null") {
+    return `${condition.attribute} ${operator}`;
+  }
+  if (condition.operator === "between") {
+    return `${condition.attribute} BETWEEN ${builderLiteral(condition.value, attribute)} AND ${builderLiteral(condition.upperValue, attribute)}`;
+  }
+  if (condition.operator === "in" || condition.operator === "not_in") {
+    const values = condition.value.split(",").map((value) => value.trim()).filter(Boolean);
+    return `${condition.attribute} ${operator} (${values.map((value) => builderLiteral(value, attribute)).join(", ")})`;
+  }
+  return `${condition.attribute} ${operator} ${builderLiteral(condition.value, attribute)}`;
+}
+
+function builderLiteral(value: string, attribute: SegmentCatalogItem): string {
+  if (["String", "Enum", "ID"].includes(attribute.valueType)) {
+    return `'${value
+      .replaceAll("\\", "\\\\")
+      .replaceAll("'", "\\'")
+      .replaceAll("\n", "\\n")
+      .replaceAll("\r", "\\r")
+      .replaceAll("\t", "\\t")}'`;
+  }
+  if (attribute.valueType === "Boolean") return value.toUpperCase();
+  return value;
 }

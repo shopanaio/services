@@ -30,6 +30,11 @@ export class CustomerCreateScript extends BaseScript<
 
     try {
       const customer = await this.repository.customer.create(params);
+      await this.invalidateDynamicSegments(
+        customer.id,
+        ["customer.any"],
+        "customerCreated",
+      );
       this.logger.info({ customerId: customer.id }, "Customer created");
       return {
         customer: { id: customer.id, revision: customer.revision },

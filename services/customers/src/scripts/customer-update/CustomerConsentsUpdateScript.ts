@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CustomerConsentsUpdateOperation } from "../../workflows/dto/index.js";
 import {
   internalSectionError,
@@ -17,6 +17,7 @@ export class CustomerConsentsUpdateScript extends BaseScript<
   CustomerConsentsUpdateParams,
   CustomerSectionResult
 > {
+  @Transactional()
   protected async execute(
     params: CustomerConsentsUpdateParams
   ): Promise<CustomerSectionResult> {
@@ -59,7 +60,11 @@ export class CustomerConsentsUpdateScript extends BaseScript<
       });
     }
 
-    return sectionSuccess(params.operations.set.length > 0);
+    const changed = params.operations.set.length > 0;
+    if (changed) {
+      await this.invalidateDynamicSegments(params.customerId, ["consent"], "consent");
+    }
+    return sectionSuccess(changed);
   }
 
   protected handleError(_error: unknown): CustomerSectionResult {

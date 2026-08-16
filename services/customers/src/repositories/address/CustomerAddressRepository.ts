@@ -19,6 +19,7 @@ import {
   type CustomerAddress,
   type NewCustomerAddress,
 } from "../models/index.js";
+import { normalizeAddressKeys } from "../../segments/normalization.js";
 
 export const customerAddressRelayQuery = createRelayQuery(
   createQuery(customerAddress)
@@ -50,6 +51,9 @@ export type CustomerAddressCreateData = Omit<
   | "validatedAt"
   | "latitude"
   | "longitude"
+  | "regionKey"
+  | "cityKey"
+  | "postalCodeNormalized"
 > & {
   latitude?: number | string | null;
   longitude?: number | string | null;
@@ -185,11 +189,12 @@ export class CustomerAddressRepository extends BaseRepository {
       });
     }
     const now = new Date().toISOString();
+    const normalized = normalizeAddressKeys(data);
     const row: NewCustomerAddress = {
       ...data,
+      ...normalized,
       id: await this.generateUuidV7(),
       storeId: this.storeId,
-      countryCode: data.countryCode.trim().toUpperCase(),
       latitude: normalizeCoordinate(data.latitude),
       longitude: normalizeCoordinate(data.longitude),
       createdAt: now,
@@ -216,13 +221,19 @@ export class CustomerAddressRepository extends BaseRepository {
     patch: CustomerAddressPatch
   ): Promise<CustomerAddress | null> {
     const { latitude, longitude, countryCode, ...fields } = patch;
+    const current = await this.findOwnedById(customerId, id);
+    if (!current) return null;
+    const normalized = normalizeAddressKeys({
+      countryCode: countryCode ?? current.countryCode,
+      regionCode: patch.regionCode === undefined ? current.regionCode : patch.regionCode,
+      city: patch.city ?? current.city,
+      postalCode: patch.postalCode === undefined ? current.postalCode : patch.postalCode,
+    });
     const rows = await this.connection
       .update(customerAddress)
       .set({
         ...fields,
-        ...(countryCode !== undefined
-          ? { countryCode: countryCode.trim().toUpperCase() }
-          : {}),
+        ...normalized,
         ...(latitude !== undefined
           ? { latitude: normalizeCoordinate(latitude) }
           : {}),
@@ -290,9 +301,12 @@ export class CustomerAddressRepository extends BaseRepository {
         address1: "[redacted]",
         address2: null,
         city: "[redacted]",
+        cityKey: "ZZ::[redacted]",
         regionName: null,
         regionCode: null,
+        regionKey: null,
         postalCode: null,
+        postalCodeNormalized: null,
         countryCode: "ZZ",
         isDefaultShipping: false,
         isDefaultBilling: false,

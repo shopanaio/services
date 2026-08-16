@@ -83,6 +83,12 @@ export class CustomerStatisticsProjectionScript extends BaseScript<
     }
     if (changed) {
       await this.repository.statistics.rebuildForCustomer(params.customerId);
+      await this.invalidateDynamicSegments(
+        params.customerId,
+        [statisticsDependency(params.operation)],
+        `statistics:${params.operation.toLowerCase()}`,
+        params.occurredAt,
+      );
     }
     return {
       customerId: params.customerId,
@@ -94,6 +100,14 @@ export class CustomerStatisticsProjectionScript extends BaseScript<
   protected handleError(error: unknown): CustomerStatisticsProjectionResult {
     throw error;
   }
+}
+
+function statisticsDependency(
+  operation: CustomerStatisticsProjectionParams["operation"],
+): "statistics.order" | "statistics.checkout" | "statistics.refund" {
+  if (operation === "ORDER") return "statistics.order";
+  if (operation === "CHECKOUT") return "statistics.checkout";
+  return "statistics.refund";
 }
 
 function parseMinor(value: string): bigint {

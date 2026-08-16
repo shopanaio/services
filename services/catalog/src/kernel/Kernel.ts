@@ -1,5 +1,10 @@
 import { Kernel as BaseKernel, consoleLogger } from "@shopana/shared-kernel";
-import type { ServiceBroker, Logger, DatabaseClient } from "@shopana/shared-kernel";
+import type {
+  ServiceBroker,
+  Logger,
+  DatabaseClient,
+  DatabaseConnectionOptions,
+} from "@shopana/shared-kernel";
 import type { WorkflowRegistry } from "@shopana/shared-kernel";
 import { createCache, type Cache } from "cache-manager";
 import type { InventoryKernelServices, RunScriptContext } from "./types.js";
@@ -8,6 +13,7 @@ import { BaseScript } from "./BaseScript.js";
 import { createDatabase, type Database } from "../infrastructure/db/database.js";
 import { runWithContext, getContextSafe, ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
+import { createCatalogDbosTransactionBridge } from "../infrastructure/db/dbosTransactionBridge.js";
 
 /**
  * Extended kernel for inventory microservice (singleton)
@@ -38,14 +44,18 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   static async create(
     broker: ServiceBroker,
     workflow: WorkflowRegistry,
-    dbClient: DatabaseClient
+    dbClient: DatabaseClient,
+    databaseConnectionOptions: DatabaseConnectionOptions
   ): Promise<Kernel> {
     if (this.instance) {
       return this.instance;
     }
 
     const db = createDatabase(dbClient);
-    const repository = await Repository.create({ db });
+    const dbosTransactionBridge = createCatalogDbosTransactionBridge(
+      databaseConnectionOptions
+    );
+    const repository = await Repository.create({ db, dbosTransactionBridge });
 
     const cache = createCache({
       ttl: 5 * 60 * 1000, // 5 minutes default TTL
@@ -65,7 +75,7 @@ export class Kernel extends BaseKernel<InventoryKernelServices> {
   static getInstance(): Kernel {
     if (!this.instance) {
       throw new Error(
-        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient) first."
+        "Kernel not initialized. Call Kernel.create(broker, workflow, dbClient, databaseConnectionOptions) first."
       );
     }
     return this.instance;

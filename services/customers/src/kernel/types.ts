@@ -25,6 +25,13 @@ export interface RunScriptContext {
   currencies?: string[];
   userId?: string;
   requestId?: string;
+  /** Full trusted context is required for the first Store projection event. */
+  segmentStoreContext?: {
+    readonly timeZone: string;
+    readonly currencyCode: string;
+    readonly currencyExponent: number;
+    readonly configurationRevision: number;
+  };
 }
 
 export type TransactionScript<

@@ -91,16 +91,29 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
     const script = new ScriptClass(this.services);
 
     if (context && !getContextSafe()) {
-      const serviceContext = this.buildServiceContext(context);
+      const serviceContext = await this.buildServiceContext(context);
       return runWithContext(serviceContext, () => script.run(params));
     }
 
     return script.run(params);
   }
 
-  private buildServiceContext(ctx: RunScriptContext): ServiceContext {
-    const defaultLocale = ctx.defaultLocale ?? ctx.locale ?? "";
-    const defaultCurrency = ctx.defaultCurrency ?? ctx.currencies?.[0] ?? "";
+  private async buildServiceContext(ctx: RunScriptContext): Promise<ServiceContext> {
+    const projected = ctx.segmentStoreContext
+      ? {
+          timeZone: ctx.segmentStoreContext.timeZone,
+          currencyCode: ctx.segmentStoreContext.currencyCode,
+          currencyExponent: ctx.segmentStoreContext.currencyExponent,
+          configurationRevision:
+            ctx.segmentStoreContext.configurationRevision,
+        }
+      : await this.repository.segmentStoreContext.findByStoreId(ctx.storeId);
+    if (!projected) {
+      throw new Error(
+        `Customer segment Store context is not projected for ${ctx.storeId}`,
+      );
+    }
+    const defaultLocale = ctx.defaultLocale ?? ctx.locale ?? "und";
 
     return new ServiceContext({
       requestId: ctx.requestId ?? `workflow-${Date.now()}`,
@@ -112,10 +125,12 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
         name: ctx.storeId,
         displayName: ctx.storeId,
         organizationId: ctx.organizationId,
-        timezone: "UTC",
+        timezone: projected.timeZone,
         email: null,
         defaultLocale,
-        currencyCode: defaultCurrency,
+        currencyCode: projected.currencyCode,
+        currencyExponent: projected.currencyExponent,
+        segmentConfigurationRevision: projected.configurationRevision,
         locales: ctx.locales ?? [defaultLocale],
       },
       user: ctx.userId

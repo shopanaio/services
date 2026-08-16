@@ -44,3 +44,6 @@ CREATE INDEX "customer_tag_assignment_store_tag_idx"
 
 CREATE INDEX "customer_tag_assignment_customer_idx"
   ON "customers"."customer_tag_assignment" ("customer_id");
+
+CREATE INDEX "customer_tag_assignment_store_customer_tag_idx"
+  ON "customers"."customer_tag_assignment" ("store_id", "customer_id", "tag_id");

@@ -74,7 +74,27 @@ export const customerStatistics = customersSchema.table(
     ),
     index("customer_statistics_store_orders_count_idx").on(
       table.storeId,
-      table.ordersCount.desc(),
+      table.completedOrdersCount.desc(),
+      table.customerId
+    ),
+    index("customer_statistics_store_cancelled_count_idx").on(
+      table.storeId,
+      table.cancelledOrdersCount,
+      table.customerId
+    ),
+    index("customer_statistics_store_returns_count_idx").on(
+      table.storeId,
+      table.returnsCount,
+      table.customerId
+    ),
+    index("customer_statistics_store_first_order_idx").on(
+      table.storeId,
+      table.firstOrderAt,
+      table.customerId
+    ),
+    index("customer_statistics_store_checkout_idx").on(
+      table.storeId,
+      table.lastCheckoutAt,
       table.customerId
     ),
   ]
@@ -126,6 +146,39 @@ export const customerOrderProjection = customersSchema.table(
       table.customerId,
       table.createdAt,
       table.orderId,
+    ),
+    index("customer_order_projection_customer_status_idx").on(
+      table.storeId,
+      table.customerId,
+      table.status,
+      table.createdAt,
+      table.completedAt,
+      table.cancelledAt,
+      table.orderId,
+    ),
+    index("customer_order_projection_status_created_idx").on(
+      table.storeId,
+      table.status,
+      table.createdAt,
+      table.customerId,
+    ),
+    index("customer_order_projection_status_completed_idx").on(
+      table.storeId,
+      table.status,
+      table.completedAt,
+      table.customerId,
+    ),
+    index("customer_order_projection_status_cancelled_idx").on(
+      table.storeId,
+      table.status,
+      table.cancelledAt,
+      table.customerId,
+    ),
+    index("customer_order_projection_currency_amount_idx").on(
+      table.storeId,
+      table.currencyCode,
+      table.totalAmountMinor,
+      table.customerId,
     ),
   ],
 );
@@ -239,6 +292,24 @@ export const customerMonetaryStatistics = customersSchema.table(
       table.storeId,
       table.currencyCode,
       table.netSpentMinor.desc(),
+      table.customerId
+    ),
+    index("customer_monetary_statistics_store_gross_idx").on(
+      table.storeId,
+      table.currencyCode,
+      table.totalSpentMinor,
+      table.customerId
+    ),
+    index("customer_monetary_statistics_store_refunded_idx").on(
+      table.storeId,
+      table.currencyCode,
+      table.totalRefundedMinor,
+      table.customerId
+    ),
+    index("customer_monetary_statistics_store_average_idx").on(
+      table.storeId,
+      table.currencyCode,
+      table.averageOrderValueMinor,
       table.customerId
     ),
   ]

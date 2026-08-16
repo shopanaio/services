@@ -53,7 +53,7 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
 
     try {
       const kernel = Kernel.getInstance();
-      const serviceContext = createServiceContext(kernel, access.app);
+      const serviceContext = await createServiceContext(kernel, access.app);
       const reference = await runWithContext(serviceContext, () =>
         kernel.repository.externalReference.findByExternalKey({
           externalSystem: access.app.appCode,
@@ -259,10 +259,18 @@ export class CustomerExternalReferenceBrokerActions extends BrokerActions {
   }
 }
 
-function createServiceContext(
+async function createServiceContext(
   kernel: Kernel,
   app: Readonly<BrokerAppContext>
-): ServiceContext {
+): Promise<ServiceContext> {
+  const projected = await kernel.repository.segmentStoreContext.findByStoreId(
+    app.storeId,
+  );
+  if (!projected) {
+    throw new Error(
+      `Customer segment Store context is not projected for ${app.storeId}`,
+    );
+  }
   return new ServiceContext({
     requestId:
       app.correlationId ??
@@ -274,11 +282,13 @@ function createServiceContext(
       name: app.storeId,
       displayName: app.storeId,
       organizationId: app.organizationId,
-      timezone: "UTC",
+      timezone: projected.timeZone,
       email: null,
-      defaultLocale: "",
-      currencyCode: "",
-      locales: [],
+      defaultLocale: "und",
+      currencyCode: projected.currencyCode,
+      currencyExponent: projected.currencyExponent,
+      segmentConfigurationRevision: projected.configurationRevision,
+      locales: ["und"],
     },
   });
 }

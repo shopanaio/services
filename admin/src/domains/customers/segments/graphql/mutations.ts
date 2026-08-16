@@ -6,7 +6,10 @@ export const CUSTOMER_SEGMENT_CREATE_MUTATION = gql`
     customersMutation {
       customerSegmentCreate(input: $input) {
         segment { ...CustomerSegmentListFields }
-        userErrors { code field message }
+        userErrors {
+          code field message
+          diagnostic { code message severity startOffset endOffset line column }
+        }
       }
     }
   }
@@ -31,7 +34,10 @@ export const CUSTOMER_SEGMENT_UPDATE_MUTATION = gql`
           applied
           errors { code field message }
         }
-        userErrors { code field message }
+        userErrors {
+          code field message
+          diagnostic { code message severity startOffset endOffset line column }
+        }
       }
     }
   }

@@ -111,7 +111,6 @@ export function StoreCreateInputSchema(): z.ZodObject<Properties<StoreCreateInpu
 
 export function StoreCurrencySettingsUpdateInputSchema(): z.ZodObject<Properties<StoreCurrencySettingsUpdateInput>> {
   return z.object({
-    currencyCode: CurrencyCodeSchema,
     currencyDisplay: CurrencyDisplaySchema,
     currencySign: CurrencySignSchema,
     grouping: CurrencyGroupingSchema,

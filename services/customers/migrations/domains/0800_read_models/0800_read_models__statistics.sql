@@ -40,7 +40,19 @@ CREATE INDEX "customer_statistics_store_last_order_idx"
   ON "customers"."customer_statistics" ("store_id", "last_order_at" DESC, "customer_id");
 
 CREATE INDEX "customer_statistics_store_orders_count_idx"
-  ON "customers"."customer_statistics" ("store_id", "orders_count" DESC, "customer_id");
+  ON "customers"."customer_statistics" ("store_id", "completed_orders_count" DESC, "customer_id");
+
+CREATE INDEX "customer_statistics_store_cancelled_count_idx"
+  ON "customers"."customer_statistics" ("store_id", "cancelled_orders_count", "customer_id");
+
+CREATE INDEX "customer_statistics_store_returns_count_idx"
+  ON "customers"."customer_statistics" ("store_id", "returns_count", "customer_id");
+
+CREATE INDEX "customer_statistics_store_first_order_idx"
+  ON "customers"."customer_statistics" ("store_id", "first_order_at", "customer_id");
+
+CREATE INDEX "customer_statistics_store_checkout_idx"
+  ON "customers"."customer_statistics" ("store_id", "last_checkout_at", "customer_id");
 
 CREATE TABLE "customers"."customer_order_projection" (
   "order_id" uuid PRIMARY KEY,
@@ -68,6 +80,18 @@ CREATE TABLE "customers"."customer_order_projection" (
 CREATE INDEX "customer_order_projection_customer_idx"
   ON "customers"."customer_order_projection"
   ("store_id", "customer_id", "created_at", "order_id");
+
+CREATE INDEX "customer_order_projection_customer_status_idx"
+  ON "customers"."customer_order_projection"
+  ("store_id", "customer_id", "status", "created_at", "completed_at", "cancelled_at", "order_id");
+
+CREATE INDEX "customer_order_projection_status_created_idx"
+  ON "customers"."customer_order_projection"
+  ("store_id", "status", "created_at", "customer_id");
+
+CREATE INDEX "customer_order_projection_currency_amount_idx"
+  ON "customers"."customer_order_projection"
+  ("store_id", "currency_code", "total_amount_minor", "customer_id");
 
 CREATE TABLE "customers"."customer_checkout_projection" (
   "checkout_id" uuid PRIMARY KEY,
@@ -150,3 +174,25 @@ CREATE INDEX "customer_monetary_statistics_store_spend_idx"
     "net_spent_minor" DESC,
     "customer_id"
   );
+
+CREATE INDEX "customer_order_projection_status_completed_idx"
+  ON "customers"."customer_order_projection" (
+    "store_id", "status", "completed_at", "customer_id"
+  );
+
+CREATE INDEX "customer_order_projection_status_cancelled_idx"
+  ON "customers"."customer_order_projection" (
+    "store_id", "status", "cancelled_at", "customer_id"
+  );
+
+CREATE INDEX "customer_monetary_statistics_store_gross_idx"
+  ON "customers"."customer_monetary_statistics"
+  ("store_id", "currency_code", "total_spent_minor", "customer_id");
+
+CREATE INDEX "customer_monetary_statistics_store_refunded_idx"
+  ON "customers"."customer_monetary_statistics"
+  ("store_id", "currency_code", "total_refunded_minor", "customer_id");
+
+CREATE INDEX "customer_monetary_statistics_store_average_idx"
+  ON "customers"."customer_monetary_statistics"
+  ("store_id", "currency_code", "average_order_value_minor", "customer_id");

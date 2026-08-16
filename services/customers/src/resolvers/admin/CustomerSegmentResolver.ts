@@ -50,6 +50,18 @@ export class CustomerSegmentResolver extends CustomersType<
     return this.$get("definition");
   }
 
+  definitionRevision() {
+    return this.$get("definitionRevision");
+  }
+
+  evaluationGeneration() {
+    return this.$get("evaluationGeneration");
+  }
+
+  materializationStatus() {
+    return this.$get("materializationStatus");
+  }
+
   createdById() {
     return this.$get("createdById");
   }

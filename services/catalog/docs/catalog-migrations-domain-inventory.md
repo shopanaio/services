@@ -28,7 +28,9 @@ DDL conventions used by the baseline:
 | Type | Name | Owner | Target file | Source |
 | --- | --- | --- | --- | --- |
 | schema | `catalog` | foundation | `0000_foundation/0000_foundation__schema.sql` | `schema.ts` |
+| schema | `dbos` | workflow infrastructure | `0000_foundation/0003_foundation__dbos_transaction_completion.sql` | DBOS datasource contract `4.23.6` |
 | extension | `pgcrypto` | foundation | `0000_foundation/0002_foundation__extensions.sql` | existing extension dependency |
+| table | `dbos.transaction_completion` | workflow infrastructure | `0000_foundation/0003_foundation__dbos_transaction_completion.sql` | DBOS datasource contract `4.23.6` |
 
 ## Enums
 
@@ -126,3 +128,4 @@ The exact final `CREATE VIEW` SQL is in the target migration files listed below.
 | Component target subtype completeness | Drizzle models express subtype-to-registry FKs but cannot express the reverse “every registry row has a matching subtype” assertion. `0804_components__target_integrity.sql` adds deferred constraint triggers and makes `component_target` the only deletion owner. |
 | Dependency action price-rule cleanup | Drizzle cannot represent row-delete triggers. After direct, rule-cascade, or target-cascade action deletion, `1102_dependencies__actions.sql` deletes the candidate `component_price_rule` only when no component item, pricing template, or remaining dependency action references it. Repository cleanup applies the same reachability check. |
 | Comparison semantic integrity | Drizzle models express structural keys, typed payload checks, and ownership FKs. Cross-table leaf-feature validation, feature/option/N/A source exclusivity, SINGLE-cardinality enforcement for option bindings, and protection against changing a populated canonical unit are implemented by PostgreSQL triggers in `0455_comparison__integrity.sql` and must also be validated by management scripts for actionable user errors. |
+| `dbos.transaction_completion` | This is an infrastructure table required by `@dbos-inc/postgres-datasource@4.23.6`, not a Catalog Drizzle model. It stores the durable transaction output/error checkpoint with primary key `(workflow_id, function_num)` in the same physical database as Catalog writes. |
