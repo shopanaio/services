@@ -23,7 +23,7 @@ purchase statistics, merge support and privacy requests.
 | `0300` | Tax | `customer_tax_identifier`, `customer_tax_exemption` |
 | `0400` | Marketing | `customer_consent`, `customer_consent_event` |
 | `0500` | Classification | groups, tags, segments, memberships and aggregate revision metadata |
-| `0600` | Preferences | persisted customer product comparisons |
+| `0600` | Preferences | persisted customer product comparisons and wishlists |
 | `0700` | Integrations | `customer_external_reference` |
 | `0800` | Read models | order and currency-specific monetary statistics |
 | `0900` | Lifecycle | merges and privacy data requests |
@@ -83,6 +83,21 @@ presentation-ready matrices through the federated
 `Customer.productComparisons` field. A category move therefore changes the
 presentation grouping without rewriting Customers data. Clients do not group
 products, align fields, normalize values, format units or calculate differences.
+
+### Wishlists
+
+`customer_wishlist` is a private, store-scoped collection owned by one Customer.
+The display name is stored together with an application-normalized NFKC and
+locale-independent lowercase value. Names are unique per Customer by that
+normalized representation. A partial unique index allows at most one default
+wishlist; write workflows are responsible for creating the first wishlist as
+default and for preventing deletion of the current default.
+
+`customer_wishlist_item` stores one Catalog `product_id` per wishlist. Product
+IDs are cross-service UUID references and therefore have no database foreign
+key. A product can appear only once in one wishlist but may be saved in several
+different wishlists. Wishlist and item indexes match the deterministic Relay
+orders declared by the Storefront contract.
 
 ### Addresses
 

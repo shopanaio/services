@@ -10,3 +10,4 @@ export * from "./lifecycle.js";
 export * from "./listViews.js";
 export * from "./storefrontAuth.js";
 export * from "./comparisons.js";
+export * from "./wishlists.js";
