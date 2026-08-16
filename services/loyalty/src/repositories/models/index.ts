@@ -8,3 +8,4 @@ export * from "./events.js";
 export * from "./wallets.js";
 export * from "./rewards.js";
 export * from "./balances.js";
+export * from "./configMutations.js";

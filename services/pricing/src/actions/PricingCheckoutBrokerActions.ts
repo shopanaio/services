@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { Action, BrokerActions, InjectBroker, ServiceBroker, ZodSchema } from "@shopana/shared-kernel";
-import { PricingCheckoutActionNames, type Pricing } from "@shopana/broker-types";
+import { Action, BrokerActions, InjectBroker, ServiceBroker, ZodSchema, type BrokerCallContext } from "@shopana/shared-kernel";
+import { PricingCheckoutActionNames, PricingLoyaltyActionNames, type Pricing } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
@@ -53,6 +53,26 @@ export class PricingCheckoutBrokerActions extends BrokerActions {
   @Action(PricingCheckoutActionNames.reverseUsage)
   @ZodSchema(reverseCheckoutDiscountUsageParamsSchema)
   async reverseCheckoutDiscountUsage(params: Pricing.ReverseCheckoutDiscountUsageParams): Promise<Pricing.ReverseCheckoutDiscountUsageResult> { const store = await this.getStore(params.storeId); return runWithContext(this.context(store, `reverse:${params.redemptionIds[0]}`), () => new DiscountUsageLifecycleService(this.kernel.db, this.kernel.repository.checkoutQuote).reverse(params)); }
+
+  @Action(PricingLoyaltyActionNames.validateRewardReferences, { readOnly: true })
+  async validateLoyaltyRewardReferences(
+    params: Pricing.ValidateLoyaltyRewardReferencesParams,
+    callContext: BrokerCallContext,
+  ): Promise<Pricing.ValidateLoyaltyRewardReferencesResult> {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "loyalty") {
+      return { ok: false, code: "PRICING_LOYALTY_REFERENCE_VALIDATION_FAILED", message: "Only Loyalty may validate loyalty reward references", retryable: false };
+    }
+    try {
+      const store = await this.getStore(params.storeId);
+      return runWithContext(this.context(store, callContext.app?.correlationId ?? `loyalty-rewards-${Date.now()}`), async () => {
+        const ids = [...new Set(params.discountIds)];
+        const found = new Set((await this.kernel.repository.discount.getByIds(ids)).map(({ id }) => id));
+        return { ok: true as const, missingDiscountIds: ids.filter((id) => !found.has(id)) };
+      });
+    } catch (error) {
+      return { ok: false, code: "PRICING_LOYALTY_REFERENCE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Pricing loyalty reference validation failed", retryable: true };
+    }
+  }
 
   private async getStore(storeId: string): Promise<ContextStore> { const result = await this.broker.call<GetStoreByIdResult, { id: string }>("project.getStoreById", { id: storeId }); if (!result.store) throw new Error("Pricing checkout store was not found"); return result.store; }
   private context(store: ContextStore, requestId: string): ServiceContext { return new ServiceContext({ requestId, kernel: this.kernel, loaders: new Loader(this.kernel.repository), locale: store.defaultLocale, currency: store.currencyCode, store }); }

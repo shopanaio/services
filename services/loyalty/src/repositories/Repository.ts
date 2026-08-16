@@ -10,6 +10,7 @@ import { ReservationRepository } from "./reservation/ReservationRepository.js";
 import { RewardRepository } from "./reward/RewardRepository.js";
 import { TierRepository } from "./tier/TierRepository.js";
 import { MonetaryWalletRepository } from "./wallet/MonetaryWalletRepository.js";
+import { ConfigMutationRepository } from "./config-mutation/ConfigMutationRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -27,6 +28,7 @@ export class Repository {
   readonly wallet: MonetaryWalletRepository;
   readonly reward: RewardRepository;
   readonly balance: BalanceRepository;
+  readonly configMutation: ConfigMutationRepository;
 
   private constructor(readonly database: Database) {
     this.txManager = new TransactionManager(database);
@@ -40,6 +42,7 @@ export class Repository {
     this.wallet = new MonetaryWalletRepository(database, this.txManager);
     this.reward = new RewardRepository(database, this.txManager);
     this.balance = new BalanceRepository(database, this.txManager);
+    this.configMutation = new ConfigMutationRepository(database, this.txManager);
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {

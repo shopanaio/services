@@ -303,6 +303,17 @@ function paymentIssues(result: GetAvailablePaymentMethodsResult): CheckoutPipeli
 
 function loyaltyIssues(result: CheckoutLoyaltyQuoteResult): CheckoutPipelineIssue[] {
   if (result.status === "NONE" || result.status === "QUOTED") return [];
+  if (result.status === "NOT_APPLICABLE" && result.rewardQuote) {
+    return [{
+      stage: "LOYALTY",
+      code: result.code,
+      message: "Loyalty points cannot be applied; the selected reward remains available.",
+      severity: "WARNING",
+      effect: "CONTINUE",
+      field: ["loyaltyRedemption", "requestedPoints"],
+      retryable: false,
+    }];
+  }
   return [{
     stage: "LOYALTY",
     code: result.code,

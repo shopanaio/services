@@ -3,6 +3,7 @@ import {
   CustomersComparisonActionNames,
   CustomersAdministrationActionNames,
   CustomersCheckoutActionNames,
+  CustomersLoyaltyActionNames,
   type Customers,
 } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
@@ -150,6 +151,34 @@ export class CustomersBrokerActions extends BrokerActions {
         message: "Customer comparison selection could not be read",
         retryable: true,
       };
+    }
+  }
+
+  @Action(CustomersLoyaltyActionNames.validateSegments, { readOnly: true })
+  async validateLoyaltySegmentReferences(
+    params: Customers.ValidateLoyaltySegmentReferencesParams,
+    callContext: BrokerCallContext,
+  ): Promise<Customers.ValidateLoyaltySegmentReferencesResult> {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "loyalty") {
+      return { ok: false, code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED", message: "Only Loyalty may validate loyalty segment references", retryable: false };
+    }
+    try {
+      const store = await this.getStore(params.storeId);
+      const kernel = Kernel.getInstance();
+      return runWithContext(new ServiceContext({
+        requestId: callContext.app?.correlationId ?? `loyalty-segments-${Date.now()}`,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+        store,
+      }), async () => {
+        const ids = [...new Set(params.segmentIds)];
+        const found = new Set((await kernel.repository.segment.getByIds(ids)).map(({ id }) => id));
+        return { ok: true as const, missingSegmentIds: ids.filter((id) => !found.has(id)) };
+      });
+    } catch (error) {
+      return { ok: false, code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Customer segment validation failed", retryable: true };
     }
   }
 

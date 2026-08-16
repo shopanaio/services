@@ -33,6 +33,46 @@ export const CatalogComparisonActions = {
     `catalog.${CatalogComparisonActionNames.resolveVariants}`,
 } as const;
 
+export const CatalogLoyaltyActionNames = {
+  validateReferences: "validateLoyaltyCatalogReferences",
+} as const;
+
+export const CatalogLoyaltyActions = {
+  validateReferences:
+    `catalog.${CatalogLoyaltyActionNames.validateReferences}`,
+} as const;
+
+export type LoyaltyCatalogReferenceType =
+  | "PRODUCT"
+  | "VARIANT"
+  | "CATEGORY"
+  | "TAG"
+  | "FEATURE"
+  | "OPTION_VALUE";
+
+export interface ValidateLoyaltyCatalogReferencesParams {
+  storeId: string;
+  references: readonly Readonly<{
+    type: LoyaltyCatalogReferenceType;
+    ids: readonly string[];
+  }>[];
+}
+
+export type ValidateLoyaltyCatalogReferencesResult =
+  | Readonly<{
+      ok: true;
+      missing: readonly Readonly<{
+        type: LoyaltyCatalogReferenceType;
+        ids: readonly string[];
+      }>[];
+    }>
+  | Readonly<{
+      ok: false;
+      code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED";
+      message: string;
+      retryable: boolean;
+    }>;
+
 export interface ResolveCustomerComparisonVariantsParams {
   storeId: string;
   variantIds: readonly string[];

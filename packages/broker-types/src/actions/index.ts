@@ -73,6 +73,8 @@ export {
   CustomersComparisonActions,
   CustomersCheckoutActionNames,
   CustomersCheckoutActions,
+  CustomersLoyaltyActionNames,
+  CustomersLoyaltyActions,
 } from "./customers.js";
 
 // Loyalty service account and checkout actions
@@ -100,6 +102,14 @@ export type {
   LoyaltyRedemptionRejectionCode,
   QuoteCheckoutLoyaltyRedemptionParams,
   QuoteCheckoutLoyaltyRedemptionResult,
+  QuoteCheckoutLoyaltyRewardParams,
+  QuoteCheckoutLoyaltyRewardResult,
+  LoyaltyRewardQuote,
+  ReserveCheckoutLoyaltyRewardParams,
+  ReserveCheckoutLoyaltyRewardResult,
+  CommitCheckoutLoyaltyRewardParams,
+  ReleaseCheckoutLoyaltyRewardParams,
+  TransitionCheckoutLoyaltyRewardResult,
   ReleaseCheckoutLoyaltyRedemptionParams,
   ReleaseCheckoutLoyaltyRedemptionResult,
   ReserveCheckoutLoyaltyRedemptionParams,
@@ -172,6 +182,8 @@ export {
   CatalogComparisonActions,
   CatalogFacetCandidateActionNames,
   CatalogFacetCandidateActions,
+  CatalogLoyaltyActionNames,
+  CatalogLoyaltyActions,
 } from "./catalog.js";
 
 // Pricing service actions
@@ -179,6 +191,8 @@ export * as Pricing from "./pricing.js";
 export {
   PricingCheckoutActionNames,
   PricingCheckoutActions,
+  PricingLoyaltyActionNames,
+  PricingLoyaltyActions,
 } from "./pricing.js";
 
 // Checkout completion actions

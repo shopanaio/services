@@ -44,6 +44,9 @@ export function mapCommittedCheckoutToApi(
   const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
     ? result.loyalty.data.quote
     : null;
+  const loyaltyReward = result.loyalty.status === "SUCCESS"
+    ? result.loyalty.data.rewardQuote
+    : null;
   const buyer = draft.buyerIdentity;
   const allQuotedLines = flatten(finalQuote.lines);
   const sourceFor = (lineId: string) =>
@@ -321,6 +324,9 @@ export function mapCommittedCheckoutToApi(
       payableAfterLoyalty: pipelineMoney(loyalty.payableAfterLoyalty),
       expiresAt: loyalty.expiresAt,
     } as any,
+    loyaltyRewardEntitlementId: loyaltyReward
+      ? encodeGlobalIdByType(loyaltyReward.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
+      : null,
   };
 }
 

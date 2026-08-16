@@ -8,10 +8,8 @@ import { TierEvaluationService } from "../../application/tiers/TierEvaluationSer
 import { MonetaryWalletService } from "../../application/wallet/MonetaryWalletService.js";
 import { LoyaltyDomainError } from "../../application/errors.js";
 import { canonicalHash } from "../../application/math.js";
-import {
-  NoExternalLoyaltyReferences,
-  ProgramLifecycleService,
-} from "../../application/program/ProgramLifecycleService.js";
+import { ProgramLifecycleService } from "../../application/program/ProgramLifecycleService.js";
+import { BrokerLoyaltyReferenceValidator } from "../../application/program/BrokerLoyaltyReferenceValidator.js";
 import type { ManualLoyaltyAdjustmentResult } from "../../workflows/ManualAdjustmentWorkflow.js";
 import {
   LoyaltyAccountBalanceRebuildInputSchema,
@@ -96,7 +94,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   @ZodResolver(LoyaltyProgramCreateInputSchema())
   async programCreate({ input }: LoyaltyMutationProgramCreateArgs) {
     return this.result("program", async () => {
-      const program = await this.programs.createProgram({
+      const program = await this.configMutation("programCreate", input, "PROGRAM", (id) => this.$ctx.kernel.repository.program.findById(id), () => this.programs.createProgram({
         code: input.code,
         name: input.name,
         status: "DRAFT",
@@ -104,7 +102,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         defaultCurrencyCode: input.defaultCurrencyCode,
         metadata: input.metadata ?? {},
         archivedAt: null,
-      });
+      }));
       this.$ctx.loaders.program.clear(program.id).prime(program.id, program);
       return this.resolvers.program(program.id);
     });
@@ -114,12 +112,12 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programUpdate({ input }: LoyaltyMutationProgramUpdateArgs) {
     return this.result("program", async () => {
       const programId = this.decodeId(input.programId, GlobalIdEntity.LoyaltyProgram);
-      const program = await this.programs.updateProgram(programId, {
+      const program = await this.configMutation("programUpdate", input, "PROGRAM", (id) => this.$ctx.kernel.repository.program.findById(id), () => this.programs.updateProgram(programId, {
         name: input.name ?? undefined,
         status: input.status ?? undefined,
         isDefault: input.isDefault ?? undefined,
         metadata: input.metadata ?? undefined,
-      }, input.expectedRevision);
+      }, input.expectedRevision));
       this.$ctx.loaders.program.clear(program.id).prime(program.id, program);
       return this.resolvers.program(program.id);
     });
@@ -129,7 +127,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programVersionCreate({ input }: LoyaltyMutationProgramVersionCreateArgs) {
     return this.result("programVersion", async () => {
       const programId = this.decodeId(input.programId, GlobalIdEntity.LoyaltyProgram);
-      const version = await this.programs.createDraftVersion(programId, {
+      const version = await this.configMutation("programVersionCreate", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.createDraftVersion(programId, {
         effectiveFrom: input.effectiveFrom ?? null,
         effectiveTo: input.effectiveTo ?? null,
         earningEnabled: input.earningEnabled ?? true,
@@ -166,7 +164,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
           actionSchemaVersion: rule.actionSchemaVersion ?? 1,
           action: rule.action,
           limitSchemaVersion: rule.limitSchemaVersion ?? 1,
-          limits: rule.limits ?? {},
+          limits: normalizeEarningLimits(rule.limits),
           stopProcessing: rule.stopProcessing ?? false,
         })),
         rewardDefinitions: (input.rewardDefinitions ?? []).map((definition) => ({
@@ -200,7 +198,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
           qualification: tier.qualification,
           maintenance: tier.maintenance ?? null,
         })),
-      });
+      }));
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(programId);
       return this.resolvers.programVersion(version.id);
@@ -211,14 +209,14 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async programVersionPublish({ input }: LoyaltyMutationProgramVersionPublishArgs) {
     return this.result("programVersion", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const version = await this.programs.publishVersion({
+      const version = await this.configMutation("programVersionPublish", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.publishVersion({
         versionId,
         expectedRevision: input.expectedRevision,
         effectiveFrom: input.effectiveFrom,
         effectiveTo: input.effectiveTo,
         publishedAt: new Date().toISOString(),
         publishedById: this.$ctx.user.id,
-      });
+      }));
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(version.programId);
       this.$ctx.loaders.program.clear(version.programId);
@@ -349,7 +347,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       if (input.rules != null) {
         changes.rules = normalizeProgramRulesInput(input.rules as unknown as Record<string, unknown>);
       }
-      const version = await this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision);
+      const version = await this.configMutation("programVersionUpdate", input, "PROGRAM_VERSION", (id) => this.$ctx.kernel.repository.program.findVersionById(id), () => this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision));
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(version.programId);
       return this.resolvers.programVersion(version.id);
@@ -361,7 +359,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const id = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
       const version = await this.$ctx.kernel.repository.program.findVersionById(id);
-      await this.programs.deleteDraftVersion(id, input.expectedRevision);
+      await this.configMutation("programVersionDelete", input, "DELETED_PROGRAM_VERSION", async () => ({ id }), async () => {
+        await this.programs.deleteDraftVersion(id, input.expectedRevision);
+        return { id };
+      });
       this.$ctx.loaders.programVersion.clear(id);
       if (version) this.$ctx.loaders.programVersions.clear(version.programId);
       return { deletedProgramVersionId: this.encodeId(id, GlobalIdEntity.LoyaltyProgramVersion), userErrors: [] };
@@ -374,7 +375,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async earningRuleCreate({ input }: LoyaltyMutationEarningRuleCreateArgs) {
     return this.result("earningRule", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const rule = await this.programs.createEarningRule(versionId, {
+      const rule = await this.configMutation("earningRuleCreate", input, "EARNING_RULE", (id) => this.$ctx.kernel.repository.earningRule.findById(id), () => this.programs.createEarningRule(versionId, {
         code: input.code,
         name: input.name,
         priority: input.priority ?? 0,
@@ -387,9 +388,9 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         actionSchemaVersion: input.actionSchemaVersion ?? 1,
         action: input.action,
         limitSchemaVersion: input.limitSchemaVersion ?? 1,
-        limits: input.limits ?? {},
+        limits: normalizeEarningLimits(input.limits),
         stopProcessing: input.stopProcessing ?? false,
-      });
+      }));
       this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
       this.$ctx.loaders.earningRulesByVersion.clear(versionId);
       return this.resolvers.earningRule(rule.id);
@@ -406,7 +407,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         "conditionSchemaVersion", "conditions", "actionType", "actionSchemaVersion",
         "action", "limitSchemaVersion", "limits", "stopProcessing",
       ]);
-      const rule = await this.programs.updateEarningRule(id, changes as never);
+      const rule = await this.configMutation("earningRuleUpdate", input, "EARNING_RULE", (resultId) => this.$ctx.kernel.repository.earningRule.findById(resultId), () => this.programs.updateEarningRule(id, changes as never));
       this.$ctx.loaders.earningRule.clear(rule.id).prime(rule.id, rule);
       this.$ctx.loaders.earningRulesByVersion.clear(rule.programVersionId);
       return this.resolvers.earningRule(rule.id);
@@ -421,7 +422,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       (id) => this.$ctx.kernel.repository.earningRule.findById(id),
     );
     return this.deleteResult(input.earningRuleId, GlobalIdEntity.LoyaltyEarningRule, async (id) => {
-      await this.programs.deleteEarningRule(id);
+      await this.configMutation("earningRuleDelete", input, "DELETED_EARNING_RULE", async () => ({ id }), async () => {
+        await this.programs.deleteEarningRule(id);
+        return { id };
+      });
       this.$ctx.loaders.earningRule.clear(id);
       if (current) this.$ctx.loaders.earningRulesByVersion.clear(current.programVersionId);
     });
@@ -431,7 +435,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async rewardDefinitionCreate({ input }: LoyaltyMutationRewardDefinitionCreateArgs) {
     return this.result("rewardDefinition", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const definition = await this.programs.createRewardDefinition(versionId, rewardDefinitionInput(input));
+      const definition = await this.configMutation("rewardDefinitionCreate", input, "REWARD_DEFINITION", (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id), () => this.programs.createRewardDefinition(versionId, rewardDefinitionInput(input)));
       this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
       this.$ctx.loaders.rewardDefinitionsByVersion.clear(versionId);
       return this.resolvers.rewardDefinition(definition.id);
@@ -449,7 +453,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       nullableChange(changes, input, "endsAt", "clearEndsAt", (value) => value);
       nullableChange(changes, input, "issuanceLimit", "clearIssuanceLimit", (value) => BigInt(value));
       nullableChange(changes, input, "perAccountLimit", "clearPerAccountLimit", (value) => BigInt(value));
-      const definition = await this.programs.updateRewardDefinition(id, changes as never);
+      const definition = await this.configMutation("rewardDefinitionUpdate", input, "REWARD_DEFINITION", (resultId) => this.$ctx.kernel.repository.reward.findDefinitionById(resultId), () => this.programs.updateRewardDefinition(id, changes as never));
       this.$ctx.loaders.rewardDefinition.clear(definition.id).prime(definition.id, definition);
       this.$ctx.loaders.rewardDefinitionsByVersion.clear(definition.programVersionId);
       return this.resolvers.rewardDefinition(definition.id);
@@ -464,7 +468,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       (id) => this.$ctx.kernel.repository.reward.findDefinitionById(id),
     );
     return this.deleteResult(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition, async (id) => {
-      await this.programs.deleteRewardDefinition(id);
+      await this.configMutation("rewardDefinitionDelete", input, "DELETED_REWARD_DEFINITION", async () => ({ id }), async () => {
+        await this.programs.deleteRewardDefinition(id);
+        return { id };
+      });
       this.$ctx.loaders.rewardDefinition.clear(id);
       if (current) this.$ctx.loaders.rewardDefinitionsByVersion.clear(current.programVersionId);
     });
@@ -474,7 +481,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async tierPolicyUpsert({ input }: LoyaltyMutationTierPolicyUpsertArgs) {
     return this.result("tierPolicy", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const policy = await this.programs.upsertTierPolicy(versionId, {
+      const policy = await this.configMutation("tierPolicyUpsert", input, "TIER_POLICY", (id) => this.$ctx.kernel.repository.tier.getPoliciesByIds([id]).then((rows) => rows[0] ?? null), () => this.programs.upsertTierPolicy(versionId, {
         windowType: input.windowType,
         rollingWindowDays: input.rollingWindowDays ?? null,
         calendarPeriod: input.calendarPeriod ?? null,
@@ -484,7 +491,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         downgradePolicy: input.downgradePolicy ?? "IMMEDIATE",
         requalificationPolicy: input.requalificationPolicy ?? "AUTOMATIC",
         metricSchemaVersion: input.metricSchemaVersion ?? 1,
-      });
+      }));
       this.$ctx.loaders.tierPolicy.clear(policy.id).prime(policy.id, policy);
       this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
       return this.resolvers.tierPolicy(policy.id);
@@ -496,10 +503,13 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
       const policy = await this.$ctx.kernel.repository.tier.findPolicy(versionId);
-      await this.programs.deleteTierPolicy(versionId);
+      const deleted = await this.configMutation("tierPolicyDelete", input, "DELETED_TIER_POLICY", async (id) => ({ id }), async () => {
+        await this.programs.deleteTierPolicy(versionId);
+        return { id: policy?.id ?? versionId };
+      });
       this.$ctx.loaders.tierPolicyByVersion.clear(versionId);
       if (policy) this.$ctx.loaders.tierPolicy.clear(policy.id);
-      return { deletedId: policy ? this.encodeId(policy.id, GlobalIdEntity.LoyaltyTierPolicy) : null, userErrors: [] };
+      return { deletedId: this.encodeId(deleted.id, GlobalIdEntity.LoyaltyTierPolicy), userErrors: [] };
     } catch (error) {
       return { deletedId: null, userErrors: [toUserError(error)] };
     }
@@ -509,14 +519,14 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   async tierCreate({ input }: LoyaltyMutationTierCreateArgs) {
     return this.result("tier", async () => {
       const versionId = this.decodeId(input.programVersionId, GlobalIdEntity.LoyaltyProgramVersion);
-      const tier = await this.programs.createTier(versionId, {
+      const tier = await this.configMutation("tierCreate", input, "TIER", (id) => this.$ctx.kernel.repository.tier.findTierById(id), () => this.programs.createTier(versionId, {
         code: input.code,
         name: input.name,
         rank: input.rank,
         qualificationSchemaVersion: input.qualificationSchemaVersion ?? 1,
         qualification: input.qualification,
         maintenance: input.maintenance ?? null,
-      });
+      }));
       this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
       this.$ctx.loaders.tiersByVersion.clear(versionId);
       return this.resolvers.tier(tier.id);
@@ -530,7 +540,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const changes: Record<string, unknown> = {};
       copyDefined(changes, input, ["name", "rank", "qualificationSchemaVersion", "qualification"]);
       nullableChange(changes, input, "maintenance", "clearMaintenance", (value) => value);
-      const tier = await this.programs.updateTier(id, changes as never);
+      const tier = await this.configMutation("tierUpdate", input, "TIER", (resultId) => this.$ctx.kernel.repository.tier.findTierById(resultId), () => this.programs.updateTier(id, changes as never));
       this.$ctx.loaders.tier.clear(tier.id).prime(tier.id, tier);
       this.$ctx.loaders.tiersByVersion.clear(tier.programVersionId);
       return this.resolvers.tier(tier.id);
@@ -545,7 +555,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       (id) => this.$ctx.kernel.repository.tier.findTierById(id),
     );
     return this.deleteResult(input.tierId, GlobalIdEntity.LoyaltyTier, async (id) => {
-      await this.programs.deleteTier(id);
+      await this.configMutation("tierDelete", input, "DELETED_TIER", async () => ({ id }), async () => {
+        await this.programs.deleteTier(id);
+        return { id };
+      });
       this.$ctx.loaders.tier.clear(id);
       this.$ctx.loaders.tierRewardBenefits.clear(id);
       if (current) this.$ctx.loaders.tiersByVersion.clear(current.programVersionId);
@@ -555,12 +568,12 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   @ZodResolver(LoyaltyTierRewardBenefitCreateInputSchema())
   async tierRewardBenefitCreate({ input }: LoyaltyMutationTierRewardBenefitCreateArgs) {
     return this.result("tierRewardBenefit", async () => {
-      const benefit = await this.programs.createTierRewardBenefit({
+      const benefit = await this.configMutation("tierRewardBenefitCreate", input, "TIER_REWARD_BENEFIT", (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id), () => this.programs.createTierRewardBenefit({
         tierId: this.decodeId(input.tierId, GlobalIdEntity.LoyaltyTier),
         rewardDefinitionId: this.decodeId(input.rewardDefinitionId, GlobalIdEntity.LoyaltyRewardDefinition),
         grantPolicySchemaVersion: input.grantPolicySchemaVersion ?? 1,
         grantPolicy: input.grantPolicy ?? { type: "ON_QUALIFICATION" },
-      });
+      }));
       this.$ctx.loaders.tierRewardBenefit.clear(benefit.id).prime(benefit.id, benefit);
       this.$ctx.loaders.tierRewardBenefits.clear(benefit.tierId);
       return this.resolvers.tierRewardBenefit(benefit.id);
@@ -575,7 +588,10 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       (id) => this.$ctx.kernel.repository.reward.findTierBenefitById(id),
     );
     return this.deleteResult(input.tierRewardBenefitId, GlobalIdEntity.LoyaltyTierRewardBenefit, async (id) => {
-      await this.programs.deleteTierRewardBenefit(id);
+      await this.configMutation("tierRewardBenefitDelete", input, "DELETED_TIER_REWARD_BENEFIT", async () => ({ id }), async () => {
+        await this.programs.deleteTierRewardBenefit(id);
+        return { id };
+      });
       this.$ctx.loaders.tierRewardBenefit.clear(id);
       if (current) this.$ctx.loaders.tierRewardBenefits.clear(current.tierId);
     });
@@ -844,7 +860,42 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
   }
 
   private get programs() {
-    return new ProgramLifecycleService(this.$ctx.kernel.repository, new NoExternalLoyaltyReferences());
+    return new ProgramLifecycleService(
+      this.$ctx.kernel.repository,
+      new BrokerLoyaltyReferenceValidator(this.$ctx.kernel.getServices().broker),
+    );
+  }
+
+  private async configMutation<T extends { id: string }>(
+    operation: string,
+    input: { idempotencyKey: string },
+    resultKind: string,
+    load: (id: string) => Promise<T | null>,
+    work: () => Promise<T>,
+  ): Promise<T> {
+    const idempotencyKey = input.idempotencyKey.trim();
+    if (!idempotencyKey) throw new LoyaltyDomainError("INVALID_IDEMPOTENCY_KEY", "idempotencyKey must not be blank");
+    const requestHash = canonicalHash({ operation, input });
+    return this.$ctx.kernel.repository.runInTransaction(async () => {
+      await this.$ctx.kernel.repository.configMutation.lock(operation, idempotencyKey);
+      const previous = await this.$ctx.kernel.repository.configMutation.find(operation, idempotencyKey);
+      if (previous) {
+        this.$ctx.kernel.repository.configMutation.requireSameRequest(previous, requestHash);
+        if (!previous.resultId) throw new LoyaltyDomainError("IDEMPOTENCY_RESULT_MISSING", "Stored loyalty configuration result is incomplete");
+        const restored = await load(previous.resultId);
+        if (!restored) throw new LoyaltyDomainError("IDEMPOTENCY_RESULT_MISSING", "Stored loyalty configuration result no longer exists");
+        return restored;
+      }
+      const value = await work();
+      await this.$ctx.kernel.repository.configMutation.record({
+        operation,
+        idempotencyKey,
+        requestHash,
+        resultKind,
+        resultId: value.id,
+      });
+      return value;
+    });
   }
 
   private async result(key: string, work: () => Promise<unknown>) {
@@ -870,6 +921,12 @@ function toUserError(error: unknown): UserError {
 
 function copyDefined(target: Record<string, unknown>, source: Record<string, any>, keys: readonly string[]): void {
   for (const key of keys) if (source[key] !== undefined && source[key] !== null) target[key] = source[key];
+}
+
+function normalizeEarningLimits(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && Object.keys(value).length > 0
+    ? value as Record<string, unknown>
+    : { startsAt: null, endsAt: null, perEventMaxPoints: null, perAccount: null, campaign: null };
 }
 
 function nullableChange(

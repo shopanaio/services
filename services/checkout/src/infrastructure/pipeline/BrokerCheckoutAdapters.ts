@@ -7,6 +7,8 @@ import {
   LoyaltyCheckoutActions,
   type Customers,
   type QuoteCheckoutLoyaltyRedemptionResult,
+  type LoyaltyRewardQuote,
+  type QuoteCheckoutLoyaltyRewardResult,
 } from "@shopana/broker-types";
 import {
   parseCalculateDeliveryOptionsRequest,
@@ -141,6 +143,44 @@ export class BrokerLoyaltyCheckoutAdapter implements LoyaltyCheckoutPort {
       return {
         status: "NONE",
         revision: canonicalJsonRevision({ status: "NONE", payable }),
+        rewardQuote: null,
+        rewardContext: null,
+        payableAfterLoyalty: payable,
+      };
+    }
+    let rewardQuote: LoyaltyRewardQuote | null = null;
+    if (raw.intent.rewardEntitlementId !== null) {
+      let rewardResult: QuoteCheckoutLoyaltyRewardResult;
+      try {
+        rewardResult = await this.broker.call(LoyaltyCheckoutActions.quoteReward, {
+          context: raw.context,
+          entitlementId: raw.intent.rewardEntitlementId,
+          appliedDiscountIds: raw.finalQuote.appliedDiscounts.map(({ discountId }) => discountId),
+        });
+      } catch (cause) {
+        throw stageFailure(
+          cause,
+          "CHECKOUT_LOYALTY_REWARD_UNAVAILABLE",
+          "The selected loyalty reward is temporarily unavailable.",
+        );
+      }
+      if (rewardResult.status === "REJECTED") {
+        return {
+          ...rewardResult,
+          revision: canonicalJsonRevision(rewardResult),
+          rewardQuote: null,
+          rewardContext: null,
+          payableAfterLoyalty: payable,
+        };
+      }
+      rewardQuote = rewardResult.quote;
+    }
+    if (!raw.intent.redeemPoints) {
+      return {
+        status: "NONE",
+        revision: canonicalJsonRevision({ status: "NONE", payable, rewardQuote }),
+        rewardQuote,
+        rewardContext: rewardQuote ? raw.context : null,
         payableAfterLoyalty: payable,
       };
     }
@@ -164,12 +204,16 @@ export class BrokerLoyaltyCheckoutAdapter implements LoyaltyCheckoutPort {
         revision: result.quote.revision,
         quote: result.quote,
         context: raw.context,
+        rewardQuote,
+        rewardContext: rewardQuote ? raw.context : null,
         payableAfterLoyalty: result.quote.payableAfterLoyalty,
       };
     }
     return {
       ...result,
       revision: canonicalJsonRevision(result),
+      rewardQuote,
+      rewardContext: rewardQuote ? raw.context : null,
       payableAfterLoyalty: payable,
     };
   }

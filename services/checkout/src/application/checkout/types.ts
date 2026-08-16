@@ -144,8 +144,10 @@ export type CheckoutPaymentMethodUpdateInput = {
 
 export type CheckoutLoyaltyRedemptionUpdateInput = {
   checkoutId: string;
+  redeemPoints: boolean;
   requestedPoints: string | null;
   programId: string | null;
+  rewardEntitlementId: string | null;
 } & CheckoutContext;
 
 export type CheckoutLoyaltyRedemptionRemoveInput = {

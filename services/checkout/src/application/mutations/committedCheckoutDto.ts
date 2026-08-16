@@ -29,6 +29,9 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
   const loyalty = result.loyalty.status === "SUCCESS" && result.loyalty.data.status === "QUOTED"
     ? result.loyalty.data.quote
     : null;
+  const loyaltyReward = result.loyalty.status === "SUCCESS"
+    ? result.loyalty.data.rewardQuote
+    : null;
   const payableAmount = loyalty?.payableAfterLoyalty ?? totals.payableTotal;
   const lineToDto = (line: CheckoutQuotedLine, parentLineId: string | null): CheckoutLineDto => {
     const sourceLineId = preliminary.sourceLineResolutions.find(
@@ -187,6 +190,14 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
         programVersionId: loyalty.program.programVersionId,
         points: loyalty.redeemablePoints,
         discount: loyalty.discount,
+      } : null,
+      loyaltyRewardEntitlement: loyaltyReward ? {
+        entitlementId: loyaltyReward.entitlementId,
+        rewardDefinitionId: loyaltyReward.rewardDefinitionId,
+        rewardType: loyaltyReward.rewardType,
+        pricingDiscountId: loyaltyReward.pricingDiscountId,
+        externalReference: loyaltyReward.externalReference,
+        configuration: loyaltyReward.configuration,
       } : null,
     },
     deletedAt: null,

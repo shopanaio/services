@@ -15,9 +15,13 @@ export async function checkoutLoyaltyRedemptionUpdate(_parent: ApiMutation, args
   try {
     const checkout = await checkoutUsecase.updateLoyaltyRedemption.execute({
       checkoutId: decodeGlobalIdByType(args.input.checkoutId, GlobalIdEntity.Checkout),
+      redeemPoints: args.input.redeemPoints ?? true,
       requestedPoints: args.input.requestedPoints == null ? null : String(args.input.requestedPoints),
       programId: args.input.programId
         ? decodeGlobalIdByType(args.input.programId, GlobalIdEntity.LoyaltyProgram)
+        : null,
+      rewardEntitlementId: args.input.rewardEntitlementId
+        ? decodeGlobalIdByType(args.input.rewardEntitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
         : null,
       storefrontAccess: ctx.storefrontAccess,
       store: ctx.store,

@@ -160,6 +160,9 @@ type Checkout implements Node @key(fields: "id") {
 
   """Loyalty points selected as tender after the final Pricing quote."""
   loyaltyRedemption: CheckoutLoyaltyRedemption
+
+  """Reward entitlement selected and validated for this checkout."""
+  loyaltyRewardEntitlementId: ID
 }
 
 type CheckoutLoyaltyRedemption {
@@ -450,7 +453,7 @@ type Mutation {
     input: CheckoutPaymentMethodUpdateInput!
   ): CheckoutMutationPayload!
 
-  """Applies an exact point amount, or the maximum allowed amount when omitted."""
+  """Selects loyalty points, an issued reward entitlement, or both."""
   checkoutLoyaltyRedemptionUpdate(
     input: CheckoutLoyaltyRedemptionUpdateInput!
   ): CheckoutMutationPayload!
@@ -469,8 +472,12 @@ type Mutation {
 
 input CheckoutLoyaltyRedemptionUpdateInput {
   checkoutId: ID!
+  """Whether points should be redeemed in addition to a selected reward."""
+  redeemPoints: Boolean! = true
   requestedPoints: BigInt
   programId: ID
+  """Issued loyalty reward entitlement to reserve for this checkout."""
+  rewardEntitlementId: ID
 }
 
 input CheckoutLoyaltyRedemptionRemoveInput {

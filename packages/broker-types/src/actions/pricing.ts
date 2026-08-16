@@ -417,3 +417,25 @@ export interface ExpireCheckoutDiscountUsageParams { storeId: string; effectiveA
 export interface ExpireCheckoutDiscountUsageResult { expiredReservationIds: readonly string[]; }
 export interface ReverseCheckoutDiscountUsageParams { storeId: string; redemptionIds: readonly string[]; reason: string; }
 export interface ReverseCheckoutDiscountUsageResult { reversedRedemptionIds: readonly string[]; }
+export const PricingLoyaltyActionNames = {
+  validateRewardReferences: "validateLoyaltyRewardReferences",
+} as const;
+
+export const PricingLoyaltyActions = {
+  validateRewardReferences:
+    `pricing.${PricingLoyaltyActionNames.validateRewardReferences}`,
+} as const;
+
+export interface ValidateLoyaltyRewardReferencesParams {
+  storeId: string;
+  discountIds: readonly string[];
+}
+
+export type ValidateLoyaltyRewardReferencesResult =
+  | Readonly<{ ok: true; missingDiscountIds: readonly string[] }>
+  | Readonly<{
+      ok: false;
+      code: "PRICING_LOYALTY_REFERENCE_VALIDATION_FAILED";
+      message: string;
+      retryable: boolean;
+    }>;

@@ -80,6 +80,8 @@ function pipeline(input?: { preliminaryFailure?: boolean }) {
     quote: jest.fn(async (request: any) => ({
       status: "NONE" as const,
       revision: "loyalty-none-v1",
+      rewardQuote: null,
+      rewardContext: null,
       payableAfterLoyalty: request.finalQuote.totals.payableTotal,
     })),
   };

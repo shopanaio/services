@@ -21,6 +21,10 @@ export const LoyaltyCheckoutActionNames = {
   releaseRedemption: "releaseCheckoutLoyaltyRedemption",
   expireRedemptions: "expireCheckoutLoyaltyRedemptions",
   reverseRedemption: "reverseCheckoutLoyaltyRedemption",
+  quoteReward: "quoteCheckoutLoyaltyReward",
+  reserveReward: "reserveCheckoutLoyaltyReward",
+  commitReward: "commitCheckoutLoyaltyReward",
+  releaseReward: "releaseCheckoutLoyaltyReward",
 } as const;
 
 export const LoyaltyCheckoutActions = {
@@ -36,7 +40,69 @@ export const LoyaltyCheckoutActions = {
     `loyalty.${LoyaltyCheckoutActionNames.expireRedemptions}`,
   reverseRedemption:
     `loyalty.${LoyaltyCheckoutActionNames.reverseRedemption}`,
+  quoteReward: `loyalty.${LoyaltyCheckoutActionNames.quoteReward}`,
+  reserveReward: `loyalty.${LoyaltyCheckoutActionNames.reserveReward}`,
+  commitReward: `loyalty.${LoyaltyCheckoutActionNames.commitReward}`,
+  releaseReward: `loyalty.${LoyaltyCheckoutActionNames.releaseReward}`,
 } as const;
+
+export interface LoyaltyRewardQuote {
+  entitlementId: string;
+  entitlementRevision: number;
+  accountId: string;
+  rewardDefinitionId: string;
+  rewardType: "POINTS" | "VOUCHER" | "FIXED_DISCOUNT" | "PERCENTAGE_DISCOUNT" | "FREE_SHIPPING" | "FREE_PRODUCT" | "MEMBER_BENEFIT" | "MONETARY_CREDIT";
+  pricingDiscountId: string;
+  externalReference: string | null;
+  configuration: Readonly<Record<string, unknown>>;
+  expiresAt: string | null;
+  revision: string;
+}
+
+export interface QuoteCheckoutLoyaltyRewardParams {
+  context: LoyaltyCheckoutContext;
+  entitlementId: string;
+  appliedDiscountIds: readonly string[];
+}
+
+export type QuoteCheckoutLoyaltyRewardResult =
+  | Readonly<{ status: "QUOTED"; quote: LoyaltyRewardQuote }>
+  | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
+
+export interface ReserveCheckoutLoyaltyRewardParams {
+  storeId: string;
+  checkoutId: string;
+  customerId: string;
+  quote: LoyaltyRewardQuote;
+  reservedAt: string;
+  idempotencyKey: string;
+}
+
+export type ReserveCheckoutLoyaltyRewardResult =
+  | Readonly<{ status: "RESERVED"; entitlementId: string; entitlementRevision: number }>
+  | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
+
+export interface CommitCheckoutLoyaltyRewardParams {
+  storeId: string;
+  checkoutId: string;
+  entitlementId: string;
+  orderId: string;
+  externalReference?: string | null;
+  committedAt: string;
+  idempotencyKey: string;
+}
+
+export interface ReleaseCheckoutLoyaltyRewardParams {
+  storeId: string;
+  checkoutId: string;
+  entitlementId: string;
+  releasedAt: string;
+  idempotencyKey: string;
+}
+
+export type TransitionCheckoutLoyaltyRewardResult =
+  | Readonly<{ status: "COMMITTED" | "RELEASED" | "NOOP"; entitlementId: string; entitlementRevision: number }>
+  | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
 
 export interface LoyaltyCheckoutMoney {
   amountMinor: string;

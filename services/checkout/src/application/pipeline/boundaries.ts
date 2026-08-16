@@ -372,6 +372,19 @@ export function parseCheckoutLoyaltyQuoteResult(
 ): CheckoutLoyaltyQuoteResult {
   assertPayloadSize(value, "loyalty quote result");
   const result = checkoutLoyaltyQuoteResultSchema.parse(value) as CheckoutLoyaltyQuoteResult;
+  if ((result.rewardQuote === null) !== (result.rewardContext === null)) {
+    throw new CheckoutPipelineBoundaryError("Loyalty reward quote context is incomplete");
+  }
+  if (result.rewardQuote && result.rewardContext) {
+    if (request.intent?.rewardEntitlementId !== result.rewardQuote.entitlementId) {
+      throw new CheckoutPipelineBoundaryError("Loyalty reward entitlement mismatch");
+    }
+    if (!request.finalQuote.appliedDiscounts.some(({ discountId }) => discountId === result.rewardQuote.pricingDiscountId)) {
+      throw new CheckoutPipelineBoundaryError("Loyalty reward Pricing discount is not applied");
+    }
+    assertEqual(result.rewardContext.checkoutId, request.context.checkoutId, "Loyalty reward checkout mismatch");
+    assertEqual(result.rewardContext.checkoutVersion, request.context.checkoutVersion, "Loyalty reward checkout version mismatch");
+  }
   if (result.payableAfterLoyalty.currencyCode !== request.context.currencyCode) {
     throw new CheckoutPipelineBoundaryError("Loyalty quote uses another currency");
   }

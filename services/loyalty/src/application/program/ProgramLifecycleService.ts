@@ -14,18 +14,26 @@ import {
   type LoyaltyProgramRulesValidationInputV1,
 } from "../../contracts/policy.js";
 import { LoyaltyDomainError } from "../errors.js";
+import {
+  validateEarningRulePolicy,
+  validateRewardConfiguration,
+  validateTierMetricSchemaVersion,
+  validateTierPolicyExpression,
+  validateTierRewardGrantPolicy,
+} from "./policySchemas.js";
 
-export interface LoyaltyReferenceValidator {
-  validate(input: {
-    storeId: string;
-    rules: Readonly<Record<string, unknown>>;
-  }): Promise<readonly { field: readonly (string | number)[]; message: string }[]>;
+export interface LoyaltyReferenceValidationRequest {
+  storeId: string;
+  rules: Readonly<Record<string, unknown>>;
+  rewardDefinitions?: readonly Readonly<{
+    rewardType: NewRewardDefinition["rewardType"];
+    configuration: unknown;
+  }>[];
+  earningRules?: readonly Readonly<{ conditions: unknown }>[];
 }
 
-export class NoExternalLoyaltyReferences implements LoyaltyReferenceValidator {
-  async validate(): Promise<readonly never[]> {
-    return [];
-  }
+export interface LoyaltyReferenceValidator {
+  validate(input: LoyaltyReferenceValidationRequest): Promise<readonly { field: readonly (string | number)[]; message: string }[]>;
 }
 
 export type ProgramVersionDraftInput = Omit<
@@ -102,6 +110,19 @@ export class ProgramLifecycleService {
         canonical.issues.map((issue) => `${issue.field.join(".")}: ${issue.message}`).join("; "),
       );
     }
+    for (const rule of configuration.earningRules ?? []) validateEarningRulePolicy(rule);
+    for (const definition of configuration.rewardDefinitions ?? []) {
+      validateRewardConfiguration(definition.rewardType, definition.configuration, definition.configurationSchemaVersion);
+    }
+    if (configuration.tierPolicy) validateTierMetricSchemaVersion(configuration.tierPolicy.metricSchemaVersion);
+    for (const tier of configuration.tiers ?? []) {
+      validateTierPolicyExpression(tier.qualification, "qualification", tier.qualificationSchemaVersion);
+      if (tier.maintenance) validateTierPolicyExpression(tier.maintenance, "maintenance", tier.qualificationSchemaVersion);
+    }
+    this.validateEarningRewardDefinitionReferences(
+      configuration.earningRules ?? [],
+      configuration.rewardDefinitions ?? [],
+    );
     return this.repository.runInTransaction(async () => {
       const program = await this.repository.program.lockById(programId);
       if (!program) throw new LoyaltyDomainError("PROGRAM_NOT_FOUND", "Loyalty program was not found");
@@ -113,6 +134,8 @@ export class ProgramLifecycleService {
       const referenceIssues = await this.validateReferences({
         storeId: program.storeId,
         rules: canonical.rules as unknown as Record<string, unknown>,
+        rewardDefinitions: configuration.rewardDefinitions,
+        earningRules: configuration.earningRules,
       });
       if (referenceIssues.length > 0) {
         throw new LoyaltyDomainError(
@@ -218,8 +241,14 @@ export class ProgramLifecycleService {
   }
 
   async createEarningRule(versionId: string, input: Omit<NewEarningRule, "id" | "storeId" | "programVersionId" | "createdAt">) {
+    validateEarningRulePolicy(input);
     return this.repository.runInTransaction(async () => {
-      await this.requireDraftVersion(versionId);
+      const version = await this.requireDraftVersion(versionId);
+      await this.requireValidReferences({ storeId: version.storeId, rules: version.rules, earningRules: [input] });
+      this.validateEarningRewardDefinitionReferences(
+        [input],
+        await this.repository.reward.listDefinitions(versionId),
+      );
       return this.repository.earningRule.create({ ...input, programVersionId: versionId });
     });
   }
@@ -229,6 +258,15 @@ export class ProgramLifecycleService {
       const current = await this.repository.earningRule.findById(id);
       if (!current) throw new LoyaltyDomainError("EARNING_RULE_NOT_FOUND", "Loyalty earning rule was not found");
       await this.requireDraftVersion(current.programVersionId);
+      const next = { ...current, ...input };
+      validateEarningRulePolicy(next);
+      const version = await this.repository.program.findVersionById(current.programVersionId);
+      if (!version) throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Program version was not found");
+      await this.requireValidReferences({ storeId: version.storeId, rules: version.rules, earningRules: [next] });
+      this.validateEarningRewardDefinitionReferences(
+        [next],
+        await this.repository.reward.listDefinitions(current.programVersionId),
+      );
       const updated = await this.repository.earningRule.update(id, input);
       if (!updated) throw new LoyaltyDomainError("EARNING_RULE_NOT_FOUND", "Loyalty earning rule was not found");
       return updated;
@@ -245,8 +283,10 @@ export class ProgramLifecycleService {
   }
 
   async createRewardDefinition(versionId: string, input: Omit<NewRewardDefinition, "id" | "storeId" | "programVersionId" | "createdAt">) {
+    validateRewardConfiguration(input.rewardType, input.configuration, input.configurationSchemaVersion);
     return this.repository.runInTransaction(async () => {
-      await this.requireDraftVersion(versionId);
+      const version = await this.requireDraftVersion(versionId);
+      await this.requireValidReferences({ storeId: version.storeId, rules: version.rules, rewardDefinitions: [input] });
       return this.repository.reward.createDefinition({ ...input, programVersionId: versionId });
     });
   }
@@ -255,7 +295,10 @@ export class ProgramLifecycleService {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.reward.findDefinitionById(id);
       if (!current) throw new LoyaltyDomainError("REWARD_DEFINITION_NOT_FOUND", "Loyalty reward definition was not found");
-      await this.requireDraftVersion(current.programVersionId);
+      const version = await this.requireDraftVersion(current.programVersionId);
+      const next = { ...current, ...input };
+      validateRewardConfiguration(next.rewardType, next.configuration, next.configurationSchemaVersion);
+      await this.requireValidReferences({ storeId: version.storeId, rules: version.rules, rewardDefinitions: [next] });
       const updated = await this.repository.reward.updateDefinition(id, input);
       if (!updated) throw new LoyaltyDomainError("REWARD_DEFINITION_NOT_FOUND", "Loyalty reward definition was not found");
       return updated;
@@ -267,6 +310,16 @@ export class ProgramLifecycleService {
       const current = await this.repository.reward.findDefinitionById(id);
       if (!current) throw new LoyaltyDomainError("REWARD_DEFINITION_NOT_FOUND", "Loyalty reward definition was not found");
       await this.requireDraftVersion(current.programVersionId);
+      const referenced = (await this.repository.earningRule.listForVersion(current.programVersionId)).some((rule) => {
+        const action = rule.action as { type?: unknown; rewardDefinitionCode?: unknown };
+        return action.type === "ISSUE_REWARD" && action.rewardDefinitionCode === current.code;
+      });
+      if (referenced) {
+        throw new LoyaltyDomainError(
+          "REWARD_DEFINITION_IN_USE",
+          "Reward definition is referenced by an earning rule",
+        );
+      }
       for (const tier of await this.repository.tier.listForVersion(current.programVersionId)) {
         for (const benefit of await this.repository.reward.listTierBenefits(tier.id)) {
           if (benefit.rewardDefinitionId === id) {
@@ -279,6 +332,7 @@ export class ProgramLifecycleService {
   }
 
   async upsertTierPolicy(versionId: string, input: Omit<NewTierPolicy, "id" | "storeId" | "programVersionId" | "createdAt">) {
+    validateTierMetricSchemaVersion(input.metricSchemaVersion);
     return this.repository.runInTransaction(async () => {
       await this.requireDraftVersion(versionId);
       const current = await this.repository.tier.findPolicy(versionId);
@@ -299,6 +353,8 @@ export class ProgramLifecycleService {
   }
 
   async createTier(versionId: string, input: Omit<NewTier, "id" | "storeId" | "programVersionId" | "createdAt">) {
+    validateTierPolicyExpression(input.qualification, "qualification", input.qualificationSchemaVersion);
+    if (input.maintenance) validateTierPolicyExpression(input.maintenance, "maintenance", input.qualificationSchemaVersion);
     return this.repository.runInTransaction(async () => {
       await this.requireDraftVersion(versionId);
       return this.repository.tier.createTier({ ...input, programVersionId: versionId });
@@ -310,6 +366,9 @@ export class ProgramLifecycleService {
       const current = await this.repository.tier.findTierById(id);
       if (!current) throw new LoyaltyDomainError("TIER_NOT_FOUND", "Loyalty tier was not found");
       await this.requireDraftVersion(current.programVersionId);
+      const next = { ...current, ...input };
+      validateTierPolicyExpression(next.qualification, "qualification", next.qualificationSchemaVersion);
+      if (next.maintenance) validateTierPolicyExpression(next.maintenance, "maintenance", next.qualificationSchemaVersion);
       const updated = await this.repository.tier.updateTier(id, input);
       if (!updated) throw new LoyaltyDomainError("TIER_NOT_FOUND", "Loyalty tier was not found");
       return updated;
@@ -334,6 +393,7 @@ export class ProgramLifecycleService {
     grantPolicySchemaVersion: number;
     grantPolicy: Record<string, unknown>;
   }) {
+    validateTierRewardGrantPolicy(input.grantPolicy, input.grantPolicySchemaVersion);
     return this.repository.runInTransaction(async () => {
       const [tier, definition] = await Promise.all([
         this.repository.tier.findTierById(input.tierId),
@@ -379,9 +439,27 @@ export class ProgramLifecycleService {
         draft.rules as unknown as LoyaltyProgramRulesValidationInputV1,
       );
       if (!canonical.valid) throw new LoyaltyDomainError("INVALID_PROGRAM_RULES", canonical.issues.map(({ message }) => message).join("; "));
+      const earningRules = await this.repository.earningRule.listForVersion(draft.id);
+      const rewardDefinitions = await this.repository.reward.listDefinitions(draft.id);
+      for (const rule of earningRules) validateEarningRulePolicy(rule);
+      for (const definition of rewardDefinitions) {
+        validateRewardConfiguration(definition.rewardType, definition.configuration, definition.configurationSchemaVersion);
+      }
+      const policy = await this.repository.tier.findPolicy(draft.id);
+      if (policy) validateTierMetricSchemaVersion(policy.metricSchemaVersion);
+      for (const tier of await this.repository.tier.listForVersion(draft.id)) {
+        validateTierPolicyExpression(tier.qualification, "qualification", tier.qualificationSchemaVersion);
+        if (tier.maintenance) validateTierPolicyExpression(tier.maintenance, "maintenance", tier.qualificationSchemaVersion);
+        for (const benefit of await this.repository.reward.listTierBenefits(tier.id)) {
+          validateTierRewardGrantPolicy(benefit.grantPolicy, benefit.grantPolicySchemaVersion);
+        }
+      }
+      this.validateEarningRewardDefinitionReferences(earningRules, rewardDefinitions);
       const referenceIssues = await this.validateReferences({
         storeId: draft.storeId,
         rules: canonical.rules as unknown as Record<string, unknown>,
+        rewardDefinitions,
+        earningRules,
       });
       if (referenceIssues.length > 0) throw new LoyaltyDomainError("STALE_PROGRAM_REFERENCE", referenceIssues.map(({ message }) => message).join("; "));
       if (Date.parse(input.effectiveFrom) < Date.parse(input.publishedAt)) {
@@ -473,10 +551,7 @@ export class ProgramLifecycleService {
     return version;
   }
 
-  private async validateReferences(input: {
-    storeId: string;
-    rules: Readonly<Record<string, unknown>>;
-  }): Promise<readonly { field: readonly (string | number)[]; message: string }[]> {
+  private async validateReferences(input: LoyaltyReferenceValidationRequest): Promise<readonly { field: readonly (string | number)[]; message: string }[]> {
     if (!this.references) {
       throw new LoyaltyDomainError(
         "LOYALTY_REFERENCE_VALIDATOR_REQUIRED",
@@ -484,5 +559,31 @@ export class ProgramLifecycleService {
       );
     }
     return this.references.validate(input);
+  }
+
+  private async requireValidReferences(input: LoyaltyReferenceValidationRequest): Promise<void> {
+    const issues = await this.validateReferences(input);
+    if (issues.length > 0) {
+      throw new LoyaltyDomainError(
+        "STALE_PROGRAM_REFERENCE",
+        issues.map((issue) => `${issue.field.join(".")}: ${issue.message}`).join("; "),
+      );
+    }
+  }
+
+  private validateEarningRewardDefinitionReferences(
+    earningRules: readonly Readonly<{ action: unknown }>[],
+    rewardDefinitions: readonly Readonly<{ code: string }>[],
+  ): void {
+    const codes = new Set(rewardDefinitions.map(({ code }) => code));
+    for (const rule of earningRules) {
+      const action = rule.action as { type?: unknown; rewardDefinitionCode?: unknown };
+      if (action.type === "ISSUE_REWARD" && typeof action.rewardDefinitionCode === "string" && !codes.has(action.rewardDefinitionCode)) {
+        throw new LoyaltyDomainError(
+          "REWARD_DEFINITION_NOT_FOUND",
+          `Earning rule references missing reward definition ${action.rewardDefinitionCode}`,
+        );
+      }
+    }
   }
 }

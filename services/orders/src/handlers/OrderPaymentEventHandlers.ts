@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { PaymentEvents } from "@shopana/broker-types";
+import { OrderLoyaltyActions, type PaymentEvents, type PublishOrderLoyaltyRewardReversedResult } from "@shopana/broker-types";
 import type {
   DomainEvent,
   EventHandlerDelivery,
@@ -65,7 +65,9 @@ export class OrderPaymentEventHandlers extends EventHandlers {
   handlePending(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
 
   @EventHandler("payment.cancelled", { retry: { maxAttempts: 20 } })
-  handleCancelled(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  async handleCancelled(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    return this.projectWithLoyaltyReversal(input.event, "CANCELLATION");
+  }
 
   @EventHandler("payment.authorized", { retry: { maxAttempts: 20 } })
   handleAuthorized(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
@@ -77,10 +79,31 @@ export class OrderPaymentEventHandlers extends EventHandlers {
   handleFailed(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
 
   @EventHandler("payment.voided", { retry: { maxAttempts: 20 } })
-  handleVoided(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  async handleVoided(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    const voided = input.event.payload as PaymentEvents.Voided;
+    return voided.resultingState === "VOIDED"
+      ? this.projectWithLoyaltyReversal(input.event, "CANCELLATION")
+      : this.project(input.event);
+  }
 
   @EventHandler("payment.refunded", { retry: { maxAttempts: 20 } })
-  handleRefunded(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+  async handleRefunded(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) {
+    const projected = await this.project(input.event);
+    if (!projected.success) return projected;
+    try {
+      await this.publishLoyaltyRefund(input.event as DomainEvent<"payment.refunded", PaymentEvents.Refunded>);
+      return projected;
+    } catch (error) {
+      return {
+        success: false as const,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          code: "ORDER_LOYALTY_REFUND_PUBLISH_FAILED",
+          retryable: true,
+        },
+      };
+    }
+  }
 
   @EventHandler("payment.expired", { retry: { maxAttempts: 20 } })
   handleExpired(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
@@ -135,6 +158,144 @@ export class OrderPaymentEventHandlers extends EventHandlers {
       };
     }
   }
+
+  private async publishLoyaltyRefund(
+    event: DomainEvent<"payment.refunded", PaymentEvents.Refunded>,
+  ): Promise<void> {
+    const order = await this.repository.order.findLoyaltyRewardRecord(event.payload.orderId);
+    const reward = order?.snapshot.loyaltyRewardEligibility;
+    if (!order || !reward) return;
+    const denominator = BigInt(event.payload.sessionAmount.amountMinor);
+    const refunded = BigInt(event.payload.amount.amountMinor);
+    if (denominator <= 0n || refunded <= 0n) return;
+    const afterProduct = proportional(BigInt(reward.eligibleAmountAfterProductDiscountsMinor), refunded, denominator);
+    const afterAll = proportional(BigInt(reward.eligibleAmountAfterAllDiscountsMinor), refunded, denominator);
+    if (afterProduct === 0n && afterAll === 0n) return;
+    const allAllocations = allocateProportionally(
+      reward.lines.map((line) => BigInt(line.eligibleAmountAfterAllDiscountsMinor)),
+      afterAll,
+    );
+    const productAllocations = allocateWithMinimum(
+      reward.lines.map((line) => BigInt(line.eligibleAmountAfterProductDiscountsMinor)),
+      afterProduct,
+      allAllocations,
+    );
+    const lines = reward.lines.map((line, index) => ({
+      orderLineId: line.orderLineId,
+      quantity: line.quantity,
+      eligibleAmountAfterProductDiscountsMinor: productAllocations[index]!.toString(),
+      eligibleAmountAfterAllDiscountsMinor: allAllocations[index]!.toString(),
+    })).filter((line) => line.eligibleAmountAfterProductDiscountsMinor !== "0" || line.eligibleAmountAfterAllDiscountsMinor !== "0");
+    if (lines.length === 0) return;
+    await this.broker.call<PublishOrderLoyaltyRewardReversedResult>(
+      OrderLoyaltyActions.publishReversed,
+      {
+        organizationId: event.payload.organizationId,
+        storeId: event.payload.storeId,
+        orderId: event.payload.orderId,
+        orderRevision: 1,
+        customerId: reward.customerId,
+        currencyCode: reward.currencyCode,
+        sourceType: "REFUND",
+        sourceId: event.payload.operationId,
+        sourceRevision: requiredEventSequence(event),
+        eligibleAmountAfterProductDiscountsMinor: afterProduct.toString(),
+        eligibleAmountAfterAllDiscountsMinor: afterAll.toString(),
+        reversedAt: event.payload.occurredAt,
+        correlationId: event.context.correlationId,
+        lines,
+      },
+    );
+  }
+
+  private async projectWithLoyaltyReversal(
+    event: PaymentDomainEvent,
+    sourceType: "CANCELLATION" | "ORDER_CORRECTION",
+  ): Promise<EventHandlerResponse> {
+    const projected = await this.project(event);
+    if (!projected.success) return projected;
+    try {
+      await this.publishFullLoyaltyReversal(event, sourceType);
+      return projected;
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+          code: "ORDER_LOYALTY_REVERSAL_PUBLISH_FAILED",
+          retryable: true,
+        },
+      };
+    }
+  }
+
+  private async publishFullLoyaltyReversal(
+    event: PaymentDomainEvent,
+    sourceType: "CANCELLATION" | "ORDER_CORRECTION",
+  ): Promise<void> {
+    const order = await this.repository.order.findLoyaltyRewardRecord(event.payload.orderId);
+    const reward = order?.snapshot.loyaltyRewardEligibility;
+    if (!order || !reward) return;
+    await this.broker.call<PublishOrderLoyaltyRewardReversedResult>(
+      OrderLoyaltyActions.publishReversed,
+      {
+        organizationId: event.payload.organizationId,
+        storeId: event.payload.storeId,
+        orderId: event.payload.orderId,
+        orderRevision: 1,
+        customerId: reward.customerId,
+        currencyCode: reward.currencyCode,
+        sourceType,
+        sourceId: event.payload.operationId,
+        sourceRevision: requiredEventSequence(event),
+        eligibleAmountAfterProductDiscountsMinor: reward.eligibleAmountAfterProductDiscountsMinor,
+        eligibleAmountAfterAllDiscountsMinor: reward.eligibleAmountAfterAllDiscountsMinor,
+        reversedAt: event.payload.occurredAt,
+        correlationId: event.context.correlationId,
+        lines: reward.lines.map((line) => ({
+          orderLineId: line.orderLineId,
+          quantity: line.quantity,
+          eligibleAmountAfterProductDiscountsMinor: line.eligibleAmountAfterProductDiscountsMinor,
+          eligibleAmountAfterAllDiscountsMinor: line.eligibleAmountAfterAllDiscountsMinor,
+        })),
+      },
+    );
+  }
+}
+
+function proportional(value: bigint, numerator: bigint, denominator: bigint): bigint {
+  const calculated = (value * numerator) / denominator;
+  return calculated > value ? value : calculated;
+}
+
+function allocateProportionally(weights: readonly bigint[], total: bigint): bigint[] {
+  const weightTotal = weights.reduce((sum, value) => sum + value, 0n);
+  if (total === 0n || weightTotal === 0n) return weights.map(() => 0n);
+  const result = weights.map((weight) => (total * weight) / weightTotal);
+  let remaining = total - result.reduce((sum, value) => sum + value, 0n);
+  for (let index = 0; index < result.length && remaining > 0n; index += 1) {
+    const capacity = weights[index]! - result[index]!;
+    const addition = capacity < remaining ? capacity : remaining;
+    result[index] = result[index]! + addition;
+    remaining -= addition;
+  }
+  return result;
+}
+
+function allocateWithMinimum(
+  capacities: readonly bigint[],
+  total: bigint,
+  minimums: readonly bigint[],
+): bigint[] {
+  const minimumTotal = minimums.reduce((sum, value) => sum + value, 0n);
+  if (minimumTotal > total) throw new Error("LOYALTY_REVERSAL_ALLOCATION_INVALID");
+  const remainingCapacities = capacities.map((capacity, index) => {
+    const minimum = minimums[index] ?? 0n;
+    if (minimum > capacity) throw new Error("LOYALTY_REVERSAL_LINE_ALLOCATION_INVALID");
+    return capacity - minimum;
+  });
+  const additions = allocateProportionally(remainingCapacities, total - minimumTotal);
+  return minimums.map((minimum, index) => minimum + additions[index]!);
 }
 
 async function projectPaymentDetails(

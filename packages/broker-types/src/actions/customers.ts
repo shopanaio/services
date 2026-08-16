@@ -28,6 +28,29 @@ export const CustomersAdministrationActions = {
     `customers.${CustomersAdministrationActionNames.rebuildDynamicSegments}`,
 } as const;
 
+export const CustomersLoyaltyActionNames = {
+  validateSegments: "validateLoyaltySegmentReferences",
+} as const;
+
+export const CustomersLoyaltyActions = {
+  validateSegments:
+    `customers.${CustomersLoyaltyActionNames.validateSegments}`,
+} as const;
+
+export interface ValidateLoyaltySegmentReferencesParams {
+  storeId: string;
+  segmentIds: readonly string[];
+}
+
+export type ValidateLoyaltySegmentReferencesResult =
+  | Readonly<{ ok: true; missingSegmentIds: readonly string[] }>
+  | Readonly<{
+      ok: false;
+      code: "CUSTOMERS_LOYALTY_REFERENCE_VALIDATION_FAILED";
+      message: string;
+      retryable: boolean;
+    }>;
+
 export interface RebuildCustomerStatisticsParams {
   storeId: string;
   customerId?: string;

@@ -72,6 +72,8 @@ export type ApiCheckout = ApiNode & {
   localeCode: ApiLocaleCode;
   /** Loyalty points selected as tender after the final Pricing quote. */
   loyaltyRedemption: Maybe<ApiCheckoutLoyaltyRedemption>;
+  /** Reward entitlement selected and validated for this checkout. */
+  loyaltyRewardEntitlementId: Maybe<Scalars['ID']['output']>;
   /** Notifications for the user regarding the checkout. */
   notifications: Array<ApiCheckoutNotification>;
   /** Payment aggregate for this checkout. */
@@ -751,7 +753,9 @@ export type ApiCheckoutLoyaltyRedemptionRemoveInput = {
 export type ApiCheckoutLoyaltyRedemptionUpdateInput = {
   checkoutId: Scalars['ID']['input'];
   programId: InputMaybe<Scalars['ID']['input']>;
+  redeemPoints?: Scalars['Boolean']['input'];
   requestedPoints: InputMaybe<Scalars['BigInt']['input']>;
+  rewardEntitlementId: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Uniform result returned by every mutation that changes a checkout. */
@@ -2648,6 +2652,7 @@ export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extend
   lines: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
   localeCode: Resolver<ApiResolversTypes['LocaleCode'], ParentType, ContextType>;
   loyaltyRedemption: Resolver<Maybe<ApiResolversTypes['CheckoutLoyaltyRedemption']>, ParentType, ContextType>;
+  loyaltyRewardEntitlementId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   notifications: Resolver<Array<ApiResolversTypes['CheckoutNotification']>, ParentType, ContextType>;
   payment: Resolver<ApiResolversTypes['CheckoutPayment'], ParentType, ContextType>;
   resultRevision: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;

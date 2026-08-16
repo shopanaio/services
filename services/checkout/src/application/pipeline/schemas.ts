@@ -1445,15 +1445,37 @@ const loyaltyCheckoutContextSchema = z.object({
 }).strict();
 
 export const checkoutLoyaltyRedemptionIntentSchema = z.object({
+  redeemPoints: z.boolean(),
   requestedPoints: z.string().regex(/^\d+$/).nullable(),
   programId: identifierSchema.nullable(),
+  rewardEntitlementId: identifierSchema.nullable(),
+}).strict().superRefine((value, ctx) => {
+  if (!value.redeemPoints && value.requestedPoints !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["requestedPoints"], message: "requestedPoints requires redeemPoints" });
+  }
+  if (!value.redeemPoints && value.rewardEntitlementId === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "A point redemption or reward entitlement is required" });
+  }
+});
+
+const loyaltyRewardQuoteSchema = z.object({
+  entitlementId: identifierSchema,
+  entitlementRevision: z.number().int().nonnegative(),
+  accountId: identifierSchema,
+  rewardDefinitionId: identifierSchema,
+  rewardType: z.enum(["POINTS", "VOUCHER", "FIXED_DISCOUNT", "PERCENTAGE_DISCOUNT", "FREE_SHIPPING", "FREE_PRODUCT", "MEMBER_BENEFIT", "MONETARY_CREDIT"]),
+  pricingDiscountId: identifierSchema,
+  externalReference: z.string().min(1).nullable(),
+  configuration: z.record(z.unknown()),
+  expiresAt: timestampSchema.nullable(),
+  revision: revisionSchema,
 }).strict();
 
 export const checkoutLoyaltyQuoteResultSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("NONE"), revision: revisionSchema, payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("QUOTED"), revision: revisionSchema, quote: loyaltyQuoteSchema, context: loyaltyCheckoutContextSchema, payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("NOT_APPLICABLE"), revision: revisionSchema, code: identifierSchema, retryable: z.literal(false), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
-  z.object({ status: z.literal("REJECTED"), revision: revisionSchema, code: identifierSchema, message: z.string().min(1), retryable: z.boolean(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("NONE"), revision: revisionSchema, rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("QUOTED"), revision: revisionSchema, quote: loyaltyQuoteSchema, context: loyaltyCheckoutContextSchema, rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("NOT_APPLICABLE"), revision: revisionSchema, code: identifierSchema, retryable: z.literal(false), rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
+  z.object({ status: z.literal("REJECTED"), revision: revisionSchema, code: identifierSchema, message: z.string().min(1), retryable: z.boolean(), rewardQuote: loyaltyRewardQuoteSchema.nullable(), rewardContext: loyaltyCheckoutContextSchema.nullable(), payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema }).strict(),
 ]);
 
 export const checkoutRecalculationRequestSchema = z

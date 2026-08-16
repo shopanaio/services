@@ -21,10 +21,22 @@ export class UpdateLoyaltyRedemptionUseCase extends UseCase<
       );
     }
     const requestedPoints = input.requestedPoints?.trim() ?? null;
-    if (requestedPoints !== null && (!/^\d+$/.test(requestedPoints) || BigInt(requestedPoints) <= 0n)) {
+    if (!input.redeemPoints && requestedPoints !== null) {
+      throw invalidCheckoutMutation(
+        "LOYALTY_POINTS_NOT_REQUESTED",
+        "Requested points cannot be supplied when point redemption is disabled.",
+      );
+    }
+    if (input.redeemPoints && requestedPoints !== null && (!/^\d+$/.test(requestedPoints) || BigInt(requestedPoints) <= 0n)) {
       throw invalidCheckoutMutation(
         "LOYALTY_POINTS_INVALID",
         "Requested loyalty points must be a positive integer.",
+      );
+    }
+    if (!input.redeemPoints && !input.rewardEntitlementId) {
+      throw invalidCheckoutMutation(
+        "LOYALTY_SELECTION_REQUIRED",
+        "Select point redemption, a reward entitlement, or both.",
       );
     }
     return (await this.checkoutMutationCoordinator.execute({
@@ -40,8 +52,10 @@ export class UpdateLoyaltyRedemptionUseCase extends UseCase<
           );
         }
         draft.loyaltyRedemption = {
+          redeemPoints: input.redeemPoints,
           requestedPoints,
           programId: input.programId,
+          rewardEntitlementId: input.rewardEntitlementId,
         };
       },
     })).checkout;

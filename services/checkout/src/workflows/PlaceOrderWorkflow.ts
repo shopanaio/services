@@ -19,6 +19,9 @@ import {
   type ReserveCheckoutLoyaltyRedemptionResult,
   type CommitCheckoutLoyaltyRedemptionResult,
   type ReleaseCheckoutLoyaltyRedemptionResult,
+  type LoyaltyRewardQuote,
+  type ReserveCheckoutLoyaltyRewardResult,
+  type TransitionCheckoutLoyaltyRewardResult,
 } from "@shopana/broker-types";
 import {
   BrokerWorkflows,
@@ -91,16 +94,27 @@ interface PlaceOrderSnapshot {
   customer: Payments.PaymentProviderCustomerSnapshot | null;
   reservationExpiresAt: string;
   loyalty: null | { context: LoyaltyCheckoutContext; quote: LoyaltyRedemptionQuote };
+  loyaltyReward: null | { context: LoyaltyCheckoutContext; quote: LoyaltyRewardQuote };
   orderRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
   deliveryRevision: string;
   deliverySelections: Delivery.CommitCheckoutDeliverySelectionsParams["selections"];
 }
 
-export interface LoyaltyReservation {
+interface LoyaltyPointsReservation {
   reservationId: string;
   points: string;
   quoteId: string;
   quoteRevision: string;
+}
+
+interface LoyaltyRewardReservation {
+  entitlementId: string;
+  externalReference: string | null;
+}
+
+export interface LoyaltyReservation {
+  points: LoyaltyPointsReservation | null;
+  reward: LoyaltyRewardReservation | null;
 }
 
 type PlaceOrderClaim =
@@ -337,8 +351,14 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     }
     const buyer = checkout.draft.buyerIdentity;
     const orderRewardEligibility = await this.resolveOrderRewardEligibility(checkout);
-    const loyalty = checkout.result.loyalty.status === "SUCCESS" && checkout.result.loyalty.data.status === "QUOTED"
-      ? { context: checkout.result.loyalty.data.context, quote: checkout.result.loyalty.data.quote }
+    const loyaltyResult = checkout.result.loyalty.status === "SUCCESS"
+      ? checkout.result.loyalty.data
+      : null;
+    const loyalty = loyaltyResult?.status === "QUOTED"
+      ? { context: loyaltyResult.context, quote: loyaltyResult.quote }
+      : null;
+    const loyaltyReward = loyaltyResult?.rewardQuote && loyaltyResult.rewardContext
+      ? { context: loyaltyResult.rewardContext, quote: loyaltyResult.rewardQuote }
       : null;
     if (
       BigInt(loyalty?.quote.payableAfterLoyalty.amountMinor ?? finalQuote.data.totals.payableTotal.amountMinor) > 0n &&
@@ -368,8 +388,12 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
               billingAddress: null,
             }
           : null,
-        reservationExpiresAt: loyalty?.quote.expiresAt ?? new Date(Date.now() + 60 * 60_000).toISOString(),
+        reservationExpiresAt: reservationDeadline(
+          loyalty?.quote.expiresAt ?? null,
+          loyaltyReward?.quote.expiresAt ?? null,
+        ),
         loyalty,
+        loyaltyReward,
         orderRewardEligibility,
         deliveryRevision: delivery.data.revision,
         deliverySelections: delivery.data.groups.flatMap((group) => {
@@ -442,36 +466,72 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     };
   }
 
-  @WorkflowStep()
   private async reserveLoyalty(
     input: PlaceOrderWorkflowInput,
     snapshot: PlaceOrderSnapshot,
   ): Promise<LoyaltyReservation | null> {
-    if (!snapshot.loyalty) return null;
-    const idempotencyKey = `${input.idempotencyKey}:loyalty-reserve`;
-    const requestHash = canonicalJsonSha256({
-      context: snapshot.loyalty.context,
-      quote: snapshot.loyalty.quote,
-      idempotencyKey,
+    if (!snapshot.loyalty && !snapshot.loyaltyReward) return null;
+    if (snapshot.loyaltyReward && !snapshot.loyaltyReward.context.customerId) {
+      throw new Error("LOYALTY_CUSTOMER_REQUIRED");
+    }
+    let points: LoyaltyPointsReservation | null = null;
+    if (snapshot.loyalty) {
+      const idempotencyKey = `${input.idempotencyKey}:loyalty-reserve`;
+      const requestHash = canonicalJsonSha256({
+        context: snapshot.loyalty.context,
+        quote: snapshot.loyalty.quote,
+        idempotencyKey,
+      });
+      const result = await this.reserveLoyaltyPoints({
+        context: snapshot.loyalty.context,
+        quote: snapshot.loyalty.quote,
+        idempotencyKey,
+        requestHash,
+      });
+      if (result.status !== "RESERVED") throw new Error(`LOYALTY_${result.code}`);
+      points = {
+        reservationId: result.reservationId,
+        points: result.points,
+        quoteId: snapshot.loyalty.quote.quoteId,
+        quoteRevision: snapshot.loyalty.quote.revision,
+      };
+    }
+    if (!snapshot.loyaltyReward) return { points, reward: null };
+    const customerId = snapshot.loyaltyReward.context.customerId;
+    if (!customerId) throw new Error("LOYALTY_CUSTOMER_REQUIRED");
+    const rewardResult = await this.reserveLoyaltyReward({
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      customerId,
+      quote: snapshot.loyaltyReward.quote,
+      reservedAt: new Date(await DBOS.now()).toISOString(),
+      idempotencyKey: `${input.idempotencyKey}:loyalty-reward-reserve:${input.checkoutId}`,
     });
-    const result = await this.broker.call<
-      ReserveCheckoutLoyaltyRedemptionResult,
-      import("@shopana/broker-types").ReserveCheckoutLoyaltyRedemptionParams
-    >(LoyaltyCheckoutActions.reserveRedemption, {
-      context: snapshot.loyalty.context,
-      quote: snapshot.loyalty.quote,
-      idempotencyKey,
-      requestHash,
-    });
-    if (result.status !== "RESERVED") {
-      throw new Error(`LOYALTY_${result.code}`);
+    if (rewardResult.status !== "RESERVED") {
+      if (points) await this.releaseLoyalty(input, { points, reward: null }, "ORDER_FAILED");
+      throw new Error(`LOYALTY_${rewardResult.code}`);
     }
     return {
-      reservationId: result.reservationId,
-      points: result.points,
-      quoteId: snapshot.loyalty.quote.quoteId,
-      quoteRevision: snapshot.loyalty.quote.revision,
+      points,
+      reward: {
+        entitlementId: rewardResult.entitlementId,
+        externalReference: snapshot.loyaltyReward.quote.externalReference,
+      },
     };
+  }
+
+  @WorkflowStep()
+  private reserveLoyaltyPoints(
+    params: import("@shopana/broker-types").ReserveCheckoutLoyaltyRedemptionParams,
+  ): Promise<ReserveCheckoutLoyaltyRedemptionResult> {
+    return this.broker.call(LoyaltyCheckoutActions.reserveRedemption, params);
+  }
+
+  @WorkflowStep()
+  private reserveLoyaltyReward(
+    params: import("@shopana/broker-types").ReserveCheckoutLoyaltyRewardParams,
+  ): Promise<ReserveCheckoutLoyaltyRewardResult> {
+    return this.broker.call(LoyaltyCheckoutActions.reserveReward, params);
   }
 
   @WorkflowStep()
@@ -483,27 +543,44 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     committedAt: string,
   ): Promise<void> {
     if (!reservation) return;
-    const idempotencyKey = `${input.idempotencyKey}:loyalty-commit`;
-    const base = {
-      storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      checkoutVersion: snapshot.checkoutVersion,
-      reservationId: reservation.reservationId,
-      quoteId: reservation.quoteId,
-      quoteRevision: reservation.quoteRevision,
-      orderId,
-      orderRevision: 1,
-      committedAt,
-      idempotencyKey,
-    };
-    const result = await this.broker.call<
-      CommitCheckoutLoyaltyRedemptionResult,
-      import("@shopana/broker-types").CommitCheckoutLoyaltyRedemptionParams
-    >(LoyaltyCheckoutActions.commitRedemption, {
-      ...base,
-      requestHash: canonicalJsonSha256(base),
-    });
-    if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+    if (reservation.points) {
+      const idempotencyKey = `${input.idempotencyKey}:loyalty-commit`;
+      const base = {
+        storeId: input.storeId,
+        checkoutId: input.checkoutId,
+        checkoutVersion: snapshot.checkoutVersion,
+        reservationId: reservation.points.reservationId,
+        quoteId: reservation.points.quoteId,
+        quoteRevision: reservation.points.quoteRevision,
+        orderId,
+        orderRevision: 1,
+        committedAt,
+        idempotencyKey,
+      };
+      const result = await this.broker.call<
+        CommitCheckoutLoyaltyRedemptionResult,
+        import("@shopana/broker-types").CommitCheckoutLoyaltyRedemptionParams
+      >(LoyaltyCheckoutActions.commitRedemption, {
+        ...base,
+        requestHash: canonicalJsonSha256(base),
+      });
+      if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+    }
+    if (reservation.reward) {
+      const result = await this.broker.call<TransitionCheckoutLoyaltyRewardResult>(
+        LoyaltyCheckoutActions.commitReward,
+        {
+          storeId: input.storeId,
+          checkoutId: input.checkoutId,
+          entitlementId: reservation.reward.entitlementId,
+          orderId,
+          externalReference: reservation.reward.externalReference,
+          committedAt,
+          idempotencyKey: `${input.idempotencyKey}:loyalty-reward-commit:${orderId}`,
+        },
+      );
+      if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
+    }
   }
 
   private async releaseLoyalty(
@@ -527,23 +604,38 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     releasedAt: string,
   ): Promise<void> {
     if (!reservation) return;
-    const idempotencyKey = `${input.idempotencyKey}:loyalty-release:${reason}`;
-    const base = {
-      storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      reservationId: reservation.reservationId,
-      reason,
-      releasedAt,
-      idempotencyKey,
-    } as const;
-    const result = await this.broker.call<
-      ReleaseCheckoutLoyaltyRedemptionResult,
-      import("@shopana/broker-types").ReleaseCheckoutLoyaltyRedemptionParams
-    >(LoyaltyCheckoutActions.releaseRedemption, {
-      ...base,
-      requestHash: canonicalJsonSha256(base),
-    });
-    if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
+    if (reservation.points) {
+      const idempotencyKey = `${input.idempotencyKey}:loyalty-release:${reason}`;
+      const base = {
+        storeId: input.storeId,
+        checkoutId: input.checkoutId,
+        reservationId: reservation.points.reservationId,
+        reason,
+        releasedAt,
+        idempotencyKey,
+      } as const;
+      const result = await this.broker.call<
+        ReleaseCheckoutLoyaltyRedemptionResult,
+        import("@shopana/broker-types").ReleaseCheckoutLoyaltyRedemptionParams
+      >(LoyaltyCheckoutActions.releaseRedemption, {
+        ...base,
+        requestHash: canonicalJsonSha256(base),
+      });
+      if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
+    }
+    if (reservation.reward) {
+      const result = await this.broker.call<TransitionCheckoutLoyaltyRewardResult>(
+        LoyaltyCheckoutActions.releaseReward,
+        {
+          storeId: input.storeId,
+          checkoutId: input.checkoutId,
+          entitlementId: reservation.reward.entitlementId,
+          releasedAt,
+          idempotencyKey: `${input.idempotencyKey}:loyalty-reward-release:${input.checkoutId}:${reason}`,
+        },
+      );
+      if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
+    }
   }
 
   @WorkflowStep()
@@ -1077,6 +1169,17 @@ function flattenRewardLines(
   lines: readonly Pricing.PricingCheckoutQuotedLine[],
 ): Pricing.PricingCheckoutQuotedLine[] {
   return lines.flatMap((line) => [line, ...flattenRewardLines(line.children)]);
+}
+
+function reservationDeadline(
+  pointQuoteExpiresAt: string | null,
+  rewardExpiresAt: string | null,
+): string {
+  const fallback = new Date(Date.now() + 60 * 60_000).toISOString();
+  const deadlines = [pointQuoteExpiresAt, rewardExpiresAt, fallback]
+    .filter((value): value is string => value !== null);
+  return deadlines.reduce((earliest, value) =>
+    Date.parse(value) < Date.parse(earliest) ? value : earliest);
 }
 
 function toPlaceOrderResult(

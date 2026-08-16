@@ -10,6 +10,7 @@ import {
 import {
   CatalogCheckoutActionNames,
   CatalogComparisonActionNames,
+  CatalogLoyaltyActionNames,
 } from "@shopana/broker-types";
 import type { Catalog } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
@@ -222,6 +223,38 @@ export class CatalogBrokerActions extends BrokerActions {
         message: "Catalog comparison variants could not be resolved",
         retryable: true,
       };
+    }
+  }
+
+  @Action(CatalogLoyaltyActionNames.validateReferences, { readOnly: true })
+  async validateLoyaltyCatalogReferences(
+    params: Catalog.ValidateLoyaltyCatalogReferencesParams,
+    callContext: BrokerCallContext,
+  ): Promise<Catalog.ValidateLoyaltyCatalogReferencesResult> {
+    if (callContext.caller.kind !== "action" || callContext.caller.service !== "loyalty") {
+      return { ok: false, code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED", message: "Only Loyalty may validate loyalty catalog references", retryable: false };
+    }
+    try {
+      const store = await this.getStoreContext(params.storeId);
+      if (!store) throw new Error("Catalog store was not found");
+      return runWithContext(this.createServiceContext(store), async () => {
+        const missing: Array<{ type: Catalog.LoyaltyCatalogReferenceType; ids: string[] }> = [];
+        for (const reference of params.references) {
+          const ids = [...new Set(reference.ids)];
+          const present = new Set<string>();
+          if (reference.type === "PRODUCT") for (const id of ids) { if (await this.kernel.repository.product.exists(id)) present.add(id); }
+          else if (reference.type === "VARIANT") for (const id of ids) { if (await this.kernel.repository.variant.exists(id)) present.add(id); }
+          else if (reference.type === "CATEGORY") for (const id of ids) { if (await this.kernel.repository.category.exists(id)) present.add(id); }
+          else if (reference.type === "TAG") for (const id of ids) { if (await this.kernel.repository.tag.exists(id)) present.add(id); }
+          else if (reference.type === "FEATURE") for (const id of ids) { if (await this.kernel.repository.feature.findById(id)) present.add(id); }
+          else for (const row of await this.kernel.repository.option.getValuesByIds(ids)) present.add(row.id);
+          const missingIds = ids.filter((id) => !present.has(id));
+          if (missingIds.length > 0) missing.push({ type: reference.type, ids: missingIds });
+        }
+        return { ok: true as const, missing };
+      });
+    } catch (error) {
+      return { ok: false, code: "CATALOG_LOYALTY_REFERENCE_VALIDATION_FAILED", message: error instanceof Error ? error.message : "Catalog loyalty reference validation failed", retryable: true };
     }
   }
 
