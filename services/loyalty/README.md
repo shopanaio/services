@@ -6,10 +6,12 @@ append-only ledger, expiring point lots, Checkout reservations, tiers, issued
 reward entitlements, and currency-specific monetary cashback/store-credit
 wallets.
 
-This change intentionally provides contracts only. `config.yml` keeps the
-subgraph disabled until resolvers, repositories, event handlers, and workflows
-are implemented. The package exports an empty `LoyaltyModule` so later runtime
-work can add providers without changing the public package name.
+The service runtime follows the shared Shopana service architecture. Its NestJS
+module initializes the broker, kernel, database and transaction infrastructure,
+request-scoped contexts and loaders, and the Admin and Storefront GraphQL
+subgraph servers. `BootstrapModule` imports `LoyaltyModule` as part of the
+modular-monolith composition root. Domain repositories, actions, event handlers,
+workflows, and resolvers remain intentionally unimplemented.
 
 ## Ownership boundaries
 

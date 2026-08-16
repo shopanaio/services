@@ -13,6 +13,7 @@ import { CustomerStatisticsRepository } from "./statistics/CustomerStatisticsRep
 import { CustomerTaxExemptionRepository } from "./tax/CustomerTaxExemptionRepository.js";
 import { CustomerTaxIdentifierRepository } from "./tax/CustomerTaxIdentifierRepository.js";
 import { StorefrontAuthConfigurationRepository } from "./storefront-auth/StorefrontAuthConfigurationRepository.js";
+import { CustomerWishlistRepository } from "./wishlist/CustomerWishlistRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -34,6 +35,7 @@ export class Repository {
   public readonly externalReference: CustomerExternalReferenceRepository;
   public readonly storefrontAuth: StorefrontAuthConfigurationRepository;
   public readonly checkoutEligibility: CustomerCheckoutEligibilityRepository;
+  public readonly wishlist: CustomerWishlistRepository;
   public readonly txManager: TransactionManager<Database>;
 
   public get db(): Database {
@@ -54,6 +56,7 @@ export class Repository {
     externalReference: CustomerExternalReferenceRepository,
     storefrontAuth: StorefrontAuthConfigurationRepository,
     checkoutEligibility: CustomerCheckoutEligibilityRepository,
+    wishlist: CustomerWishlistRepository,
     txManager: TransactionManager<Database>
   ) {
     this.customer = customer;
@@ -69,6 +72,7 @@ export class Repository {
     this.externalReference = externalReference;
     this.storefrontAuth = storefrontAuth;
     this.checkoutEligibility = checkoutEligibility;
+    this.wishlist = wishlist;
     this.txManager = txManager;
   }
 
@@ -88,6 +92,7 @@ export class Repository {
       new CustomerExternalReferenceRepository(config.db, txManager),
       new StorefrontAuthConfigurationRepository(config.db, txManager),
       new CustomerCheckoutEligibilityRepository(config.db, txManager),
+      new CustomerWishlistRepository(config.db, txManager),
       txManager
     );
   }

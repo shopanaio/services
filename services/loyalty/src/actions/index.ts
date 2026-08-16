@@ -1,8 +1,22 @@
+import { Injectable } from "@nestjs/common";
+import {
+  BrokerActions,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+
 /**
- * Public broker action contracts.
- *
- * No @Action providers are registered in the contract-only service module.
+ * Broker integration point for Loyalty actions.
+ * Domain actions are added here when their application services are implemented.
  */
+@Injectable()
+export class LoyaltyBrokerActions extends BrokerActions {
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
+}
+
+/** Public broker action contracts. */
 export {
   LoyaltyActionNames,
   LoyaltyActions,

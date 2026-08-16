@@ -1,8 +1,22 @@
+import { Injectable } from "@nestjs/common";
+import {
+  EventHandlers,
+  InjectBroker,
+  ServiceBroker,
+} from "@shopana/shared-kernel";
+
 /**
- * Public event-handler bindings and signatures.
- *
- * Decorated handler providers are intentionally deferred with runtime work.
+ * Broker integration point for Loyalty event consumers.
+ * Decorated handlers are added when the corresponding domain flows exist.
  */
+@Injectable()
+export class LoyaltyEventHandlers extends EventHandlers {
+  constructor(@InjectBroker("loyalty") broker: ServiceBroker) {
+    super(broker);
+  }
+}
+
+/** Public event-handler bindings and signatures. */
 export {
   LoyaltyEventHandlerBindings,
   LoyaltyEventHandlerNames,

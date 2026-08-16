@@ -25,6 +25,13 @@ import { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 import { CustomerProvisionFromIamWorkflow } from "./CustomerProvisionFromIamWorkflow.js";
 import { StorefrontAuthProvisionWorkflow } from "./StorefrontAuthProvisionWorkflow.js";
 import { StorefrontAuthDeprovisionWorkflow } from "./StorefrontAuthDeprovisionWorkflow.js";
+import {
+  WishlistCreateWorkflow,
+  WishlistDeleteWorkflow,
+  WishlistProductAddWorkflow,
+  WishlistProductRemoveWorkflow,
+  WishlistUpdateWorkflow,
+} from "./WishlistWorkflows.js";
 
 export const workflows = [
   CustomerCreateWorkflow,
@@ -48,6 +55,11 @@ export const workflows = [
   CustomerDeleteWorkflow,
   StorefrontAuthProvisionWorkflow,
   StorefrontAuthDeprovisionWorkflow,
+  WishlistCreateWorkflow,
+  WishlistUpdateWorkflow,
+  WishlistDeleteWorkflow,
+  WishlistProductAddWorkflow,
+  WishlistProductRemoveWorkflow,
 ];
 
 export { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
@@ -59,4 +71,5 @@ export { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 export * from "./CustomerProvisionFromIamWorkflow.js";
 export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
+export * from "./WishlistWorkflows.js";
 export * from "./dto/index.js";

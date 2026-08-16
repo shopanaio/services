@@ -3,13 +3,16 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 const config: CodegenConfig = {
   overwrite: true,
   generates: {
-    "src/api/graphql-admin/generated/types.ts": {
+    "src/resolvers/admin/generated/types.ts": {
       schema: [
         "../../packages/shared-references/graphql/*.graphql",
         "src/api/graphql-admin/schema/*.graphql",
       ],
-      plugins: ["typescript"],
+      plugins: ["typescript", "typescript-resolvers"],
       config: {
+        useIndexSignature: true,
+        federation: true,
+        contextType: "../../../context/types.js#ServiceContext",
         scalars: {
           BigInt: "string",
           DateTime: "string",
@@ -17,7 +20,7 @@ const config: CodegenConfig = {
         },
       },
     },
-    "src/api/graphql-storefront/generated/types.ts": {
+    "src/resolvers/storefront/generated/types.ts": {
       schema: [
         "../../packages/storefront-graphql/graphql/foundation.graphql",
         "../../packages/shared-references/graphql/shared-currency.graphql",
@@ -25,8 +28,11 @@ const config: CodegenConfig = {
         "../../packages/shared-references/graphql/shared-units.graphql",
         "src/api/graphql-storefront/schema/*.graphql",
       ],
-      plugins: ["typescript"],
+      plugins: ["typescript", "typescript-resolvers"],
       config: {
+        useIndexSignature: true,
+        federation: true,
+        contextType: "../../../context/types.js#ServiceContext",
         scalars: {
           Cursor: "string",
           DateTime: "string",

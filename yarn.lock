@@ -7288,6 +7288,7 @@ __metadata:
     "@shopana/events-service": "npm:0.0.1"
     "@shopana/iam-service": "npm:0.0.1"
     "@shopana/listing-service": "npm:0.0.1"
+    "@shopana/loyalty-service": "npm:0.0.1"
     "@shopana/media-service": "npm:0.0.1"
     "@shopana/notifications-service": "npm:0.0.1"
     "@shopana/orders-service": "npm:0.0.1"
@@ -7747,18 +7748,34 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@shopana/loyalty-service@workspace:services/loyalty":
+"@shopana/loyalty-service@npm:0.0.1, @shopana/loyalty-service@workspace:services/loyalty":
   version: 0.0.0-use.local
   resolution: "@shopana/loyalty-service@workspace:services/loyalty"
   dependencies:
+    "@apollo/server": "npm:^4.11.0"
+    "@apollo/subgraph": "npm:^2.9.0"
+    "@as-integrations/fastify": "npm:^2.1.1"
     "@graphql-codegen/cli": "npm:^5.0.2"
     "@graphql-codegen/typescript": "npm:^4.0.8"
+    "@graphql-codegen/typescript-resolvers": "npm:^4.0.9"
     "@nestjs/common": "npm:^10.0.0"
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "workspace:*"
     "@shopana/events": "workspace:*"
+    "@shopana/shared-context": "workspace:*"
+    "@shopana/shared-kernel": "workspace:*"
+    "@shopana/shared-service-config": "workspace:*"
     "@types/node": "npm:^20.14.14"
+    cache-manager: "npm:^7.2.7"
+    dataloader: "npm:^2.2.3"
+    drizzle-orm: "npm:^0.45.1"
+    fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
+    graphql-tag: "npm:^2.12.6"
+    node-pg-migrate: "npm:^8.0.4"
+    pino: "npm:^9.3.2"
+    pino-pretty: "npm:^11.2.2"
+    postgres: "npm:^3.4.7"
     reflect-metadata: "npm:^0.2.2"
     rxjs: "npm:^7.8.2"
     typescript: "npm:^5.5.4"

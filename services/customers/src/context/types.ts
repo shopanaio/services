@@ -1,6 +1,8 @@
 import type {
   AdminContextClaims,
+  ContextCustomer,
   ContextStore,
+  ContextStorefrontAccess,
   ContextUser,
 } from "@shopana/shared-context";
 import type { Kernel } from "../kernel/Kernel.js";
@@ -19,6 +21,8 @@ export interface ServiceContextOptions {
   store?: ContextStore;
   user?: ContextUser;
   adminContext?: AdminContextClaims;
+  storefrontAccess?: ContextStorefrontAccess;
+  customer?: ContextCustomer | null;
   locale?: string;
   currency?: string;
 }
@@ -30,6 +34,8 @@ export class ServiceContext {
   readonly locale?: string;
   readonly currency?: string;
   readonly adminContext?: AdminContextClaims;
+  readonly storefrontAccess?: ContextStorefrontAccess;
+  readonly customer?: ContextCustomer | null;
 
   private _store?: ContextStore;
   private _user?: ContextUser;
@@ -42,6 +48,8 @@ export class ServiceContext {
     this.locale = options.locale;
     this.currency = options.currency;
     this.adminContext = options.adminContext;
+    this.storefrontAccess = options.storefrontAccess;
+    this.customer = options.customer;
     this._store = options.store;
     this._user = options.user;
   }

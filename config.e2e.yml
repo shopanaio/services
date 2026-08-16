@@ -95,6 +95,7 @@ services:
   customers:
     ports:
       admin_graphql: 11013
+      storefront_graphql: 11024
       metrics: 13040
     db:
       <<: *db_default

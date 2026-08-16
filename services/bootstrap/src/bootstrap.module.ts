@@ -20,6 +20,7 @@ import { IamModule } from "@shopana/iam-service";
 import { EventsModule } from "@shopana/events-service";
 import { CatalogModule } from "@shopana/catalog-service";
 import { ListingModule } from "@shopana/listing-service";
+import { LoyaltyModule } from "@shopana/loyalty-service";
 import { CustomersModule } from "@shopana/customers-service";
 import { ReviewsModule } from "@shopana/reviews-service";
 import { NotificationsModule } from "@shopana/notifications-service";
@@ -65,6 +66,7 @@ export class BootstrapModule {
       IamModule,
       CatalogModule,
       ListingModule,
+      LoyaltyModule,
       CustomersModule,
       ReviewsModule,
       NotificationsModule,
