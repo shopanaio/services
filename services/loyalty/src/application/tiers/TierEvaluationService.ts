@@ -196,7 +196,7 @@ export class TierEvaluationService {
       if (fact.eventType !== "orderRewardEligible" && fact.eventType !== "orderRewardReversed") continue;
       const currency = typeof fact.payload.currencyCode === "string" ? fact.payload.currencyCode : null;
       const orderId = typeof fact.payload.orderId === "string" ? fact.payload.orderId : null;
-      const rawAmount = String(fact.payload.eligibleAmountMinor ?? "0");
+      const rawAmount = String(fact.payload.eligibleAmountAfterAllDiscountsMinor ?? "0");
       const amount = /^(0|[1-9][0-9]*)$/.test(rawAmount) ? BigInt(rawAmount) : 0n;
       if (currency) {
         const direction = fact.eventType === "orderRewardReversed" ? -amount : amount;

@@ -16,6 +16,7 @@
     "@dinero.js/calculator-bigint": "^2.0.0-alpha.2",
     "@shopana/broker-types": "workspace:*",
     "@shopana/checkout-sdk": "workspace:*",
+    "@shopana/events": "workspace:*",
     "@shopana/platform-api": "0.0.1",
     "@shopana/shared-async-context": "0.0.1",
     "@shopana/shared-context": "*",

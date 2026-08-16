@@ -614,7 +614,8 @@ export interface OrderRewardEligibleEvent
       customerEligibilityRevision: string;
       segmentIds: readonly string[];
       segmentMembershipRevision: string;
-      eligibleAmountMinor: string;
+      eligibleAmountAfterProductDiscountsMinor: string;
+      eligibleAmountAfterAllDiscountsMinor: string;
       eligibleAt: string;
       pricingQuoteId: string;
       pricingQuoteRevision: string;
@@ -627,7 +628,8 @@ export interface OrderRewardEligibleEvent
         featureIds: readonly string[];
         optionValueIds: readonly string[];
         quantity: number;
-        eligibleAmountMinor: string;
+        eligibleAmountAfterProductDiscountsMinor: string;
+        eligibleAmountAfterAllDiscountsMinor: string;
       }[];
     }
   > {}
@@ -649,12 +651,14 @@ export interface OrderRewardReversedEvent
       sourceType: "REFUND" | "CANCELLATION" | "ORDER_CORRECTION";
       sourceId: string;
       sourceRevision: number;
-      eligibleAmountMinor: string;
+      eligibleAmountAfterProductDiscountsMinor: string;
+      eligibleAmountAfterAllDiscountsMinor: string;
       reversedAt: string;
       lines: readonly {
         orderLineId: string;
         quantity: number;
-        eligibleAmountMinor: string;
+        eligibleAmountAfterProductDiscountsMinor: string;
+        eligibleAmountAfterAllDiscountsMinor: string;
       }[];
     }
   > {}

@@ -9,7 +9,12 @@ import { startServer } from './interfaces/server/server';
 import { v7 as uuidv7 } from 'uuid';
 import { Repository } from './repositories/Repository.js';
 import {
+  OrderLoyaltyActionNames,
   OrderReviewActionNames,
+  type PublishOrderLoyaltyRewardEligibleParams,
+  type PublishOrderLoyaltyRewardEligibleResult,
+  type PublishOrderLoyaltyRewardReversedParams,
+  type PublishOrderLoyaltyRewardReversedResult,
   type VerifyReviewPurchaseParams,
   type VerifyReviewPurchaseResult,
 } from '@shopana/broker-types';
@@ -37,6 +42,42 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     this.broker.register('getOrderById', async (params: any) => {
       return this.app.orderUsecase.getOrderById.execute(params);
     });
+
+    this.broker.register(
+      OrderLoyaltyActionNames.publishEligible,
+      async (
+        params: PublishOrderLoyaltyRewardEligibleParams,
+      ): Promise<PublishOrderLoyaltyRewardEligibleResult> =>
+        this.broker.runWorkflow(
+          "order.publishLoyaltyRewardEligible",
+          params,
+          {
+            source: "content",
+            resourceId: params.orderId,
+            operation: `publishLoyaltyRewardEligible:${params.orderRevision}`,
+            content: { orderId: params.orderId, orderRevision: params.orderRevision },
+            tenantId: params.organizationId,
+          },
+        ),
+    );
+
+    this.broker.register(
+      OrderLoyaltyActionNames.publishReversed,
+      async (
+        params: PublishOrderLoyaltyRewardReversedParams,
+      ): Promise<PublishOrderLoyaltyRewardReversedResult> =>
+        this.broker.runWorkflow(
+          "order.publishLoyaltyRewardReversed",
+          params,
+          {
+            source: "content",
+            resourceId: `${params.orderId}:${params.sourceId}`,
+            operation: `publishLoyaltyRewardReversed:${params.sourceRevision}`,
+            content: params,
+            tenantId: params.organizationId,
+          },
+        ),
+    );
 
     this.broker.register(
       OrderReviewActionNames.verifyPurchase,

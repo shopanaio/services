@@ -99,6 +99,12 @@ export type OrderCreateData = Readonly<{
   createdAt: Date;
 }>;
 
+export type OrderLoyaltyRewardRecord = Readonly<{
+  id: string;
+  storeId: string;
+  snapshot: CheckoutSnapshot;
+}>;
+
 const minor = (value: Money | null): bigint | null =>
   value == null ? null : value.amountMinor();
 
@@ -125,6 +131,21 @@ export class OrderRepository extends BaseRepository {
       .where(eq(orders.id, id))
       .limit(1);
     return rows.length > 0;
+  }
+
+  async findLoyaltyRewardRecord(id: string): Promise<OrderLoyaltyRewardRecord | null> {
+    const [row] = await this.connection
+      .select({ id: orders.id, storeId: orders.storeId, checkoutSnapshot: orders.checkoutSnapshot })
+      .from(orders)
+      .where(eq(orders.id, id))
+      .limit(1);
+    return row
+      ? {
+          id: row.id,
+          storeId: row.storeId,
+          snapshot: row.checkoutSnapshot as unknown as CheckoutSnapshot,
+        }
+      : null;
   }
 
   async create(input: OrderCreateData): Promise<void> {

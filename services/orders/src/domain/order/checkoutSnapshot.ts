@@ -1,4 +1,5 @@
 import { Money } from "@shopana/shared-money";
+import type { OrderLoyaltyRewardEligibilitySnapshot } from "@shopana/broker-types";
 import {
   DeliveryMethodType,
   type ShippingPaymentModel,
@@ -39,6 +40,9 @@ export type CheckoutSnapshot = Readonly<{
 
   /** Minimal promo code facts (no provider-specific calculations) */
   appliedPromoCodes: CheckoutPromoCodeSnapshot[];
+
+  /** Immutable earning facts captured from the final Checkout pricing result. */
+  loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
 }>;
 
 /**

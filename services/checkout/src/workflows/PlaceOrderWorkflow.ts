@@ -2,13 +2,18 @@ import { Injectable } from "@nestjs/common";
 import type { CheckoutDto } from "@shopana/checkout-sdk";
 import {
   InventoryCheckoutActions,
+  CustomersCheckoutActions,
+  OrderLoyaltyActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
   type Inventory,
   type Payments,
   type Pricing,
+  type ResolveCheckoutBuyerEligibilityResult,
   type LoyaltyCheckoutContext,
   type LoyaltyRedemptionQuote,
+  type OrderLoyaltyRewardEligibilitySnapshot,
+  type PublishOrderLoyaltyRewardEligibleResult,
   type ReserveCheckoutLoyaltyRedemptionResult,
   type CommitCheckoutLoyaltyRedemptionResult,
   type ReleaseCheckoutLoyaltyRedemptionResult,
@@ -80,6 +85,7 @@ interface PlaceOrderSnapshot {
   customer: Payments.PaymentProviderCustomerSnapshot | null;
   reservationExpiresAt: string;
   loyalty: null | { context: LoyaltyCheckoutContext; quote: LoyaltyRedemptionQuote };
+  orderRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
 }
 
 export interface LoyaltyReservation {
@@ -189,8 +195,10 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     let result: PlaceOrderWorkflowResult;
     let paymentOutcome: PaymentOutcome | null = null;
     if (BigInt(snapshot.amount.amountMinor) === 0n) {
-      await this.commitLoyalty(input, snapshot, loyalty, orderId);
+      const eligibleAt = new Date(await DBOS.now()).toISOString();
+      await this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt);
       await this.confirmInventory(input.storeId, orderId);
+      await this.publishOrderRewardEligible(input, orderId, eligibleAt);
       result = {
         placementId: snapshot.placementId,
         orderId,
@@ -224,8 +232,10 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         await this.reverseDiscountUsage(input.storeId, committedDiscounts);
         await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
       } else if (result.status === "AUTHORIZED" || result.status === "PAID") {
-        await this.commitLoyalty(input, snapshot, loyalty, orderId);
+        const eligibleAt = new Date(await DBOS.now()).toISOString();
+        await this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt);
         await this.confirmInventory(input.storeId, orderId);
+        await this.publishOrderRewardEligible(input, orderId, eligibleAt);
       }
     }
 
@@ -296,6 +306,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       };
     }
     const buyer = checkout.draft.buyerIdentity;
+    const orderRewardEligibility = await this.resolveOrderRewardEligibility(checkout);
     const loyalty = checkout.result.loyalty.status === "SUCCESS" && checkout.result.loyalty.data.status === "QUOTED"
       ? { context: checkout.result.loyalty.data.context, quote: checkout.result.loyalty.data.quote }
       : null;
@@ -329,8 +340,30 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           : null,
         reservationExpiresAt: loyalty?.quote.expiresAt ?? new Date(Date.now() + 60 * 60_000).toISOString(),
         loyalty,
+        orderRewardEligibility,
       },
     };
+  }
+
+  private async resolveOrderRewardEligibility(
+    checkout: CheckoutCommittedSnapshot,
+  ): Promise<OrderLoyaltyRewardEligibilitySnapshot | null> {
+    const customerId = checkout.draft.buyerIdentity?.customerId;
+    if (!customerId || checkout.result.finalPricing.status !== "SUCCESS") return null;
+    const effectiveAt = checkout.result.trace.startedAt;
+    const eligibility = await this.broker.call<
+      ResolveCheckoutBuyerEligibilityResult,
+      { storeId: string; customerId: string; effectiveAt: string }
+    >(CustomersCheckoutActions.resolveBuyerEligibility, {
+      storeId: checkout.storeId,
+      customerId,
+      effectiveAt,
+    });
+    if (!eligibility.ok) {
+      if (eligibility.retryable) throw new Error(eligibility.code);
+      return null;
+    }
+    return createOrderRewardEligibilitySnapshot(checkout, eligibility);
   }
 
   @WorkflowStep()
@@ -386,21 +419,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       quoteId: snapshot.loyalty.quote.quoteId,
       quoteRevision: snapshot.loyalty.quote.revision,
     };
-  }
-
-  private async commitLoyalty(
-    input: PlaceOrderWorkflowInput,
-    snapshot: PlaceOrderSnapshot,
-    reservation: LoyaltyReservation | null,
-    orderId: string,
-  ): Promise<void> {
-    return this.commitLoyaltyAt(
-      input,
-      snapshot,
-      reservation,
-      orderId,
-      new Date(await DBOS.now()).toISOString(),
-    );
   }
 
   @WorkflowStep()
@@ -514,7 +532,28 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       userId: input.userId,
       idempotencyKey: `${input.idempotencyKey}:order`,
       checkout: snapshot.checkout,
+      loyaltyRewardEligibility: snapshot.orderRewardEligibility,
     });
+  }
+
+  @WorkflowStep()
+  private async publishOrderRewardEligible(
+    input: PlaceOrderWorkflowInput,
+    orderId: string,
+    eligibleAt: string,
+  ): Promise<void> {
+    const result = await this.broker.call<PublishOrderLoyaltyRewardEligibleResult>(
+      OrderLoyaltyActions.publishEligible,
+      {
+        organizationId: input.organizationId,
+        storeId: input.storeId,
+        orderId,
+        orderRevision: 1,
+        eligibleAt,
+        correlationId: input.correlationId,
+      },
+    );
+    if (!result.published) return;
   }
 
   private async createPayment(
@@ -878,6 +917,78 @@ function inventoryLines(
     },
     ...inventoryLines(line.children),
   ]);
+}
+
+export function createOrderRewardEligibilitySnapshot(
+  checkout: CheckoutCommittedSnapshot,
+  eligibility: Readonly<{
+    customerId: string;
+    segmentIds: readonly string[];
+    segmentMembershipRevision: string;
+  }>,
+): OrderLoyaltyRewardEligibilitySnapshot {
+  if (checkout.result.finalPricing.status !== "SUCCESS") {
+    throw new Error("CHECKOUT_FINAL_PRICING_REQUIRED_FOR_ORDER_REWARD");
+  }
+  if (checkout.draft.buyerIdentity?.customerId !== eligibility.customerId) {
+    throw new Error("CHECKOUT_ORDER_REWARD_CUSTOMER_MISMATCH");
+  }
+  const quote = checkout.result.finalPricing.data;
+  const discountClasses = new Map(
+    quote.appliedDiscounts.map((application) => [
+      application.applicationId,
+      application.discountClass,
+    ]),
+  );
+  const lines = flattenRewardLines(quote.lines)
+    .filter(({ contributesToTotals }) => contributesToTotals)
+    .map((line) => {
+      const productDiscount = line.discountAllocations
+        .filter(({ applicationId }) => discountClasses.get(applicationId) === "PRODUCT")
+        .reduce((total, allocation) => total + BigInt(allocation.amount.amountMinor), 0n);
+      return {
+        orderLineId: line.lineId,
+        productId: line.merchandise.targeting.productId,
+        variantId: line.merchandise.variantId,
+        categoryIds: line.merchandise.targeting.categoryIds,
+        tagIds: line.merchandise.targeting.tagIds,
+        featureIds: line.merchandise.targeting.featureIds,
+        optionValueIds: line.merchandise.targeting.optionValueIds,
+        quantity: line.quantity,
+        eligibleAmountAfterProductDiscountsMinor: (
+          BigInt(line.subtotal.amountMinor) - productDiscount
+        ).toString(),
+        eligibleAmountAfterAllDiscountsMinor: line.total.amountMinor,
+      };
+    });
+  const eligibleAmountAfterProductDiscountsMinor = lines
+    .reduce(
+      (total, line) => total + BigInt(line.eligibleAmountAfterProductDiscountsMinor),
+      0n,
+    )
+    .toString();
+  const eligibleAmountAfterAllDiscountsMinor = lines
+    .reduce((total, line) => total + BigInt(line.eligibleAmountAfterAllDiscountsMinor), 0n)
+    .toString();
+  return {
+    customerId: eligibility.customerId,
+    currencyCode: quote.currencyCode,
+    channelCode: checkout.draft.channelCode,
+    customerEligibilityRevision: eligibility.segmentMembershipRevision,
+    segmentIds: eligibility.segmentIds,
+    segmentMembershipRevision: eligibility.segmentMembershipRevision,
+    eligibleAmountAfterProductDiscountsMinor,
+    eligibleAmountAfterAllDiscountsMinor,
+    pricingQuoteId: quote.quoteId,
+    pricingQuoteRevision: quote.revision,
+    lines,
+  };
+}
+
+function flattenRewardLines(
+  lines: readonly Pricing.PricingCheckoutQuotedLine[],
+): Pricing.PricingCheckoutQuotedLine[] {
+  return lines.flatMap((line) => [line, ...flattenRewardLines(line.children)]);
 }
 
 function toPlaceOrderResult(

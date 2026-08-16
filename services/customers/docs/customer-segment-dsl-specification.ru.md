@@ -101,6 +101,18 @@ AND OR NOT BETWEEN IN IS NULL CONTAINS MATCHES NOT_MATCHES
 регистру на semantic validation. Parser может принять другое написание, но
 normalizer обязан привести identifier к lowercase до поиска в registry.
 
+Lexical contract identifiers:
+
+```text
+Identifier ::= [A-Za-z_][A-Za-z0-9_]*
+```
+
+Keyword распознается только как полный token: после него не может следовать
+символ identifier. Например, `notable` является одним identifier, а не `NOT`
+и `able`. Между tokens разрешены только ASCII whitespace `SP`, `TAB`, `CR` и
+`LF`; comments в v1 отсутствуют. Query, состоящий только из whitespace,
+является syntax error.
+
 ### 5.2 Строки
 
 Строки заключаются в одинарные кавычки и содержат UTF-8:
@@ -529,9 +541,36 @@ number_of_orders = 0
 
 | Attribute | Type | Operators | Source | Dependency |
 | --- | --- | --- | --- | --- |
-| `tax_identifier_statuses` | List<Enum> | list operators | active tax identifiers | `taxIdentifier` |
-| `tax_exemption_statuses` | List<Enum> | list operators | active tax exemptions | `taxExemption` |
-| `tax_exemption_countries` | List<String> | list operators | active tax exemptions | `taxExemption` |
+| `tax_identifier_statuses` | List<Enum> | list operators | effective tax identifier statuses | `taxIdentifier` |
+| `tax_exemption_statuses` | List<Enum> | list operators | effective tax exemption statuses | `taxExemption` |
+| `tax_exemption_countries` | List<String> | list operators | currently active tax exemptions | `taxExemption` |
+
+Enum values:
+
+```text
+tax_identifier_statuses:
+  UNVERIFIED | VERIFIED | REJECTED | EXPIRED
+
+tax_exemption_statuses:
+  ACTIVE | EXPIRED | REVOKED
+```
+
+Tax list semantics вычисляется относительно `effectiveAt` и calendar date в
+timezone Store:
+
+1. Rows с `deleted_at IS NOT NULL` не участвуют.
+2. Row с будущим `valid_from` еще отсутствует во всех трех list attributes.
+3. После `valid_to` identifier/exemption получает effective status `EXPIRED`,
+   даже если stored status еще не обновлен. `valid_to` является inclusive:
+   переход происходит в начале следующего calendar day Store.
+4. Терминальные stored statuses `REJECTED` и `REVOKED` имеют приоритет над
+   derived `EXPIRED`.
+5. `tax_exemption_countries` включает country только для row с effective status
+   `ACTIVE`; `country_code IS NULL` не создает list value.
+
+`valid_from` и boundary после `valid_to` являются temporal boundaries. Поэтому
+predicate над tax list attribute обязан учитывать ближайшую будущую validity
+boundary участвующих source rows.
 
 Tax identifier values не доступны DSL, чтобы sensitive identifiers не
 появлялись в persisted queries, diagnostics или Admin suggestions.
@@ -645,10 +684,12 @@ birthday BETWEEN today AND +30d
 normalization.
 
 После resolution обе boundaries образуют forward inclusive interval calendar
-dates. Interval длиной не более 366 дней допустим. Month/day каждого дня
-interval образуют множество matching anniversaries; поэтому interval полного
-годового цикла совпадает с любым non-null birthday. Interval длиннее 366 дней
-отклоняется с `SEGMENT_INVALID_DATE_RANGE`. Например,
+dates. Нормативная длина interval — calendar-day distance `upper - lower`, без
+добавления единицы за inclusive upper boundary. Допустим distance не более 366.
+Month/day всех включенных дат deduplicate в множество matching anniversaries;
+поэтому interval годового цикла может содержать 366 или 367 включенных dates,
+но не более 366 уникальных month/day и совпадает с любым non-null birthday.
+Distance больше 366 дней отклоняется с `SEGMENT_INVALID_DATE_RANGE`. Например,
 `birthday BETWEEN today AND +1y` означает полный годовой цикл, а
 `birthday BETWEEN -1y AND +1y` является invalid. Для absolute boundaries их year
 используется только для вычисления порядка и длины interval; сравнение с
@@ -941,15 +982,17 @@ PredicateClause    ::= Attribute BinaryOperator Value
                      | Attribute (IN | NOT IN) "(" ValueList ")"
                      | Attribute IS (NULL | NOT NULL)
                      | Attribute (CONTAINS | NOT CONTAINS) Value
-FunctionClause     ::= FunctionName (MATCHES | NOT_MATCHES) "(" Parameters? ")"
+FunctionClause     ::= FunctionName (MATCHES | NOT_MATCHES | NOT MATCHES) "(" Parameters? ")"
                      | FunctionName IS (NULL | NOT NULL)
 Parameters         ::= Parameter ("," Parameter)*
 Parameter          ::= Identifier ParameterOperator Value
                      | Identifier BETWEEN Value AND Value
                      | Identifier (IN | NOT IN) "(" ValueList ")"
 ValueList          ::= Value ("," Value)*
-Value              ::= String | Number | Boolean | Date | DateTime
-                     | NamedDate | RelativeDate
+Value              ::= DateTime | Date | RelativeDate | NamedDate
+                     | Boolean | Number | String
+BinaryOperator     ::= "!=" | ">=" | "<=" | "=" | ">" | "<"
+ParameterOperator  ::= BinaryOperator
 ```
 
 Parser отвечает только за syntax и source locations. Он не решает, существует
@@ -957,8 +1000,11 @@ Parser отвечает только за syntax и source locations. Он не 
 
 Enum и entity ID values передаются как `String`. Bare identifiers в position
 value запрещены, кроме нормативных `TRUE`, `FALSE`, `today`, `yesterday` и
-relative date tokens. Lexer обязан проверять Date/DateTime/RelativeDate до
-обычного Number, чтобы `+30d` или `2026-08-16` не разбирались частично.
+relative date tokens. Peggy является scannerless parser, поэтому порядок
+prioritized alternatives нормативен: `DateTime` проверяется до `Date`, а
+`Date` и `RelativeDate` — до `Number`. Каждый lexical rule проверяет token
+boundary, поэтому `2026-08-16suffix`, `+30days` и datetime с trailing garbage
+не могут успешно разобрать только prefix.
 
 Generated parser создается build-time из `.peggy`; runtime generation grammar и
 `eval` запрещены.
@@ -1004,6 +1050,7 @@ interface SegmentAttributeDescriptor {
   readonly dependencies: readonly SegmentDependency[];
   readonly normalizationContract: string;
   readonly indexContract: readonly string[];
+  readonly temporalContract: "NONE" | "VALUE" | "SOURCE" | "VALUE_AND_SOURCE";
   normalize(value: ParsedValue, context: SegmentSemanticContext): SegmentValue;
   compile(
     predicate: SegmentPredicateExpression,
@@ -1014,6 +1061,18 @@ interface SegmentAttributeDescriptor {
 
 Function registry использует аналогичный descriptor с отдельными parameter
 descriptors.
+
+`temporalContract` определяет источник time-driven reevaluation:
+
+- `VALUE` — named/relative values или иные time-relative virtual values;
+- `SOURCE` — source rows имеют собственные boundaries, например
+  `customer_group_membership.expires_at` или tax `valid_from`/`valid_to`;
+- `VALUE_AND_SOURCE` — применимы оба механизма.
+
+Semantic analyzer выводит `definition.temporal` из validated predicates и
+descriptor contracts. SQL compiler и temporal evaluator используют один и тот
+же descriptor; source boundary не может быть только SQL filter без
+соответствующего `next_change_at`.
 
 Registry является единственным местом, где DSL name связывается с Drizzle
 columns/tables. Пользовательский identifier никогда не интерполируется как SQL
@@ -1096,6 +1155,10 @@ SQL fragments с bind parameters.
 - AST не разворачивается в DNF/CNF: logical tree компилируется напрямую.
 - `BETWEEN` для dates учитывает Store timezone и inclusive calendar dates.
 - Absolute datetime преобразуется в UTC на semantic boundary.
+- Active relation filters используют переданный `effectiveAt`, а не database
+  `now()`: group membership требует
+  `expires_at IS NULL OR expires_at > effectiveAt`, tax validity использует
+  calendar date `effectiveAt` в timezone Store.
 - Counters с отсутствующей statistics row используют `COALESCE(..., 0)`.
 - Money использует bigint/numeric-safe values, не JavaScript number.
 - `NOT_MATCHES` компилируется как `NOT (MATCHES expression)`, а не как инверсия
@@ -1126,6 +1189,8 @@ Semantic validation получает currency, currency exponent, IANA timezone 
 - любой Money value/attribute/function добавляет `currency`;
 - любой named/relative date или `birthday` predicate добавляет `timezone`;
 - absolute Date над timestamp source и DateTime без offset добавляют `timezone`;
+- tax list predicates добавляют `timezone`, поскольку validity boundaries
+  являются calendar dates Store;
 - implementation может консервативно добавить dependency, даже если конкретный
   predicate математически не изменится от настройки.
 
@@ -1134,19 +1199,17 @@ Compiler перед evaluation проверяет, что зависимые п�
 `SEGMENT_EVALUATION_CONTEXT_STALE`; использовать старые minor units или timezone
 запрещено.
 
-Store currency является immutable после появления первой принадлежащей Store
-money-bearing order/refund projection. Исторические amounts не пересчитываются
-по FX и не переименовываются в новую currency: это изменило бы смысл
-`amount_spent`. Store configuration command обязан до commit получить trusted
-Customers precondition и отклонить currency code/exponent change, если такие
-facts существуют. Изменение exponent для уже использованного currency code
-также запрещено. Этот запрет является Store configuration invariant, а не
-segment validation error.
+Store currency code и exponent являются immutable с момента создания Store.
+Store configuration API не предоставляет command их изменения. Это устраняет
+межсервисную check-before-commit гонку между изменением currency и появлением
+первого order/refund fact. Исторические amounts не пересчитываются по FX и не
+переименовываются в другую currency. Для перехода Store на другую accounting
+currency требуется создание нового Store или отдельная будущая versioned
+multi-currency migration, не входящая в DSL v1.
 
-До появления первого monetary fact currency code/exponent могут быть изменены.
 Timezone может быть изменена независимо от наличия facts. Успешное изменение
-Store currency/exponent или timezone публикует durable
-`storeConfigurationUpdated`. Для каждого затронутого DYNAMIC segment система:
+timezone публикует durable `storeConfigurationUpdated`. Для каждого зависимого
+DYNAMIC segment система:
 
 1. повторно выполняет semantic normalization сохраненного canonical query в
    новом trusted context;
@@ -1156,16 +1219,15 @@ Store currency/exponent или timezone публикует durable
 4. немедленно делает старые RULE memberships неактуальными;
 5. запускает durable bulk materialization.
 
-Если query больше невалиден в новом context, segment остается fail closed,
+Если query больше невалиден в новом timezone context, segment остается fail closed,
 получает materialization status `FAILED` и требует merchant correction. Store
 configuration workflow не считается завершенным, пока enqueue обновления всех
 затронутых segments не записан durable.
 
-Customers не обрабатывает уже committed currency change, нарушающий invariant,
-путем молчаливого выбора новой `customer_monetary_statistics` row. Такое событие
-считается integration invariant violation: все money-dependent segments
-переводятся в `FAILED`, evaluation остается fail closed, а ошибка требует
-операторского исправления Store configuration.
+Получение события с измененными currency code/exponent считается integration
+invariant violation: Customers не обновляет context snapshot, все
+money-dependent segments переводятся в `FAILED`, evaluation остается fail
+closed, а событие требует операторского исправления producer configuration.
 
 ### 18.6 Physical index contract
 
@@ -1185,6 +1247,10 @@ architecture test против Drizzle schema metadata.
 - list relations: оба access paths `(store_id, customer_id, value)` для
   correlated match и `(store_id, value, customer_id)` для segment scan, с
   partial predicate active/non-deleted, где применимо;
+- expiring group memberships: indexes для обоих access paths включают
+  `expires_at`; `now()` не используется в partial index predicate;
+- tax lists: indexes включают `store_id`, status/country, `valid_from`,
+  `valid_to` и `customer_id` в порядке, выбранном representative `EXPLAIN`;
 - statistics: `(store_id, counter_or_date, customer_id)`, а money indexes также
   включают leading `currency_code` после `store_id`;
 - order functions: indexes для correlated evaluation и bulk candidate search по
@@ -1241,8 +1307,20 @@ Timeout возвращает user error и не активирует segment.
 
 ## 20. Temporal rules
 
-Relative dates и `birthday` делают membership зависимым от времени даже без
-domain event.
+Membership является temporal, если validated predicate может изменить результат
+только из-за течения времени, без domain event. В v1 это включает:
+
+- named dates `today` и `yesterday`;
+- relative dates;
+- `birthday` с time-relative boundaries;
+- expiration `customer_group_membership.expires_at`;
+- tax `valid_from` и boundary после inclusive `valid_to`;
+- любой будущий attribute/function, чей registry descriptor объявляет
+  `SOURCE` или `VALUE_AND_SOURCE` temporal contract.
+
+`birthday` с двумя absolute boundaries и `birthday IS [NOT] NULL` может быть
+классифицирован как non-temporal. Консервативная temporal классификация
+разрешена, но пропуск возможной time-driven boundary запрещен.
 
 Semantic analyzer помечает definition как `temporal`. Evaluator обязан
 рассчитать ближайший `next_change_at`:
@@ -1259,7 +1337,7 @@ Semantic analyzer помечает definition как `temporal`. Evaluator об�
 будущем. Для общей реализации нужна owned evaluation queue:
 
 ```text
-customer_segment_evaluation_queue(
+customer_segment_temporal_schedule(
   store_id,
   segment_id,
   customer_id,
@@ -1272,7 +1350,8 @@ customer_segment_evaluation_queue(
 )
 ```
 
-В queue хранится только следующая актуальная граница пары customer/segment.
+В temporal schedule хранится только следующая актуальная граница пары
+customer/segment.
 `schedule_token` детерминированно включает definition revision, generation,
 evaluated effectiveAt и boundary и используется для идемпотентного claim.
 Каждая customer evaluation в той же transaction и под тем же lock, что
@@ -1298,6 +1377,9 @@ definition запрещено: оно не создает расписание �
 
 Relative calendar-date rules пересчитываются не позднее начала следующего дня
 в timezone Store. DST не должен создавать пропущенный или двойной transition.
+Group expiry использует точный `expires_at` instant. Tax validity dates меняются
+в начале соответствующего calendar day Store: `valid_from` — в начале указанной
+даты, `valid_to` — в начале следующей даты, поскольку upper boundary inclusive.
 
 ## 21. Materialization semantics
 
@@ -1391,6 +1473,14 @@ revision/version owned projection, для каждого затронутого 
 4. durable-enqueue reevaluation текущей revision/generation;
 5. commit state/projection, invalidation и enqueue атомарно и только затем
    разрешить acknowledgement события.
+
+Если transaction затрагивает несколько segments, lock keys сначала
+deduplicate, затем сортируются лексикографически по
+`(store_id, customer_id, segment_id)` и только после этого приобретаются.
+Порядок обязателен для event handlers, bulk workers, lifecycle cleanup и
+temporal workers. Реализация использует один документированный
+transaction-scoped advisory-lock key derivation либо row-lock table; смешивать
+несовместимые lock primitives для одной пары запрещено.
 
 Таким образом, после видимости нового owned state окно до reevaluation дает
 только false negative. Запись нового state отдельно от invalidation/enqueue
@@ -1529,10 +1619,57 @@ watermark и только если status/revision/generation segment все е�
 run. Иначе completion является no-op. Terminal failure записывает `FAILED`, но
 не меняет generation и не возвращает старые memberships в eligibility.
 
-Queue watermark является монотонным sequence, выдаваемым durable reevaluation
-queue в той же transaction, где выполняются event invalidation и enqueue. В
+Event-driven reevaluation использует отдельную idempotent append-only queue, а
+не `customer_segment_temporal_schedule`:
+
+```text
+customer_segment_reevaluation_queue(
+  sequence bigint generated by monotonic database sequence,
+  store_id,
+  segment_id,
+  customer_id,
+  definition_revision,
+  evaluation_generation,
+  source_event_id,
+  available_at,
+  attempt_count,
+  lease_until,
+  completed_at,
+  last_error,
+  created_at,
+  primary key (sequence),
+  unique (
+    store_id,
+    segment_id,
+    customer_id,
+    definition_revision,
+    evaluation_generation,
+    source_event_id
+  )
+)
+```
+
+Temporal schedule coalesce-ит будущие clock boundaries до одной строки на
+пару. Reevaluation queue сохраняет event ordering/idempotency и предоставляет
+watermark. Temporal worker при наступлении boundary выполняет evaluation
+напрямую под общим lock; если для retry требуется event queue, он публикует
+синтетический deterministic `source_event_id` из `schedule_token`.
+
+Успешно обработанная reevaluation row получает `completed_at` в той же
+transaction, что membership/evaluation state. Rows не удаляются раньше
+окончания гарантированного срока redelivery source events, чтобы unique key
+продолжал обеспечивать idempotency. Claim с истекшим `lease_until` доступен для
+retry; terminal retry exhaustion переводит materialization в `FAILED`, когда
+item принадлежит blocking generation/barrier.
+
+Queue watermark является монотонным `sequence`, выдаваемым
+`customer_segment_reevaluation_queue` в той же transaction, где выполняются
+event invalidation и enqueue. В
 конце scan bulk фиксирует committed high-water mark и обрабатывает все items этой
-revision/generation с sequence не выше него. Event, committed после barrier,
+revision/generation с sequence не выше него. Barrier считается пройденным,
+только когда для каждой такой row установлен `completed_at`; отсутствие
+claimable rows само по себе не означает completion из-за действующих leases.
+Event, committed после barrier,
 сначала инвалидирует membership по правилам раздела 21.3 и потому не создает
 false-positive окно после перехода run в `READY`.
 
@@ -1753,6 +1890,8 @@ backfill и без compatibility branches.
 - keywords в разном регистре;
 - escaped strings;
 - dates, datetimes и relative dates;
+- lexical priority `DateTime > Date > RelativeDate > Number`, keyword boundaries
+  и rejection comments/trailing garbage;
 - source ranges для invalid query;
 - UTF-16 diagnostic offsets для ASCII, non-BMP Unicode и CRLF;
 - raw token/node/nesting limits до normalization, включая длинные цепочки `NOT`;
@@ -1770,6 +1909,9 @@ backfill и без compatibility branches.
 - duplicate parameters;
 - complexity limits;
 - unavailable attributes;
+- temporal extraction для `today`, `yesterday`, relative dates, group expiry и
+  tax validity boundaries;
+- tax enum domains и effective status precedence;
 - strict canonical AST operator arity, rejection unknown keys и mismatch derived
   fields при persisted-definition load.
 
@@ -1833,7 +1975,10 @@ pages bulk run, пересекающего полночь Store timezone.
 - `customerDeleted` очищает membership/state/queue;
 - `customerMerged` очищает source и пересчитывает target;
 - MANUAL/DYNAMIC type immutable и source/type invariants соблюдаются;
-- повторная доставка одного `source_event_id` идемпотентна.
+- повторная доставка одного `source_event_id` идемпотентна;
+- все multi-segment paths получают locks в одном canonical order;
+- temporal schedule coalescing не удаляет event reevaluation item, а event queue
+  сохраняет monotonic watermark и idempotency key.
 
 ### Temporal behavior
 
@@ -1849,18 +1994,23 @@ pages bulk run, пересекающего полночь Store timezone.
   `birthday BETWEEN today AND +30d` без domain event;
 - customer с order 89 дней назад входит в `last_order_date < -90d` через
   scheduled `false -> true` transition;
+- `customer_added_date = today` и `last_order_date = yesterday` переходят на
+  следующей границе calendar day без domain event;
+- expiring group membership удаляет stale positive точно на `expires_at`;
+- tax row появляется на `valid_from`, а inclusive `valid_to` истекает в начале
+  следующего Store day;
+- birthday interval с elapsed distance 366 принимается, а 367 отклоняется без
+  inclusive off-by-one;
 - membership/state/next queue item записываются атомарно, stale generation item
   является no-op, crash после claim сохраняет retryability.
 
 ### Store context changes
 
-- currency/exponent change без monetary facts повторно нормализует Money AST и
-  увеличивает definition revision/generation;
-- currency/exponent change после первого monetary fact отклоняется до Store
-  configuration commit;
-- ошибочно committed currency change переводит money-dependent segments в
-  `FAILED`, а не выбирает молча новую пустую statistics row;
+- Store API не допускает currency/exponent change после создания Store;
+- ошибочное currency-change event переводит money-dependent segments в
+  `FAILED`, не меняя context snapshot и не выбирая новую statistics row;
 - timezone change пересобирает зависимые Date predicates;
+- timezone change также пересобирает tax list predicates с calendar validity;
 - старый context snapshot никогда не компилируется с новым Store context;
 - invalid query после context change остается fail closed со status `FAILED`.
 
@@ -1883,9 +2033,10 @@ pages bulk run, пересекающего полночь Store timezone.
 8. Добавить durable bulk materialization по `definition_revision` и
    `evaluation_generation`, materialization status,
    `customer_segment_evaluation_state` и единый per-customer locking protocol.
-9. Добавить durable evaluation queue для customer lifecycle, Store context и
-   temporal reevaluation с atomic boundary replacement,
-   watermark/idempotency/claim semantics и exhaustive temporal scan.
+9. Добавить отдельные durable `customer_segment_temporal_schedule` и
+   `customer_segment_reevaluation_queue`: первая выполняет atomic boundary
+   replacement, вторая — watermark/idempotency/claim semantics; temporal
+   materialization использует exhaustive scan.
 10. Реализовать Admin visual builder поверх attribute registry и advanced text
     editor поверх canonical query.
 11. Добавить purchase line projection и включить `products_purchased`.

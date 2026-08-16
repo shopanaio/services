@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   InventoryCheckoutActions,
+  OrderLoyaltyActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
   type Inventory,
@@ -8,6 +9,7 @@ import {
   type Pricing,
   type CommitCheckoutLoyaltyRedemptionResult,
   type ReleaseCheckoutLoyaltyRedemptionResult,
+  type PublishOrderLoyaltyRewardEligibleResult,
 } from "@shopana/broker-types";
 import {
   BrokerWorkflows,
@@ -64,8 +66,10 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       if (!operation) throw new Error("PAYMENT_OPERATION_NOT_FOUND");
 
       if (isSettled(session.state)) {
-        await this.commitLoyalty(input);
+        const eligibleAt = new Date(await DBOS.now()).toISOString();
+        await this.commitLoyaltyAt(input, eligibleAt);
         await this.confirmInventory(input.storeId, input.orderId);
+        await this.publishOrderRewardEligible(input, eligibleAt);
         return this.replacePlacementResult(
           input.placementId,
           paymentResult(input.initialResult, session, operation.operationId),
@@ -203,13 +207,6 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     });
   }
 
-  private async commitLoyalty(input: MonitorPlacedPaymentInput): Promise<void> {
-    return this.commitLoyaltyAt(
-      input,
-      new Date(await DBOS.now()).toISOString(),
-    );
-  }
-
   @WorkflowStep()
   private async commitLoyaltyAt(
     input: MonitorPlacedPaymentInput,
@@ -238,6 +235,25 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       requestHash: canonicalJsonSha256(base),
     });
     if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+  }
+
+  @WorkflowStep()
+  private async publishOrderRewardEligible(
+    input: MonitorPlacedPaymentInput,
+    eligibleAt: string,
+  ): Promise<void> {
+    const result = await this.broker.call<PublishOrderLoyaltyRewardEligibleResult>(
+      OrderLoyaltyActions.publishEligible,
+      {
+        organizationId: input.organizationId,
+        storeId: input.storeId,
+        orderId: input.orderId,
+        orderRevision: 1,
+        eligibleAt,
+        correlationId: input.correlationId,
+      },
+    );
+    if (!result.published) return;
   }
 
   private async releaseLoyalty(input: MonitorPlacedPaymentInput): Promise<void> {

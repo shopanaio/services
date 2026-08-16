@@ -3,6 +3,10 @@ import { BrokerModule, DATABASE_CLIENT, type DatabaseClient } from '@shopana/sha
 import { OrdersNestService } from './orders.nest-service';
 import { createDatabase } from './infrastructure/db/database.js';
 import { Repository } from './repositories/Repository.js';
+import {
+  PublishOrderLoyaltyRewardEligibleWorkflow,
+  PublishOrderLoyaltyRewardReversedWorkflow,
+} from './workflows/LoyaltyRewardWorkflows.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'order' })],
@@ -13,6 +17,8 @@ import { Repository } from './repositories/Repository.js';
       useFactory: (client: DatabaseClient) => Repository.create({ db: createDatabase(client) }),
     },
     OrdersNestService,
+    PublishOrderLoyaltyRewardEligibleWorkflow,
+    PublishOrderLoyaltyRewardReversedWorkflow,
   ],
   exports: [Repository],
 })

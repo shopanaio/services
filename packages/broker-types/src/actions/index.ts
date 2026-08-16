@@ -191,10 +191,17 @@ export {
 // Orders service review-purchase verification
 export * as Orders from "./orders.js";
 export {
+  OrderLoyaltyActionNames,
+  OrderLoyaltyActions,
   OrderReviewActionNames,
   OrderReviewActions,
 } from "./orders.js";
 export type {
+  OrderLoyaltyRewardEligibilitySnapshot,
+  PublishOrderLoyaltyRewardEligibleParams,
+  PublishOrderLoyaltyRewardEligibleResult,
+  PublishOrderLoyaltyRewardReversedParams,
+  PublishOrderLoyaltyRewardReversedResult,
   VerifyReviewPurchaseParams,
   VerifyReviewPurchaseResult,
 } from "./orders.js";

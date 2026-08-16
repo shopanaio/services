@@ -160,7 +160,10 @@ not from delivery attempt. Every direct action accepts an explicit stable
 idempotency key and, where the payload can vary, a canonical request hash.
 Order reward facts also carry immutable channel, customer eligibility, and
 segment membership snapshots so historical calculations never hydrate mutable
-Customers state.
+Customers state. Checkout captures both merchandise spend after product-only
+discounts and after all merchandise discounts; Loyalty selects the configured
+`eligibleSpendBasis` from the effective program version. Orders persists that
+snapshot and is the sole publisher of earning and incremental reversal facts.
 
 ## Checkout action sequence
 
@@ -180,9 +183,14 @@ revisioned and auditable.
 
 `placeOrder` reserves the quoted points before inventory/order side effects.
 It commits the reservation only after an order reaches a payable state, and
-releases it on order or payment failure. Pending provider flows carry the
+then asks Orders to publish `orderRewardEligible`. It releases the reservation
+on order or payment failure. Pending provider flows carry the
 reservation into the durable payment monitor, which commits on settlement or
-releases on terminal failure.
+releases on terminal failure; the monitor publishes the same Orders-owned
+earning event after settlement. Refund, cancellation, and order-correction
+workflows call `order.publishLoyaltyRewardReversed` with incremental per-line
+amounts for both spend bases. Loyalty uses that event to reverse earnings and
+restore redeemed points proportionally.
 
 Reservation and commit operations are expected to lock the account, append
 ledger entries, allocate lots, update the balance projection, and write the

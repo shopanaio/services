@@ -7872,6 +7872,7 @@ __metadata:
     "@shopana/broker-types": "workspace:*"
     "@shopana/build-tools": "npm:0.0.1"
     "@shopana/checkout-sdk": "workspace:*"
+    "@shopana/events": "workspace:*"
     "@shopana/platform-api": "npm:0.0.1"
     "@shopana/shared-async-context": "npm:0.0.1"
     "@shopana/shared-context": "npm:*"

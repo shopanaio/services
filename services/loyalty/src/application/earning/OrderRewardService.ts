@@ -7,6 +7,7 @@ import type { Account, EventFact, LoyaltyTransaction, ProgramVersion } from "../
 import type {
   LoyaltyCalculationLineSnapshotV1,
   LoyaltyCalculationSnapshotV1,
+  LoyaltyEligibleSpendBasis,
   LoyaltyProgramRulesV1,
 } from "../../contracts/types.js";
 import { evaluateLoyaltyProgramEligibility } from "../../contracts/policy.js";
@@ -66,7 +67,8 @@ export class OrderRewardService {
       const account = await this.points.ensureAccount(event.payload.customerId, program.id);
       if (account.status !== "ACTIVE") return null;
       const calculation = this.calculate(event, version, rules);
-      if (parsePoints(event.payload.eligibleAmountMinor) < version.minimumEligibleAmountMinor
+      const firstPurchase = await this.isFirstPurchase(event);
+      if (parsePoints(calculation.eligibleAmountMinor) < version.minimumEligibleAmountMinor
         || parsePoints(calculation.awardedPoints) === 0n) {
         await new EarningRuleEngine(this.repository).evaluate({
           fact,
@@ -74,7 +76,12 @@ export class OrderRewardService {
           program,
           version,
           account,
-          context: this.ruleContext(event, 0n),
+          context: this.ruleContext(
+            event,
+            0n,
+            calculation.eligibleAmountMinor,
+            firstPurchase,
+          ),
         });
         return null;
       }
@@ -105,7 +112,12 @@ export class OrderRewardService {
         program,
         version,
         account,
-        context: this.ruleContext(event, parsePoints(calculation.awardedPoints)),
+        context: this.ruleContext(
+          event,
+          parsePoints(calculation.awardedPoints),
+          calculation.eligibleAmountMinor,
+          firstPurchase,
+        ),
       });
       return { transactionId: operation.transaction.id, accountId: account.id };
     });
@@ -169,12 +181,17 @@ export class OrderRewardService {
       if (!account) return { earningReversalTransactionId: null, redemptionRestoreTransactionIds: [], debtPoints: "0" };
       let reversal: LoyaltyTransaction | null = null;
       let debt = 0n;
-      const allocation = await this.refundAllocations(event.payload.customerId, event.payload.orderId);
       for (const original of originals) {
         const version = original.programVersionId
           ? await this.repository.program.findVersionById(original.programVersionId)
           : null;
         if (version) {
+          const basis = earningSpendBasis(version);
+          const allocation = await this.refundAllocations(
+            event.payload.customerId,
+            event.payload.orderId,
+            basis,
+          );
           const originalEligible = BigInt(String(original.metadata.eligibleAmountMinor ?? "0"));
           const originalAward = BigInt(String(original.metadata.awardedPoints ?? "0"));
           const orderRevision = String(original.metadata.orderRevision ?? original.sourceRevision ?? "");
@@ -265,15 +282,17 @@ export class OrderRewardService {
     rules: LoyaltyProgramRulesV1,
   ): LoyaltyCalculationSnapshotV1 {
     const lines: LoyaltyCalculationLineSnapshotV1[] = [];
+    const basis = rules.earning.eligibleSpendBasis;
     for (const line of event.payload.lines) {
       if (rules.earning.excludedSelectors.some((selector) => matchesCatalogSelector(selector, line))) continue;
-      const amount = parsePoints(line.eligibleAmountMinor);
+      const amountMinor = rewardLineEligibleAmount(line, basis);
+      const amount = parsePoints(amountMinor);
       const base = calculateRatio(amount, version.earnPoints, version.earnAmountMinor, version.roundingMode);
       const modifier = modifierBasisPoints(rules.earning.modifiers, rules.earning.modifierStackingMode, line, event.payload.segmentIds, event.payload.eligibleAt);
       const awarded = multiplyBasisPoints(base, modifier.basisPoints, version.roundingMode);
       lines.push({
         orderLineId: line.orderLineId,
-        eligibleAmountMinor: line.eligibleAmountMinor,
+        eligibleAmountMinor: amountMinor,
         basePoints: base.toString(),
         modifierIds: modifier.modifierIds,
         multiplierBps: modifier.basisPoints,
@@ -295,7 +314,7 @@ export class OrderRewardService {
       customerEligibilityRevision: event.payload.customerEligibilityRevision,
       segmentIds: event.payload.segmentIds,
       segmentMembershipRevision: event.payload.segmentMembershipRevision,
-      eligibleAmountMinor: event.payload.eligibleAmountMinor,
+      eligibleAmountMinor: rewardEligibleAmount(event.payload, basis),
       basePoints: basePoints.toString(),
       roundingMode: version.roundingMode,
       awardedPoints: awardedPoints.toString(),
@@ -324,15 +343,34 @@ export class OrderRewardService {
     });
   }
 
-  private ruleContext(event: OrderRewardEligibleEvent, basePoints: bigint) {
+  private ruleContext(
+    event: OrderRewardEligibleEvent,
+    basePoints: bigint,
+    eligibleAmountMinor: string,
+    firstPurchase: boolean,
+  ) {
     return {
       channelCode: event.payload.channelCode,
       segmentIds: event.payload.segmentIds,
       currencyCode: event.payload.currencyCode,
-      eligibleAmountMinor: parsePoints(event.payload.eligibleAmountMinor),
+      eligibleAmountMinor: parsePoints(eligibleAmountMinor),
       basePoints,
-      firstPurchase: false,
+      firstPurchase,
     };
+  }
+
+  private async isFirstPurchase(event: OrderRewardEligibleEvent): Promise<boolean> {
+    const facts = await this.repository.event.listAllFactsForCustomer(event.payload.customerId);
+    const currentTime = Date.parse(event.payload.eligibleAt);
+    return facts.every((fact) => {
+      if (fact.eventType !== "orderRewardEligible" || fact.externalEventId === event.eventId) {
+        return true;
+      }
+      const factTime = Date.parse(fact.occurredAt);
+      return factTime > currentTime || (
+        factTime === currentTime && fact.externalEventId > event.eventId
+      );
+    });
   }
 
   private async reversePoints(
@@ -424,17 +462,14 @@ export class OrderRewardService {
     account: Account,
     event: OrderRewardReversedEvent,
   ): Promise<{ transactions: LoyaltyTransaction[]; debt: bigint }> {
-    const allocation = await this.refundAllocations(
+    const facts = await this.repository.event.listOrderEligibilityFacts(
       event.payload.customerId,
       event.payload.orderId,
     );
     const reversals: LoyaltyTransaction[] = [];
     let debt = 0n;
-    for (const fact of allocation.facts) {
-      const originalEligible = parsePoints(String(fact.payload.eligibleAmountMinor ?? "0"));
-      if (originalEligible <= 0n) continue;
+    for (const fact of facts) {
       const orderRevision = String(fact.payload.orderRevision ?? "");
-      const allocatedEligible = allocation.byOrderRevision.get(orderRevision) ?? 0n;
       const evaluations = await this.repository.event.listEvaluations(fact.id, account.id);
       for (const evaluation of evaluations) {
         if (evaluation.transactionId && evaluation.pointsAwarded && evaluation.pointsAwarded > 0n) {
@@ -442,13 +477,23 @@ export class OrderRewardService {
           if (original?.programVersionId) {
             const version = await this.repository.program.findVersionById(original.programVersionId);
             if (version) {
+              const basis = earningSpendBasis(version);
+              const originalEligible = factEligibleAmount(fact, basis);
+              const allocation = await this.refundAllocations(
+                event.payload.customerId,
+                event.payload.orderId,
+                basis,
+              );
+              const allocatedEligible = allocation.byOrderRevision.get(orderRevision) ?? 0n;
               const prior = (await this.repository.ledger.listAllTransactions(account.id))
                 .filter((transaction) => transaction.kind === "REVERSE_EARN"
                   && transaction.metadata.originalTransactionId === original.id)
                 .reduce((sum, transaction) => sum + BigInt(String(transaction.metadata.points ?? "0")), 0n);
               const target = version.refundPolicy === "FULL_REVERSAL"
                 ? (allocation.allocatedTotal > 0n ? evaluation.pointsAwarded : 0n)
-                : (evaluation.pointsAwarded * allocatedEligible) / originalEligible;
+                : originalEligible === 0n
+                  ? 0n
+                  : (evaluation.pointsAwarded * allocatedEligible) / originalEligible;
               const points = target > prior ? target - prior : 0n;
               if (points > 0n) {
                 const reversed = await this.reversePoints(
@@ -480,13 +525,23 @@ export class OrderRewardService {
             if (wallet && original?.programVersionId) {
               const version = await this.repository.program.findVersionById(original.programVersionId);
               if (version) {
+                const basis = earningSpendBasis(version);
+                const originalEligible = factEligibleAmount(fact, basis);
+                const allocation = await this.refundAllocations(
+                  event.payload.customerId,
+                  event.payload.orderId,
+                  basis,
+                );
+                const allocatedEligible = allocation.byOrderRevision.get(orderRevision) ?? 0n;
                 const prior = (await this.repository.wallet.listAllTransactions(wallet.id))
                   .filter((transaction) => transaction.kind === "REVERSE_EARN"
                     && transaction.metadata.originalTransactionId === original.id)
                   .reduce((sum, transaction) => sum + BigInt(String(transaction.metadata.amountMinor ?? "0")), 0n);
                 const target = version.refundPolicy === "FULL_REVERSAL"
                   ? (allocation.allocatedTotal > 0n ? evaluation.monetaryAmountMinor : 0n)
-                  : (evaluation.monetaryAmountMinor * allocatedEligible) / originalEligible;
+                  : originalEligible === 0n
+                    ? 0n
+                    : (evaluation.monetaryAmountMinor * allocatedEligible) / originalEligible;
                 const amountMinor = target > prior ? target - prior : 0n;
                 if (amountMinor > 0n) {
                   await new MonetaryWalletService(this.repository).reverseCredit({
@@ -518,9 +573,19 @@ export class OrderRewardService {
           const version = definition
             ? await this.repository.program.findVersionById(definition.programVersionId)
             : null;
-          const shouldRevoke = allocatedEligible === originalEligible
+          const basis = version ? earningSpendBasis(version) : "AFTER_ALL_DISCOUNTS";
+          const originalEligible = factEligibleAmount(fact, basis);
+          const allocation = await this.refundAllocations(
+            event.payload.customerId,
+            event.payload.orderId,
+            basis,
+          );
+          const allocatedEligible = allocation.byOrderRevision.get(orderRevision) ?? 0n;
+          const shouldRevoke = originalEligible > 0n && (
+            allocatedEligible === originalEligible
             || allocation.allocatedTotal === allocation.totalEligible
-            || (version?.refundPolicy === "FULL_REVERSAL" && allocation.allocatedTotal > 0n);
+            || (version?.refundPolicy === "FULL_REVERSAL" && allocation.allocatedTotal > 0n)
+          );
           if (shouldRevoke && entitlement
             && (entitlement.status === "ISSUED" || entitlement.status === "RESERVED")) {
             await new RewardEntitlementService(this.repository).transition({
@@ -547,6 +612,7 @@ export class OrderRewardService {
     const allocation = await this.refundAllocations(
       event.payload.customerId,
       event.payload.orderId,
+      "AFTER_ALL_DISCOUNTS",
     );
     const originalEligible = allocation.totalEligible;
     if (originalEligible === 0n) return [];
@@ -579,17 +645,25 @@ export class OrderRewardService {
     return restored;
   }
 
-  private async cumulativeReversedAmount(customerId: string, orderId: string): Promise<bigint> {
+  private async cumulativeReversedAmount(
+    customerId: string,
+    orderId: string,
+    basis: LoyaltyEligibleSpendBasis,
+  ): Promise<bigint> {
     const facts = await this.repository.event.listAllFactsForCustomer(customerId);
     return facts
       .filter((fact) => fact.eventType === "orderRewardReversed" && fact.payload.orderId === orderId)
       .reduce((sum, fact) => {
-        const value = String(fact.payload.eligibleAmountMinor ?? "0");
+        const value = factPayloadAmount(fact.payload, basis);
         return /^(0|[1-9][0-9]*)$/.test(value) ? sum + BigInt(value) : sum;
       }, 0n);
   }
 
-  private async refundAllocations(customerId: string, orderId: string): Promise<{
+  private async refundAllocations(
+    customerId: string,
+    orderId: string,
+    basis: LoyaltyEligibleSpendBasis,
+  ): Promise<{
     facts: EventFact[];
     byOrderRevision: Map<string, bigint>;
     totalEligible: bigint;
@@ -597,15 +671,15 @@ export class OrderRewardService {
   }> {
     const facts = await this.repository.event.listOrderEligibilityFacts(customerId, orderId);
     const totalEligible = facts.reduce(
-      (sum, fact) => sum + parsePoints(String(fact.payload.eligibleAmountMinor ?? "0")),
+      (sum, fact) => sum + factEligibleAmount(fact, basis),
       0n,
     );
-    const cumulative = await this.cumulativeReversedAmount(customerId, orderId);
+    const cumulative = await this.cumulativeReversedAmount(customerId, orderId, basis);
     const allocatedTotal = cumulative < totalEligible ? cumulative : totalEligible;
     const byOrderRevision = new Map<string, bigint>();
     let remaining = allocatedTotal;
     for (const fact of facts) {
-      const eligible = parsePoints(String(fact.payload.eligibleAmountMinor ?? "0"));
+      const eligible = factEligibleAmount(fact, basis);
       const allocated = eligible < remaining ? eligible : remaining;
       const revision = String(fact.payload.orderRevision ?? "");
       byOrderRevision.set(revision, (byOrderRevision.get(revision) ?? 0n) + allocated);
@@ -614,4 +688,41 @@ export class OrderRewardService {
     }
     return { facts, byOrderRevision, totalEligible, allocatedTotal };
   }
+}
+
+function earningSpendBasis(version: ProgramVersion): LoyaltyEligibleSpendBasis {
+  return (version.rules as unknown as LoyaltyProgramRulesV1).earning.eligibleSpendBasis;
+}
+
+function rewardEligibleAmount(
+  payload: OrderRewardEligibleEvent["payload"],
+  basis: LoyaltyEligibleSpendBasis,
+): string {
+  return basis === "AFTER_PRODUCT_DISCOUNTS"
+    ? payload.eligibleAmountAfterProductDiscountsMinor
+    : payload.eligibleAmountAfterAllDiscountsMinor;
+}
+
+function rewardLineEligibleAmount(
+  line: OrderRewardEligibleEvent["payload"]["lines"][number],
+  basis: LoyaltyEligibleSpendBasis,
+): string {
+  return basis === "AFTER_PRODUCT_DISCOUNTS"
+    ? line.eligibleAmountAfterProductDiscountsMinor
+    : line.eligibleAmountAfterAllDiscountsMinor;
+}
+
+function factEligibleAmount(fact: EventFact, basis: LoyaltyEligibleSpendBasis): bigint {
+  return parsePoints(factPayloadAmount(fact.payload, basis));
+}
+
+function factPayloadAmount(
+  payload: Record<string, unknown>,
+  basis: LoyaltyEligibleSpendBasis,
+): string {
+  return String(
+    basis === "AFTER_PRODUCT_DISCOUNTS"
+      ? payload.eligibleAmountAfterProductDiscountsMinor ?? "0"
+      : payload.eligibleAmountAfterAllDiscountsMinor ?? "0",
+  );
 }

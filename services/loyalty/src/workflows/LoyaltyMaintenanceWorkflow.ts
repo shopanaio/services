@@ -18,6 +18,7 @@ import { RewardEntitlementService } from "../application/rewards/RewardEntitleme
 import { TierEvaluationService } from "../application/tiers/TierEvaluationService.js";
 import { MonetaryWalletService } from "../application/wallet/MonetaryWalletService.js";
 import { LoyaltyDomainError } from "../application/errors.js";
+import { CheckoutRedemptionService } from "../application/checkout/CheckoutRedemptionService.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
@@ -32,6 +33,7 @@ export interface LoyaltyMaintenanceInput {
 
 export interface LoyaltyMaintenanceResult {
   activatedProgramVersions: number;
+  expiredReservations: number;
   activatedPointLots: number;
   expiredPointLots: number;
   activatedMonetaryLots: number;
@@ -81,6 +83,11 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
       const repository = this.kernel.repository;
       const points = new PointsLedgerService(repository);
       const walletService = new MonetaryWalletService(repository);
+      const expiredReservations = await new CheckoutRedemptionService(repository).expire({
+        storeId: input.storeId,
+        effectiveAt: input.effectiveAt,
+        limit,
+      });
       const activatedVersions = await new ProgramLifecycleService(repository).activateScheduled(
         input.effectiveAt,
         limit,
@@ -164,6 +171,7 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
       return {
         result: {
           activatedProgramVersions: activatedVersions.length,
+          expiredReservations: expiredReservations.expired.length,
           activatedPointLots,
           expiredPointLots,
           activatedMonetaryLots,

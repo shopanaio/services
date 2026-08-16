@@ -8,6 +8,7 @@ import { deserializeCheckout, type CheckoutDto } from "@shopana/checkout-sdk";
 import { v7 as uuidv7 } from "uuid";
 import type { OrderCreateData } from "@src/repositories/order/OrderRepository";
 import type { Repository } from "@src/repositories/Repository";
+import type { OrderLoyaltyRewardEligibilitySnapshot } from "@shopana/broker-types";
 
 /** Checkout aggregate reconstructed from the immutable placement snapshot. */
 type Checkout = ReturnType<typeof deserializeCheckout>;
@@ -44,6 +45,7 @@ export interface CreateOrderFromCheckoutPlacementInput {
   userId: string | null;
   idempotencyKey: string;
   checkout: CheckoutDto;
+  loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
 }
 
 export class CreateOrderUseCase extends UseCase<
@@ -65,6 +67,7 @@ export class CreateOrderUseCase extends UseCase<
       throw new Error("Checkout placement snapshot does not belong to the requested store");
     }
     this.validateCheckout(checkout);
+    this.validateLoyaltyRewardEligibility(checkout, input.loyaltyRewardEligibility);
     return this.repository.txManager.run(() => this.createInTransaction(checkout, input));
   }
 
@@ -313,6 +316,7 @@ export class CreateOrderUseCase extends UseCase<
         value: toMoneyOrNumber(p.value),
         provider: p.provider,
       })),
+      loyaltyRewardEligibility: input.loyaltyRewardEligibility ?? null,
     };
     return snapshot;
   }
@@ -329,6 +333,53 @@ export class CreateOrderUseCase extends UseCase<
     if (!aggregate.lines || aggregate.lines.length === 0) {
       throw new Error("Checkout has no lines to create an order");
     }
+  }
+
+  private validateLoyaltyRewardEligibility(
+    checkout: Checkout,
+    snapshot: OrderLoyaltyRewardEligibilitySnapshot | null,
+  ): void {
+    if (!snapshot) return;
+    if (
+      checkout.customerIdentity.customer?.id !== snapshot.customerId ||
+      checkout.currencyCode !== snapshot.currencyCode ||
+      checkout.salesChannel !== snapshot.channelCode
+    ) {
+      throw new Error("Order loyalty reward snapshot does not match checkout identity");
+    }
+    const checkoutLines = new Map(
+      this.flattenCheckoutAggregateLines(checkout.lines).map((line) => [line.id, line]),
+    );
+    let totalAfterProductDiscounts = 0n;
+    let totalAfterAllDiscounts = 0n;
+    for (const line of snapshot.lines) {
+      const checkoutLine = checkoutLines.get(line.orderLineId);
+      if (!checkoutLine || checkoutLine.quantity !== line.quantity) {
+        throw new Error("Order loyalty reward line does not match checkout");
+      }
+      const afterAllDiscounts = checkoutLine.cost.totalAmount.amountMinor();
+      const afterProductDiscounts = BigInt(line.eligibleAmountAfterProductDiscountsMinor);
+      if (
+        afterAllDiscounts.toString() !== line.eligibleAmountAfterAllDiscountsMinor ||
+        afterProductDiscounts < afterAllDiscounts ||
+        afterProductDiscounts > checkoutLine.cost.subtotalAmount.amountMinor()
+      ) {
+        throw new Error("Order loyalty reward amount does not match checkout");
+      }
+      totalAfterProductDiscounts += afterProductDiscounts;
+      totalAfterAllDiscounts += afterAllDiscounts;
+    }
+    if (
+      totalAfterProductDiscounts.toString() !==
+        snapshot.eligibleAmountAfterProductDiscountsMinor ||
+      totalAfterAllDiscounts.toString() !== snapshot.eligibleAmountAfterAllDiscountsMinor
+    ) {
+      throw new Error("Order loyalty reward total does not match its lines");
+    }
+  }
+
+  private flattenCheckoutAggregateLines(lines: Checkout["lines"]): Checkout["lines"] {
+    return lines.flatMap((line) => [line, ...this.flattenCheckoutAggregateLines(line.children ?? [])]);
   }
 
   /**
