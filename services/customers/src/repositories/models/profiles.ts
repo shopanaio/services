@@ -24,6 +24,12 @@ export const customer = customersSchema.table(
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     iamPrincipalId: text("iam_principal_id"),
+    iamPrincipalStatus: varchar("iam_principal_status", { length: 16 }).$type<
+      "active" | "blocked"
+    >(),
+    iamLifecycleDisabled: boolean("iam_lifecycle_disabled")
+      .notNull()
+      .default(false),
     lifecycleStatus: customerLifecycleStatusEnum("lifecycle_status")
       .notNull()
       .default("ACTIVE"),
@@ -72,6 +78,19 @@ export const customer = customersSchema.table(
     }),
   },
   (table) => [
+    check(
+      "customer_iam_principal_status_check",
+      sql`(${table.iamPrincipalId} IS NULL AND ${table.iamPrincipalStatus} IS NULL)
+        OR (${table.iamPrincipalId} IS NOT NULL
+          AND ${table.iamPrincipalStatus} IN ('active', 'blocked'))`
+    ),
+    check(
+      "customer_iam_lifecycle_disabled_check",
+      sql`NOT ${table.iamLifecycleDisabled}
+        OR (${table.iamPrincipalId} IS NOT NULL
+          AND ${table.iamPrincipalStatus} = 'blocked'
+          AND ${table.lifecycleStatus} = 'DISABLED')`
+    ),
     check(
       "customer_email_projection_check",
       sql`(${table.email} IS NULL) = (${table.normalizedEmail} IS NULL)`

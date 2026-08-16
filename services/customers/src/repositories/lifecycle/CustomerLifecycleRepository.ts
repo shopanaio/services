@@ -209,9 +209,10 @@ export class CustomerLifecycleRepository extends BaseRepository {
       resolution?: Record<string, unknown>;
       errorCode?: string | null;
       errorMessage?: string | null;
+      transitionedAt?: string;
     }
   ): Promise<CustomerMerge | null> {
-    const now = new Date().toISOString();
+    const now = input.transitionedAt ?? new Date().toISOString();
     const rows = await this.connection
       .update(customerMerge)
       .set({
@@ -295,9 +296,11 @@ export class CustomerLifecycleRepository extends BaseRepository {
       status: CustomerDataRequest["status"];
       resultFileId?: string | null;
       rejectionReason?: string | null;
+      requestMetadata?: Record<string, unknown>;
+      transitionedAt?: string;
     }
   ): Promise<CustomerDataRequest | null> {
-    const now = new Date().toISOString();
+    const now = input.transitionedAt ?? new Date().toISOString();
     const isTerminal = ["COMPLETED", "REJECTED", "CANCELLED"].includes(input.status);
     const rows = await this.connection
       .update(customerDataRequest)
@@ -306,6 +309,9 @@ export class CustomerLifecycleRepository extends BaseRepository {
         ...(input.resultFileId !== undefined ? { resultFileId: input.resultFileId } : {}),
         ...(input.rejectionReason !== undefined
           ? { rejectionReason: input.rejectionReason }
+          : {}),
+        ...(input.requestMetadata !== undefined
+          ? { requestMetadata: input.requestMetadata }
           : {}),
         ...(input.status === "PROCESSING" ? { startedAt: now, finishedAt: null } : {}),
         ...(isTerminal ? { finishedAt: now } : {}),

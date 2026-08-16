@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   CustomersComparisonActionNames,
+  CustomersAdministrationActionNames,
   CustomersCheckoutActionNames,
   type Customers,
 } from "@shopana/broker-types";
@@ -149,6 +150,129 @@ export class CustomersBrokerActions extends BrokerActions {
         retryable: true,
       };
     }
+  }
+
+  @Action(CustomersAdministrationActionNames.rebuildStatistics)
+  async rebuildCustomerStatistics(
+    params: Customers.RebuildCustomerStatisticsParams,
+    callContext: BrokerCallContext,
+  ): Promise<Customers.RebuildCustomerStatisticsResult> {
+    const forbidden = this.assertAdministrativeCaller(callContext);
+    if (forbidden) return forbidden;
+    try {
+      const store = await this.getStore(params.storeId);
+      const kernel = Kernel.getInstance();
+      const context = new ServiceContext({
+        requestId:
+          callContext.app?.correlationId ??
+          `customers-statistics-rebuild-${Date.now()}`,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+        store,
+      });
+      return await runWithContext(context, async () => {
+        const customerIds = params.customerId
+          ? [params.customerId]
+          : await kernel.repository.statistics.projectedCustomerIds();
+        if (
+          params.customerId &&
+          !(await kernel.repository.customer.exists(params.customerId))
+        ) {
+          return {
+            ok: false as const,
+            code: "CUSTOMER_NOT_FOUND" as const,
+            message: "Customer was not found",
+            retryable: false,
+          };
+        }
+        if (customerIds.length > 0) {
+          await kernel.repository.segment.invalidateRuleMemberships(customerIds);
+        }
+        let rebuiltCustomers = 0;
+        for (const customerId of customerIds) {
+          if (await kernel.repository.statistics.rebuildForCustomer(customerId)) {
+            rebuiltCustomers += 1;
+          }
+        }
+        return { ok: true as const, rebuiltCustomers };
+      });
+    } catch (error) {
+      this.logger.error({ error }, "Customer statistics rebuild failed");
+      return {
+        ok: false,
+        code: "CUSTOMERS_REBUILD_FAILED",
+        message: "Customer statistics could not be rebuilt",
+        retryable: true,
+      };
+    }
+  }
+
+  @Action(CustomersAdministrationActionNames.rebuildDynamicSegments)
+  async rebuildCustomerDynamicSegments(
+    params: Customers.RebuildCustomerDynamicSegmentsParams,
+    callContext: BrokerCallContext,
+  ): Promise<Customers.RebuildCustomerDynamicSegmentsResult> {
+    const forbidden = this.assertAdministrativeCaller(callContext);
+    if (forbidden) return forbidden;
+    try {
+      const store = await this.getStore(params.storeId);
+      const kernel = Kernel.getInstance();
+      const context = new ServiceContext({
+        requestId:
+          callContext.app?.correlationId ??
+          `customers-dynamic-segment-rebuild-${Date.now()}`,
+        kernel,
+        loaders: new Loader(kernel.repository),
+        locale: store.defaultLocale,
+        currency: store.currencyCode,
+        store,
+      });
+      return await runWithContext(context, async () => {
+        if (
+          params.customerId &&
+          !(await kernel.repository.customer.exists(params.customerId))
+        ) {
+          return {
+            ok: false as const,
+            code: "CUSTOMER_NOT_FOUND" as const,
+            message: "Customer was not found",
+            retryable: false,
+          };
+        }
+        const invalidatedMemberships =
+          await kernel.repository.segment.invalidateRuleMemberships(
+            params.customerId ? [params.customerId] : undefined,
+          );
+        return { ok: true as const, invalidatedMemberships };
+      });
+    } catch (error) {
+      this.logger.error({ error }, "Customer dynamic segment rebuild failed");
+      return {
+        ok: false,
+        code: "CUSTOMERS_REBUILD_FAILED",
+        message: "Customer dynamic segments could not be rebuilt",
+        retryable: true,
+      };
+    }
+  }
+
+  private assertAdministrativeCaller(
+    callContext: BrokerCallContext,
+  ): Customers.CustomersAdministrationActionFailure | null {
+    if (
+      callContext.caller.kind === "action" &&
+      ["bootstrap", "customers"].includes(callContext.caller.service)
+    ) {
+      return null;
+    }
+    return {
+      ok: false,
+      code: "CUSTOMERS_ADMIN_CALLER_FORBIDDEN",
+      message: "Only the trusted platform administration boundary may rebuild projections",
+      retryable: false,
+    };
   }
 
   private async getStore(storeId: string): Promise<ContextStore> {

@@ -28,3 +28,9 @@ export {
   type CustomerMergeUpdateParams,
   type CustomerMergeUpdateResult,
 } from "./CustomerMergeUpdateScript.js";
+export {
+  CustomerLifecycleJobEventError,
+  CustomerLifecycleJobEventScript,
+  type CustomerLifecycleJobEventParams,
+  type CustomerLifecycleJobEventResult,
+} from "./CustomerLifecycleJobEventScript.js";

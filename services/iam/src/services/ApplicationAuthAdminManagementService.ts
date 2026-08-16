@@ -26,6 +26,7 @@ import type {
 import type { ResourceManagementMode } from "../repositories/models/index.js";
 import type { ApplicationAuthProviderValidationPort } from "./ApplicationAuthProviderValidationPort.js";
 import { OAuthClientSecretCodec } from "./OAuthClientSecretCodec.js";
+import type { ApplicationUserLifecyclePort } from "./ApplicationUserLifecyclePort.js";
 
 const APPLICATIONS_RESOURCE = "org.applications";
 const AUTH_RESOURCE = "org.application-auth";
@@ -349,6 +350,7 @@ interface ExistingWriteInput<TResult> {
 /** Trusted domain boundary used by all non-OAuth-client Admin mutations. */
 export class ApplicationAuthAdminManagementService {
   private readonly now: () => Date;
+  private readonly applicationUserLifecycle?: ApplicationUserLifecyclePort;
 
   constructor(
     private readonly repository: ApplicationAuthAdminMutationRepository,
@@ -358,9 +360,13 @@ export class ApplicationAuthAdminManagementService {
     private readonly audit: ApplicationAuthAdminAuditPort,
     private readonly providerValidation: ApplicationAuthProviderValidationPort,
     private readonly invalidation: ApplicationAuthAdminInvalidator,
-    options: { now?: () => Date } = {}
+    options: {
+      now?: () => Date;
+      applicationUserLifecycle?: ApplicationUserLifecyclePort;
+    } = {}
   ) {
     this.now = options.now ?? (() => new Date());
+    this.applicationUserLifecycle = options.applicationUserLifecycle;
   }
 
   /** Audit a GraphQL-boundary rejection that cannot safely enter a domain method. */
@@ -1097,6 +1103,7 @@ export class ApplicationAuthAdminManagementService {
       actor,
       { action: auditAction, targetType: "application_user" }
     );
+    let previousStatus: "active" | "blocked" | undefined;
     const result = await this.executeExisting({
       actor: trustedActor,
       organizationId: value.organizationId,
@@ -1109,7 +1116,9 @@ export class ApplicationAuthAdminManagementService {
       failureSafeDiff: { status, changedFields: ["status"] },
       execute: async (scope) => {
         const repository = this.users.forApplication(scope.applicationId);
-        if (!(await repository.find(value.userId))) throw userNotFound();
+        const current = await repository.find(value.userId);
+        if (!current) throw userNotFound();
+        previousStatus = current.status;
         const user = await repository.setAdminStatus(value.userId, status);
         if (!user) throw userNotFound();
         return {
@@ -1119,6 +1128,16 @@ export class ApplicationAuthAdminManagementService {
         };
       },
     });
+    if (previousStatus && previousStatus !== status) {
+      await this.applicationUserLifecycle?.statusChanged({
+        applicationId: value.applicationId,
+        organizationId: value.organizationId,
+        applicationUserId: value.userId,
+        previousStatus,
+        status,
+        changedAt: this.now().toISOString(),
+      });
+    }
     await this.invalidation.invalidateUser(value.applicationId, value.userId);
     return result;
   }

@@ -77,6 +77,14 @@ SHA-256 revision исходных membership rows.
 - `invited` — покупателю предложено создать или активировать учетную запись;
 - `registered` — профиль связан с зарегистрированным principal.
 
+IAM является источником истины для `email`, `email_verified`, `first_name`,
+`last_name` и состояния application user. IAM block переводит только `ACTIVE`
+Customer в `DISABLED` и помечает, что переход выполнен IAM; он не создает
+merchant-risk состояние `BLOCKED`. IAM unblock возвращает `ACTIVE` только при
+наличии этой метки. Удаление application user отвязывает `iam_principal_id`,
+сбрасывает IAM-owned verification и переводит `REGISTERED` в `GUEST`, не
+отменяя независимо установленный merchant lifecycle.
+
 ### Адреса
 
 | Сущность | Назначение |
@@ -150,10 +158,16 @@ SHA-256 revision исходных membership rows.
 | --- | --- |
 | `customer_statistics` | Восстанавливаемая модель чтения со счетчиками заказов и возвратов, первым и последним заказом, а также последним Checkout. Источником истины остаются Orders и Checkout. |
 | `customer_monetary_statistics` | Восстанавливаемая модель чтения с количеством заказов, потраченной, возвращенной и итоговой суммой, а также средним чеком отдельно по каждой валюте. Денежные значения хранятся в minor units. |
+| `customer_order_projection`, `customer_checkout_projection`, `customer_refund_projection` | Идемпотентные revision-aware факты, из которых Customers пересобирает статистику после событий Orders, Checkout и Refund/Payments. |
 
 Статистика предназначена для списка покупателей, сортировки, RFM-сегментации и
 маркетинговых правил. Ее можно пересобрать из событий других ограниченных
 контекстов.
+
+Изменение профиля или статистики fail-closed удаляет устаревшие RULE
+memberships. Полноценная пересборка динамических сегментов появится вместе с
+каноническим DSL/materializer; текущий administrative action явно возвращает
+число invalidated memberships и не имитирует вычисление правил.
 
 ### Жизненный цикл и конфиденциальность
 

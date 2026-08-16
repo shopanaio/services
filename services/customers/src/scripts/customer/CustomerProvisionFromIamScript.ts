@@ -3,6 +3,7 @@ import type { Customer } from "../../repositories/models/index.js";
 
 export interface CustomerProvisionFromIamParams {
   readonly iamPrincipalId: string;
+  readonly iamStatus: "active" | "blocked";
   readonly email: string;
   readonly emailVerified: boolean;
   readonly firstName: string | null;
@@ -51,6 +52,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
 
     const created = await this.repository.customer.createIfAbsent({
       iamPrincipalId: params.iamPrincipalId,
+      iamPrincipalStatus: params.iamStatus,
+      iamLifecycleDisabled: params.iamStatus === "blocked",
+      lifecycleStatus: params.iamStatus === "blocked" ? "DISABLED" : "ACTIVE",
       accountStatus: "REGISTERED",
       email: params.email,
       emailVerified: params.emailVerified,
@@ -122,8 +126,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       customer.id,
       {
         ...params,
-        firstName: customer.firstName ?? params.firstName,
-        lastName: customer.lastName ?? params.lastName,
+        iamLifecycleDisabled:
+          params.iamStatus === "blocked" &&
+          customer.lifecycleStatus === "ACTIVE",
       },
     );
     if (claimed) {
@@ -158,7 +163,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
         false,
       );
     }
-    if (customer.lifecycleStatus !== "ACTIVE") {
+    if (["MERGED", "REDACTED"].includes(customer.lifecycleStatus)) {
       return {
         customerId: customer.id,
         created: false,
@@ -188,6 +193,23 @@ export class CustomerProvisionFromIamScript extends BaseScript<
     }
 
     const patch = {
+      ...(customer.iamPrincipalStatus !== params.iamStatus
+        ? { iamPrincipalStatus: params.iamStatus }
+        : {}),
+      ...(params.iamStatus === "blocked" && customer.lifecycleStatus === "ACTIVE"
+        ? {
+            lifecycleStatus: "DISABLED" as const,
+            iamLifecycleDisabled: true,
+          }
+        : {}),
+      ...(params.iamStatus === "active" &&
+      customer.iamLifecycleDisabled &&
+      customer.lifecycleStatus === "DISABLED"
+        ? {
+            lifecycleStatus: "ACTIVE" as const,
+            iamLifecycleDisabled: false,
+          }
+        : {}),
       ...(customer.accountStatus !== "REGISTERED"
         ? { accountStatus: "REGISTERED" as const }
         : {}),
@@ -197,10 +219,10 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       ...(customer.emailVerified !== params.emailVerified
         ? { emailVerified: params.emailVerified }
         : {}),
-      ...(customer.firstName === null && params.firstName
+      ...(customer.firstName !== params.firstName
         ? { firstName: params.firstName }
         : {}),
-      ...(customer.lastName === null && params.lastName
+      ...(customer.lastName !== params.lastName
         ? { lastName: params.lastName }
         : {}),
     };

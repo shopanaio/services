@@ -5,6 +5,13 @@ import { workflows } from "./workflows/index.js";
 import { StoreEventHandlers } from "./handlers/StoreEventHandlers.js";
 import { ApplicationUserEventHandlers } from "./handlers/ApplicationUserEventHandlers.js";
 import {
+  CheckoutEventHandlers,
+  OrderEventHandlers,
+  RefundEventHandlers,
+} from "./handlers/CustomerStatisticsEventHandlers.js";
+import { CustomerDynamicSegmentEventHandlers } from "./handlers/CustomerDynamicSegmentEventHandlers.js";
+import { CustomerLifecycleJobEventHandlers } from "./handlers/CustomerLifecycleJobEventHandlers.js";
+import {
   CustomerExternalReferenceBrokerActions,
   CustomersBrokerActions,
 } from "./actions/index.js";
@@ -15,6 +22,11 @@ import {
     CustomersNestService,
     StoreEventHandlers,
     ApplicationUserEventHandlers,
+    OrderEventHandlers,
+    CheckoutEventHandlers,
+    RefundEventHandlers,
+    CustomerDynamicSegmentEventHandlers,
+    CustomerLifecycleJobEventHandlers,
     CustomersBrokerActions,
     CustomerExternalReferenceBrokerActions,
     ...workflows,

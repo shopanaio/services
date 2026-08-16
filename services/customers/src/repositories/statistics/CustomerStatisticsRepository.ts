@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   normalizeRelayPagination,
@@ -17,6 +17,10 @@ import {
 } from "../global-id-where-mappers.js";
 import {
   customerMonetaryStatistics,
+  customer,
+  customerOrderProjection,
+  customerCheckoutProjection,
+  customerRefundProjection,
   customerStatistics,
   type CustomerMonetaryStatistics,
   type CustomerStatistics,
@@ -56,6 +60,219 @@ export type CustomerMonetaryStatisticsUpsertData = Omit<
 >;
 
 export class CustomerStatisticsRepository extends BaseRepository {
+  async projectOrder(input: {
+    orderId: string;
+    customerId: string;
+    revision: number;
+    status: "OPEN" | "COMPLETED" | "CANCELLED";
+    currencyCode: string;
+    totalAmountMinor: bigint;
+    createdAt: string;
+    completedAt?: string | null;
+    cancelledAt?: string | null;
+    updatedAt: string;
+  }): Promise<boolean> {
+    const rows = await this.connection
+      .insert(customerOrderProjection)
+      .values({
+        ...input,
+        storeId: this.storeId,
+        currencyCode: input.currencyCode.toUpperCase(),
+        completedAt: input.completedAt ?? null,
+        cancelledAt: input.cancelledAt ?? null,
+      })
+      .onConflictDoUpdate({
+        target: customerOrderProjection.orderId,
+        set: {
+          revision: input.revision,
+          status: input.status,
+          currencyCode: input.currencyCode.toUpperCase(),
+          totalAmountMinor: input.totalAmountMinor,
+          createdAt: input.createdAt,
+          completedAt: input.completedAt ?? null,
+          cancelledAt: input.cancelledAt ?? null,
+          updatedAt: input.updatedAt,
+        },
+        setWhere: sql`${customerOrderProjection.storeId} = ${this.storeId}
+          AND ${customerOrderProjection.customerId} = ${input.customerId}
+          AND ${customerOrderProjection.revision} < ${input.revision}`,
+      })
+      .returning({ orderId: customerOrderProjection.orderId });
+    return rows.length > 0;
+  }
+
+  async projectCheckout(input: {
+    checkoutId: string;
+    customerId: string;
+    version: number;
+    occurredAt: string;
+  }): Promise<boolean> {
+    const rows = await this.connection
+      .insert(customerCheckoutProjection)
+      .values({ ...input, storeId: this.storeId, updatedAt: input.occurredAt })
+      .onConflictDoUpdate({
+        target: customerCheckoutProjection.checkoutId,
+        set: {
+          version: input.version,
+          occurredAt: input.occurredAt,
+          updatedAt: input.occurredAt,
+        },
+        setWhere: sql`${customerCheckoutProjection.storeId} = ${this.storeId}
+          AND ${customerCheckoutProjection.customerId} = ${input.customerId}
+          AND ${customerCheckoutProjection.version} < ${input.version}`,
+      })
+      .returning({ checkoutId: customerCheckoutProjection.checkoutId });
+    return rows.length > 0;
+  }
+
+  async projectRefund(input: {
+    refundId: string;
+    customerId: string;
+    orderId: string;
+    revision: number;
+    currencyCode: string;
+    amountMinor: bigint;
+    refundedAt: string;
+  }): Promise<boolean> {
+    const rows = await this.connection
+      .insert(customerRefundProjection)
+      .values({
+        ...input,
+        storeId: this.storeId,
+        currencyCode: input.currencyCode.toUpperCase(),
+        updatedAt: input.refundedAt,
+      })
+      .onConflictDoUpdate({
+        target: customerRefundProjection.refundId,
+        set: {
+          revision: input.revision,
+          amountMinor: input.amountMinor,
+          currencyCode: input.currencyCode.toUpperCase(),
+          refundedAt: input.refundedAt,
+          updatedAt: input.refundedAt,
+        },
+        setWhere: sql`${customerRefundProjection.storeId} = ${this.storeId}
+          AND ${customerRefundProjection.customerId} = ${input.customerId}
+          AND ${customerRefundProjection.orderId} = ${input.orderId}
+          AND ${customerRefundProjection.revision} < ${input.revision}`,
+      })
+      .returning({ refundId: customerRefundProjection.refundId });
+    return rows.length > 0;
+  }
+
+  @Transactional()
+  async rebuildForCustomer(customerId: string): Promise<boolean> {
+    if (!(await this.repositoryCustomerExists(customerId))) return false;
+    const [orders, checkouts, refunds] = await Promise.all([
+      this.connection
+        .select()
+        .from(customerOrderProjection)
+        .where(
+          and(
+            eq(customerOrderProjection.storeId, this.storeId),
+            eq(customerOrderProjection.customerId, customerId),
+          ),
+        )
+        .orderBy(asc(customerOrderProjection.createdAt), asc(customerOrderProjection.orderId)),
+      this.connection
+        .select()
+        .from(customerCheckoutProjection)
+        .where(
+          and(
+            eq(customerCheckoutProjection.storeId, this.storeId),
+            eq(customerCheckoutProjection.customerId, customerId),
+          ),
+        ),
+      this.connection
+        .select()
+        .from(customerRefundProjection)
+        .where(
+          and(
+            eq(customerRefundProjection.storeId, this.storeId),
+            eq(customerRefundProjection.customerId, customerId),
+          ),
+        ),
+    ]);
+    const first = orders[0] ?? null;
+    const last = orders[orders.length - 1] ?? null;
+    const lastCheckoutAt = checkouts.reduce<string | null>(
+      (latest, row) => (!latest || row.occurredAt > latest ? row.occurredAt : latest),
+      null,
+    );
+    await this.upsertStatistics({
+      customerId,
+      ordersCount: orders.length,
+      completedOrdersCount: orders.filter((row) => row.status === "COMPLETED").length,
+      cancelledOrdersCount: orders.filter((row) => row.status === "CANCELLED").length,
+      returnsCount: new Set(refunds.map((row) => row.orderId)).size,
+      firstOrderId: first?.orderId ?? null,
+      firstOrderAt: first?.createdAt ?? null,
+      lastOrderId: last?.orderId ?? null,
+      lastOrderAt: last?.createdAt ?? null,
+      lastCheckoutAt,
+    });
+
+    const monetary = new Map<
+      string,
+      { ordersCount: number; spent: bigint; refunded: bigint }
+    >();
+    for (const order of orders) {
+      if (order.status !== "COMPLETED") continue;
+      const entry = monetary.get(order.currencyCode) ?? {
+        ordersCount: 0,
+        spent: 0n,
+        refunded: 0n,
+      };
+      entry.ordersCount += 1;
+      entry.spent += order.totalAmountMinor;
+      monetary.set(order.currencyCode, entry);
+    }
+    for (const refund of refunds) {
+      const entry = monetary.get(refund.currencyCode) ?? {
+        ordersCount: 0,
+        spent: 0n,
+        refunded: 0n,
+      };
+      entry.refunded += refund.amountMinor;
+      monetary.set(refund.currencyCode, entry);
+    }
+    await this.replaceMonetaryForCustomer(
+      customerId,
+      [...monetary.entries()].map(([currencyCode, value]) => ({
+        currencyCode,
+        ordersCount: value.ordersCount,
+        totalSpentMinor: value.spent,
+        totalRefundedMinor: value.refunded,
+        netSpentMinor: value.spent - value.refunded,
+        averageOrderValueMinor:
+          value.ordersCount > 0 ? value.spent / BigInt(value.ordersCount) : 0n,
+      })),
+    );
+    return true;
+  }
+
+  @ReadOnly()
+  async projectedCustomerIds(): Promise<string[]> {
+    const rows = await this.connection
+      .select({ customerId: customer.id })
+      .from(customer)
+      .where(and(eq(customer.storeId, this.storeId), isNull(customer.deletedAt)));
+    return rows.map((row) => row.customerId);
+  }
+
+  private async repositoryCustomerExists(customerId: string): Promise<boolean> {
+    const rows = await this.connection
+      .select({ id: customer.id })
+      .from(customer)
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, customerId),
+        ),
+      )
+      .limit(1);
+    return rows.length > 0;
+  }
   @ReadOnly()
   async findByCustomerId(customerId: string): Promise<CustomerStatistics | null> {
     const rows = await this.connection

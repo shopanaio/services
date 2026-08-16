@@ -115,6 +115,7 @@ export class StorefrontCustomerContextResolver {
     const workflowInput: CustomerProvisionFromIamWorkflowInput = {
       params: {
         iamPrincipalId: identity.user.id,
+        iamStatus: identity.user.status,
         email: identity.user.email,
         emailVerified: identity.user.emailVerified,
         firstName: identity.user.firstName,

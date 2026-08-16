@@ -10,6 +10,9 @@ import {
 } from "./sagas/index.js";
 import {
   ApplicationUserCreatedEventWorkflow,
+  ApplicationUserDeletedEventWorkflow,
+  ApplicationUserStatusChangedEventWorkflow,
+  ApplicationUserUpdatedEventWorkflow,
   AssignRoleWorkflow,
   CreateRolesWorkflow,
   MemberAccessRemoveWorkflow,
@@ -30,6 +33,9 @@ import {
     OrganizationDeleteSaga,
     UserUpdateProfileSaga,
     ApplicationUserCreatedEventWorkflow,
+    ApplicationUserUpdatedEventWorkflow,
+    ApplicationUserStatusChangedEventWorkflow,
+    ApplicationUserDeletedEventWorkflow,
     AssignRoleWorkflow,
     CreateRolesWorkflow,
     MemberAccessRemoveWorkflow,

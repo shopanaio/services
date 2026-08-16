@@ -29,6 +29,8 @@ import {
 } from "./CustomerEntityUpdateWorkflows.js";
 import { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 import { CustomerProvisionFromIamWorkflow } from "./CustomerProvisionFromIamWorkflow.js";
+import { CustomerIamLifecycleWorkflow } from "./CustomerIamLifecycleWorkflow.js";
+import { CustomerStatisticsProjectionWorkflow } from "./CustomerStatisticsProjectionWorkflow.js";
 import { StorefrontAuthProvisionWorkflow } from "./StorefrontAuthProvisionWorkflow.js";
 import { StorefrontAuthDeprovisionWorkflow } from "./StorefrontAuthDeprovisionWorkflow.js";
 import {
@@ -71,6 +73,8 @@ export const workflows = [
   CustomerDataRequestDeleteWorkflow,
   CustomerUpdateWorkflow,
   CustomerProvisionFromIamWorkflow,
+  CustomerIamLifecycleWorkflow,
+  CustomerStatisticsProjectionWorkflow,
   CustomerDeleteWorkflow,
   CustomerExternalReferenceSyncWorkflow,
   StorefrontAuthProvisionWorkflow,
@@ -104,6 +108,8 @@ export * from "./CustomerEntityDeleteWorkflows.js";
 export * from "./CustomerEntityUpdateWorkflows.js";
 export { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 export * from "./CustomerProvisionFromIamWorkflow.js";
+export * from "./CustomerIamLifecycleWorkflow.js";
+export * from "./CustomerStatisticsProjectionWorkflow.js";
 export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
 export * from "./WishlistWorkflows.js";

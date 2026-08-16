@@ -42,6 +42,76 @@ CREATE INDEX "customer_statistics_store_last_order_idx"
 CREATE INDEX "customer_statistics_store_orders_count_idx"
   ON "customers"."customer_statistics" ("store_id", "orders_count" DESC, "customer_id");
 
+CREATE TABLE "customers"."customer_order_projection" (
+  "order_id" uuid PRIMARY KEY,
+  "store_id" uuid NOT NULL,
+  "customer_id" uuid NOT NULL,
+  "revision" integer NOT NULL,
+  "status" varchar(16) NOT NULL,
+  "currency_code" varchar(3) NOT NULL,
+  "total_amount_minor" bigint NOT NULL,
+  "created_at" timestamptz NOT NULL,
+  "completed_at" timestamptz,
+  "cancelled_at" timestamptz,
+  "updated_at" timestamptz NOT NULL,
+
+  CONSTRAINT "customer_order_projection_customer_fk"
+    FOREIGN KEY ("customer_id") REFERENCES "customers"."customer" ("id") ON DELETE CASCADE,
+  CONSTRAINT "customer_order_projection_revision_check" CHECK ("revision" >= 0),
+  CONSTRAINT "customer_order_projection_status_check"
+    CHECK ("status" IN ('OPEN', 'COMPLETED', 'CANCELLED')),
+  CONSTRAINT "customer_order_projection_currency_check"
+    CHECK ("currency_code" ~ '^[A-Z]{3}$'),
+  CONSTRAINT "customer_order_projection_amount_check" CHECK ("total_amount_minor" >= 0)
+);
+
+CREATE INDEX "customer_order_projection_customer_idx"
+  ON "customers"."customer_order_projection"
+  ("store_id", "customer_id", "created_at", "order_id");
+
+CREATE TABLE "customers"."customer_checkout_projection" (
+  "checkout_id" uuid PRIMARY KEY,
+  "store_id" uuid NOT NULL,
+  "customer_id" uuid NOT NULL,
+  "version" integer NOT NULL,
+  "occurred_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+
+  CONSTRAINT "customer_checkout_projection_customer_fk"
+    FOREIGN KEY ("customer_id") REFERENCES "customers"."customer" ("id") ON DELETE CASCADE,
+  CONSTRAINT "customer_checkout_projection_version_check" CHECK ("version" >= 0)
+);
+
+CREATE INDEX "customer_checkout_projection_customer_idx"
+  ON "customers"."customer_checkout_projection"
+  ("store_id", "customer_id", "occurred_at", "checkout_id");
+
+CREATE TABLE "customers"."customer_refund_projection" (
+  "refund_id" text PRIMARY KEY,
+  "store_id" uuid NOT NULL,
+  "customer_id" uuid NOT NULL,
+  "order_id" uuid NOT NULL,
+  "revision" integer NOT NULL,
+  "currency_code" varchar(3) NOT NULL,
+  "amount_minor" bigint NOT NULL,
+  "refunded_at" timestamptz NOT NULL,
+  "updated_at" timestamptz NOT NULL,
+
+  CONSTRAINT "customer_refund_projection_customer_fk"
+    FOREIGN KEY ("customer_id") REFERENCES "customers"."customer" ("id") ON DELETE CASCADE,
+  CONSTRAINT "customer_refund_projection_revision_check" CHECK ("revision" >= 0),
+  CONSTRAINT "customer_refund_projection_currency_check"
+    CHECK ("currency_code" ~ '^[A-Z]{3}$'),
+  CONSTRAINT "customer_refund_projection_amount_check" CHECK ("amount_minor" >= 0)
+);
+
+CREATE INDEX "customer_refund_projection_customer_idx"
+  ON "customers"."customer_refund_projection"
+  ("store_id", "customer_id", "currency_code", "refund_id");
+
+CREATE INDEX "customer_refund_projection_order_idx"
+  ON "customers"."customer_refund_projection" ("order_id");
+
 CREATE TABLE "customers"."customer_monetary_statistics" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,

@@ -253,6 +253,40 @@ export function createApplicationAuth(
     ...(security.applicationUserLifecycle
       ? {
           databaseHooks: {
+            user: {
+              update: {
+                after: async (user: { id: string }) => {
+                  await security.applicationUserLifecycle!.projectionChanged({
+                    applicationId,
+                    organizationId: config.organizationId,
+                    applicationUserId: requireLifecycleUserId(
+                      user.id,
+                      "user",
+                    ),
+                    changedFields: [
+                      "email",
+                      "emailVerified",
+                      "firstName",
+                      "lastName",
+                    ],
+                    updatedAt: new Date().toISOString(),
+                  });
+                },
+              },
+              delete: {
+                after: async (user: { id: string }) => {
+                  await security.applicationUserLifecycle!.deleted({
+                    applicationId,
+                    organizationId: config.organizationId,
+                    applicationUserId: requireLifecycleUserId(
+                      user.id,
+                      "user",
+                    ),
+                    deletedAt: new Date().toISOString(),
+                  });
+                },
+              },
+            },
             account: {
               create: {
                 after: async (account: { userId: string }) => {
@@ -325,7 +359,7 @@ export function createApplicationAuth(
 
 function requireLifecycleUserId(
   value: unknown,
-  model: "account" | "session",
+  model: "user" | "account" | "session",
 ): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Application auth ${model} lifecycle user is invalid`);

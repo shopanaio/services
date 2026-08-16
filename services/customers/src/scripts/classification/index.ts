@@ -29,6 +29,10 @@ export {
   type CustomerSegmentUpdateResult,
 } from "./CustomerSegmentUpdateScript.js";
 export {
+  CustomerDynamicSegmentInvalidateScript,
+  type CustomerDynamicSegmentInvalidateParams,
+} from "./CustomerDynamicSegmentInvalidateScript.js";
+export {
   CustomerTagCreateScript,
   type CustomerTagCreateParams,
   type CustomerTagCreateResult,

@@ -2,6 +2,8 @@ CREATE TABLE "customers"."customer" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "iam_principal_id" text,
+  "iam_principal_status" varchar(16),
+  "iam_lifecycle_disabled" boolean NOT NULL DEFAULT false,
   "lifecycle_status" "customers"."customer_lifecycle_status" NOT NULL DEFAULT 'ACTIVE',
   "account_status" "customers"."customer_account_status" NOT NULL DEFAULT 'GUEST',
   "email" varchar(320),
@@ -38,6 +40,20 @@ CREATE TABLE "customers"."customer" (
     ON DELETE RESTRICT,
   CONSTRAINT "customer_email_projection_check"
     CHECK (("email" IS NULL) = ("normalized_email" IS NULL)),
+  CONSTRAINT "customer_iam_principal_status_check"
+    CHECK (
+      ("iam_principal_id" IS NULL AND "iam_principal_status" IS NULL)
+      OR
+      ("iam_principal_id" IS NOT NULL AND "iam_principal_status" IN ('active', 'blocked'))
+    ),
+  CONSTRAINT "customer_iam_lifecycle_disabled_check"
+    CHECK (
+      NOT "iam_lifecycle_disabled"
+      OR
+      ("iam_principal_id" IS NOT NULL
+        AND "iam_principal_status" = 'blocked'
+        AND "lifecycle_status" = 'DISABLED')
+    ),
   CONSTRAINT "customer_email_verified_check"
     CHECK (NOT "email_verified" OR "email" IS NOT NULL),
   CONSTRAINT "customer_phone_verified_check"

@@ -6,6 +6,11 @@ export {
   type CustomerProvisionFromIamParams,
   type CustomerProvisionFromIamResult,
 } from "./CustomerProvisionFromIamScript.js";
+export {
+  CustomerIamLifecycleScript,
+  type CustomerIamLifecycleParams,
+  type CustomerIamLifecycleResult,
+} from "./CustomerIamLifecycleScript.js";
 export type {
   CustomerCreateParams,
   CustomerCreateResult,

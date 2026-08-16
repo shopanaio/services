@@ -51,6 +51,7 @@ import {
   type ApplicationAuthLiveStateInvalidationPort,
 } from "../events/application-auth/index.js";
 import { NotificationsApplicationAuthEmailDelivery } from "../infrastructure/notifications/NotificationsApplicationAuthEmailDelivery.js";
+import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -193,6 +194,52 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const applicationAuthEmailDelivery =
       options.applicationAuthEmailDelivery ??
       new NotificationsApplicationAuthEmailDelivery(broker, repository);
+    const startApplicationUserEvent = async <
+      TInput extends {
+        applicationId: string;
+        organizationId: string;
+        applicationUserId: string;
+      },
+    >(
+      workflowName: string,
+      input: TInput,
+    ): Promise<void> => {
+      try {
+        await broker.startWorkflow(`iam.${workflowName}`, input, {
+          source: "content",
+          resourceId: `${input.applicationId}:${input.applicationUserId}`,
+          operation: workflowName,
+          contentHash: hashContent(input),
+        });
+      } catch (error) {
+        consoleLogger.error(
+          {
+            workflowName,
+            applicationId: input.applicationId,
+            applicationUserId: input.applicationUserId,
+            error,
+          },
+          "Application user lifecycle workflow could not be started",
+        );
+      }
+    };
+    const applicationUserLifecycle: ApplicationUserLifecyclePort = {
+      provisioningRequired(input) {
+        return startApplicationUserEvent("applicationUserCreatedEvent", input);
+      },
+      projectionChanged(input) {
+        return startApplicationUserEvent("applicationUserUpdatedEvent", input);
+      },
+      statusChanged(input) {
+        return startApplicationUserEvent(
+          "applicationUserStatusChangedEvent",
+          input,
+        );
+      },
+      deleted(input) {
+        return startApplicationUserEvent("applicationUserDeletedEvent", input);
+      },
+    };
     const applicationAuth = new ApplicationAuthFactory(
       applicationAuthKeyring,
       applicationAuthSecrets,
@@ -200,31 +247,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       {
         emailDelivery: applicationAuthEmailDelivery,
         liveStateInvalidation: applicationAuthLiveStateInvalidation,
-        applicationUserLifecycle: {
-          async provisioningRequired(input) {
-            try {
-              await broker.startWorkflow(
-                "iam.applicationUserCreatedEvent",
-                input,
-                {
-                  source: "content",
-                  resourceId: `${input.applicationId}:${input.applicationUserId}`,
-                  operation: "applicationUserCreatedEvent",
-                  contentHash: hashContent(input),
-                },
-              );
-            } catch (error) {
-              consoleLogger.error(
-                {
-                  applicationId: input.applicationId,
-                  applicationUserId: input.applicationUserId,
-                  error,
-                },
-                "Application user provisioning workflow could not be started",
-              );
-            }
-          },
-        },
+        applicationUserLifecycle,
         publicBaseUrl: applicationAuthPublicBaseUrl,
       }
     );
@@ -244,7 +267,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
               })
             );
           },
-        }
+        },
       );
     const applicationAuthRateLimiter = new ApplicationAuthRateLimiter(
       options.applicationAuthRateLimit
@@ -313,7 +336,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
               })
             );
           },
-        }
+        },
+        { applicationUserLifecycle },
       );
 
     const cache = createCache({

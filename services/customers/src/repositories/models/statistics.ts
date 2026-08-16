@@ -5,6 +5,7 @@ import {
   index,
   integer,
   timestamp,
+  text,
   unique,
   uuid,
   varchar,
@@ -79,6 +80,115 @@ export const customerStatistics = customersSchema.table(
   ]
 );
 
+export const customerOrderProjection = customersSchema.table(
+  "customer_order_projection",
+  {
+    orderId: uuid("order_id").primaryKey(),
+    storeId: uuid("store_id").notNull(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customer.id, { onDelete: "cascade" }),
+    revision: integer("revision").notNull(),
+    status: varchar("status", { length: 16 })
+      .$type<"OPEN" | "COMPLETED" | "CANCELLED">()
+      .notNull(),
+    currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+    totalAmountMinor: bigint("total_amount_minor", { mode: "bigint" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    cancelledAt: timestamp("cancelled_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+  },
+  (table) => [
+    check("customer_order_projection_revision_check", sql`${table.revision} >= 0`),
+    check(
+      "customer_order_projection_status_check",
+      sql`${table.status} IN ('OPEN', 'COMPLETED', 'CANCELLED')`,
+    ),
+    check(
+      "customer_order_projection_currency_check",
+      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
+    ),
+    check(
+      "customer_order_projection_amount_check",
+      sql`${table.totalAmountMinor} >= 0`,
+    ),
+    index("customer_order_projection_customer_idx").on(
+      table.storeId,
+      table.customerId,
+      table.createdAt,
+      table.orderId,
+    ),
+  ],
+);
+
+export const customerCheckoutProjection = customersSchema.table(
+  "customer_checkout_projection",
+  {
+    checkoutId: uuid("checkout_id").primaryKey(),
+    storeId: uuid("store_id").notNull(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customer.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+  },
+  (table) => [
+    check("customer_checkout_projection_version_check", sql`${table.version} >= 0`),
+    index("customer_checkout_projection_customer_idx").on(
+      table.storeId,
+      table.customerId,
+      table.occurredAt,
+      table.checkoutId,
+    ),
+  ],
+);
+
+export const customerRefundProjection = customersSchema.table(
+  "customer_refund_projection",
+  {
+    refundId: text("refund_id").primaryKey(),
+    storeId: uuid("store_id").notNull(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customer.id, { onDelete: "cascade" }),
+    orderId: uuid("order_id").notNull(),
+    revision: integer("revision").notNull(),
+    currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+    amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
+    refundedAt: timestamp("refunded_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull(),
+  },
+  (table) => [
+    check("customer_refund_projection_revision_check", sql`${table.revision} >= 0`),
+    check(
+      "customer_refund_projection_currency_check",
+      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
+    ),
+    check("customer_refund_projection_amount_check", sql`${table.amountMinor} >= 0`),
+    index("customer_refund_projection_customer_idx").on(
+      table.storeId,
+      table.customerId,
+      table.currencyCode,
+      table.refundId,
+    ),
+    index("customer_refund_projection_order_idx").on(table.orderId),
+  ],
+);
+
 export const customerMonetaryStatistics = customersSchema.table(
   "customer_monetary_statistics",
   {
@@ -136,6 +246,15 @@ export const customerMonetaryStatistics = customersSchema.table(
 
 export type CustomerStatistics = typeof customerStatistics.$inferSelect;
 export type NewCustomerStatistics = typeof customerStatistics.$inferInsert;
+export type CustomerOrderProjection = typeof customerOrderProjection.$inferSelect;
+export type NewCustomerOrderProjection = typeof customerOrderProjection.$inferInsert;
+export type CustomerCheckoutProjection =
+  typeof customerCheckoutProjection.$inferSelect;
+export type NewCustomerCheckoutProjection =
+  typeof customerCheckoutProjection.$inferInsert;
+export type CustomerRefundProjection = typeof customerRefundProjection.$inferSelect;
+export type NewCustomerRefundProjection =
+  typeof customerRefundProjection.$inferInsert;
 export type CustomerMonetaryStatistics =
   typeof customerMonetaryStatistics.$inferSelect;
 export type NewCustomerMonetaryStatistics =

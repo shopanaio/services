@@ -201,6 +201,30 @@ export class CustomerSegmentRepository extends BaseRepository {
       );
   }
 
+  /**
+   * Fail closed when customer inputs used by dynamic definitions change.
+   * A separate materializer may repopulate RULE rows at the current definition revision.
+   */
+  async invalidateRuleMemberships(customerIds?: readonly string[]): Promise<number> {
+    if (customerIds && customerIds.length === 0) return 0;
+    const rows = await this.connection
+      .delete(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.source, "RULE"),
+          customerIds
+            ? inArray(
+                customerSegmentMembership.customerId,
+                [...new Set(customerIds)],
+              )
+            : undefined,
+        ),
+      )
+      .returning({ id: customerSegmentMembership.id });
+    return rows.length;
+  }
+
   @ReadOnly()
   async countCurrentCustomersBySegmentIds(
     segmentIds: readonly string[]

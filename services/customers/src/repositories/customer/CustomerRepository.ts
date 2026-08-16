@@ -82,6 +82,8 @@ export type CustomerConnectionInput = Omit<CustomerRelayInput, "where"> & {
 
 export interface CustomerCreateData {
   iamPrincipalId?: string | null;
+  iamPrincipalStatus?: Customer["iamPrincipalStatus"];
+  iamLifecycleDisabled?: boolean;
   accountStatus?: Customer["accountStatus"];
   email?: string | null;
   emailVerified?: boolean;
@@ -107,6 +109,8 @@ export type CustomerPatch = Partial<
   Pick<
     NewCustomer,
     | "iamPrincipalId"
+    | "iamPrincipalStatus"
+    | "iamLifecycleDisabled"
     | "lifecycleStatus"
     | "accountStatus"
     | "email"
@@ -312,6 +316,8 @@ export class CustomerRepository extends BaseRepository {
     id: string,
     data: {
       iamPrincipalId: string;
+      iamStatus: "active" | "blocked";
+      iamLifecycleDisabled: boolean;
       email: string;
       emailVerified: boolean;
       firstName: string | null;
@@ -322,6 +328,9 @@ export class CustomerRepository extends BaseRepository {
       .update(customer)
       .set({
         iamPrincipalId: data.iamPrincipalId,
+        iamPrincipalStatus: data.iamStatus,
+        iamLifecycleDisabled: data.iamLifecycleDisabled,
+        ...(data.iamLifecycleDisabled ? { lifecycleStatus: "DISABLED" as const } : {}),
         accountStatus: "REGISTERED",
         email: data.email.trim(),
         normalizedEmail: normalizeEmail(data.email),
@@ -366,6 +375,12 @@ export class CustomerRepository extends BaseRepository {
       });
     }
     if (patch.phoneE164 === null) Object.assign(update, { phoneVerified: false });
+    if (
+      patch.lifecycleStatus !== undefined &&
+      patch.iamLifecycleDisabled === undefined
+    ) {
+      Object.assign(update, { iamLifecycleDisabled: false });
+    }
 
     const conditions = [
       eq(customer.storeId, this.storeId),
@@ -439,6 +454,12 @@ export class CustomerRepository extends BaseRepository {
     }
     if (patch.phoneE164 === null) {
       Object.assign(update, { phoneVerified: false });
+    }
+    if (
+      patch.lifecycleStatus !== undefined &&
+      patch.iamLifecycleDisabled === undefined
+    ) {
+      Object.assign(update, { iamLifecycleDisabled: false });
     }
 
     const rows = await this.connection
