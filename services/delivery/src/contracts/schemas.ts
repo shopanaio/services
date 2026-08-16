@@ -212,13 +212,19 @@ export const DeliveryCarrierServiceCapabilitiesSchema = z
 export const DeliveryShipmentProviderCapabilitiesSchema = z
   .object({
     supportsLabels: z.boolean(),
+    labelAssetHosts: z.array(z.string().trim().toLowerCase().min(1).max(253).regex(/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)).max(32),
+    maxLabelBytes: z.number().int().min(1_024).max(16 * 1024 * 1024),
     supportsMultipleParcels: z.boolean(),
     supportsCancellation: z.boolean(),
     supportsTracking: z.boolean(),
     supportsReconciliation: z.boolean(),
     supportsAsyncCompletion: z.boolean(),
   })
-  .strict();
+  .strict()
+  .refine((value) => value.supportsLabels ? value.labelAssetHosts.length > 0 : value.labelAssetHosts.length === 0, {
+    path: ["labelAssetHosts"],
+    message: "Label hosts are required exactly when labels are supported",
+  });
 
 export const DeliveryProviderDimensionsMmSchema = z
   .object({
@@ -438,6 +444,15 @@ const deliveryOptionBindingBaseShape = {
   customizationPolicyRevision: revisionSchema,
   ratedFactsHash: revisionSchema,
   customerInputContract: DeliveryCustomerInputContractSchema.nullable(),
+  fulfillment: z
+    .object({
+      lineIds: z.array(identifierSchema).min(1).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+      origin: DeliveryProviderOriginSchema,
+      destination: DeliveryProviderDestinationSchema,
+      sender: DeliveryProviderContactSchema,
+      packages: z.array(DeliveryProviderPackageSchema).min(1).max(DELIVERY_PROVIDER_MAX_PACKAGES),
+    })
+    .strict(),
   expiresAt: timestampSchema,
 };
 
@@ -490,6 +505,7 @@ export const DeliveryOptionBindingSnapshotSchema = z.discriminatedUnion(
 export const DeliveryProviderConfigurationValidationRequestSchema = z
   .object({
     protocolVersion: z.literal(DELIVERY_PROVIDER_PROTOCOL_VERSION),
+    storeId: identifierSchema,
     capability: z.enum([
       "delivery.carrier-service",
       "delivery.shipment-provider",
@@ -1001,6 +1017,7 @@ export const DeliveryProviderParcelObservationSchema = z
 
 const shipmentRequestBaseShape = {
   protocolVersion: z.literal(DELIVERY_PROVIDER_PROTOCOL_VERSION),
+  storeId: identifierSchema,
   operationId: identifierSchema,
   shipmentId: identifierSchema,
   providerAccountId: identifierSchema,
@@ -1540,6 +1557,27 @@ export const DeliveryLifecycleActionSchemas = {
       providerAccountId: identifierSchema,
     })
     .strict(),
+  commitSelections: z
+    .object({
+      organizationId: identifierSchema,
+      storeId: identifierSchema,
+      checkoutId: identifierSchema,
+      checkoutVersion: nonNegativeIntegerSchema,
+      deliveryRevision: revisionSchema,
+      committedAt: timestampSchema,
+      idempotencyKey: idempotencyKeySchema,
+      selections: z.array(z.object({
+        groupId: identifierSchema,
+        optionHandle: identifierSchema,
+        customerInput: DeliveryProviderJsonObjectSchema.nullable(),
+        recipient: DeliveryProviderContactSchema,
+      }).strict()).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+    })
+    .strict()
+    .refine((value) => new Set(value.selections.map(({ groupId }) => groupId)).size === value.selections.length, {
+      path: ["selections"],
+      message: "Committed delivery groups must be unique",
+    }),
   createShipment: z
     .object({
       storeId: identifierSchema,

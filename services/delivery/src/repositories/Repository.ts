@@ -6,6 +6,7 @@ import { CheckoutOptionBindingRepository } from "./CheckoutOptionBindingReposito
 import { ProviderRateCacheRepository } from "./ProviderRateCacheRepository.js";
 import { CustomizationBindingRepository } from "./CustomizationBindingRepository.js";
 import { sql } from "drizzle-orm";
+import { ShipmentRepository } from "./ShipmentRepository.js";
 
 export class Repository {
   readonly providerAccounts: ProviderAccountRepository;
@@ -13,6 +14,7 @@ export class Repository {
   readonly optionBindings: CheckoutOptionBindingRepository;
   readonly rateCache: ProviderRateCacheRepository;
   readonly customizationBindings: CustomizationBindingRepository;
+  readonly shipments: ShipmentRepository;
   readonly txManager: TransactionManager<Database>;
 
   private constructor(db: Database) {
@@ -22,6 +24,7 @@ export class Repository {
     this.optionBindings = new CheckoutOptionBindingRepository(db, this.txManager);
     this.rateCache = new ProviderRateCacheRepository(db, this.txManager);
     this.customizationBindings = new CustomizationBindingRepository(db, this.txManager);
+    this.shipments = new ShipmentRepository(db, this.txManager);
   }
 
   static create(db: Database): Repository { return new Repository(db); }

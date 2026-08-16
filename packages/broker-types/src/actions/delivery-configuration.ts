@@ -149,6 +149,15 @@ export interface DeliveryMethodDefinitionSnapshot {
 export interface DeliveryLocationGroupSnapshot {
   locationGroupId: string;
   name: string;
+  /** Immutable sender identity used when a checkout selection becomes a shipment. */
+  sender: Readonly<{
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+    company: string | null;
+    email: string | null;
+    phone: string | null;
+  }>;
   fulfillmentLocationIds: readonly [string, ...string[]];
   zones: readonly [
     Readonly<{

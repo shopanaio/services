@@ -6,6 +6,7 @@ import { OrdersPiiRepository } from "./pii/OrdersPiiRepository.js";
 import { OrderLineItemRepository } from "./order/OrderLineItemRepository.js";
 import { OrderReadRepository } from "./order/OrderReadRepository.js";
 import { OrderRepository } from "./order/OrderRepository.js";
+import { DeliveryFulfillmentRepository } from "./fulfillment/DeliveryFulfillmentRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
@@ -20,6 +21,7 @@ export class Repository {
   readonly idempotency: IdempotencyRepository;
   readonly orderNumber: OrderNumberRepository;
   readonly pii: OrdersPiiRepository;
+  readonly fulfillment: DeliveryFulfillmentRepository;
   readonly txManager: TransactionManager<Database>;
 
   private constructor(
@@ -29,6 +31,7 @@ export class Repository {
     idempotency: IdempotencyRepository,
     orderNumber: OrderNumberRepository,
     pii: OrdersPiiRepository,
+    fulfillment: DeliveryFulfillmentRepository,
     txManager: TransactionManager<Database>,
   ) {
     this.order = order;
@@ -37,6 +40,7 @@ export class Repository {
     this.idempotency = idempotency;
     this.orderNumber = orderNumber;
     this.pii = pii;
+    this.fulfillment = fulfillment;
     this.txManager = txManager;
   }
 
@@ -49,6 +53,7 @@ export class Repository {
     const orderRead = new OrderReadRepository(db, txManager);
     const orderLineItem = new OrderLineItemRepository(db, txManager);
     const order = new OrderRepository(db, txManager, orderNumber, pii, idempotency);
+    const fulfillment = new DeliveryFulfillmentRepository(db, txManager);
 
     return new Repository(
       order,
@@ -57,6 +62,7 @@ export class Repository {
       idempotency,
       orderNumber,
       pii,
+      fulfillment,
       txManager,
     );
   }

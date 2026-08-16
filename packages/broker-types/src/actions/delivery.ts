@@ -134,6 +134,7 @@ export const DeliveryActionNames = {
   configureProviderAccount: "configureDeliveryProviderAccount",
   setProviderCapabilityStatus: "setDeliveryProviderCapabilityStatus",
   getProviderAccount: "getDeliveryProviderAccount",
+  commitSelections: "commitCheckoutDeliverySelections",
   createShipment: "createDeliveryShipment",
   cancelShipment: "cancelDeliveryShipment",
   getShipment: "getDeliveryShipment",
@@ -148,6 +149,7 @@ export const DeliveryActions = {
   setProviderCapabilityStatus:
     `delivery.${DeliveryActionNames.setProviderCapabilityStatus}`,
   getProviderAccount: `delivery.${DeliveryActionNames.getProviderAccount}`,
+  commitSelections: `delivery.${DeliveryActionNames.commitSelections}`,
   createShipment: `delivery.${DeliveryActionNames.createShipment}`,
   cancelShipment: `delivery.${DeliveryActionNames.cancelShipment}`,
   getShipment: `delivery.${DeliveryActionNames.getShipment}`,
@@ -403,6 +405,9 @@ export interface DeliveryCarrierServiceCapabilities {
 
 export interface DeliveryShipmentProviderCapabilities {
   supportsLabels: boolean;
+  /** Exact HTTPS authorities from which Delivery Core may ingest label assets. */
+  labelAssetHosts: readonly string[];
+  maxLabelBytes: number;
   supportsMultipleParcels: boolean;
   supportsCancellation: boolean;
   supportsTracking: boolean;
@@ -504,6 +509,14 @@ export interface DeliveryOptionBindingSnapshotBase {
   /** Hash of origin, destination, packages, currency and checkout version. */
   ratedFactsHash: string;
   customerInputContract: DeliveryCustomerInputContract | null;
+  /** Immutable provider-visible facts retained until checkout completion. */
+  fulfillment: Readonly<{
+    lineIds: readonly string[];
+    origin: DeliveryProviderOrigin;
+    destination: DeliveryProviderDestination;
+    sender: DeliveryProviderContact;
+    packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
+  }>;
   expiresAt: string;
 }
 
@@ -666,6 +679,7 @@ export interface DeliveryProviderConfigurationValidationRequest<
   TCapability extends DeliveryProviderCapability = DeliveryProviderCapability,
 > {
   protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
+  storeId: string;
   capability: TCapability;
   correlationId: string;
   deadlineAt: string;
@@ -981,10 +995,20 @@ export interface DeliveryShipmentSnapshot {
   selectedDeliveryMethod: DeliveryCommittedMethodSnapshot;
   origin: DeliveryProviderOrigin;
   destination: DeliveryProviderDestination;
+  sender: DeliveryProviderContact;
+  recipient: DeliveryProviderContact;
   packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
   lastTrackingEvent: DeliveryTrackingEventSnapshot | null;
   lastProviderShipmentSequence: string | null;
   lastFailure: DeliveryProviderFailure | null;
+  /** Last state durably projected to the Orders fulfillment boundary. */
+  lastFulfillmentState:
+    | "SHIPMENT_CREATED"
+    | "IN_TRANSIT"
+    | "DELIVERED"
+    | "DELIVERY_FAILED"
+    | "CANCELLED"
+    | null;
   revision: number;
   createdAt: string;
   updatedAt: string;
@@ -1039,6 +1063,42 @@ export interface GetDeliveryProviderAccountParams {
 
 export interface GetDeliveryProviderAccountResult {
   account: DeliveryProviderAccountSnapshot;
+}
+
+export interface CommitCheckoutDeliverySelectionsParams {
+  organizationId: string;
+  storeId: string;
+  checkoutId: string;
+  checkoutVersion: number;
+  deliveryRevision: string;
+  committedAt: string;
+  idempotencyKey: string;
+  selections: readonly Readonly<{
+    groupId: string;
+    optionHandle: string;
+    customerInput: PricingCheckoutJsonObject | null;
+    recipient: DeliveryProviderContact;
+  }>[];
+}
+
+export interface DeliveryCommittedGroupSnapshot {
+  groupId: string;
+  lineIds: readonly string[];
+  deliveryMethod: DeliveryCommittedMethodSnapshot;
+  shipmentProvider: Readonly<{
+    providerAccountId: string;
+    configurationRevision: string;
+  }> | null;
+  origin: DeliveryProviderOrigin;
+  destination: DeliveryProviderDestination;
+  sender: DeliveryProviderContact;
+  recipient: DeliveryProviderContact;
+  packages: readonly [DeliveryProviderPackage, ...DeliveryProviderPackage[]];
+}
+
+export interface CommitCheckoutDeliverySelectionsResult {
+  commitments: readonly DeliveryCommittedGroupSnapshot[];
+  duplicate: boolean;
 }
 
 export interface CreateDeliveryShipmentParams {
@@ -1107,6 +1167,7 @@ export interface GetDeliveryShipmentResult {
 
 export interface DeliveryProviderShipmentRequestBase {
   protocolVersion: typeof DELIVERY_PROVIDER_PROTOCOL_VERSION;
+  storeId: string;
   operationId: string;
   shipmentId: string;
   providerAccountId: string;

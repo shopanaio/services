@@ -3,10 +3,12 @@ import type { CheckoutDto } from "@shopana/checkout-sdk";
 import {
   InventoryCheckoutActions,
   CustomersCheckoutActions,
+  DeliveryActions,
   OrderLoyaltyActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
   type Inventory,
+  type Delivery,
   type Payments,
   type Pricing,
   type ResolveCheckoutBuyerEligibilityResult,
@@ -86,6 +88,8 @@ interface PlaceOrderSnapshot {
   reservationExpiresAt: string;
   loyalty: null | { context: LoyaltyCheckoutContext; quote: LoyaltyRedemptionQuote };
   orderRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
+  deliveryRevision: string;
+  deliverySelections: Delivery.CommitCheckoutDeliverySelectionsParams["selections"];
 }
 
 export interface LoyaltyReservation {
@@ -181,9 +185,20 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       throw error;
     }
 
+    let deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[];
+    try {
+      deliveryCommitments = await this.commitDelivery(input, snapshot);
+    } catch (error) {
+      await this.releaseInventory(input, requestedOrderId);
+      await this.reverseDiscountUsage(input.storeId, committedDiscounts);
+      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
+      await this.abandonPlacement(snapshot.placementId);
+      throw error;
+    }
+
     let orderId: string;
     try {
-      orderId = await this.createOrder(input, snapshot, requestedOrderId);
+      orderId = await this.createOrder(input, snapshot, requestedOrderId, deliveryCommitments);
     } catch (error) {
       await this.releaseInventory(input, requestedOrderId);
       await this.reverseDiscountUsage(input.storeId, committedDiscounts);
@@ -279,8 +294,9 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     validateCheckoutSnapshot(checkout, input);
 
     const finalQuote = checkout.result.finalPricing;
+    const delivery = checkout.result.delivery;
     const payment = checkout.result.payment;
-    if (finalQuote.status !== "SUCCESS" || payment.status !== "SUCCESS") {
+    if (finalQuote.status !== "SUCCESS" || delivery.status !== "SUCCESS" || payment.status !== "SUCCESS") {
       throw new Error("CHECKOUT_PIPELINE_INCOMPLETE");
     }
     const selection = payment.data.selection;
@@ -341,6 +357,29 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         reservationExpiresAt: loyalty?.quote.expiresAt ?? new Date(Date.now() + 60 * 60_000).toISOString(),
         loyalty,
         orderRewardEligibility,
+        deliveryRevision: delivery.data.revision,
+        deliverySelections: delivery.data.groups.flatMap((group) => {
+          if (group.selection.status !== "SELECTED") return [];
+          const destination = checkout.draft.cartIntent.destinations.find(({ destinationId }) => destinationId === group.destinationId);
+          const firstName = destination?.address.firstName?.trim();
+          const lastName = destination?.address.lastName?.trim();
+          if (!destination || !firstName || !lastName) {
+            throw new Error("CHECKOUT_DELIVERY_RECIPIENT_REQUIRED");
+          }
+          return [{
+            groupId: group.groupId,
+            optionHandle: group.selection.optionHandle,
+            customerInput: group.selection.customerInput,
+            recipient: {
+              firstName,
+              middleName: destination.address.middleName ?? null,
+              lastName,
+              company: destination.address.company ?? null,
+              email: destination.address.email ?? null,
+              phone: destination.address.phone ?? null,
+            },
+          }];
+        }),
       },
     };
   }
@@ -519,13 +558,38 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
+  private async commitDelivery(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+  ): Promise<readonly Delivery.DeliveryCommittedGroupSnapshot[]> {
+    if (snapshot.deliverySelections.length === 0) return [];
+    const committedAt = new Date(await DBOS.now()).toISOString();
+    const result = await this.broker.call<
+      Delivery.CommitCheckoutDeliverySelectionsResult,
+      Delivery.CommitCheckoutDeliverySelectionsParams
+    >(DeliveryActions.commitSelections, {
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      checkoutVersion: snapshot.checkoutVersion,
+      deliveryRevision: snapshot.deliveryRevision,
+      committedAt,
+      idempotencyKey: `${input.idempotencyKey}:delivery-commit`,
+      selections: snapshot.deliverySelections,
+    });
+    return result.commitments;
+  }
+
+  @WorkflowStep()
   private createOrder(
     input: PlaceOrderWorkflowInput,
     snapshot: PlaceOrderSnapshot,
     orderId: string,
+    deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
   ): Promise<string> {
     return this.broker.call<string>("order.createOrderFromCheckoutPlacement", {
       orderId,
+      organizationId: input.organizationId,
       storeId: input.storeId,
       checkoutId: input.checkoutId,
       credentialId: input.credentialId,
@@ -533,6 +597,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       idempotencyKey: `${input.idempotencyKey}:order`,
       checkout: snapshot.checkout,
       loyaltyRewardEligibility: snapshot.orderRewardEligibility,
+      deliveryCommitments,
     });
   }
 

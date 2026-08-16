@@ -6,7 +6,7 @@ export const testFedexManifest = defineAppManifest({
   version: "1.0.0",
   displayName: "FedEx Test",
   description:
-    "Deterministic FedEx-inspired carrier simulator for checkout E2E tests.",
+    "Deterministic FedEx-inspired carrier and shipment simulator for E2E tests.",
   icon: {
     url: "/app-icons/test-fedex.svg",
     alt: "FedEx Test",
@@ -29,6 +29,18 @@ export const testFedexManifest = defineAppManifest({
         validateCarrierServiceConfiguration: "validateCarrierServiceConfiguration",
         quoteRates: "quoteRates",
         resolveCustomerInput: "resolveCustomerInput",
+      },
+    },
+    {
+      key: "delivery.shipment-provider",
+      assignmentMode: "store",
+      routingMode: "broadcast",
+      operations: {
+        validateShipmentConfiguration: "validateShipmentConfiguration",
+        createShipment: "createShipment",
+        cancelShipment: "cancelShipment",
+        getShipment: "getShipment",
+        reconcileShipment: "reconcileShipment",
       },
     },
   ],

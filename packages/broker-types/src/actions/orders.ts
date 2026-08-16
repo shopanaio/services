@@ -1,3 +1,51 @@
+import type {
+  DeliveryFulfillmentOrderSnapshot,
+  DeliveryFulfillmentShipmentUpdate,
+  DeliveryShipmentPlanAvailability,
+} from "./delivery-fulfillment.js";
+
+export const OrderFulfillmentActionNames = {
+  listForOrder: "listDeliveryFulfillmentOrders",
+  getShipmentPlan: "getDeliveryShipmentPlan",
+  applyShipmentUpdate: "applyDeliveryShipmentUpdate",
+} as const;
+
+export const OrderFulfillmentActions = {
+  listForOrder: `order.${OrderFulfillmentActionNames.listForOrder}`,
+  getShipmentPlan: `order.${OrderFulfillmentActionNames.getShipmentPlan}`,
+  applyShipmentUpdate: `order.${OrderFulfillmentActionNames.applyShipmentUpdate}`,
+} as const;
+
+export interface ListOrderDeliveryFulfillmentOrdersParams {
+  storeId: string;
+  orderId: string;
+}
+
+export interface ListOrderDeliveryFulfillmentOrdersResult {
+  fulfillmentOrders: readonly DeliveryFulfillmentOrderSnapshot[];
+}
+
+export interface GetOrderDeliveryShipmentPlanParams {
+  storeId: string;
+  fulfillmentOrderId: string;
+  expectedFulfillmentOrderRevision: number;
+  lineItems: readonly Readonly<{
+    fulfillmentOrderLineItemId: string;
+    quantity: number;
+  }>[] | null;
+}
+
+export type GetOrderDeliveryShipmentPlanResult = DeliveryShipmentPlanAvailability;
+
+export interface ApplyOrderDeliveryShipmentUpdateParams {
+  storeId: string;
+  update: DeliveryFulfillmentShipmentUpdate;
+}
+
+export type ApplyOrderDeliveryShipmentUpdateResult =
+  | Readonly<{ status: "APPLIED" | "DUPLICATE"; fulfillmentOrderRevision: number }>
+  | Readonly<{ status: "REVISION_CONFLICT"; fulfillmentOrderRevision: number }>;
+
 export const OrderReviewActionNames = {
   verifyPurchase: "verifyReviewPurchase",
 } as const;

@@ -1,13 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Action, BrokerActions, InjectBroker, type BrokerCallContext, type ServiceBroker, ZodSchema } from "@shopana/shared-kernel";
-import { DeliveryCheckoutActionNames, type Delivery } from "@shopana/broker-types";
+import { DeliveryActionNames, DeliveryCheckoutActionNames, type Delivery } from "@shopana/broker-types";
 import { DeliveryCheckoutService } from "../../application/checkout/DeliveryCheckoutService.js";
+import { DeliverySelectionCommitService } from "../../application/checkout/DeliverySelectionCommitService.js";
+import { DeliveryLifecycleActionSchemas } from "../../contracts/schemas.js";
 import { CalculateCheckoutDeliveryOptionsParamsSchema, parseCalculateCheckoutDeliveryOptionsResult, SearchDeliveryOptionChoicesParamsSchema } from "../../contracts/checkout-schemas.js";
 
 @Injectable()
 export class DeliveryCheckoutActions extends BrokerActions {
   private readonly actionLogger = new Logger(DeliveryCheckoutActions.name);
-  constructor(@InjectBroker("delivery") broker: ServiceBroker, private readonly service: DeliveryCheckoutService) { super(broker); }
+  constructor(@InjectBroker("delivery") broker: ServiceBroker, private readonly service: DeliveryCheckoutService, private readonly commitments: DeliverySelectionCommitService) { super(broker); }
 
   @Action(DeliveryCheckoutActionNames.calculateOptions)
   @ZodSchema(CalculateCheckoutDeliveryOptionsParamsSchema)
@@ -33,5 +35,12 @@ export class DeliveryCheckoutActions extends BrokerActions {
   @ZodSchema(SearchDeliveryOptionChoicesParamsSchema)
   async searchDeliveryOptionChoices(params: Delivery.SearchDeliveryOptionChoicesParams): Promise<Delivery.SearchDeliveryOptionChoicesResult> {
     return this.service.searchOptionChoices(params);
+  }
+
+  @Action(DeliveryActionNames.commitSelections)
+  @ZodSchema(DeliveryLifecycleActionSchemas.commitSelections)
+  commitCheckoutDeliverySelections(params: Delivery.CommitCheckoutDeliverySelectionsParams, context: BrokerCallContext) {
+    if (context.caller.kind !== "action" || context.caller.service !== "checkout" || context.app) throw new Error("Only Checkout may commit delivery selections");
+    return this.commitments.commit(params);
   }
 }

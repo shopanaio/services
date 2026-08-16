@@ -10,6 +10,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { Repository } from './repositories/Repository.js';
 import {
   OrderLoyaltyActionNames,
+  OrderFulfillmentActionNames,
   OrderReviewActionNames,
   type PublishOrderLoyaltyRewardEligibleParams,
   type PublishOrderLoyaltyRewardEligibleResult,
@@ -17,6 +18,12 @@ import {
   type PublishOrderLoyaltyRewardReversedResult,
   type VerifyReviewPurchaseParams,
   type VerifyReviewPurchaseResult,
+  type GetOrderDeliveryShipmentPlanParams,
+  type GetOrderDeliveryShipmentPlanResult,
+  type ListOrderDeliveryFulfillmentOrdersParams,
+  type ListOrderDeliveryFulfillmentOrdersResult,
+  type ApplyOrderDeliveryShipmentUpdateParams,
+  type ApplyOrderDeliveryShipmentUpdateResult,
 } from '@shopana/broker-types';
 
 @Injectable()
@@ -38,6 +45,24 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.broker.register('generateOrderId', async () => ({ id: uuidv7() }));
+
+    this.broker.register(
+      OrderFulfillmentActionNames.listForOrder,
+      (params: ListOrderDeliveryFulfillmentOrdersParams): Promise<ListOrderDeliveryFulfillmentOrdersResult> =>
+        this.repository.fulfillment.listForOrder(params),
+    );
+
+    this.broker.register(
+      OrderFulfillmentActionNames.getShipmentPlan,
+      (params: GetOrderDeliveryShipmentPlanParams): Promise<GetOrderDeliveryShipmentPlanResult> =>
+        this.repository.fulfillment.getShipmentPlan(params),
+    );
+
+    this.broker.register(
+      OrderFulfillmentActionNames.applyShipmentUpdate,
+      (params: ApplyOrderDeliveryShipmentUpdateParams): Promise<ApplyOrderDeliveryShipmentUpdateResult> =>
+        this.repository.fulfillment.applyShipmentUpdate(params),
+    );
 
     this.broker.register('getOrderById', async (params: any) => {
       return this.app.orderUsecase.getOrderById.execute(params);
