@@ -10,6 +10,8 @@ import { CustomerCheckoutEligibilityRepository } from "./checkout/CustomerChecko
 import { CustomerRepository } from "./customer/CustomerRepository.js";
 import { CustomerExternalReferenceRepository } from "./integration/CustomerExternalReferenceRepository.js";
 import { CustomerLifecycleRepository } from "./lifecycle/CustomerLifecycleRepository.js";
+import { CustomerMergeRepository } from "./merge/CustomerMergeRepository.js";
+import { CustomerPrivacyRepository } from "./privacy/CustomerPrivacyRepository.js";
 import { CustomerStatisticsRepository } from "./statistics/CustomerStatisticsRepository.js";
 import { CustomerTaxExemptionRepository } from "./tax/CustomerTaxExemptionRepository.js";
 import { CustomerTaxIdentifierRepository } from "./tax/CustomerTaxIdentifierRepository.js";
@@ -33,6 +35,8 @@ export class Repository {
   public readonly segment: CustomerSegmentRepository;
   public readonly statistics: CustomerStatisticsRepository;
   public readonly lifecycle: CustomerLifecycleRepository;
+  public readonly merge: CustomerMergeRepository;
+  public readonly privacy: CustomerPrivacyRepository;
   public readonly externalReference: CustomerExternalReferenceRepository;
   public readonly storefrontAuth: StorefrontAuthConfigurationRepository;
   public readonly checkoutEligibility: CustomerCheckoutEligibilityRepository;
@@ -55,6 +59,8 @@ export class Repository {
     segment: CustomerSegmentRepository,
     statistics: CustomerStatisticsRepository,
     lifecycle: CustomerLifecycleRepository,
+    merge: CustomerMergeRepository,
+    privacy: CustomerPrivacyRepository,
     externalReference: CustomerExternalReferenceRepository,
     storefrontAuth: StorefrontAuthConfigurationRepository,
     checkoutEligibility: CustomerCheckoutEligibilityRepository,
@@ -72,6 +78,8 @@ export class Repository {
     this.segment = segment;
     this.statistics = statistics;
     this.lifecycle = lifecycle;
+    this.merge = merge;
+    this.privacy = privacy;
     this.externalReference = externalReference;
     this.storefrontAuth = storefrontAuth;
     this.checkoutEligibility = checkoutEligibility;
@@ -93,6 +101,8 @@ export class Repository {
       new CustomerSegmentRepository(config.db, txManager),
       new CustomerStatisticsRepository(config.db, txManager),
       new CustomerLifecycleRepository(config.db, txManager),
+      new CustomerMergeRepository(config.db, txManager),
+      new CustomerPrivacyRepository(config.db, txManager),
       new CustomerExternalReferenceRepository(config.db, txManager),
       new StorefrontAuthConfigurationRepository(config.db, txManager),
       new CustomerCheckoutEligibilityRepository(config.db, txManager),

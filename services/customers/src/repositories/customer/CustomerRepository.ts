@@ -137,6 +137,24 @@ export type CustomerPatch = Partial<
   >
 >;
 
+export type CustomerPrivacyCorrection = Partial<
+  Pick<
+    NewCustomer,
+    | "email"
+    | "phoneE164"
+    | "prefix"
+    | "firstName"
+    | "middleName"
+    | "lastName"
+    | "suffix"
+    | "preferredLocale"
+    | "dateOfBirth"
+    | "gender"
+    | "companyName"
+    | "jobTitle"
+  >
+>;
+
 export type CustomerRevisionAcquireResult =
   | { status: "acquired"; customer: Customer }
   | { status: "not_found" }
@@ -395,6 +413,99 @@ export class CustomerRepository extends BaseRepository {
       .update(customer)
       .set(update)
       .where(and(...conditions))
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async lockForPrivacyRequest(id: string): Promise<Customer | null> {
+    const rows = await this.connection
+      .select()
+      .from(customer)
+      .where(and(eq(customer.storeId, this.storeId), eq(customer.id, id)))
+      .limit(1)
+      .for("update");
+    return rows[0] ?? null;
+  }
+
+  async applyPrivacyCorrection(
+    id: string,
+    correction: CustomerPrivacyCorrection,
+  ): Promise<Customer | null> {
+    const email =
+      correction.email === undefined
+        ? undefined
+        : correction.email?.trim() || null;
+    const rows = await this.connection
+      .update(customer)
+      .set({
+        ...correction,
+        ...(email !== undefined
+          ? {
+              email,
+              normalizedEmail: email ? normalizeEmail(email) : null,
+              emailVerified: false,
+            }
+          : {}),
+        ...(correction.phoneE164 !== undefined
+          ? { phoneVerified: false }
+          : {}),
+        updatedAt: new Date().toISOString(),
+        revision: sql`${customer.revision} + 1`,
+      })
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          eq(customer.lifecycleStatus, "ACTIVE"),
+          isNull(customer.deletedAt),
+        ),
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async redact(id: string, redactedAt: string): Promise<Customer | null> {
+    const rows = await this.connection
+      .update(customer)
+      .set({
+        iamPrincipalId: null,
+        iamPrincipalStatus: null,
+        iamLifecycleDisabled: false,
+        lifecycleStatus: "REDACTED",
+        accountStatus: "GUEST",
+        email: null,
+        normalizedEmail: null,
+        emailVerified: false,
+        phoneE164: null,
+        phoneVerified: false,
+        prefix: null,
+        firstName: null,
+        middleName: null,
+        lastName: null,
+        suffix: null,
+        preferredLocale: null,
+        dateOfBirth: null,
+        gender: null,
+        companyName: null,
+        jobTitle: null,
+        note: null,
+        blockedReason: null,
+        moderationNote: null,
+        source: "privacy_redaction",
+        createdByUserId: null,
+        lastActivityAt: null,
+        mergedIntoCustomerId: null,
+        redactedAt,
+        updatedAt: redactedAt,
+        revision: sql`${customer.revision} + 1`,
+      })
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.id, id),
+          isNull(customer.deletedAt),
+        ),
+      )
       .returning();
     return rows[0] ?? null;
   }

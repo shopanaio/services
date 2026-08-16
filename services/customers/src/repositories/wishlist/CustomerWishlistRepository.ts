@@ -526,6 +526,19 @@ export class CustomerWishlistRepository extends BaseRepository {
     };
   }
 
+  async deleteForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerWishlist)
+      .where(
+        and(
+          eq(customerWishlist.storeId, this.storeId),
+          eq(customerWishlist.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerWishlist.id });
+    return rows.length;
+  }
+
   private async insert(
     data: Pick<
       NewCustomerWishlist,

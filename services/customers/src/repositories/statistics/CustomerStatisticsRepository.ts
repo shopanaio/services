@@ -414,6 +414,67 @@ export class CustomerStatisticsRepository extends BaseRepository {
     return result;
   }
 
+  async deleteForCustomer(customerId: string): Promise<{
+    statistics: number;
+    monetaryStatistics: number;
+    orderProjections: number;
+    checkoutProjections: number;
+    refundProjections: number;
+  }> {
+    const statistics = await this.connection
+      .delete(customerStatistics)
+      .where(
+        and(
+          eq(customerStatistics.storeId, this.storeId),
+          eq(customerStatistics.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerStatistics.customerId });
+    const monetary = await this.connection
+      .delete(customerMonetaryStatistics)
+      .where(
+        and(
+          eq(customerMonetaryStatistics.storeId, this.storeId),
+          eq(customerMonetaryStatistics.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerMonetaryStatistics.id });
+    const orders = await this.connection
+      .delete(customerOrderProjection)
+      .where(
+        and(
+          eq(customerOrderProjection.storeId, this.storeId),
+          eq(customerOrderProjection.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerOrderProjection.orderId });
+    const checkouts = await this.connection
+      .delete(customerCheckoutProjection)
+      .where(
+        and(
+          eq(customerCheckoutProjection.storeId, this.storeId),
+          eq(customerCheckoutProjection.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerCheckoutProjection.checkoutId });
+    const refunds = await this.connection
+      .delete(customerRefundProjection)
+      .where(
+        and(
+          eq(customerRefundProjection.storeId, this.storeId),
+          eq(customerRefundProjection.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerRefundProjection.refundId });
+    return {
+      statistics: statistics.length,
+      monetaryStatistics: monetary.length,
+      orderProjections: orders.length,
+      checkoutProjections: checkouts.length,
+      refundProjections: refunds.length,
+    };
+  }
+
   @ReadOnly()
   async getMonetaryConnection(
     input: CustomerMonetaryStatisticsConnectionInput

@@ -709,6 +709,8 @@ export type Customer = {
 /** All persisted comparison matrices prepared for the current customer. */
 export type CustomerProductComparisons = {
   __typename?: 'CustomerProductComparisons';
+  /** Number of comparison columns across all returned category matrices. */
+  itemCount: Scalars['Int']['output'];
   /** Category matrices in deterministic server-defined order. */
   nodes: Array<ProductComparison>;
   /** Current optimistic-concurrency revision of the persisted selection. */
@@ -1264,6 +1266,11 @@ export type ProductComparisonColumn = {
   /** Current price of the concrete variant in the storefront currency. */
   price: Maybe<Money>;
   product: Product;
+  /**
+   * Whether this exact variant is persisted in the authenticated customer's
+   * comparison selection. Always false when no authenticated customer exists.
+   */
+  savedForComparison: Scalars['Boolean']['output'];
   /** Concrete storefront variant represented by this comparison column. */
   variant: ProductVariant;
 };
@@ -2079,6 +2086,7 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type CustomerProductComparisonsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerProductComparisons'] = ResolversParentTypes['CustomerProductComparisons']> = ResolversObject<{
+  itemCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   nodes?: Resolver<Array<ResolversTypes['ProductComparison']>, ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -2243,6 +2251,7 @@ export type ProductComparisonColumnResolvers<ContextType = ServiceContext, Paren
   position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   price?: Resolver<Maybe<ResolversTypes['Money']>, ParentType, ContextType>;
   product?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
+  savedForComparison?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   variant?: Resolver<ResolversTypes['ProductVariant'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

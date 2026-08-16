@@ -1,4 +1,10 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql, sum } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   rewardDefinitions,
@@ -15,7 +21,126 @@ import {
   type TierRewardBenefit,
 } from "../models/index.js";
 
+const availableRewardRelayQuery = createRelayQuery(
+  createQuery(rewardEntitlements).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "loyalty-available-reward", tieBreaker: "id" },
+);
+
+type AvailableRewardRelayInput = InferRelayInput<typeof availableRewardRelayQuery>;
+
+export interface AvailableRewardConnectionInput {
+  accountId: string;
+  effectiveAt: string;
+  first?: number;
+  after?: string;
+}
+
+export interface AvailableRewardConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
 export class RewardRepository extends BaseRepository {
+  async getIssuanceCounts(
+    definitionIds: readonly string[],
+    accountIds: readonly string[],
+  ): Promise<Array<{
+    rewardDefinitionId: string;
+    accountId: string | null;
+    quantity: bigint;
+  }>> {
+    if (definitionIds.length === 0) return [];
+    const totals = await this.connection
+      .select({
+        rewardDefinitionId: rewardEntitlements.rewardDefinitionId,
+        quantity: sum(rewardEntitlements.quantity),
+      })
+      .from(rewardEntitlements)
+      .where(and(
+        eq(rewardEntitlements.storeId, this.storeId),
+        inArray(rewardEntitlements.rewardDefinitionId, [...definitionIds]),
+      ))
+      .groupBy(rewardEntitlements.rewardDefinitionId);
+    const accounts = accountIds.length === 0 ? [] : await this.connection
+      .select({
+        rewardDefinitionId: rewardEntitlements.rewardDefinitionId,
+        accountId: rewardEntitlements.accountId,
+        quantity: sum(rewardEntitlements.quantity),
+      })
+      .from(rewardEntitlements)
+      .where(and(
+        eq(rewardEntitlements.storeId, this.storeId),
+        inArray(rewardEntitlements.rewardDefinitionId, [...definitionIds]),
+        inArray(rewardEntitlements.accountId, [...accountIds]),
+      ))
+      .groupBy(rewardEntitlements.rewardDefinitionId, rewardEntitlements.accountId);
+    return [
+      ...totals.map((row) => ({
+        rewardDefinitionId: row.rewardDefinitionId,
+        accountId: null,
+        quantity: BigInt(row.quantity ?? "0"),
+      })),
+      ...accounts.map((row) => ({
+        rewardDefinitionId: row.rewardDefinitionId,
+        accountId: row.accountId,
+        quantity: BigInt(row.quantity ?? "0"),
+      })),
+    ];
+  }
+
+  async getAvailableConnection(
+    input: AvailableRewardConnectionInput,
+  ): Promise<AvailableRewardConnectionResult> {
+    const where: AvailableRewardRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        { accountId: { _eq: input.accountId } },
+        { status: { _eq: "ISSUED" } },
+        { validFrom: { _lte: input.effectiveAt } },
+        {
+          _or: [
+            { validTo: { _is: null } },
+            { validTo: { _gt: input.effectiveAt } },
+          ],
+        },
+      ],
+    };
+    const relayInput: AvailableRewardRelayInput = {
+      first: input.first,
+      after: input.after,
+      where,
+      orderBy: [
+        { field: "issuedAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      availableRewardRelayQuery.execute(this.connection, relayInput),
+      availableRewardRelayQuery.count(this.connection, { where }),
+    ]);
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({ cursor, nodeId: node.id })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
+
+  async getDefinitionsByIds(ids: readonly string[]): Promise<RewardDefinition[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(rewardDefinitions).where(and(
+      eq(rewardDefinitions.storeId, this.storeId),
+      inArray(rewardDefinitions.id, [...ids]),
+    ));
+  }
+
+  async listDefinitionsForVersions(programVersionIds: readonly string[]): Promise<RewardDefinition[]> {
+    if (programVersionIds.length === 0) return [];
+    return this.connection.select().from(rewardDefinitions).where(and(
+      eq(rewardDefinitions.storeId, this.storeId),
+      inArray(rewardDefinitions.programVersionId, [...programVersionIds]),
+    )).orderBy(asc(rewardDefinitions.programVersionId), asc(rewardDefinitions.code), asc(rewardDefinitions.id));
+  }
   async findDefinitionById(id: string): Promise<RewardDefinition | null> {
     const rows = await this.connection
       .select()
@@ -196,6 +321,28 @@ export class RewardRepository extends BaseRepository {
           eq(rewardEntitlements.storeId, this.storeId),
           inArray(rewardEntitlements.id, [...ids]),
         ),
+      );
+  }
+
+  async listAvailableEntitlementsForAccounts(
+    accountIds: readonly string[],
+    at: string,
+  ): Promise<RewardEntitlement[]> {
+    if (accountIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(rewardEntitlements)
+      .where(and(
+        eq(rewardEntitlements.storeId, this.storeId),
+        inArray(rewardEntitlements.accountId, [...accountIds]),
+        eq(rewardEntitlements.status, "ISSUED"),
+        lte(rewardEntitlements.validFrom, at),
+        or(isNull(rewardEntitlements.validTo), gt(rewardEntitlements.validTo, at)),
+      ))
+      .orderBy(
+        asc(rewardEntitlements.accountId),
+        asc(rewardEntitlements.validTo),
+        asc(rewardEntitlements.id),
       );
   }
 

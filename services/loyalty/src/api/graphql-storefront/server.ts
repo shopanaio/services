@@ -4,7 +4,7 @@ import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
 } from "@as-integrations/fastify";
-import { requireStorefrontPermission } from "@shopana/shared-context";
+import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import {
   getServiceConfig,
   isDevelopment,
@@ -120,13 +120,20 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
 
         requireStorefrontPermission(
           request.storefrontAccess,
-          "storefront.loyalty.read",
+          STOREFRONT_PERMISSIONS.LOYALTY_READ,
         );
 
+        const effectiveAt = new Date().toISOString();
         const context = new ServiceContext({
           requestId: request.id as string,
           kernel,
-          loaders: new Loader(kernel.repository),
+          loaders: new Loader(kernel.repository, {
+            broker: kernel.getServices().broker,
+            storeId: request.store.id,
+            currencyCode: request.store.currencyCode,
+            localeCode: request.store.defaultLocale,
+            effectiveAt,
+          }),
           store: request.store,
           storefrontAccess: request.storefrontAccess,
           customer: request.customer,

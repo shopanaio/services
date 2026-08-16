@@ -272,6 +272,47 @@ export class CustomerAddressRepository extends BaseRepository {
     return rows.length > 0;
   }
 
+  async redactForCustomer(
+    customerId: string,
+    redactedAt: string,
+  ): Promise<number> {
+    const rows = await this.connection
+      .update(customerAddress)
+      .set({
+        label: null,
+        prefix: null,
+        firstName: null,
+        middleName: null,
+        lastName: null,
+        suffix: null,
+        companyName: null,
+        phoneE164: null,
+        address1: "[redacted]",
+        address2: null,
+        city: "[redacted]",
+        regionName: null,
+        regionCode: null,
+        postalCode: null,
+        countryCode: "ZZ",
+        isDefaultShipping: false,
+        isDefaultBilling: false,
+        validationStatus: "UNVALIDATED",
+        validatedAt: null,
+        latitude: null,
+        longitude: null,
+        updatedAt: redactedAt,
+        deletedAt: redactedAt,
+      })
+      .where(
+        and(
+          eq(customerAddress.storeId, this.storeId),
+          eq(customerAddress.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerAddress.id });
+    return rows.length;
+  }
+
   @Transactional()
   async setDefaults(
     customerId: string,

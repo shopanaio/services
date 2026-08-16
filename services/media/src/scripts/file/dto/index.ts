@@ -9,3 +9,4 @@ export * from "./FileRestoreDto.js";
 export * from "./FileRestoreManyDto.js";
 export * from "./FileClearErrorDto.js";
 export * from "./ProfileAvatarUploadDto.js";
+export * from "./GeneratedFileDto.js";

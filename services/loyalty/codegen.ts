@@ -13,10 +13,33 @@ const config: CodegenConfig = {
         useIndexSignature: true,
         federation: true,
         contextType: "../../../context/types.js#ServiceContext",
+        avoidOptionals: {
+          field: true,
+          inputValue: false,
+          object: false,
+          defaultValue: false,
+        },
         scalars: {
           BigInt: "string",
           DateTime: "string",
           JSON: "Record<string, unknown>",
+        },
+      },
+    },
+    "src/resolvers/admin/generated/schemas.ts": {
+      schema: [
+        "../../packages/shared-references/graphql/*.graphql",
+        "src/api/graphql-admin/schema/*.graphql",
+      ],
+      plugins: ["graphql-codegen-typescript-validation-schema"],
+      config: {
+        schema: "zod",
+        importFrom: "./types.js",
+        withObjectType: false,
+        scalarSchemas: {
+          BigInt: "z.string()",
+          DateTime: "z.string()",
+          JSON: "z.record(z.unknown())",
         },
       },
     },

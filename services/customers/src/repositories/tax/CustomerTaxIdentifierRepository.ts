@@ -275,6 +275,46 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
     return rows.length > 0;
   }
 
+  async redactForCustomer(
+    customerId: string,
+    redactedAt: string,
+  ): Promise<number> {
+    const identifiers = await this.connection
+      .select({ id: customerTaxIdentifier.id })
+      .from(customerTaxIdentifier)
+      .where(
+        and(
+          eq(customerTaxIdentifier.storeId, this.storeId),
+          eq(customerTaxIdentifier.customerId, customerId),
+        ),
+      );
+    for (const identifier of identifiers) {
+      const value = `redacted:${identifier.id}`;
+      await this.connection
+        .update(customerTaxIdentifier)
+        .set({
+          identifierType: "redacted",
+          countryCode: null,
+          value,
+          normalizedValue: value,
+          status: "REJECTED",
+          isPrimary: false,
+          verifiedAt: null,
+          validFrom: null,
+          validTo: null,
+          updatedAt: redactedAt,
+          deletedAt: redactedAt,
+        })
+        .where(
+          and(
+            eq(customerTaxIdentifier.storeId, this.storeId),
+            eq(customerTaxIdentifier.id, identifier.id),
+          ),
+        );
+    }
+    return identifiers.length;
+  }
+
   @ReadOnly()
   async getConnection(
     input: CustomerTaxIdentifierConnectionInput

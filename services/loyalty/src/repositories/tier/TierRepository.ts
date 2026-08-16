@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   tierMembershipEvents,
@@ -16,6 +16,70 @@ import {
 } from "../models/index.js";
 
 export class TierRepository extends BaseRepository {
+  async getPoliciesByIds(ids: readonly string[]): Promise<TierPolicy[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tierPolicies).where(and(
+      eq(tierPolicies.storeId, this.storeId),
+      inArray(tierPolicies.id, [...ids]),
+    ));
+  }
+
+  async getPoliciesByVersionIds(programVersionIds: readonly string[]): Promise<TierPolicy[]> {
+    if (programVersionIds.length === 0) return [];
+    return this.connection.select().from(tierPolicies).where(and(
+      eq(tierPolicies.storeId, this.storeId),
+      inArray(tierPolicies.programVersionId, [...programVersionIds]),
+    ));
+  }
+
+  async getTiersByIds(ids: readonly string[]): Promise<Tier[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tiers).where(and(
+      eq(tiers.storeId, this.storeId),
+      inArray(tiers.id, [...ids]),
+    ));
+  }
+
+  async listForVersions(programVersionIds: readonly string[]): Promise<Tier[]> {
+    if (programVersionIds.length === 0) return [];
+    return this.connection.select().from(tiers).where(and(
+      eq(tiers.storeId, this.storeId),
+      inArray(tiers.programVersionId, [...programVersionIds]),
+    )).orderBy(asc(tiers.programVersionId), asc(tiers.rank), asc(tiers.id));
+  }
+
+  async getMembershipsByIds(ids: readonly string[]): Promise<TierMembership[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tierMemberships).where(and(
+      eq(tierMemberships.storeId, this.storeId),
+      inArray(tierMemberships.id, [...ids]),
+    ));
+  }
+
+  async getActiveMembershipsByAccountIds(accountIds: readonly string[]): Promise<TierMembership[]> {
+    if (accountIds.length === 0) return [];
+    return this.connection.select().from(tierMemberships).where(and(
+      eq(tierMemberships.storeId, this.storeId),
+      inArray(tierMemberships.accountId, [...accountIds]),
+      eq(tierMemberships.status, "ACTIVE"),
+    ));
+  }
+
+  async getMembershipEventsByIds(ids: readonly string[]): Promise<TierMembershipEvent[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(tierMembershipEvents).where(and(
+      eq(tierMembershipEvents.storeId, this.storeId),
+      inArray(tierMembershipEvents.id, [...ids]),
+    ));
+  }
+
+  async getMembershipEventsByMembershipIds(membershipIds: readonly string[]): Promise<TierMembershipEvent[]> {
+    if (membershipIds.length === 0) return [];
+    return this.connection.select().from(tierMembershipEvents).where(and(
+      eq(tierMembershipEvents.storeId, this.storeId),
+      inArray(tierMembershipEvents.membershipId, [...membershipIds]),
+    )).orderBy(asc(tierMembershipEvents.occurredAt), asc(tierMembershipEvents.id));
+  }
   async findPolicy(programVersionId: string): Promise<TierPolicy | null> {
     const rows = await this.connection
       .select()

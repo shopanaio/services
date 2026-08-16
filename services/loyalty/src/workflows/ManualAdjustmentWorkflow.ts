@@ -18,6 +18,7 @@ import { Loader } from "../loaders/Loader.js";
 export interface ManualLoyaltyAdjustmentInput {
   storeId: string;
   accountId: string;
+  expectedBalanceRevision: number;
   points: string;
   direction: "CREDIT" | "DEBIT";
   reasonCode: string;
@@ -27,6 +28,7 @@ export interface ManualLoyaltyAdjustmentInput {
   idempotencyKey: string;
   requestHash: string;
   expiresAt?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface ManualLoyaltyAdjustmentResult {

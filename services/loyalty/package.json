@@ -23,10 +23,14 @@
     "@as-integrations/fastify": "^2.1.1",
     "@nestjs/common": "^10.0.0",
     "@shopana/broker-types": "workspace:*",
+    "@shopana/drizzle-query": "workspace:*",
     "@shopana/events": "workspace:*",
     "@shopana/shared-context": "workspace:*",
+    "@shopana/shared-graphql-guid": "workspace:*",
     "@shopana/shared-kernel": "workspace:*",
+    "@shopana/shared-references": "workspace:*",
     "@shopana/shared-service-config": "workspace:*",
+    "@shopana/type-resolver": "workspace:*",
     "cache-manager": "^7.2.7",
     "dataloader": "^2.2.3",
     "drizzle-orm": "^0.45.1",
@@ -38,7 +42,8 @@
     "pino-pretty": "^11.2.2",
     "postgres": "^3.4.7",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.2",
@@ -46,6 +51,7 @@
     "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "workspace:*",
     "@types/node": "^20.14.14",
+    "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "typescript": "^5.5.4"
   },
   "engines": {

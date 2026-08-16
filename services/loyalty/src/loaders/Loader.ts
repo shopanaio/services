@@ -1,6 +1,101 @@
+import DataLoader from "dataloader";
 import type { Repository } from "../repositories/Repository.js";
+import { AccountLoader } from "./AccountLoader.js";
+import { LedgerLoader } from "./LedgerLoader.js";
+import { ProgramLoader } from "./ProgramLoader.js";
+import { ReservationLoader } from "./ReservationLoader.js";
+import { TierLoader } from "./TierLoader.js";
+import { StorefrontLoader, type StorefrontLoaderOptions } from "./StorefrontLoader.js";
 
-/** Request-scoped DataLoader registry prepared for Loyalty read models. */
+/** Request-scoped DataLoader registry for Loyalty Admin and Storefront reads. */
 export class Loader {
-  constructor(readonly repository: Repository) {}
+  readonly program;
+  readonly programVersion;
+  readonly programVersions;
+  readonly earningRule;
+  readonly earningRulesByVersion;
+  readonly rewardDefinition;
+  readonly rewardDefinitionsByVersion;
+  readonly tierPolicyByVersion;
+  readonly tierPolicy;
+  readonly tiersByVersion;
+  readonly account;
+  readonly accountBalance;
+  readonly activeTierMembership;
+  readonly expiringPoints;
+  readonly tier;
+  readonly tierMembership;
+  readonly tierMembershipEvent;
+  readonly tierMembershipEvents;
+  readonly transaction;
+  readonly ledgerEntry;
+  readonly ledgerEntriesByTransaction;
+  readonly pointLot;
+  readonly lotAllocation;
+  readonly lotAllocationsByLot;
+  readonly lotAllocationsByTransaction;
+  readonly reservation;
+  readonly reservationEvent;
+  readonly reservationEvents;
+  readonly activeProgram;
+  readonly effectiveProgramVersion;
+  readonly accountByCustomerProgram;
+  readonly rewardEntitlement;
+  readonly availableRewardEntitlements;
+  readonly customerEligibility;
+  readonly catalogProduct;
+  readonly catalogVariant;
+  readonly earningRuleUsage;
+  readonly rewardDefinitionUsage;
+  readonly effectiveAt;
+
+  [key: string]: DataLoader<any, any> | string;
+
+  constructor(repository: Repository, storefrontOptions?: StorefrontLoaderOptions) {
+    const program = new ProgramLoader(repository);
+    const account = new AccountLoader(repository);
+    const tier = new TierLoader(repository);
+    const ledger = new LedgerLoader(repository);
+    const reservation = new ReservationLoader(repository);
+    const storefront = new StorefrontLoader(repository, storefrontOptions);
+    this.program = program.program;
+    this.programVersion = program.version;
+    this.programVersions = program.versionsByProgram;
+    this.earningRule = program.earningRule;
+    this.earningRulesByVersion = program.earningRulesByVersion;
+    this.rewardDefinition = program.rewardDefinition;
+    this.rewardDefinitionsByVersion = program.rewardDefinitionsByVersion;
+    this.tierPolicyByVersion = program.tierPolicyByVersion;
+    this.tierPolicy = program.tierPolicy;
+    this.tiersByVersion = program.tiersByVersion;
+    this.account = account.account;
+    this.accountBalance = account.balance;
+    this.activeTierMembership = account.activeTierMembership;
+    this.expiringPoints = account.expiringPoints;
+    this.tier = tier.tier;
+    this.tierMembership = tier.membership;
+    this.tierMembershipEvent = tier.membershipEvent;
+    this.tierMembershipEvents = tier.membershipEvents;
+    this.transaction = ledger.transaction;
+    this.ledgerEntry = ledger.entry;
+    this.ledgerEntriesByTransaction = ledger.entriesByTransaction;
+    this.pointLot = ledger.pointLot;
+    this.lotAllocation = ledger.allocation;
+    this.lotAllocationsByLot = ledger.allocationsByLot;
+    this.lotAllocationsByTransaction = ledger.allocationsByTransaction;
+    this.reservation = reservation.reservation;
+    this.reservationEvent = reservation.reservationEvent;
+    this.reservationEvents = reservation.reservationEvents;
+    this.activeProgram = storefront.activeProgram;
+    this.effectiveProgramVersion = storefront.effectiveProgramVersion;
+    this.accountByCustomerProgram = storefront.accountByCustomerProgram;
+    this.rewardEntitlement = storefront.rewardEntitlement;
+    this.availableRewardEntitlements = storefront.availableRewardEntitlements;
+    this.customerEligibility = storefront.customerEligibility;
+    this.catalogProduct = storefront.catalogProduct;
+    this.catalogVariant = storefront.catalogVariant;
+    this.earningRuleUsage = storefront.earningRuleUsage;
+    this.rewardDefinitionUsage = storefront.rewardDefinitionUsage;
+    this.effectiveAt = storefrontOptions?.effectiveAt ?? new Date().toISOString();
+  }
 }

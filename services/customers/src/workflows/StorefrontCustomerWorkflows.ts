@@ -271,10 +271,14 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
   }
 
   @Workflow("storefrontCustomerDataRequestCreate", { idempotencyStrategy: "client" })
-  run(
+  async run(
     input: StorefrontCustomerDataRequestCreateWorkflowInput
   ): Promise<StorefrontCustomerDataRequestCreateWorkflowResult> {
-    return this.stepCreate(input);
+    const result = await this.stepCreate(input);
+    if (result.dataRequest && result.userErrors.length === 0) {
+      await this.stepStartProcess(input, result.dataRequest.id);
+    }
+    return result;
   }
 
   @WorkflowStep()
@@ -283,6 +287,34 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
       StorefrontCustomerDataRequestCreateScript,
       { ...input.params, customerId: input.context.customerId },
       this.scriptContext(input.context)
+    );
+  }
+
+  @WorkflowStep({
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private stepStartProcess(
+    input: StorefrontCustomerDataRequestCreateWorkflowInput,
+    dataRequestId: string,
+  ) {
+    return this.broker.startWorkflow(
+      "customers.customerDataRequestProcess",
+      {
+        dataRequestId,
+        context: {
+          organizationId: input.context.organizationId,
+          storeId: input.context.storeId,
+          locale: input.context.locale,
+          requestId: input.context.requestId,
+        },
+      },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId: DBOS.workflowID!,
+        stepId: "startCustomerDataRequestProcess",
+        callId: dataRequestId,
+      },
     );
   }
 }

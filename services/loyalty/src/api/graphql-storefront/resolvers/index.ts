@@ -1,2 +1,3 @@
-/** Resolver registrations are intentionally empty until domain projections exist. */
-export const resolvers = {};
+import { typeResolvers } from "./types.js";
+
+export const resolvers = { ...typeResolvers };

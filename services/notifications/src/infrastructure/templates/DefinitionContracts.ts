@@ -90,6 +90,44 @@ definitionContracts.set("customer.auth.password_reset", {
   }),
 });
 
+definitionContracts.set("customer.privacy.request_update", {
+  dataSchema: z.object({
+    request: z.object({
+      id: z.string().uuid(),
+      type: z.enum(["ACCESS", "EXPORT", "CORRECTION", "ERASURE"]),
+      status: z.enum(["PROCESSING", "COMPLETED", "REJECTED"]),
+      resultFileId: z.string().uuid().nullable().optional(),
+      rejectionReason: z.string().max(512).optional(),
+    }),
+  }),
+  variables: [
+    {
+      path: "request.id",
+      type: "STRING",
+      required: true,
+      description: "Privacy request identifier",
+    },
+    {
+      path: "request.type",
+      type: "STRING",
+      required: true,
+      description: "Privacy request type",
+    },
+    {
+      path: "request.status",
+      type: "STRING",
+      required: true,
+      description: "Current privacy request status",
+    },
+    {
+      path: "request.rejectionReason",
+      type: "STRING",
+      required: false,
+      description: "Safe rejection reason when processing was rejected",
+    },
+  ],
+});
+
 export function getDefinitionContract(
   key: NotificationDefinitionKey
 ): NotificationDefinitionContract {

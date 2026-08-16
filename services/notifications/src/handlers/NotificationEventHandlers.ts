@@ -34,7 +34,10 @@ export class NotificationEventHandlers extends EventHandlers {
     params: CatchAllEventHandlerParams,
     context: BrokerCallContext
   ): Promise<EventHandlerResponse<unknown>> {
-    if (params.event.eventType === "customerDeleted") {
+    if (
+      params.event.eventType === "customerDeleted" ||
+      params.event.eventType === "customerRedacted"
+    ) {
       return this.cleanupCustomer(params, context);
     }
 

@@ -19,6 +19,13 @@ export function createDefaultTemplateManifest(
 ): ReadonlyMap<string, DefaultTemplate> {
   const templates = new Map<string, DefaultTemplate>();
   for (const definition of definitions.list()) {
+    const privacyTemplates = createPrivacyRequestTemplates(definition.key);
+    if (privacyTemplates) {
+      for (const template of privacyTemplates) {
+        templates.set(templateId(template.key, template.channel, "en"), template);
+      }
+      continue;
+    }
     const applicationAuthTemplates = createApplicationAuthTemplates(
       definition.key
     );
@@ -50,6 +57,32 @@ export function createDefaultTemplateManifest(
     });
   }
   return templates;
+}
+
+function createPrivacyRequestTemplates(
+  key: NotificationDefinitionKey,
+): readonly DefaultTemplate[] | null {
+  if (key !== "customer.privacy.request_update") return null;
+  const text =
+    "Your {{request.type}} privacy request {{request.id}} is now {{request.status}}.";
+  return [
+    {
+      key,
+      channel: "EMAIL",
+      locale: "en",
+      sourceVersion: "architecture-defaults-v2",
+      subjectTemplate: "Privacy request {{request.status}}",
+      bodyTemplate: `<p>${text}</p>`,
+      plainTextTemplate: text,
+    },
+    {
+      key,
+      channel: "SMS",
+      locale: "en",
+      sourceVersion: "architecture-defaults-v2",
+      bodyTemplate: text,
+    },
+  ];
 }
 
 function createApplicationAuthTemplates(

@@ -426,6 +426,19 @@ export class CustomerComparisonRepository extends BaseRepository {
     };
   }
 
+  async deleteForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerComparison)
+      .where(
+        and(
+          eq(customerComparison.storeId, this.storeId),
+          eq(customerComparison.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerComparison.id });
+    return rows.length;
+  }
+
   private async lockActiveCustomer(customerId: string): Promise<boolean> {
     const rows = await this.connection
       .select({ id: customer.id })

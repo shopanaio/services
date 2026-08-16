@@ -175,7 +175,10 @@ export enum GlobalIdEntity {
   // Loyalty
   LoyaltyProgram = "LoyaltyProgram",
   LoyaltyProgramVersion = "LoyaltyProgramVersion",
+  LoyaltyEarningRule = "LoyaltyEarningRule",
+  LoyaltyRewardDefinition = "LoyaltyRewardDefinition",
   LoyaltyTier = "LoyaltyTier",
+  LoyaltyTierPolicy = "LoyaltyTierPolicy",
   LoyaltyAccount = "LoyaltyAccount",
   LoyaltyTierMembership = "LoyaltyTierMembership",
   LoyaltyTierMembershipEvent = "LoyaltyTierMembershipEvent",
@@ -185,6 +188,7 @@ export enum GlobalIdEntity {
   LoyaltyLotAllocation = "LoyaltyLotAllocation",
   LoyaltyReservation = "LoyaltyReservation",
   LoyaltyReservationEvent = "LoyaltyReservationEvent",
+  LoyaltyAvailableReward = "LoyaltyAvailableReward",
   // Media
   File = "File",
   MediaAssetGroup = "MediaAssetGroup",

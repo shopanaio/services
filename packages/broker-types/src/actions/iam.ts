@@ -182,6 +182,18 @@ export type GetServiceLinkedApplicationUserResult =
       found: false;
     };
 
+export interface DeleteServiceLinkedApplicationUserParams
+  extends GetServiceLinkedApplicationUserParams {
+  requestId: string;
+}
+
+export interface DeleteServiceLinkedApplicationUserResult {
+  success: boolean;
+  deleted: boolean;
+  error?: string;
+  errorCode?: string;
+}
+
 // ============================================================================
 // Authorization Actions
 // ============================================================================

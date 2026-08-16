@@ -354,6 +354,19 @@ export class CustomerTagRepository extends BaseRepository {
     };
   }
 
+  async deleteAssignmentsForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerTagAssignment)
+      .where(
+        and(
+          eq(customerTagAssignment.storeId, this.storeId),
+          eq(customerTagAssignment.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerTagAssignment.id });
+    return rows.length;
+  }
+
   @ReadOnly()
   async findAssignment(
     customerId: string,

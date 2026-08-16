@@ -5,6 +5,7 @@ import type {
   CdnRoutingRule,
   File,
 } from "../../repositories/models/index.js";
+import { getBucketName, getS3Client } from "../s3/index.js";
 import {
   cdnAdapterRegistry,
   type CdnAdapterContext,
@@ -56,6 +57,26 @@ export class CdnDeliveryService {
       file.provider === "S3"
         ? await this.repository.s3Object.findByFileId(file.id)
         : null;
+
+    if (isPrivateFile(file)) {
+      if (!s3Object) {
+        throw new Error("Private media object is unavailable");
+      }
+      const url = await getS3Client().presignedGetObject(
+        getBucketName(),
+        s3Object.objectKey,
+        300,
+        { "response-cache-control": "private, no-store" },
+      );
+      return {
+        url,
+        originUrl,
+        configuration: null,
+        routingRule: null,
+        fallback: false,
+        userErrors: [],
+      };
+    }
 
     if (!s3Object) {
       return {
@@ -526,4 +547,13 @@ export class CdnDeliveryService {
       throw new Error("CDN adapter returned a URL outside the configured origin");
     }
   }
+}
+
+function isPrivateFile(file: File): boolean {
+  return (
+    file.meta !== null &&
+    typeof file.meta === "object" &&
+    !Array.isArray(file.meta) &&
+    (file.meta as Record<string, unknown>).access === "PRIVATE"
+  );
 }

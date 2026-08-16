@@ -151,4 +151,20 @@ export class BalanceRepository extends BaseRepository {
       )
       .orderBy(asc(accountExpiringPoints.expiresAt), asc(accountExpiringPoints.lotId));
   }
+
+  async listExpiringPointsForAccounts(accountIds: readonly string[]): Promise<AccountExpiringPoint[]> {
+    if (accountIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(accountExpiringPoints)
+      .where(and(
+        eq(accountExpiringPoints.storeId, this.storeId),
+        inArray(accountExpiringPoints.accountId, [...accountIds]),
+      ))
+      .orderBy(
+        asc(accountExpiringPoints.accountId),
+        asc(accountExpiringPoints.expiresAt),
+        asc(accountExpiringPoints.lotId),
+      );
+  }
 }

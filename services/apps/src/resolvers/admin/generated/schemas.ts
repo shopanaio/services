@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationStatus, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderByInput, AppOrderField, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, AppWhereInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationStatus, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderByInput, AppOrderField, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, AppWhereInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -38,6 +38,10 @@ export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
+
+export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
+
+export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const SortDirectionSchema = z.nativeEnum(SortDirection);
 

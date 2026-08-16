@@ -1,4 +1,10 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   programs,
@@ -12,7 +18,110 @@ import {
 export type CreateProgramInput = Omit<NewProgram, "storeId">;
 export type CreateProgramVersionInput = Omit<NewProgramVersion, "storeId">;
 
+const programRelayQuery = createRelayQuery(
+  createQuery(programs).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "loyalty-program", tieBreaker: "id" },
+);
+
+type ProgramRelayInput = InferRelayInput<typeof programRelayQuery>;
+
+export interface ProgramConnectionInput {
+  first?: number;
+  after?: string;
+  last?: number;
+  before?: string;
+  where?: {
+    ids?: readonly string[];
+    statuses?: readonly Program["status"][];
+    isDefault?: boolean;
+    search?: string;
+  };
+}
+
+export interface ProgramConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
 export class ProgramRepository extends BaseRepository {
+  async getByIds(ids: readonly string[]): Promise<Program[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(programs)
+      .where(and(eq(programs.storeId, this.storeId), inArray(programs.id, [...ids])));
+  }
+
+  async getVersionsByIds(ids: readonly string[]): Promise<ProgramVersion[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(programVersions)
+      .where(and(eq(programVersions.storeId, this.storeId), inArray(programVersions.id, [...ids])));
+  }
+
+  async getVersionsByProgramIds(programIds: readonly string[]): Promise<ProgramVersion[]> {
+    if (programIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(programVersions)
+      .where(and(eq(programVersions.storeId, this.storeId), inArray(programVersions.programId, [...programIds])))
+      .orderBy(asc(programVersions.programId), desc(programVersions.version));
+  }
+
+  async getEffectiveVersionsByProgramIds(
+    programIds: readonly string[],
+    effectiveAt: string,
+  ): Promise<ProgramVersion[]> {
+    if (programIds.length === 0) return [];
+    return this.connection
+      .select()
+      .from(programVersions)
+      .where(and(
+        eq(programVersions.storeId, this.storeId),
+        inArray(programVersions.programId, [...programIds]),
+        eq(programVersions.status, "ACTIVE"),
+        lte(programVersions.effectiveFrom, effectiveAt),
+        or(isNull(programVersions.effectiveTo), gt(programVersions.effectiveTo, effectiveAt)),
+      ))
+      .orderBy(asc(programVersions.programId), desc(programVersions.effectiveFrom), desc(programVersions.version));
+  }
+
+  async getConnection(input: ProgramConnectionInput): Promise<ProgramConnectionResult> {
+    const { where, ...pagination } = input;
+    const clauses: NonNullable<ProgramRelayInput["where"]>[] = [
+      { storeId: { _eq: this.storeId } },
+    ];
+    if (where?.ids?.length) clauses.push({ id: { _in: [...where.ids] } });
+    if (where?.statuses?.length) clauses.push({ status: { _in: [...where.statuses] } });
+    if (where?.isDefault !== undefined) clauses.push({ isDefault: { _eq: where.isDefault } });
+    if (where?.search?.trim()) {
+      clauses.push({
+        _or: [
+          { code: { _containsi: where.search.trim() } },
+          { name: { _containsi: where.search.trim() } },
+        ],
+      });
+    }
+    const relayInput: ProgramRelayInput = {
+      ...pagination,
+      where: { _and: clauses },
+      orderBy: [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      programRelayQuery.execute(this.connection, relayInput),
+      programRelayQuery.count(this.connection, { where: relayInput.where }),
+    ]);
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({ cursor, nodeId: node.id })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
   async lockById(id: string): Promise<Program | null> {
     const rows = await this.connection
       .select()
@@ -276,6 +385,7 @@ export class ProgramRepository extends BaseRepository {
     input: {
       status: "SCHEDULED" | "ACTIVE";
       effectiveFrom: string;
+      effectiveTo: string | null;
       publishedAt: string;
       publishedById: string | null;
       rules: Record<string, unknown>;

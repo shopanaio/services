@@ -51,6 +51,18 @@ import {
   type SyncEntityFilesParams,
   type SyncEntityFilesResult,
 } from "../scripts/backRef/dto/index.js";
+import {
+  DeleteOwnedFilesScript,
+  UploadGeneratedFileScript,
+} from "../scripts/file/GeneratedFileScripts.js";
+import {
+  deleteOwnedFilesSchema,
+  uploadGeneratedFileSchema,
+  type DeleteOwnedFilesParams,
+  type DeleteOwnedFilesResult,
+  type UploadGeneratedFileParams,
+  type UploadGeneratedFileResult,
+} from "../scripts/file/dto/GeneratedFileDto.js";
 
 /**
  * Media broker actions registered with @Action decorator.
@@ -159,5 +171,21 @@ export class MediaBrokerActions extends BrokerActions {
     params: SyncEntityFilesParams,
   ): Promise<SyncEntityFilesResult> {
     return this.kernel.runScript(SyncEntityFilesScript, params);
+  }
+
+  @Action("uploadGeneratedFile")
+  @ZodSchema(uploadGeneratedFileSchema)
+  async uploadGeneratedFile(
+    params: UploadGeneratedFileParams,
+  ): Promise<UploadGeneratedFileResult> {
+    return this.kernel.runScript(UploadGeneratedFileScript, params);
+  }
+
+  @Action("deleteOwnedFiles")
+  @ZodSchema(deleteOwnedFilesSchema)
+  async deleteOwnedFiles(
+    params: DeleteOwnedFilesParams,
+  ): Promise<DeleteOwnedFilesResult> {
+    return this.kernel.runScript(DeleteOwnedFilesScript, params);
   }
 }

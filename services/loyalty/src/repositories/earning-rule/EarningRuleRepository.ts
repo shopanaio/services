@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   earningRules,
@@ -7,6 +7,21 @@ import {
 } from "../models/index.js";
 
 export class EarningRuleRepository extends BaseRepository {
+  async getByIds(ids: readonly string[]): Promise<EarningRule[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(earningRules).where(and(
+      eq(earningRules.storeId, this.storeId),
+      inArray(earningRules.id, [...ids]),
+    ));
+  }
+
+  async listForVersions(programVersionIds: readonly string[]): Promise<EarningRule[]> {
+    if (programVersionIds.length === 0) return [];
+    return this.connection.select().from(earningRules).where(and(
+      eq(earningRules.storeId, this.storeId),
+      inArray(earningRules.programVersionId, [...programVersionIds]),
+    )).orderBy(asc(earningRules.programVersionId), asc(earningRules.priority), asc(earningRules.id));
+  }
   async findById(id: string): Promise<EarningRule | null> {
     const rows = await this.connection
       .select()

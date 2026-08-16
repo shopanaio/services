@@ -202,6 +202,11 @@ const getServiceLinkedApplicationUserInputSchema =
     })
     .strict();
 
+const deleteServiceLinkedApplicationUserInputSchema =
+  getServiceLinkedApplicationUserInputSchema
+    .extend({ requestId: z.string().uuid("Invalid privacy request ID") })
+    .strict();
+
 type AllocateApplicationIdParams = z.infer<typeof allocateApplicationIdInputSchema>;
 type AllocateApplicationIdResult = {
   success: boolean;
@@ -278,6 +283,15 @@ type GetServiceLinkedApplicationUserResult =
   | {
       found: false;
     };
+type DeleteServiceLinkedApplicationUserParams = z.infer<
+  typeof deleteServiceLinkedApplicationUserInputSchema
+>;
+type DeleteServiceLinkedApplicationUserResult = {
+  success: boolean;
+  deleted: boolean;
+  error?: string;
+  errorCode?: string;
+};
 
 /**
  * IAM broker actions registered with @Action decorator.
@@ -719,6 +733,57 @@ export class IamBrokerActions extends BrokerActions {
         lastName: user.lastName,
       },
     };
+  }
+
+  @Action("deleteServiceLinkedApplicationUser")
+  @ZodSchema(deleteServiceLinkedApplicationUserInputSchema)
+  async deleteServiceLinkedApplicationUser(
+    params: DeleteServiceLinkedApplicationUserParams,
+    actionContext: BrokerCallContext,
+  ): Promise<DeleteServiceLinkedApplicationUserResult> {
+    const requestId = params.requestId;
+    try {
+      await this.assertServiceLinkedApplicationOwner(params, actionContext);
+      const applicationUsers = this.kernel.repository.applicationUser
+        .forApplication(params.applicationId);
+      const deleted = await this.kernel.repository.txManager.run(async () => {
+        const removed = await applicationUsers.removeWithinTransaction(
+          params.userId,
+        );
+        await this.kernel.repository.applicationAuthAdminAudit.append({
+          recordId: params.requestId,
+          schemaVersion: 1,
+          occurredAt: new Date().toISOString(),
+          category: "application_auth_admin",
+          action: "application_user_privacy_delete",
+          outcome: "success",
+          reasonCategory: "success",
+          actorType: "external_service",
+          actorId: actionContext.caller.service,
+          organizationId: params.organizationId,
+          applicationId: params.applicationId,
+          targetType: "application_user",
+          targetId: params.userId,
+          requestId,
+          safeDiff: {
+            changedFields: ["status", "sessions", "linkedAccount"],
+          },
+        });
+        return removed;
+      });
+      if (deleted) await applicationUsers.publishInvalidation(params.userId);
+      return { success: true, deleted };
+    } catch (error) {
+      return {
+        success: false,
+        deleted: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete service-linked application user",
+        errorCode: errorCode(error) ?? "INTERNAL_ERROR",
+      };
+    }
   }
 
   private async assertServiceLinkedApplicationOwner(

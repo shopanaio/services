@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import {
   BrokerWorkflows,
+  DBOS,
   InjectBroker,
   Policy,
   ServiceBroker,
@@ -156,7 +157,11 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
   async run(
     input: CustomerMergeCreateWorkflowInput
   ): Promise<CustomerMergeCreateWorkflowResult> {
-    return this.stepCreate(input);
+    const result = await this.stepCreate(input);
+    if (result.merge && result.userErrors.length === 0) {
+      await this.stepStartProcess(input, result.merge.id);
+    }
+    return result;
   }
 
   @WorkflowStep()
@@ -165,6 +170,26 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
       CustomerMergeCreateScript,
       input.params,
       this.toScriptContext(input.context)
+    );
+  }
+
+  @WorkflowStep({
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private stepStartProcess(
+    input: CustomerMergeCreateWorkflowInput,
+    mergeId: string,
+  ) {
+    return this.broker.startWorkflow(
+      "customers.customerMergeProcess",
+      { mergeId, context: input.context },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId: DBOS.workflowID!,
+        stepId: "startCustomerMergeProcess",
+        callId: mergeId,
+      },
     );
   }
 }
@@ -185,7 +210,11 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
   async run(
     input: CustomerDataRequestCreateWorkflowInput
   ): Promise<CustomerDataRequestCreateWorkflowResult> {
-    return this.stepCreate(input);
+    const result = await this.stepCreate(input);
+    if (result.dataRequest && result.userErrors.length === 0) {
+      await this.stepStartProcess(input, result.dataRequest.id);
+    }
+    return result;
   }
 
   @WorkflowStep()
@@ -194,6 +223,26 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
       CustomerDataRequestCreateScript,
       input.params,
       this.toScriptContext(input.context)
+    );
+  }
+
+  @WorkflowStep({
+    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private stepStartProcess(
+    input: CustomerDataRequestCreateWorkflowInput,
+    dataRequestId: string,
+  ) {
+    return this.broker.startWorkflow(
+      "customers.customerDataRequestProcess",
+      { dataRequestId, context: input.context },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId: DBOS.workflowID!,
+        stepId: "startCustomerDataRequestProcess",
+        callId: dataRequestId,
+      },
     );
   }
 }

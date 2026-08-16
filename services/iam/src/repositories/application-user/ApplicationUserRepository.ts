@@ -465,19 +465,35 @@ export class ApplicationUserRepository extends BaseRepository {
     return { status: "unlinked", accountId: rows[0]!.id };
   }
 
-  @Transactional()
   async remove(userId: string): Promise<boolean> {
+    const deleted = await this.txManager.run(async () => {
+      return this.removeWithinTransaction(userId);
+    });
+    if (deleted) await this.publishInvalidation(userId);
+    return deleted;
+  }
+
+  async removeWithinTransaction(userId: string): Promise<boolean> {
     const result = await this.connection
       .delete(applicationUser)
       .where(
         and(
           eq(applicationUser.applicationId, this.applicationId),
-          eq(applicationUser.id, userId)
-        )
+          eq(applicationUser.id, userId),
+        ),
       )
       .returning({ id: applicationUser.id });
-
     return result.length > 0;
+  }
+
+  async publishInvalidation(userId: string): Promise<void> {
+    await this.invalidation.publish(
+      createApplicationAuthLiveStateInvalidationEvent({
+        kind: "user",
+        applicationId: this.applicationId,
+        userId,
+      }),
+    );
   }
 
   private async revokeAllCredentials(userId: string): Promise<void> {

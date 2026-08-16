@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   earningRuleUsages,
@@ -13,6 +13,28 @@ import {
 } from "../models/index.js";
 
 export class EventRepository extends BaseRepository {
+  async getCurrentUsages(
+    earningRuleIds: readonly string[],
+    scopeKeys: readonly string[],
+    effectiveAt: string,
+  ): Promise<EarningRuleUsage[]> {
+    if (earningRuleIds.length === 0 || scopeKeys.length === 0) return [];
+    return this.connection
+      .select()
+      .from(earningRuleUsages)
+      .where(and(
+        eq(earningRuleUsages.storeId, this.storeId),
+        inArray(earningRuleUsages.earningRuleId, [...earningRuleIds]),
+        inArray(earningRuleUsages.scopeKey, [...scopeKeys]),
+        lte(earningRuleUsages.windowStartedAt, effectiveAt),
+        or(isNull(earningRuleUsages.windowEndedAt), gt(earningRuleUsages.windowEndedAt, effectiveAt)),
+      ))
+      .orderBy(
+        desc(earningRuleUsages.windowStartedAt),
+        desc(earningRuleUsages.id),
+      );
+  }
+
   async findFactById(id: string): Promise<EventFact | null> {
     const rows = await this.connection
       .select()

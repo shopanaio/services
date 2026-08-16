@@ -341,6 +341,42 @@ export interface CustomerDeletedEvent
     }
   > {}
 
+export interface CustomerRedactedEvent
+  extends DomainEvent<
+    "customerRedacted",
+    {
+      customerId: string;
+      storeId: string;
+      dataRequestId: string;
+      revision: number;
+      redactedAt: string;
+    }
+  > {}
+
+export interface CustomerDataRequestStatusChangedEvent
+  extends DomainEvent<
+    "customerDataRequestStatusChanged",
+    {
+      dataRequestId: string;
+      customerId: string;
+      storeId: string;
+      requestType: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
+      status: "PROCESSING" | "COMPLETED" | "REJECTED";
+      resultFileId?: string | null;
+      rejectionReason?: string;
+      occurredAt: string;
+      notification: NotificationSnapshot<{
+        request: {
+          id: string;
+          type: "ACCESS" | "EXPORT" | "CORRECTION" | "ERASURE";
+          status: "PROCESSING" | "COMPLETED" | "REJECTED";
+          resultFileId?: string | null;
+          rejectionReason?: string;
+        };
+      }>;
+    }
+  > {}
+
 export interface CustomerMergedEvent
   extends DomainEvent<
     "customerMerged",
@@ -889,6 +925,8 @@ export type ShopanaEvent =
   | ApplicationUserDeletedEvent
   | CustomerCreatedEvent
   | CustomerDeletedEvent
+  | CustomerRedactedEvent
+  | CustomerDataRequestStatusChangedEvent
   | CustomerMergedEvent
   | CustomerUpdatedEvent
   | CustomerExternalReferenceCreatedEvent

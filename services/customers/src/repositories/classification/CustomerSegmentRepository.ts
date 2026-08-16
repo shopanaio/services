@@ -737,6 +737,19 @@ export class CustomerSegmentRepository extends BaseRepository {
     };
   }
 
+  async deleteMembershipsForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerSegmentMembership.id });
+    return rows.length;
+  }
+
   private async bumpRevision(
     segmentId: string,
     expectedRevision?: number,

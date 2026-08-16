@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDefinitionSetEnabledInput, NotificationPreviewInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookDeleteInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, StaffNotificationRecipientInput, StaffRecipientDeleteInput, WeightUnit } from './types.js'
+import { CurrencyCode, DimensionUnit, LocaleCode, NotificationAudience, NotificationChannel, NotificationChannelSettingInput, NotificationDefinitionSetEnabledInput, NotificationPreviewInput, NotificationTemplateUpdateInput, NotificationTestMessageInput, NotificationWebhookApiStability, NotificationWebhookCreateInput, NotificationWebhookDeleteInput, NotificationWebhookFormat, NotificationWebhookStatus, NotificationWebhookUpdateInput, PriceAdjustmentOperation, PriceAdjustmentValueType, StaffNotificationRecipientInput, StaffRecipientDeleteInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -26,6 +26,10 @@ export const NotificationWebhookApiStabilitySchema = z.nativeEnum(NotificationWe
 export const NotificationWebhookFormatSchema = z.nativeEnum(NotificationWebhookFormat);
 
 export const NotificationWebhookStatusSchema = z.nativeEnum(NotificationWebhookStatus);
+
+export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
+
+export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 

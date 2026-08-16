@@ -323,6 +323,15 @@ export class CheckoutRedemptionService {
     return this.releaseOrExpire(params, "RELEASED", params.releasedAt);
   }
 
+  async releaseAdmin(
+    params: ReleaseCheckoutLoyaltyRedemptionParams & {
+      expectedRevision: number;
+      reasonCode: string;
+    },
+  ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
+    return this.releaseOrExpire(params, "RELEASED", params.releasedAt);
+  }
+
   async expire(
     params: ExpireCheckoutLoyaltyRedemptionsParams,
   ): Promise<ExpireCheckoutLoyaltyRedemptionsResult> {
@@ -426,7 +435,10 @@ export class CheckoutRedemptionService {
   }
 
   private async releaseOrExpire(
-    params: ReleaseCheckoutLoyaltyRedemptionParams,
+    params: ReleaseCheckoutLoyaltyRedemptionParams & {
+      expectedRevision?: number;
+      reasonCode?: string;
+    },
     target: "RELEASED" | "EXPIRED",
     occurredAt: string,
   ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
@@ -435,6 +447,9 @@ export class CheckoutRedemptionService {
       return await this.repository.runInTransaction(async () => {
         const reservation = await this.repository.reservation.lockById(params.reservationId);
         if (!reservation) return { status: "REJECTED", code: "RESERVATION_NOT_FOUND", message: "Loyalty reservation was not found", retryable: false };
+        if (params.expectedRevision !== undefined && reservation.revision !== params.expectedRevision) {
+          throw new LoyaltyDomainError("RESERVATION_CONCURRENT_CHANGE", "Loyalty reservation changed concurrently", true);
+        }
         if (reservation.status !== "ACTIVE") {
           if (reservation.status === "COMMITTED") return { status: "REJECTED", code: "RESERVATION_COMMITTED", message: "Committed reservation cannot be released", retryable: false };
           return { status: "NOOP", reservationId: reservation.id, currentStatus: reservation.status as "RELEASED" | "EXPIRED" | "REVERSED" };
@@ -452,7 +467,7 @@ export class CheckoutRedemptionService {
           idempotencyKey: `points:${params.idempotencyKey}`,
           requestHash: params.requestHash,
           actorType: "SERVICE",
-          reasonCode: target === "EXPIRED" ? "RESERVATION_EXPIRED" : params.reason,
+          reasonCode: target === "EXPIRED" ? "RESERVATION_EXPIRED" : (params.reasonCode ?? params.reason),
           occurredAt,
           effectiveAt: occurredAt,
           metadata: { reservationId: reservation.id, checkoutId: reservation.checkoutId },
@@ -470,7 +485,7 @@ export class CheckoutRedemptionService {
           status: target,
           transactionId: operation.transaction.id,
           idempotencyKey: params.idempotencyKey,
-          reasonCode: target === "EXPIRED" ? "RESERVATION_EXPIRED" : params.reason,
+          reasonCode: target === "EXPIRED" ? "RESERVATION_EXPIRED" : (params.reasonCode ?? params.reason),
           actorType: "SERVICE",
           occurredAt,
         });

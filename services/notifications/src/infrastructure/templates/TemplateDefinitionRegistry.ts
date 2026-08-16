@@ -83,6 +83,7 @@ const manifest = [
   ["customer.auth.password_reset", "Authentication password reset", action(), "CUSTOMER", false],
   ["customer.auth.account_deletion_confirmation", "Account deletion confirmation", action(), "CUSTOMER", false],
   ["customer.marketing.confirmation", "Customer marketing confirmation", action(), "CUSTOMER", true],
+  ["customer.privacy.request_update", "Privacy request update", event("customerDataRequestStatusChanged"), "CUSTOMER", false],
   ["staff.order.new", "New order", event("orderCreated"), "STAFF", true],
   ["staff.order.change_request.new", "New change request", event("orderChangeRequestReceived"), "STAFF", true],
   ["staff.order.sales_attribution_edited", "Sales attribution edited", event("orderSalesAttributionEdited"), "STAFF", true],
@@ -93,7 +94,7 @@ const manifest = [
 ];
 
 export class TemplateDefinitionRegistry {
-  static readonly VERSION = "2026-07-v5";
+  static readonly VERSION = "2026-08-v6";
 
   private readonly definitions: ReadonlyMap<
     NotificationDefinitionKey,
@@ -165,10 +166,10 @@ export class TemplateDefinitionRegistry {
 
   private assertInvariants(): void {
     if (
-      this.definitions.size !== 54 ||
-      NOTIFICATION_DEFINITION_KEYS.length !== 54
+      this.definitions.size !== 55 ||
+      NOTIFICATION_DEFINITION_KEYS.length !== 55
     ) {
-      throw new Error("Notification registry must contain exactly 54 keys");
+      throw new Error("Notification registry must contain exactly 55 keys");
     }
     for (const key of NOTIFICATION_DEFINITION_KEYS) {
       if (!this.definitions.has(key)) {

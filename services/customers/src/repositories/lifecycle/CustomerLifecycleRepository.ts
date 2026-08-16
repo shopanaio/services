@@ -4,7 +4,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   normalizeRelayPagination,
@@ -102,6 +102,21 @@ export type CustomerDataRequestPatch = Partial<
 >;
 
 export class CustomerLifecycleRepository extends BaseRepository {
+  async lockMergeById(id: string): Promise<CustomerMerge | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerMerge)
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          eq(customerMerge.id, id),
+        ),
+      )
+      .limit(1)
+      .for("update");
+    return rows[0] ?? null;
+  }
+
   @ReadOnly()
   async findMergeById(id: string): Promise<CustomerMerge | null> {
     const rows = await this.connection
@@ -143,6 +158,21 @@ export class CustomerLifecycleRepository extends BaseRepository {
         )
       )
       .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async lockDataRequestById(id: string): Promise<CustomerDataRequest | null> {
+    const rows = await this.connection
+      .select()
+      .from(customerDataRequest)
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.id, id),
+        ),
+      )
+      .limit(1)
+      .for("update");
     return rows[0] ?? null;
   }
 
@@ -210,6 +240,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
       errorCode?: string | null;
       errorMessage?: string | null;
       transitionedAt?: string;
+      expectedStatuses?: readonly CustomerMerge["status"][];
+      expectedUpdatedAt?: string;
     }
   ): Promise<CustomerMerge | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
@@ -226,7 +258,18 @@ export class CustomerLifecycleRepository extends BaseRepository {
           : {}),
         updatedAt: now,
       })
-      .where(and(eq(customerMerge.storeId, this.storeId), eq(customerMerge.id, id)))
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          eq(customerMerge.id, id),
+          input.expectedStatuses
+            ? inArray(customerMerge.status, [...input.expectedStatuses])
+            : undefined,
+          input.expectedUpdatedAt
+            ? eq(customerMerge.updatedAt, input.expectedUpdatedAt)
+            : undefined,
+        ),
+      )
       .returning();
     return rows[0] ?? null;
   }
@@ -298,6 +341,8 @@ export class CustomerLifecycleRepository extends BaseRepository {
       rejectionReason?: string | null;
       requestMetadata?: Record<string, unknown>;
       transitionedAt?: string;
+      expectedStatuses?: readonly CustomerDataRequest["status"][];
+      expectedUpdatedAt?: string;
     }
   ): Promise<CustomerDataRequest | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
@@ -320,7 +365,13 @@ export class CustomerLifecycleRepository extends BaseRepository {
       .where(
         and(
           eq(customerDataRequest.storeId, this.storeId),
-          eq(customerDataRequest.id, id)
+          eq(customerDataRequest.id, id),
+          input.expectedStatuses
+            ? inArray(customerDataRequest.status, [...input.expectedStatuses])
+            : undefined,
+          input.expectedUpdatedAt
+            ? eq(customerDataRequest.updatedAt, input.expectedUpdatedAt)
+            : undefined,
         )
       )
       .returning();
@@ -351,9 +402,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
         and(
           eq(customerDataRequest.storeId, this.storeId),
           eq(customerDataRequest.id, id),
-          cancel
-            ? inArray(customerDataRequest.status, ["PENDING", "PROCESSING"])
-            : eq(customerDataRequest.status, "PENDING")
+          eq(customerDataRequest.status, "PENDING")
         )
       )
       .returning();
@@ -414,6 +463,127 @@ export class CustomerLifecycleRepository extends BaseRepository {
       )
       .returning({ id: customerDataRequest.id });
     return rows.length > 0;
+  }
+
+  async redactForCustomer(
+    customerId: string,
+    erasureRequestId: string,
+    redactedAt: string,
+  ): Promise<{ dataRequests: number; resultFileIds: string[]; merges: number }> {
+    const requests = await this.connection
+      .select({
+        id: customerDataRequest.id,
+        resultFileId: customerDataRequest.resultFileId,
+      })
+      .from(customerDataRequest)
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, customerId),
+        ),
+      );
+    await this.connection
+      .update(customerDataRequest)
+      .set({
+        status: "REJECTED",
+        rejectionReason: "Customer identity was redacted",
+        finishedAt: redactedAt,
+        updatedAt: redactedAt,
+      })
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, customerId),
+          ne(customerDataRequest.id, erasureRequestId),
+          inArray(customerDataRequest.status, ["PENDING", "PROCESSING"]),
+        ),
+      );
+    const updatedRequests = await this.connection
+      .update(customerDataRequest)
+      .set({
+        requestedByType: "system",
+        requestedById: null,
+        idempotencyKey: sql`'privacy-redacted:' || ${customerDataRequest.id}::text`,
+        legalBasis: null,
+        requestMetadata: {
+          redacted: true,
+          reason: "customer_erasure",
+          erasureRequestId,
+        },
+        resultFileId: null,
+        updatedAt: redactedAt,
+      })
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerDataRequest.id });
+    await this.connection
+      .update(customerDataRequest)
+      .set({ rejectionReason: "Customer data request was rejected" })
+      .where(
+        and(
+          eq(customerDataRequest.storeId, this.storeId),
+          eq(customerDataRequest.customerId, customerId),
+          eq(customerDataRequest.status, "REJECTED"),
+        ),
+      );
+    const failedActiveMerges = await this.connection
+      .update(customerMerge)
+      .set({
+        status: "FAILED",
+        reason: null,
+        requestedByType: "system",
+        requestedById: null,
+        idempotencyKey: sql`'privacy-redacted:' || ${customerMerge.id}::text`,
+        resolution: { redacted: true, reason: "customer_erasure" },
+        errorCode: "CUSTOMER_REDACTED",
+        errorMessage: null,
+        finishedAt: redactedAt,
+        updatedAt: redactedAt,
+      })
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          inArray(customerMerge.status, ["REQUESTED", "IN_PROGRESS"]),
+          or(
+            eq(customerMerge.sourceCustomerId, customerId),
+            eq(customerMerge.targetCustomerId, customerId),
+          ),
+        ),
+      )
+      .returning({ id: customerMerge.id });
+    const redactedTerminalMerges = await this.connection
+      .update(customerMerge)
+      .set({
+        reason: null,
+        requestedByType: "system",
+        requestedById: null,
+        idempotencyKey: sql`'privacy-redacted:' || ${customerMerge.id}::text`,
+        resolution: { redacted: true, reason: "customer_erasure" },
+        errorMessage: null,
+        updatedAt: redactedAt,
+      })
+      .where(
+        and(
+          eq(customerMerge.storeId, this.storeId),
+          inArray(customerMerge.status, ["COMPLETED", "FAILED"]),
+          or(
+            eq(customerMerge.sourceCustomerId, customerId),
+            eq(customerMerge.targetCustomerId, customerId),
+          ),
+        ),
+      )
+      .returning({ id: customerMerge.id });
+    return {
+      dataRequests: updatedRequests.length,
+      resultFileIds: requests.flatMap((row) =>
+        row.resultFileId ? [row.resultFileId] : [],
+      ),
+      merges: failedActiveMerges.length + redactedTerminalMerges.length,
+    };
   }
 
   @ReadOnly()

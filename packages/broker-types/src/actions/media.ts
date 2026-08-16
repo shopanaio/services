@@ -141,3 +141,33 @@ export interface SyncEntityFilesResult {
   linkedCount: number;
   skippedCount: number;
 }
+
+// ============================================================================
+// Trusted generated artifacts
+// ============================================================================
+
+export interface UploadGeneratedFileParams {
+  owner: FileOwnerRef;
+  entityRef: EntityRef;
+  role: string;
+  filename: string;
+  mimeType: string;
+  contentBase64: string;
+  idempotencyKey: string;
+}
+
+export interface UploadGeneratedFileResult {
+  fileId: string | null;
+  userErrors: UserError[];
+}
+
+export interface DeleteOwnedFilesParams {
+  owner: FileOwnerRef;
+  fileIds: string[];
+  permanent?: boolean;
+}
+
+export interface DeleteOwnedFilesResult {
+  acceptedIds: string[];
+  errors: Array<{ fileId: string; code: string }>;
+}

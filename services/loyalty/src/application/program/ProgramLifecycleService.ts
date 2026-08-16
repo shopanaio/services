@@ -2,6 +2,10 @@ import type { Repository } from "../../repositories/Repository.js";
 import type {
   NewProgram,
   NewProgramVersion,
+  NewEarningRule,
+  NewRewardDefinition,
+  NewTier,
+  NewTierPolicy,
   Program,
   ProgramVersion,
 } from "../../repositories/models/index.js";
@@ -39,6 +43,14 @@ export type ProgramVersionDraftInput = Omit<
   | "createdAt"
 > & { rules: LoyaltyProgramRulesValidationInputV1 };
 
+export interface ProgramVersionConfigurationInput {
+  expectedProgramRevision?: number;
+  earningRules?: readonly Omit<NewEarningRule, "id" | "storeId" | "programVersionId" | "createdAt">[];
+  rewardDefinitions?: readonly Omit<NewRewardDefinition, "id" | "storeId" | "programVersionId" | "createdAt">[];
+  tierPolicy?: Omit<NewTierPolicy, "id" | "storeId" | "programVersionId" | "createdAt"> | null;
+  tiers?: readonly Omit<NewTier, "id" | "storeId" | "programVersionId" | "createdAt">[];
+}
+
 export class ProgramLifecycleService {
   constructor(
     private readonly repository: Repository,
@@ -57,12 +69,16 @@ export class ProgramLifecycleService {
   async updateProgram(
     id: string,
     input: Parameters<Repository["program"]["update"]>[1],
+    expectedRevision?: number,
   ): Promise<Program> {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.program.lockById(id);
       if (!current) throw new LoyaltyDomainError("PROGRAM_NOT_FOUND", "Loyalty program was not found");
       if (current.status === "ARCHIVED") {
         throw new LoyaltyDomainError("PROGRAM_ARCHIVED", "An archived loyalty program is immutable");
+      }
+      if (expectedRevision !== undefined && current.revision !== expectedRevision) {
+        throw new LoyaltyDomainError("PROGRAM_CONCURRENT_CHANGE", "Loyalty program changed concurrently", true);
       }
       if (input.isDefault) await this.repository.program.clearDefault(id);
       const archivedAt = input.status === "ARCHIVED"
@@ -77,6 +93,7 @@ export class ProgramLifecycleService {
   async createDraftVersion(
     programId: string,
     input: ProgramVersionDraftInput,
+    configuration: ProgramVersionConfigurationInput = {},
   ): Promise<ProgramVersion> {
     const canonical = createLoyaltyProgramRulesV1(input.rules);
     if (!canonical.valid) {
@@ -89,6 +106,10 @@ export class ProgramLifecycleService {
       const program = await this.repository.program.lockById(programId);
       if (!program) throw new LoyaltyDomainError("PROGRAM_NOT_FOUND", "Loyalty program was not found");
       if (program.status === "ARCHIVED") throw new LoyaltyDomainError("PROGRAM_ARCHIVED", "Cannot version an archived program");
+      if (configuration.expectedProgramRevision !== undefined
+        && program.revision !== configuration.expectedProgramRevision) {
+        throw new LoyaltyDomainError("PROGRAM_CONCURRENT_CHANGE", "Loyalty program changed concurrently", true);
+      }
       const referenceIssues = await this.validateReferences({
         storeId: program.storeId,
         rules: canonical.rules as unknown as Record<string, unknown>,
@@ -101,7 +122,7 @@ export class ProgramLifecycleService {
       }
       const version = await this.repository.program.nextVersionNumber(programId);
       const { rules: _rules, ...draft } = input;
-      return this.repository.program.createVersion({
+      const created = await this.repository.program.createVersion({
         ...draft,
         programId,
         version,
@@ -111,6 +132,20 @@ export class ProgramLifecycleService {
         publishedAt: null,
         publishedById: null,
       });
+      for (const rule of configuration.earningRules ?? []) {
+        await this.repository.earningRule.create({ ...rule, programVersionId: created.id });
+      }
+      for (const definition of configuration.rewardDefinitions ?? []) {
+        await this.repository.reward.createDefinition({ ...definition, programVersionId: created.id });
+      }
+      if (configuration.tierPolicy) {
+        await this.repository.tier.createPolicy({ ...configuration.tierPolicy, programVersionId: created.id });
+      }
+      for (const tier of configuration.tiers ?? []) {
+        await this.repository.tier.createTier({ ...tier, programVersionId: created.id });
+      }
+      await this.repository.program.update(program.id, {});
+      return created;
     });
   }
 
@@ -151,7 +186,9 @@ export class ProgramLifecycleService {
 
   async publishVersion(input: {
     versionId: string;
+    expectedRevision?: number;
     effectiveFrom: string;
+    effectiveTo?: string | null;
     publishedAt: string;
     publishedById: string | null;
   }): Promise<ProgramVersion> {
@@ -159,6 +196,9 @@ export class ProgramLifecycleService {
       const draft = await this.repository.program.lockVersionById(input.versionId);
       if (!draft) throw new LoyaltyDomainError("PROGRAM_VERSION_NOT_FOUND", "Program version was not found");
       if (draft.status !== "DRAFT") throw new LoyaltyDomainError("PROGRAM_VERSION_ALREADY_PUBLISHED", "Program version is already published");
+      if (input.expectedRevision !== undefined && draft.revision !== input.expectedRevision) {
+        throw new LoyaltyDomainError("PROGRAM_VERSION_CONCURRENT_CHANGE", "Loyalty program version changed concurrently", true);
+      }
       const canonical = createLoyaltyProgramRulesV1(
         draft.rules as unknown as LoyaltyProgramRulesValidationInputV1,
       );
@@ -187,7 +227,8 @@ export class ProgramLifecycleService {
         );
       }
       const activeNow = Date.parse(input.effectiveFrom) === Date.parse(input.publishedAt);
-      if (draft.effectiveTo && Date.parse(draft.effectiveTo) <= Date.parse(input.effectiveFrom)) {
+      const effectiveTo = input.effectiveTo === undefined ? draft.effectiveTo : input.effectiveTo;
+      if (effectiveTo && Date.parse(effectiveTo) <= Date.parse(input.effectiveFrom)) {
         throw new LoyaltyDomainError("INVALID_PROGRAM_VERSION_WINDOW", "Program version effectiveTo must be after effectiveFrom");
       }
       if (activeNow) {
@@ -205,6 +246,7 @@ export class ProgramLifecycleService {
       const published = await this.repository.program.publishDraftVersion(draft.id, {
         status: activeNow ? "ACTIVE" : "SCHEDULED",
         effectiveFrom: input.effectiveFrom,
+        effectiveTo,
         publishedAt: input.publishedAt,
         publishedById: input.publishedById,
         rules: canonical.rules as unknown as Record<string, unknown>,

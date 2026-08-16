@@ -41,6 +41,7 @@ export class AccountLifecycleService {
 
   async adjust(input: {
     accountId: string;
+    expectedBalanceRevision?: number;
     points: bigint;
     direction: "CREDIT" | "DEBIT";
     reasonCode: string;
@@ -50,13 +51,41 @@ export class AccountLifecycleService {
     idempotencyKey: string;
     requestHash: string;
     expiresAt?: string | null;
+    metadata?: Record<string, unknown> | null;
   }) {
-    const account = await this.requireAccount(input.accountId);
-    if (input.points <= 0n) throw new LoyaltyDomainError("INVALID_ADJUSTMENT", "Adjustment points must be positive");
-    if (input.direction === "CREDIT") {
-      return this.points.award({
+    return this.repository.runInTransaction(async () => {
+      const account = await this.repository.account.lockById(input.accountId);
+      if (!account) throw new LoyaltyDomainError("ACCOUNT_NOT_FOUND", "Loyalty account was not found");
+      const balance = await this.repository.balance.lockByAccountId(input.accountId);
+      if (!balance) throw new LoyaltyDomainError("BALANCE_NOT_FOUND", "Loyalty account balance was not found");
+      if (input.expectedBalanceRevision !== undefined && balance.revision !== input.expectedBalanceRevision) {
+        throw new LoyaltyDomainError("BALANCE_CONCURRENT_CHANGE", "Loyalty account balance changed concurrently", true);
+      }
+      if (input.points <= 0n) throw new LoyaltyDomainError("INVALID_ADJUSTMENT", "Adjustment points must be positive");
+      if (input.direction === "CREDIT") {
+        return this.points.award({
+          account,
+          programVersionId: null,
+          source: "ADMIN",
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          actorType: "ADMIN_USER",
+          actorId: input.actorId,
+          reasonCode: input.reasonCode,
+          description: input.description,
+          occurredAt: input.occurredAt,
+          effectiveAt: input.occurredAt,
+          points: input.points,
+          activationAt: input.occurredAt,
+          expiresAt: input.expiresAt ?? null,
+          operationKind: "ADJUST_CREDIT",
+          metadata: { adjustment: true, ...(input.metadata ?? {}) },
+        });
+      }
+      return this.points.moveWithLotAllocation({
         account,
         programVersionId: null,
+        kind: "ADJUST_DEBIT",
         source: "ADMIN",
         idempotencyKey: input.idempotencyKey,
         requestHash: input.requestHash,
@@ -66,31 +95,13 @@ export class AccountLifecycleService {
         description: input.description,
         occurredAt: input.occurredAt,
         effectiveAt: input.occurredAt,
+        entries: [{ bucket: "AVAILABLE", pointsDelta: -input.points }],
+        lifetime: { adjusted: -input.points },
+        debitBucket: "AVAILABLE",
         points: input.points,
-        activationAt: input.occurredAt,
-        expiresAt: input.expiresAt ?? null,
-        operationKind: "ADJUST_CREDIT",
-        metadata: { adjustment: true },
+        allocationType: "REDEEM",
+        metadata: { adjustment: true, ...(input.metadata ?? {}) },
       });
-    }
-    return this.points.moveWithLotAllocation({
-      account,
-      programVersionId: null,
-      kind: "ADJUST_DEBIT",
-      source: "ADMIN",
-      idempotencyKey: input.idempotencyKey,
-      requestHash: input.requestHash,
-      actorType: "ADMIN_USER",
-      actorId: input.actorId,
-      reasonCode: input.reasonCode,
-      description: input.description,
-      occurredAt: input.occurredAt,
-      effectiveAt: input.occurredAt,
-      entries: [{ bucket: "AVAILABLE", pointsDelta: -input.points }],
-      lifetime: { adjusted: -input.points },
-      debitBucket: "AVAILABLE",
-      points: input.points,
-      allocationType: "REDEEM",
     });
   }
 

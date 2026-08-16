@@ -2548,3 +2548,4 @@ export type ApiResolvers<ContextType = GraphQLContext> = {
   UserError: ApiUserErrorResolvers<ContextType>;
   Weight: ApiWeightResolvers<ContextType>;
 };
+

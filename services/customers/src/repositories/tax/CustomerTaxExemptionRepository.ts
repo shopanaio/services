@@ -161,6 +161,47 @@ export class CustomerTaxExemptionRepository extends BaseRepository {
     return rows.length > 0;
   }
 
+  async redactForCustomer(
+    customerId: string,
+    redactedAt: string,
+  ): Promise<Array<{ id: string; certificateFileId: string | null }>> {
+    const exemptions = await this.connection
+      .select({
+        id: customerTaxExemption.id,
+        certificateFileId: customerTaxExemption.certificateFileId,
+      })
+      .from(customerTaxExemption)
+      .where(
+        and(
+          eq(customerTaxExemption.storeId, this.storeId),
+          eq(customerTaxExemption.customerId, customerId),
+        ),
+      );
+    for (const exemption of exemptions) {
+      await this.connection
+        .update(customerTaxExemption)
+        .set({
+          code: `redacted:${exemption.id}`,
+          countryCode: null,
+          regionCode: null,
+          reason: null,
+          status: "REVOKED",
+          certificateFileId: null,
+          validFrom: null,
+          validTo: null,
+          updatedAt: redactedAt,
+          deletedAt: redactedAt,
+        })
+        .where(
+          and(
+            eq(customerTaxExemption.storeId, this.storeId),
+            eq(customerTaxExemption.id, exemption.id),
+          ),
+        );
+    }
+    return exemptions;
+  }
+
   @ReadOnly()
   async getConnection(
     input: CustomerTaxExemptionConnectionInput

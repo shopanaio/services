@@ -16,7 +16,11 @@ export async function loadStorefrontFile(
     throw new PreloadNotFoundError("Storefront media context is unavailable");
   }
 
-  const file = await ctx.loaders.file.load(fileId);
+  const file = await ctx.kernel.repository.file.findByOwner(
+    fileId,
+    "store",
+    ctx.storefrontStore.id,
+  );
   if (
     !file ||
     !acceptedMediaTypes.includes(file.mediaType as FileMediaType)

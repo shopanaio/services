@@ -402,6 +402,86 @@ export class CustomerConsentRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async redactForCustomer(
+    customerId: string,
+    redactedAt: string,
+  ): Promise<number> {
+    const current = await this.connection
+      .select()
+      .from(customerConsent)
+      .where(
+        and(
+          eq(customerConsent.storeId, this.storeId),
+          eq(customerConsent.customerId, customerId),
+        ),
+      );
+
+    await this.connection
+      .update(customerConsentEvent)
+      .set({
+        contactPoint: "[redacted]",
+        source: "privacy_redaction",
+        sourceLocationId: null,
+        sourceIp: null,
+        userAgent: null,
+        actorId: null,
+        requestId: null,
+        idempotencyKey: null,
+        evidence: { redacted: true, reason: "customer_erasure" },
+      })
+      .where(
+        and(
+          eq(customerConsentEvent.storeId, this.storeId),
+          eq(customerConsentEvent.customerId, customerId),
+        ),
+      );
+
+    for (const consent of current) {
+      const contactPoint = `redacted:${consent.id}`;
+      await this.connection
+        .update(customerConsent)
+        .set({
+          state: "REDACTED",
+          optInLevel: "UNKNOWN",
+          contactPoint,
+          source: "privacy_redaction",
+          sourceLocationId: null,
+          sourceIp: null,
+          userAgent: null,
+          withdrawnAt: redactedAt,
+          updatedAt: redactedAt,
+        })
+        .where(
+          and(
+            eq(customerConsent.storeId, this.storeId),
+            eq(customerConsent.id, consent.id),
+          ),
+        );
+      await this.connection.insert(customerConsentEvent).values({
+        id: await this.generateUuidV7(),
+        storeId: this.storeId,
+        customerId,
+        consentId: consent.id,
+        channel: consent.channel,
+        previousState: consent.state,
+        newState: "REDACTED",
+        optInLevel: "UNKNOWN",
+        contactPoint,
+        source: "privacy_redaction",
+        sourceLocationId: null,
+        sourceIp: null,
+        userAgent: null,
+        actorType: "system",
+        actorId: null,
+        requestId: null,
+        idempotencyKey: `privacy-redaction:${customerId}:${consent.id}`,
+        evidence: { redacted: true, reason: "customer_erasure" },
+        occurredAt: redactedAt,
+      });
+    }
+    return current.length;
+  }
+
   @ReadOnly()
   async getEventConnection(
     input: CustomerConsentEventConnectionInput

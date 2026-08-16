@@ -1,4 +1,21 @@
 export {
+  CustomerDataRequestProcessError,
+  CustomerDataRequestProcessScript,
+  type CustomerDataRequestProcessParams,
+  type CustomerDataRequestProcessResult,
+} from "./CustomerDataRequestProcessScript.js";
+export {
+  CustomerDataRequestArtifactScript,
+  CustomerDataRequestIamLinkScript,
+  CustomerDataRequestNotificationSnapshotScript,
+  type CustomerDataRequestArtifactParams,
+  type CustomerDataRequestArtifactResult,
+  type CustomerDataRequestIamLinkParams,
+  type CustomerDataRequestIamLinkResult,
+  type CustomerDataRequestNotificationSnapshotParams,
+  type CustomerDataRequestNotificationSnapshotResult,
+} from "./CustomerDataRequestSupportScripts.js";
+export {
   CustomerDataRequestCreateScript,
   type CustomerDataRequestCreateParams,
   type CustomerDataRequestCreateResult,
@@ -28,6 +45,12 @@ export {
   type CustomerMergeUpdateParams,
   type CustomerMergeUpdateResult,
 } from "./CustomerMergeUpdateScript.js";
+export {
+  CustomerMergeProcessError,
+  CustomerMergeProcessScript,
+  type CustomerMergeProcessParams,
+  type CustomerMergeProcessResult,
+} from "./CustomerMergeProcessScript.js";
 export {
   CustomerLifecycleJobEventError,
   CustomerLifecycleJobEventScript,

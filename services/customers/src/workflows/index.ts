@@ -31,6 +31,8 @@ import { CustomerUpdateWorkflow } from "./CustomerUpdateWorkflow.js";
 import { CustomerProvisionFromIamWorkflow } from "./CustomerProvisionFromIamWorkflow.js";
 import { CustomerIamLifecycleWorkflow } from "./CustomerIamLifecycleWorkflow.js";
 import { CustomerStatisticsProjectionWorkflow } from "./CustomerStatisticsProjectionWorkflow.js";
+import { CustomerMergeProcessWorkflow } from "./CustomerMergeProcessWorkflow.js";
+import { CustomerDataRequestProcessWorkflow } from "./CustomerDataRequestProcessWorkflow.js";
 import { StorefrontAuthProvisionWorkflow } from "./StorefrontAuthProvisionWorkflow.js";
 import { StorefrontAuthDeprovisionWorkflow } from "./StorefrontAuthDeprovisionWorkflow.js";
 import {
@@ -60,6 +62,8 @@ export const workflows = [
   CustomerTagCreateWorkflow,
   CustomerSegmentCreateWorkflow,
   CustomerMergeCreateWorkflow,
+  CustomerMergeProcessWorkflow,
+  CustomerDataRequestProcessWorkflow,
   CustomerDataRequestCreateWorkflow,
   CustomerGroupUpdateWorkflow,
   CustomerTagUpdateWorkflow,
@@ -114,5 +118,7 @@ export * from "./StorefrontAuthProvisionWorkflow.js";
 export * from "./StorefrontAuthDeprovisionWorkflow.js";
 export * from "./WishlistWorkflows.js";
 export * from "./CustomerComparisonWorkflows.js";
+export * from "./CustomerMergeProcessWorkflow.js";
+export * from "./CustomerDataRequestProcessWorkflow.js";
 export * from "./StorefrontCustomerWorkflows.js";
 export * from "./dto/index.js";

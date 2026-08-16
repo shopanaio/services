@@ -53,6 +53,7 @@ export const NOTIFICATION_DEFINITION_KEYS = [
   "customer.auth.password_reset",
   "customer.auth.account_deletion_confirmation",
   "customer.marketing.confirmation",
+  "customer.privacy.request_update",
   "staff.order.new",
   "staff.order.change_request.new",
   "staff.order.sales_attribution_edited",

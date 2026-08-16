@@ -1,9 +1,17 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   ledgerEntries,
   lotAllocations,
   pointLots,
+  reservationEvents,
+  reservations,
   transactions,
   type LedgerEntry,
   type LotAllocation,
@@ -15,7 +23,133 @@ import {
   type PointLot,
 } from "../models/index.js";
 
+const transactionRelayQuery = createRelayQuery(
+  createQuery(transactions).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "loyalty-transaction", tieBreaker: "id" },
+);
+
+type TransactionRelayInput = InferRelayInput<typeof transactionRelayQuery>;
+
+export interface TransactionConnectionInput {
+  first?: number;
+  after?: string;
+  last?: number;
+  before?: string;
+  where?: {
+    ids?: readonly string[];
+    accountIds?: readonly string[];
+    programIds?: readonly string[];
+    kinds?: readonly LoyaltyTransaction["kind"][];
+    sources?: readonly LoyaltyTransaction["source"][];
+    sourceId?: string;
+    orderId?: string;
+    checkoutId?: string;
+    occurredFrom?: string;
+    occurredTo?: string;
+  };
+}
+
+export interface TransactionConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
+
 export class LedgerRepository extends BaseRepository {
+  async getTransactionsByIds(ids: readonly string[]): Promise<LoyaltyTransaction[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(transactions).where(and(
+      eq(transactions.storeId, this.storeId),
+      inArray(transactions.id, [...ids]),
+    ));
+  }
+
+  async getEntriesByIds(ids: readonly string[]): Promise<LedgerEntry[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(ledgerEntries).where(and(
+      eq(ledgerEntries.storeId, this.storeId),
+      inArray(ledgerEntries.id, [...ids]),
+    ));
+  }
+
+  async getPointLotsByIds(ids: readonly string[]): Promise<PointLot[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(pointLots).where(and(
+      eq(pointLots.storeId, this.storeId),
+      inArray(pointLots.id, [...ids]),
+    ));
+  }
+
+  async getLotAllocationsByIds(ids: readonly string[]): Promise<LotAllocation[]> {
+    if (ids.length === 0) return [];
+    return this.connection.select().from(lotAllocations).where(and(
+      eq(lotAllocations.storeId, this.storeId),
+      inArray(lotAllocations.id, [...ids]),
+    ));
+  }
+
+  async listLotAllocationsForTransactions(transactionIds: readonly string[]): Promise<LotAllocation[]> {
+    if (transactionIds.length === 0) return [];
+    return this.connection.select().from(lotAllocations).where(and(
+      eq(lotAllocations.storeId, this.storeId),
+      inArray(lotAllocations.transactionId, [...transactionIds]),
+    )).orderBy(asc(lotAllocations.createdAt), asc(lotAllocations.id));
+  }
+
+  async getConnection(input: TransactionConnectionInput): Promise<TransactionConnectionResult> {
+    const { where, ...pagination } = input;
+    const predicates = [eq(transactions.storeId, this.storeId)];
+    if (where?.ids?.length) predicates.push(inArray(transactions.id, [...where.ids]));
+    if (where?.accountIds?.length) predicates.push(inArray(transactions.accountId, [...where.accountIds]));
+    if (where?.programIds?.length) predicates.push(inArray(transactions.programId, [...where.programIds]));
+    if (where?.kinds?.length) predicates.push(inArray(transactions.kind, [...where.kinds]));
+    if (where?.sources?.length) predicates.push(inArray(transactions.source, [...where.sources]));
+    if (where?.sourceId !== undefined) predicates.push(eq(transactions.sourceId, where.sourceId));
+    if (where?.occurredFrom) predicates.push(gte(transactions.occurredAt, where.occurredFrom));
+    if (where?.occurredTo) predicates.push(lte(transactions.occurredAt, where.occurredTo));
+    if (where?.orderId) {
+      predicates.push(or(eq(transactions.sourceId, where.orderId), eq(reservations.orderId, where.orderId))!);
+    }
+    if (where?.checkoutId) predicates.push(eq(reservations.checkoutId, where.checkoutId));
+
+    const needsReservation = Boolean(where?.orderId || where?.checkoutId);
+    let query = this.connection.selectDistinct({ id: transactions.id }).from(transactions).$dynamic();
+    if (needsReservation) {
+      query = query
+        .leftJoin(reservationEvents, and(
+          eq(reservationEvents.storeId, transactions.storeId),
+          eq(reservationEvents.transactionId, transactions.id),
+        ))
+        .leftJoin(reservations, and(
+          eq(reservations.storeId, transactions.storeId),
+          eq(reservations.id, reservationEvents.reservationId),
+        ));
+    }
+    const matchingIds = (await query.where(and(...predicates))).map(({ id }) => id);
+    const relayWhere: TransactionRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        { id: { _in: matchingIds.length > 0 ? matchingIds : ["00000000-0000-0000-0000-000000000000"] } },
+      ],
+    };
+    const relayInput: TransactionRelayInput = {
+      ...pagination,
+      where: relayWhere,
+      orderBy: [
+        { field: "occurredAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+    const [result, totalCount] = await Promise.all([
+      transactionRelayQuery.execute(this.connection, relayInput),
+      transactionRelayQuery.count(this.connection, { where: relayWhere }),
+    ]);
+    return {
+      edges: result.edges.map(({ cursor, node }) => ({ cursor, nodeId: node.id })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
+  }
   async findTransactionById(id: string): Promise<LoyaltyTransaction | null> {
     const rows = await this.connection
       .select()

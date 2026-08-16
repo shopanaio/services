@@ -464,6 +464,19 @@ export class CustomerGroupRepository extends BaseRepository {
     };
   }
 
+  async deleteMembershipsForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerGroupMembership)
+      .where(
+        and(
+          eq(customerGroupMembership.storeId, this.storeId),
+          eq(customerGroupMembership.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerGroupMembership.id });
+    return rows.length;
+  }
+
   private async clearDefault(exceptId?: string): Promise<void> {
     await this.connection
       .update(customerGroup)

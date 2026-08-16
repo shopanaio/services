@@ -34,17 +34,7 @@ export class CustomerDataRequestUpdateScript extends BaseScript<
     if (!current) return notFound();
 
     const cancel = params.operations.cancel != null;
-    const metadataUpdated = [
-      "customerId",
-      "type",
-      "legalBasis",
-      "requestMetadata",
-      "dueAt",
-    ].some((field) => hasOwn(params.operations, field));
-    if (
-      ["COMPLETED", "REJECTED", "CANCELLED"].includes(current.status) ||
-      (current.status === "PROCESSING" && (!cancel || metadataUpdated))
-    ) {
+    if (current.status !== "PENDING") {
       return invalidState();
     }
 
@@ -166,7 +156,7 @@ function invalidState(): CustomerDataRequestUpdateResult {
     dataRequest: undefined,
     userErrors: [
       {
-        message: "Only a pending request can be updated; processing requests can only be cancelled",
+        message: "Only a pending request can be updated or cancelled",
         field: ["dataRequestId"],
         code: "INVALID_STATE",
       },

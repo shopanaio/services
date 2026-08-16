@@ -186,4 +186,17 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
       .returning({ id: customerExternalReference.id });
     return rows.length > 0;
   }
+
+  async deleteForCustomer(customerId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(customerExternalReference)
+      .where(
+        and(
+          eq(customerExternalReference.storeId, this.storeId),
+          eq(customerExternalReference.customerId, customerId),
+        ),
+      )
+      .returning({ id: customerExternalReference.id });
+    return rows.length;
+  }
 }

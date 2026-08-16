@@ -13,6 +13,7 @@ export interface EntityRef {
 export interface UserError {
   field: string[];
   message: string;
+  code?: string;
 }
 
 /** Asset owner types */

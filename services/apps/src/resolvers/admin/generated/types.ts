@@ -1290,6 +1290,22 @@ export type PageInfo = {
   startCursor: Maybe<Scalars['String']['output']>;
 };
 
+/** Direction in which a price adjustment changes the base price. */
+export enum PriceAdjustmentOperation {
+  /** Subtract the calculated value from the base price. */
+  Decrease = 'DECREASE',
+  /** Add the calculated value to the base price. */
+  Increase = 'INCREASE'
+}
+
+/** Representation used to calculate a price adjustment. */
+export enum PriceAdjustmentValueType {
+  /** Use a monetary value expressed in minor currency units. */
+  FixedAmount = 'FIXED_AMOUNT',
+  /** Calculate the value from basis points where 10000 equals 100%. */
+  Percentage = 'PERCENTAGE'
+}
+
 export type Query = {
   __typename?: 'Query';
   /** Apps control-plane queries for the current store. */
@@ -1505,6 +1521,8 @@ export type ResolversTypes = ResolversObject<{
   Mutation: ResolverTypeWrapper<{}>;
   Node: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Node']>;
   PageInfo: ResolverTypeWrapper<PageInfo>;
+  PriceAdjustmentOperation: PriceAdjustmentOperation;
+  PriceAdjustmentValueType: PriceAdjustmentValueType;
   Query: ResolverTypeWrapper<{}>;
   SortDirection: SortDirection;
   StringFilter: StringFilter;

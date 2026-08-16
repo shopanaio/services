@@ -23,7 +23,8 @@ export type ApplicationAuthAdminAuditAction =
   | "application_user_block"
   | "application_user_unblock"
   | "application_user_sessions_revoke_all"
-  | "application_user_account_unlink";
+  | "application_user_account_unlink"
+  | "application_user_privacy_delete";
 
 export type ApplicationAuthAdminAuditReasonCategory =
   | "success"
