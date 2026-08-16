@@ -204,18 +204,37 @@ export function applyReconcileResult(
   const nextReconcileAt = result.state === "PENDING"
     ? nextPlatformReconcileAt(result.observedAt, result.pendingExpiresAt)
     : null;
+  const pendingSettledOperation = result.state === "PENDING" && [
+    "AUTHORIZED",
+    "PARTIALLY_CAPTURED",
+    "CAPTURED",
+    "PARTIALLY_REFUNDED",
+    "REFUNDED",
+    "VOIDED",
+  ].includes(current.state);
+  if (
+    pendingSettledOperation &&
+    (
+      result.authorizedAmount.amountMinor !== current.authorizedAmount.amountMinor ||
+      result.capturedAmount.amountMinor !== current.capturedAmount.amountMinor ||
+      result.refundedAmount.amountMinor !== current.refundedAmount.amountMinor ||
+      result.voidedAmount.amountMinor !== current.voidedAmount.amountMinor
+    )
+  ) {
+    throw new Error("PAYMENT_RECONCILE_PENDING_TOTALS_CHANGED");
+  }
   const next: Payments.PaymentSessionSnapshot = {
     ...current,
-    state: result.state,
-    authorizedAmount: result.authorizedAmount,
-    capturedAmount: result.capturedAmount,
-    refundedAmount: result.refundedAmount,
-    voidedAmount: result.voidedAmount,
+    state: pendingSettledOperation ? current.state : result.state,
+    authorizedAmount: pendingSettledOperation ? current.authorizedAmount : result.authorizedAmount,
+    capturedAmount: pendingSettledOperation ? current.capturedAmount : result.capturedAmount,
+    refundedAmount: pendingSettledOperation ? current.refundedAmount : result.refundedAmount,
+    voidedAmount: pendingSettledOperation ? current.voidedAmount : result.voidedAmount,
     providerReference: result.providerReference,
     customerAction: null,
-    pendingReason: result.pendingReason,
-    pendingExpiresAt: result.pendingExpiresAt,
-    nextReconcileAt,
+    pendingReason: pendingSettledOperation ? current.pendingReason : result.pendingReason,
+    pendingExpiresAt: pendingSettledOperation ? current.pendingExpiresAt : result.pendingExpiresAt,
+    nextReconcileAt: pendingSettledOperation ? current.nextReconcileAt : nextReconcileAt,
     confirmationExpiresAt: null,
     lastFailure: result.state === "FAILED"
       ? {

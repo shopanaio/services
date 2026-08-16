@@ -212,7 +212,7 @@ export class PaymentsActions extends BrokerActions {
     );
   }
 
-  private runOperation(
+  private async runOperation(
     type: "CANCEL" | "CAPTURE" | "VOID" | "REFUND" | "RECONCILE",
     params:
       | Payments.CancelPaymentParams
@@ -221,6 +221,10 @@ export class PaymentsActions extends BrokerActions {
       | Payments.RefundPaymentParams
       | Payments.ReconcilePaymentParams,
   ) {
+    const current = await this.lifecycle.getSession({
+      storeId: params.storeId,
+      paymentSessionId: params.paymentSessionId,
+    });
     const { correlationId, ...workflowContent } = params;
     void correlationId;
     return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
@@ -228,6 +232,7 @@ export class PaymentsActions extends BrokerActions {
       { type, params },
       {
         source: "content",
+        organizationId: current.session.organizationId,
         resourceId: params.paymentSessionId,
         operation: `payments.${type.toLowerCase()}`,
         content: workflowContent,

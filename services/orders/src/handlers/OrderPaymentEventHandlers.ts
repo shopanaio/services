@@ -249,12 +249,12 @@ async function projectPaymentDetails(
         processedAt: voided.occurredAt,
       });
     }
-    await insertTransaction(repository, voided, "VOID", voided.voidedTotal, null);
+    await insertVoidTransaction(repository, voided);
     return;
   }
   if (eventType === "payment.refunded") {
     const refunded = payload as PaymentEvents.Refunded;
-    await insertTransaction(repository, refunded, "REFUND", refunded.amount, null);
+    await insertRefundTransactions(repository, refunded);
     return;
   }
   if (eventType === "payment.dispute.changed") {
@@ -317,26 +317,156 @@ async function updateAttempt(
 
 async function insertTransaction(
   repository: Repository,
-  event: PaymentEvents.Authorized | PaymentEvents.Captured | PaymentEvents.Voided | PaymentEvents.Refunded,
-  kind: "AUTHORIZATION" | "CAPTURE" | "SALE" | "REFUND" | "VOID",
+  event: PaymentEvents.Authorized | PaymentEvents.Captured,
+  kind: "AUTHORIZATION" | "CAPTURE" | "SALE",
   amount: PaymentEvents.Authorized["amount"],
   providerTransactionId: string | null,
 ): Promise<void> {
   if (BigInt(amount.amountMinor) <= 0n) return;
+  const parentTransactionId = kind === "CAPTURE"
+    ? await requireAuthorizationTransaction(repository, event)
+    : null;
+  await insertTransactionRow(repository, {
+    id: event.operationId,
+    event,
+    kind,
+    amountMinor: amount.amountMinor,
+    currencyCode: amount.currencyCode,
+    parentTransactionId,
+    providerTransactionId,
+  });
+}
+
+async function insertVoidTransaction(
+  repository: Repository,
+  event: PaymentEvents.Voided,
+): Promise<void> {
+  const parentTransactionId = await requireAuthorizationTransaction(repository, event);
+  const existingRows = await repository.db.execute<{ amountMinor: string }>(sql`
+    SELECT COALESCE(sum("amount"), 0)::text AS "amountMinor"
+      FROM "orders"."order_payment_transactions"
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "order_id" = ${event.orderId}::uuid
+       AND "parent_transaction_id" = ${parentTransactionId}::uuid
+       AND "kind" = 'VOID'
+       AND "status" = 'SUCCESS'
+  `);
+  const amountMinor = BigInt(event.voidedTotal.amountMinor)
+    - BigInt(existingRows[0]?.amountMinor ?? "0");
+  if (amountMinor <= 0n) return;
+  await insertTransactionRow(repository, {
+    id: event.operationId,
+    event,
+    kind: "VOID",
+    amountMinor: amountMinor.toString(),
+    currencyCode: event.voidedTotal.currencyCode,
+    parentTransactionId,
+    providerTransactionId: null,
+  });
+}
+
+async function insertRefundTransactions(
+  repository: Repository,
+  event: PaymentEvents.Refunded,
+): Promise<void> {
+  const candidates = await repository.db.execute<{
+    transactionId: string;
+    remainingAmountMinor: string;
+  }>(sql`
+    SELECT payment."id" AS "transactionId",
+           (
+             payment."amount" - COALESCE((
+               SELECT sum(refund."amount")
+                 FROM "orders"."order_payment_transactions" AS refund
+                WHERE refund."store_id" = payment."store_id"
+                  AND refund."order_id" = payment."order_id"
+                  AND refund."parent_transaction_id" = payment."id"
+                  AND refund."kind" = 'REFUND'
+                  AND refund."status" = 'SUCCESS'
+             ), 0)
+           )::text AS "remainingAmountMinor"
+      FROM "orders"."order_payment_transactions" AS payment
+     WHERE payment."store_id" = ${event.storeId}::uuid
+       AND payment."order_id" = ${event.orderId}::uuid
+       AND payment."payment_attempt_id" = ${event.paymentSessionId}::uuid
+       AND payment."kind" IN ('CAPTURE', 'SALE')
+       AND payment."status" = 'SUCCESS'
+     ORDER BY payment."created_at", payment."sequence"
+  `);
+  let remaining = BigInt(event.amount.amountMinor);
+  let allocationIndex = 0;
+  for (const candidate of candidates) {
+    const available = BigInt(candidate.remainingAmountMinor);
+    if (available <= 0n || remaining <= 0n) continue;
+    const allocated = available < remaining ? available : remaining;
+    await insertTransactionRow(repository, {
+      id: allocationIndex === 0 ? event.operationId : null,
+      event,
+      kind: "REFUND",
+      amountMinor: allocated.toString(),
+      currencyCode: event.amount.currencyCode,
+      parentTransactionId: candidate.transactionId,
+      providerTransactionId: null,
+      allocationIndex,
+    });
+    remaining -= allocated;
+    allocationIndex += 1;
+  }
+  if (remaining !== 0n) throw new Error("ORDER_PAYMENT_REFUND_ALLOCATION_EXCEEDED");
+}
+
+async function requireAuthorizationTransaction(
+  repository: Repository,
+  event: PaymentEvents.Captured | PaymentEvents.Voided,
+): Promise<string> {
+  const rows = await repository.db.execute<{ id: string }>(sql`
+    SELECT "id"
+      FROM "orders"."order_payment_transactions"
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "order_id" = ${event.orderId}::uuid
+       AND "payment_attempt_id" = ${event.paymentSessionId}::uuid
+       AND "kind" = 'AUTHORIZATION'
+       AND "status" = 'SUCCESS'
+     ORDER BY "created_at" DESC, "sequence" DESC
+     LIMIT 1
+  `);
+  const id = rows[0]?.id;
+  if (!id) throw new Error("ORDER_PAYMENT_AUTHORIZATION_TRANSACTION_NOT_FOUND");
+  return id;
+}
+
+async function insertTransactionRow(
+  repository: Repository,
+  input: Readonly<{
+    id: string | null;
+    event: PaymentEvents.Authorized | PaymentEvents.Captured | PaymentEvents.Voided | PaymentEvents.Refunded;
+    kind: "AUTHORIZATION" | "CAPTURE" | "SALE" | "REFUND" | "VOID";
+    amountMinor: string;
+    currencyCode: string;
+    parentTransactionId: string | null;
+    providerTransactionId: string | null;
+    allocationIndex?: number;
+  }>,
+): Promise<void> {
+  const { event } = input;
   await repository.db.execute(sql`
     INSERT INTO "orders"."order_payment_transactions" (
       "id", "store_id", "order_id", "payment_attempt_id", "currency_code",
-      "kind", "status", "amount", "provider", "provider_transaction_id",
+      "parent_transaction_id", "kind", "status", "amount", "provider",
+      "provider_transaction_id",
       "provider_data", "processed_at", "created_at", "updated_at"
     ) VALUES (
-      ${event.operationId}::uuid, ${event.storeId}::uuid, ${event.orderId}::uuid,
-      ${event.paymentSessionId}::uuid, ${amount.currencyCode},
-      ${kind}::"orders"."order_payment_transaction_kind", 'SUCCESS',
-      ${amount.amountMinor}::bigint, ${event.providerCode}, ${providerTransactionId},
+      COALESCE(${input.id}::uuid, uuidv7()), ${event.storeId}::uuid,
+      ${event.orderId}::uuid, ${event.paymentSessionId}::uuid,
+      ${input.currencyCode}, ${input.parentTransactionId}::uuid,
+      ${input.kind}::"orders"."order_payment_transaction_kind", 'SUCCESS',
+      ${input.amountMinor}::bigint, ${event.providerCode}, ${input.providerTransactionId},
       ${JSON.stringify({
         paymentCollectionId: event.paymentCollectionId,
         paymentSessionId: event.paymentSessionId,
         operationType: event.operationType,
+        operationId: event.operationId,
+        allocationIndex: input.allocationIndex ?? 0,
       })}::jsonb,
       ${event.occurredAt}::timestamptz, ${event.occurredAt}::timestamptz,
       ${event.occurredAt}::timestamptz

@@ -537,7 +537,7 @@ export const PaymentProviderReconcileResultSchema = z
       });
     }
     if (
-      ["PENDING", "CANCELLED", "EXPIRED", "FAILED"].includes(result.state) &&
+      ["CANCELLED", "EXPIRED", "FAILED"].includes(result.state) &&
       (authorized !== 0n || captured !== 0n || refunded !== 0n || voided !== 0n)
     ) {
       context.addIssue({

@@ -1080,6 +1080,13 @@ export class PaymentLifecycleRepository {
           observedAt,
         );
       }
+      if (isReconcileResult(input.result) && input.result.state === "PENDING") {
+        await this.reschedulePendingOperations(
+          previousSession,
+          operation.operationId,
+          input.result,
+        );
+      }
       const supersededFailures = isReconcileResult(input.result) && input.result.state !== "PENDING"
         ? await this.settleSupersededOperations(
           previousSession,
@@ -1334,6 +1341,13 @@ export class PaymentLifecycleRepository {
         payload: nextSession,
         updatedAt: nextSession.updatedAt,
       }).where(eq(paymentSession.id, nextSession.paymentSessionId));
+      if (result.state === "PENDING") {
+        await this.reschedulePendingOperations(
+          session,
+          operation.operationId,
+          result,
+        );
+      }
       const supersededFailures = result.state !== "PENDING"
         ? await this.settleSupersededOperations(
           session,
@@ -1666,6 +1680,47 @@ export class PaymentLifecycleRepository {
       if (operation.state === "FAILED") failures.push(operation);
     }
     return failures;
+  }
+
+  private async reschedulePendingOperations(
+    session: Payments.PaymentSessionSnapshot,
+    reconciliationOperationId: string,
+    result: Extract<Payments.PaymentProviderReconcileResult, { state: "PENDING" }>,
+  ): Promise<void> {
+    const rows = await this.connection.select().from(paymentOperation).where(and(
+      eq(paymentOperation.storeId, session.storeId),
+      eq(paymentOperation.paymentSessionId, session.paymentSessionId),
+    )).orderBy(asc(paymentOperation.createdAt)).for("update");
+    for (const row of rows) {
+      const current = operationSnapshot(row);
+      if (
+        current.operationId === reconciliationOperationId ||
+        !["REQUIRES_ACTION", "REQUIRES_CONFIRMATION", "PENDING"].includes(current.state)
+      ) {
+        continue;
+      }
+      const deadline = earliestTimestamp(
+        session.expiresAt,
+        current.pendingExpiresAt ??
+          current.customerAction?.expiresAt ??
+          current.confirmationExpiresAt ??
+          result.pendingExpiresAt,
+      );
+      const proposed = Date.parse(result.observedAt) + 60_000;
+      const nextReconcileAt = new Date(
+        Math.min(proposed, Date.parse(deadline)),
+      ).toISOString();
+      const operation: Payments.PaymentOperationSnapshot = {
+        ...current,
+        nextReconcileAt,
+        revision: current.revision + 1,
+      };
+      await this.connection.update(paymentOperation).set({
+        revision: operation.revision,
+        payload: operation,
+        updatedAt: result.observedAt,
+      }).where(eq(paymentOperation.id, operation.operationId));
+    }
   }
 
   private async closeCancelledOperations(

@@ -199,6 +199,7 @@ export class TestStripeApp implements ShopanaApp {
 
       settleCreated(record, request.amount);
       return succeeded(providerReference, {
+        operationId: request.operationId,
         instrument: {
           type: "CARD",
           brand: "visa",
@@ -219,6 +220,7 @@ export class TestStripeApp implements ShopanaApp {
       const record = this.requireRecord(request.providerReference);
       settleCreated(record, request.amount);
       return succeeded(record.providerReference, {
+        operationId: request.operationId,
         instrument: {
           type: "CARD",
           brand: "visa",
@@ -238,7 +240,11 @@ export class TestStripeApp implements ShopanaApp {
     return this.idempotent(request, () => {
       const record = this.requireRecord(request.providerReference);
       record.state = "CANCELLED";
-      return succeeded(record.providerReference, { testScenario: "cancelled" });
+      return succeeded(record.providerReference, {
+        operationId: request.operationId,
+        networkTransaction: false,
+        testScenario: "cancelled",
+      });
     });
   }
 
@@ -251,7 +257,10 @@ export class TestStripeApp implements ShopanaApp {
         BigInt(record.capturedAmount.amountMinor) < BigInt(record.authorizedAmount.amountMinor)
           ? "PARTIALLY_CAPTURED"
           : "CAPTURED";
-      return succeeded(record.providerReference, { testScenario: "captured" });
+      return succeeded(record.providerReference, {
+        operationId: request.operationId,
+        testScenario: "captured",
+      });
     });
   }
 
@@ -264,7 +273,10 @@ export class TestStripeApp implements ShopanaApp {
         record.authorizedAmount.currencyCode,
       );
       record.state = "VOIDED";
-      return succeeded(record.providerReference, { testScenario: "voided" });
+      return succeeded(record.providerReference, {
+        operationId: request.operationId,
+        testScenario: "voided",
+      });
     });
   }
 
@@ -277,7 +289,10 @@ export class TestStripeApp implements ShopanaApp {
         BigInt(record.refundedAmount.amountMinor) < BigInt(record.capturedAmount.amountMinor)
           ? "PARTIALLY_REFUNDED"
           : "REFUNDED";
-      return succeeded(record.providerReference, { testScenario: "refunded" });
+      return succeeded(record.providerReference, {
+        operationId: request.operationId,
+        testScenario: "refunded",
+      });
     });
   }
 
@@ -366,15 +381,19 @@ function settleCreated(record: PaymentRecord, amount: Pricing.PricingCheckoutMon
 function succeeded(
   providerReference: string,
   options: Readonly<{
+    operationId: string;
     instrument?: Payments.PaymentInstrumentSummary | null;
     authorizationExpiresAt?: string | null;
+    networkTransaction?: boolean;
     testScenario: string;
   }>,
 ): Payments.PaymentProviderOperationResult {
   return {
     status: "SUCCEEDED",
     providerReference,
-    networkTransactionId: `txn_test_${providerReference.slice(-16)}`,
+    networkTransactionId: options.networkTransaction === false
+      ? null
+      : `txn_test_${digest("transaction", [providerReference, options.operationId]).slice(0, 24)}`,
     authorizationExpiresAt: options.authorizationExpiresAt ?? null,
     instrument: options.instrument ?? null,
     processedAt: now(),
