@@ -12,7 +12,10 @@ request-scoped contexts and loaders, and the Admin and Storefront GraphQL
 subgraph servers. `BootstrapModule` imports `LoyaltyModule` as part of the
 modular-monolith composition root. Domain repositories and their Drizzle models
 mirror the SQL-first schema; actions, event handlers, workflows, and resolvers
-remain intentionally unimplemented.
+share the implemented application services. Broker actions and durable workflows
+own checkout redemption, order rewards, maintenance, store closure, external
+earning facts, and audited manual adjustments. GraphQL resolvers remain a
+separate transport layer.
 
 ## Ownership boundaries
 

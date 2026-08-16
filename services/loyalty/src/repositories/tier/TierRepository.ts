@@ -133,6 +133,22 @@ export class TierRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async lockActiveMembership(accountId: string): Promise<TierMembership | null> {
+    const rows = await this.connection
+      .select()
+      .from(tierMemberships)
+      .where(
+        and(
+          eq(tierMemberships.storeId, this.storeId),
+          eq(tierMemberships.accountId, accountId),
+          eq(tierMemberships.status, "ACTIVE"),
+        ),
+      )
+      .limit(1)
+      .for("update");
+    return rows[0] ?? null;
+  }
+
   async createMembership(
     input: Omit<NewTierMembership, "storeId">,
   ): Promise<TierMembership> {

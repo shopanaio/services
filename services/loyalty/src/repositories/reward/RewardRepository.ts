@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql, sum } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   rewardDefinitions,
@@ -27,6 +27,21 @@ export class RewardRepository extends BaseRepository {
         ),
       )
       .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async lockDefinitionById(id: string): Promise<RewardDefinition | null> {
+    const rows = await this.connection
+      .select()
+      .from(rewardDefinitions)
+      .where(
+        and(
+          eq(rewardDefinitions.storeId, this.storeId),
+          eq(rewardDefinitions.id, id),
+        ),
+      )
+      .limit(1)
+      .for("update");
     return rows[0] ?? null;
   }
 
@@ -120,6 +135,55 @@ export class RewardRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async findEntitlementByIdempotency(
+    accountId: string,
+    definitionId: string,
+    idempotencyKey: string,
+  ): Promise<RewardEntitlement | null> {
+    const rows = await this.connection
+      .select()
+      .from(rewardEntitlements)
+      .where(
+        and(
+          eq(rewardEntitlements.storeId, this.storeId),
+          eq(rewardEntitlements.accountId, accountId),
+          eq(rewardEntitlements.rewardDefinitionId, definitionId),
+          eq(rewardEntitlements.idempotencyKey, idempotencyKey),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async lockEntitlementById(id: string): Promise<RewardEntitlement | null> {
+    const rows = await this.connection
+      .select()
+      .from(rewardEntitlements)
+      .where(
+        and(
+          eq(rewardEntitlements.storeId, this.storeId),
+          eq(rewardEntitlements.id, id),
+        ),
+      )
+      .limit(1)
+      .for("update");
+    return rows[0] ?? null;
+  }
+
+  async countIssued(definitionId: string, accountId?: string): Promise<bigint> {
+    const rows = await this.connection
+      .select({ value: sum(rewardEntitlements.quantity) })
+      .from(rewardEntitlements)
+      .where(
+        and(
+          eq(rewardEntitlements.storeId, this.storeId),
+          eq(rewardEntitlements.rewardDefinitionId, definitionId),
+          accountId ? eq(rewardEntitlements.accountId, accountId) : undefined,
+        ),
+      );
+    return BigInt(rows[0]?.value ?? "0");
+  }
+
   async getEntitlementsByIds(
     ids: readonly string[],
   ): Promise<RewardEntitlement[]> {
@@ -169,6 +233,22 @@ export class RewardRepository extends BaseRepository {
         ),
       )
       .orderBy(asc(rewardEntitlements.validTo), asc(rewardEntitlements.id));
+  }
+
+  async listExpirationCandidates(at: string, limit = 100): Promise<RewardEntitlement[]> {
+    return this.connection
+      .select()
+      .from(rewardEntitlements)
+      .where(
+        and(
+          eq(rewardEntitlements.storeId, this.storeId),
+          inArray(rewardEntitlements.status, ["ISSUED", "RESERVED"]),
+          lte(rewardEntitlements.validTo, at),
+        ),
+      )
+      .orderBy(asc(rewardEntitlements.validTo), asc(rewardEntitlements.id))
+      .limit(limit)
+      .for("update", { skipLocked: true });
   }
 
   async createEntitlement(
@@ -224,6 +304,22 @@ export class RewardRepository extends BaseRepository {
       .values({ ...input, storeId: this.storeId })
       .returning();
     return rows[0]!;
+  }
+
+  async findEntitlementEventByIdempotency(
+    entitlementId: string,
+    idempotencyKey: string,
+  ): Promise<RewardEntitlementEvent | null> {
+    const rows = await this.connection
+      .select()
+      .from(rewardEntitlementEvents)
+      .where(and(
+        eq(rewardEntitlementEvents.storeId, this.storeId),
+        eq(rewardEntitlementEvents.entitlementId, entitlementId),
+        eq(rewardEntitlementEvents.idempotencyKey, idempotencyKey),
+      ))
+      .limit(1);
+    return rows[0] ?? null;
   }
 
   async listEntitlementEvents(

@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   accounts,
@@ -67,12 +67,42 @@ export class AccountRepository extends BaseRepository {
       .orderBy(desc(accounts.openedAt), desc(accounts.id));
   }
 
+  async listForStore(limit = 100): Promise<Account[]> {
+    return this.connection
+      .select()
+      .from(accounts)
+      .where(eq(accounts.storeId, this.storeId))
+      .orderBy(asc(accounts.id))
+      .limit(limit)
+      .for("update", { skipLocked: true });
+  }
+
+  async listAllForStore(): Promise<Account[]> {
+    return this.connection
+      .select()
+      .from(accounts)
+      .where(eq(accounts.storeId, this.storeId))
+      .orderBy(asc(accounts.id));
+  }
+
   async create(input: Omit<NewAccount, "storeId">): Promise<Account> {
     const rows = await this.connection
       .insert(accounts)
       .values({ ...input, storeId: this.storeId })
       .returning();
     return rows[0]!;
+  }
+
+  async createIfMissing(input: Omit<NewAccount, "storeId">): Promise<Account> {
+    const rows = await this.connection
+      .insert(accounts)
+      .values({ ...input, storeId: this.storeId })
+      .onConflictDoNothing()
+      .returning();
+    if (rows[0]) return rows[0];
+    const existing = await this.findByCustomerAndProgram(input.customerId, input.programId);
+    if (!existing) throw new Error("Loyalty account could not be created or resolved");
+    return existing;
   }
 
   async updateState(

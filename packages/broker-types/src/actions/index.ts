@@ -64,6 +64,11 @@ export {
 // Customers service checkout actions
 export * as Customers from "./customers.js";
 export {
+  CustomerExternalReferenceActionNames,
+  CustomerExternalReferenceActions,
+  CustomerExternalReferenceAppScopes,
+  CustomersAdministrationActionNames,
+  CustomersAdministrationActions,
   CustomersComparisonActionNames,
   CustomersComparisonActions,
   CustomersCheckoutActionNames,
@@ -103,11 +108,30 @@ export type {
   ReverseCheckoutLoyaltyRedemptionResult,
 } from "./loyalty.js";
 export type {
+  CustomerExternalReferenceActionFailure,
+  CustomerExternalReferenceConflictPolicy,
+  CustomerExternalReferenceSnapshot,
+  CustomerExternalReferenceSyncOperation,
+  CustomerExternalReferenceSyncOperationResult,
+  CustomerExternalReferenceUpsertOutcome,
+  DeleteCustomerExternalReferenceParams,
+  DeleteCustomerExternalReferenceResult,
   GetCustomerComparisonSelectionParams,
   GetCustomerComparisonSelectionResult,
   CustomerCheckoutIneligibilityReason,
+  LookupCustomerExternalReferenceParams,
+  LookupCustomerExternalReferenceResult,
   ResolveCheckoutBuyerEligibilityParams,
   ResolveCheckoutBuyerEligibilityResult,
+  RebuildCustomerDynamicSegmentsParams,
+  RebuildCustomerDynamicSegmentsResult,
+  RebuildCustomerStatisticsParams,
+  RebuildCustomerStatisticsResult,
+  CustomersAdministrationActionFailure,
+  SyncCustomerExternalReferencesParams,
+  SyncCustomerExternalReferencesResult,
+  UpsertCustomerExternalReferenceParams,
+  UpsertCustomerExternalReferenceResult,
 } from "./customers.js";
 export type {
   NotificationDefinitionKey,

@@ -68,6 +68,19 @@ export class ReservationRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async findByOrder(orderId: string): Promise<Reservation[]> {
+    return this.connection
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.storeId, this.storeId),
+          eq(reservations.orderId, orderId),
+        ),
+      )
+      .orderBy(asc(reservations.createdAt), asc(reservations.id));
+  }
+
   async listExpiredCandidates(now: string, limit = 100): Promise<Reservation[]> {
     return this.connection
       .select()

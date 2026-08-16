@@ -286,6 +286,50 @@ export interface ApplicationUserCreatedEvent
     }
   > {}
 
+export type ApplicationUserProjectionField =
+  | "email"
+  | "emailVerified"
+  | "firstName"
+  | "lastName";
+
+/**
+ * Signals that an application-local IAM identity projection changed.
+ * Consumers hydrate the current IAM snapshot through the protected IAM action;
+ * the event intentionally carries no customer PII.
+ */
+export interface ApplicationUserUpdatedEvent
+  extends DomainEvent<
+    "applicationUserUpdated",
+    {
+      applicationId: string;
+      applicationUserId: string;
+      changedFields: readonly ApplicationUserProjectionField[];
+      updatedAt: string;
+    }
+  > {}
+
+export interface ApplicationUserStatusChangedEvent
+  extends DomainEvent<
+    "applicationUserStatusChanged",
+    {
+      applicationId: string;
+      applicationUserId: string;
+      previousStatus: "active" | "blocked";
+      status: "active" | "blocked";
+      changedAt: string;
+    }
+  > {}
+
+export interface ApplicationUserDeletedEvent
+  extends DomainEvent<
+    "applicationUserDeleted",
+    {
+      applicationId: string;
+      applicationUserId: string;
+      deletedAt: string;
+    }
+  > {}
+
 export interface CustomerDeletedEvent
   extends DomainEvent<
     "customerDeleted",
@@ -338,6 +382,46 @@ export interface CustomerUpdatedPayload {
 
 export interface CustomerUpdatedEvent
   extends DomainEvent<"customerUpdated", CustomerUpdatedPayload> {}
+
+export interface CustomerExternalReferenceCreatedEvent
+  extends DomainEvent<
+    "customerExternalReferenceCreated",
+    {
+      externalReferenceId: string;
+      storeId: string;
+      customerId: string;
+      externalSystem: string;
+      externalType: string;
+      externalId: string;
+    }
+  > {}
+
+export interface CustomerExternalReferenceReassignedEvent
+  extends DomainEvent<
+    "customerExternalReferenceReassigned",
+    {
+      externalReferenceId: string;
+      storeId: string;
+      previousCustomerId: string;
+      customerId: string;
+      externalSystem: string;
+      externalType: string;
+      externalId: string;
+    }
+  > {}
+
+export interface CustomerExternalReferenceDeletedEvent
+  extends DomainEvent<
+    "customerExternalReferenceDeleted",
+    {
+      externalReferenceId: string;
+      storeId: string;
+      customerId: string;
+      externalSystem: string;
+      externalType: string;
+      externalId: string;
+    }
+  > {}
 
 export interface ReviewRatingCriterionCreatedEvent
   extends DomainEvent<
@@ -539,15 +623,22 @@ export interface OrderRewardReversedEvent
     }
   > {}
 
+export interface CustomerOrderProjectionPayload {
+  schemaVersion: 1;
+  orderId: string;
+  orderRevision: number;
+  storeId: string;
+  customerId: string;
+  currencyCode: string;
+  totalAmountMinor: string;
+  createdAt: string;
+  occurredAt: string;
+}
+
 export interface OrderCreatedEvent
   extends DomainEvent<
     "orderCreated",
-    {
-      orderId: string;
-      storeId: string;
-      customerId: string;
-      items: Array<{ productId: string; quantity: number; price: number }>;
-      total: number;
+    CustomerOrderProjectionPayload & {
       notification: NotificationSnapshot<OrderCreatedNotificationData>;
     }
   > {}
@@ -555,9 +646,88 @@ export interface OrderCreatedEvent
 export interface OrderCompletedEvent
   extends DomainEvent<
     "orderCompleted",
+    CustomerOrderProjectionPayload & { completedAt: string }
+  > {}
+
+export interface OrderCancelledEvent
+  extends DomainEvent<
+    "orderCancelled",
+    CustomerOrderProjectionPayload & {
+      cancelledAt: string;
+      notification: NotificationSnapshot<Record<string, unknown>>;
+    }
+  > {}
+
+export interface OrderRefundedEvent
+  extends DomainEvent<
+    "orderRefunded",
     {
+      schemaVersion: 1;
+      refundId: string;
+      refundRevision: number;
       orderId: string;
+      orderRevision: number;
       storeId: string;
+      customerId: string;
+      currencyCode: string;
+      refundedAmountMinor: string;
+      refundedAt: string;
+      notification: NotificationSnapshot<Record<string, unknown>>;
+    }
+  > {}
+
+export interface CheckoutCustomerActivityRecordedEvent
+  extends DomainEvent<
+    "checkoutCustomerActivityRecorded",
+    {
+      schemaVersion: 1;
+      checkoutId: string;
+      checkoutVersion: number;
+      storeId: string;
+      customerId: string;
+      occurredAt: string;
+    }
+  > {}
+
+export interface CustomerStatisticsUpdatedEvent
+  extends DomainEvent<
+    "customerStatisticsUpdated",
+    {
+      schemaVersion: 1;
+      storeId: string;
+      customerId: string;
+      reasons: readonly ("order" | "checkout" | "refund" | "rebuild")[];
+      updatedAt: string;
+    }
+  > {}
+
+export interface CustomerLifecycleJobDispatchedEvent
+  extends DomainEvent<
+    "customerLifecycleJobDispatched",
+    {
+      schemaVersion: 1;
+      storeId: string;
+      jobType: "MERGE" | "DATA_REQUEST";
+      aggregateId: string;
+      jobId: string;
+      dispatchedAt: string;
+    }
+  > {}
+
+export interface CustomerLifecycleJobCompletedEvent
+  extends DomainEvent<
+    "customerLifecycleJobCompleted",
+    {
+      schemaVersion: 1;
+      storeId: string;
+      jobType: "MERGE" | "DATA_REQUEST";
+      aggregateId: string;
+      jobId: string;
+      outcome: "COMPLETED" | "FAILED" | "REJECTED";
+      resolution?: Record<string, unknown>;
+      resultFileId?: string | null;
+      errorCode?: string | null;
+      errorMessage?: string | null;
       completedAt: string;
     }
   > {}
@@ -714,10 +884,16 @@ export type ShopanaEvent =
   | ProductDeletedEvent
   | ProductUpdatedEvent
   | ApplicationUserCreatedEvent
+  | ApplicationUserUpdatedEvent
+  | ApplicationUserStatusChangedEvent
+  | ApplicationUserDeletedEvent
   | CustomerCreatedEvent
   | CustomerDeletedEvent
   | CustomerMergedEvent
   | CustomerUpdatedEvent
+  | CustomerExternalReferenceCreatedEvent
+  | CustomerExternalReferenceReassignedEvent
+  | CustomerExternalReferenceDeletedEvent
   | ReviewRatingCriterionCreatedEvent
   | ReviewCreatedEvent
   | ProductQuestionCreatedEvent
@@ -735,6 +911,12 @@ export type ShopanaEvent =
   | VariantDeletedEvent
   | OrderCreatedEvent
   | OrderCompletedEvent
+  | OrderCancelledEvent
+  | OrderRefundedEvent
+  | CheckoutCustomerActivityRecordedEvent
+  | CustomerStatisticsUpdatedEvent
+  | CustomerLifecycleJobDispatchedEvent
+  | CustomerLifecycleJobCompletedEvent
   | OrderRewardEligibleEvent
   | OrderRewardReversedEvent
   | LoyaltyPointsEarnedEvent

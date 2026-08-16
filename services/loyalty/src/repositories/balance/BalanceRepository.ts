@@ -59,6 +59,18 @@ export class BalanceRepository extends BaseRepository {
     return rows[0]!;
   }
 
+  async createIfMissing(input: Omit<NewAccountBalance, "storeId">): Promise<AccountBalance> {
+    const rows = await this.connection
+      .insert(accountBalances)
+      .values({ ...input, storeId: this.storeId })
+      .onConflictDoNothing()
+      .returning();
+    if (rows[0]) return rows[0];
+    const existing = await this.findByAccountId(input.accountId);
+    if (!existing) throw new Error("Loyalty account balance could not be created or resolved");
+    return existing;
+  }
+
   async update(
     accountId: string,
     expectedRevision: number,
@@ -89,6 +101,38 @@ export class BalanceRepository extends BaseRepository {
           eq(accountBalances.storeId, this.storeId),
           eq(accountBalances.accountId, accountId),
           eq(accountBalances.revision, expectedRevision),
+        ),
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async replace(
+    accountId: string,
+    input: Pick<
+      NewAccountBalance,
+      | "pendingPoints"
+      | "availablePoints"
+      | "reservedPoints"
+      | "debtPoints"
+      | "lifetimeEarnedPoints"
+      | "lifetimeRedeemedPoints"
+      | "lifetimeExpiredPoints"
+      | "lifetimeAdjustedPoints"
+      | "lastTransactionId"
+    >,
+  ): Promise<AccountBalance | null> {
+    const rows = await this.connection
+      .update(accountBalances)
+      .set({
+        ...input,
+        revision: sql`${accountBalances.revision} + 1`,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(accountBalances.storeId, this.storeId),
+          eq(accountBalances.accountId, accountId),
         ),
       )
       .returning();

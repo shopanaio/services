@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   ledgerEntries,
@@ -60,6 +60,19 @@ export class LedgerRepository extends BaseRepository {
       .limit(limit);
   }
 
+  async listAllTransactions(accountId: string): Promise<LoyaltyTransaction[]> {
+    return this.connection
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.storeId, this.storeId),
+          eq(transactions.accountId, accountId),
+        ),
+      )
+      .orderBy(asc(transactions.createdAt), asc(transactions.id));
+  }
+
   async listEntries(transactionId: string): Promise<LedgerEntry[]> {
     return this.connection
       .select()
@@ -71,6 +84,20 @@ export class LedgerRepository extends BaseRepository {
         ),
       )
       .orderBy(asc(ledgerEntries.sequence));
+  }
+
+  async findEntryById(id: string): Promise<LedgerEntry | null> {
+    const rows = await this.connection
+      .select()
+      .from(ledgerEntries)
+      .where(
+        and(
+          eq(ledgerEntries.storeId, this.storeId),
+          eq(ledgerEntries.id, id),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
   }
 
   async listEntriesForTransactions(
@@ -87,6 +114,19 @@ export class LedgerRepository extends BaseRepository {
         ),
       )
       .orderBy(asc(ledgerEntries.transactionId), asc(ledgerEntries.sequence));
+  }
+
+  async listEntriesForAccount(accountId: string): Promise<LedgerEntry[]> {
+    return this.connection
+      .select()
+      .from(ledgerEntries)
+      .where(
+        and(
+          eq(ledgerEntries.storeId, this.storeId),
+          eq(ledgerEntries.accountId, accountId),
+        ),
+      )
+      .orderBy(asc(ledgerEntries.createdAt), asc(ledgerEntries.id));
   }
 
   async createTransaction(
@@ -147,6 +187,81 @@ export class LedgerRepository extends BaseRepository {
         ),
       )
       .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id));
+  }
+
+  async lockUsablePointLots(accountId: string, at: string): Promise<PointLot[]> {
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(
+        and(
+          eq(pointLots.storeId, this.storeId),
+          eq(pointLots.accountId, accountId),
+          lte(pointLots.activatedAt, at),
+          or(isNull(pointLots.expiresAt), gt(pointLots.expiresAt, at)),
+        ),
+      )
+      .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id))
+      .for("update");
+  }
+
+  async lockPendingPointLots(accountId: string, at: string): Promise<PointLot[]> {
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(
+        and(
+          eq(pointLots.storeId, this.storeId),
+          eq(pointLots.accountId, accountId),
+          gt(pointLots.activatedAt, at),
+        ),
+      )
+      .orderBy(asc(pointLots.activatedAt), asc(pointLots.id))
+      .for("update");
+  }
+
+  async lockExpiredPointLots(accountId: string, at: string): Promise<PointLot[]> {
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(
+        and(
+          eq(pointLots.storeId, this.storeId),
+          eq(pointLots.accountId, accountId),
+          lte(pointLots.expiresAt, at),
+        ),
+      )
+      .orderBy(asc(pointLots.expiresAt), asc(pointLots.id))
+      .for("update");
+  }
+
+  async lockAllPointLots(accountId: string): Promise<PointLot[]> {
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(and(
+        eq(pointLots.storeId, this.storeId),
+        eq(pointLots.accountId, accountId),
+      ))
+      .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id))
+      .for("update");
+  }
+
+  async lockPointLotsByIds(
+    accountId: string,
+    ids: readonly string[],
+  ): Promise<PointLot[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(pointLots)
+      .where(and(
+        eq(pointLots.storeId, this.storeId),
+        eq(pointLots.accountId, accountId),
+        inArray(pointLots.id, [...ids]),
+      ))
+      .orderBy(asc(pointLots.expiresAt), asc(pointLots.activatedAt), asc(pointLots.id))
+      .for("update");
   }
 
   async createLotAllocations(
