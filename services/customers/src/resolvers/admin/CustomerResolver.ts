@@ -255,4 +255,14 @@ export class CustomerResolver extends CustomersType<string, Customer> {
     );
     return comparison ? this.resolvers.comparison(comparison.id) : null;
   }
+
+  async externalReferences() {
+    const references =
+      await this.$ctx.loaders.externalReferencesByCustomer.load(this.$props);
+    return Promise.all(
+      references.map((reference) =>
+        this.resolvers.externalReference(reference.id)
+      )
+    );
+  }
 }

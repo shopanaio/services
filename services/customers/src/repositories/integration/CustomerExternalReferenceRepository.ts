@@ -35,20 +35,68 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
     externalType?: string;
     externalId: string;
   }): Promise<CustomerExternalReference | null> {
+    const externalSystem = input.externalSystem.trim();
+    const externalType = input.externalType?.trim() || "customer";
+    const externalId = input.externalId.trim();
+    if (!externalSystem || !externalId) return null;
+
     const rows = await this.connection
       .select()
       .from(customerExternalReference)
       .where(
         and(
           eq(customerExternalReference.storeId, this.storeId),
-          eq(customerExternalReference.externalSystem, input.externalSystem),
-          eq(customerExternalReference.externalType, input.externalType ?? "customer"),
-          eq(customerExternalReference.externalId, input.externalId),
+          eq(customerExternalReference.externalSystem, externalSystem),
+          eq(customerExternalReference.externalType, externalType),
+          eq(customerExternalReference.externalId, externalId),
           isNull(customerExternalReference.deletedAt)
         )
       )
       .limit(1);
     return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async findByCustomerAndSystem(input: {
+    customerId: string;
+    externalSystem: string;
+    externalType?: string;
+  }): Promise<CustomerExternalReference | null> {
+    const externalSystem = input.externalSystem.trim();
+    const externalType = input.externalType?.trim() || "customer";
+    if (!externalSystem) return null;
+
+    const rows = await this.connection
+      .select()
+      .from(customerExternalReference)
+      .where(
+        and(
+          eq(customerExternalReference.storeId, this.storeId),
+          eq(customerExternalReference.customerId, input.customerId),
+          eq(customerExternalReference.externalSystem, externalSystem),
+          eq(customerExternalReference.externalType, externalType),
+          isNull(customerExternalReference.deletedAt)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
+  async getByIds(
+    ids: readonly string[]
+  ): Promise<CustomerExternalReference[]> {
+    if (ids.length === 0) return [];
+    return this.connection
+      .select()
+      .from(customerExternalReference)
+      .where(
+        and(
+          eq(customerExternalReference.storeId, this.storeId),
+          inArray(customerExternalReference.id, [...new Set(ids)]),
+          isNull(customerExternalReference.deletedAt)
+        )
+      );
   }
 
   @ReadOnly()
@@ -65,14 +113,22 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
           inArray(customerExternalReference.customerId, [...new Set(customerIds)]),
           isNull(customerExternalReference.deletedAt)
         )
+      )
+      .orderBy(
+        customerExternalReference.externalSystem,
+        customerExternalReference.externalType,
+        customerExternalReference.id
       );
   }
 
   async upsert(
-    data: CustomerExternalReferenceUpsertData
-  ): Promise<CustomerExternalReference> {
+    data: CustomerExternalReferenceUpsertData,
+    options: {
+      existingReferenceId?: string;
+      expectedCustomerId?: string;
+    } = {}
+  ): Promise<CustomerExternalReference | null> {
     const now = new Date().toISOString();
-    const current = await this.findByExternalKey(data);
     const row: NewCustomerExternalReference = {
       ...data,
       id: await this.generateUuidV7(),
@@ -85,27 +141,34 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
       updatedAt: now,
       deletedAt: null,
     };
-    const rows = current
+    const rows = options.existingReferenceId
       ? await this.connection
-        .update(customerExternalReference)
-        .set({
-          customerId: row.customerId,
-          metadata: row.metadata,
-          deletedAt: null,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(customerExternalReference.storeId, this.storeId),
-            eq(customerExternalReference.id, current.id)
+          .update(customerExternalReference)
+          .set({
+            customerId: row.customerId,
+            metadata: row.metadata,
+            deletedAt: null,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(customerExternalReference.storeId, this.storeId),
+              eq(customerExternalReference.id, options.existingReferenceId),
+              options.expectedCustomerId
+                ? eq(
+                    customerExternalReference.customerId,
+                    options.expectedCustomerId
+                  )
+                : undefined,
+              isNull(customerExternalReference.deletedAt)
+            )
           )
-        )
-        .returning()
+          .returning()
       : await this.connection
-        .insert(customerExternalReference)
-        .values(row)
-        .returning();
-    return rows[0];
+          .insert(customerExternalReference)
+          .values(row)
+          .returning();
+    return rows[0] ?? null;
   }
 
   async softDelete(id: string): Promise<boolean> {

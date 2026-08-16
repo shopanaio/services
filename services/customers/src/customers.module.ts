@@ -4,7 +4,10 @@ import { CustomersNestService } from "./customers.nest-service.js";
 import { workflows } from "./workflows/index.js";
 import { StoreEventHandlers } from "./handlers/StoreEventHandlers.js";
 import { ApplicationUserEventHandlers } from "./handlers/ApplicationUserEventHandlers.js";
-import { CustomersBrokerActions } from "./actions/index.js";
+import {
+  CustomerExternalReferenceBrokerActions,
+  CustomersBrokerActions,
+} from "./actions/index.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "customers" })],
@@ -13,6 +16,7 @@ import { CustomersBrokerActions } from "./actions/index.js";
     StoreEventHandlers,
     ApplicationUserEventHandlers,
     CustomersBrokerActions,
+    CustomerExternalReferenceBrokerActions,
     ...workflows,
   ],
 })

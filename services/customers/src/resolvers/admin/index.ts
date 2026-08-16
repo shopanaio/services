@@ -6,6 +6,7 @@ export {
 } from "./MutationResolver.js";
 export { ResolverRegistry, getResolverRegistry } from "./ResolverRegistry.js";
 export { CustomerResolver } from "./CustomerResolver.js";
+export { CustomerExternalReferenceResolver } from "./CustomerExternalReferenceResolver.js";
 export {
   CustomerComparisonResolver,
   CustomerComparisonItemResolver,

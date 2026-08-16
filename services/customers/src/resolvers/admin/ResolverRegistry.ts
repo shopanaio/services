@@ -64,6 +64,13 @@ export class ResolverRegistry {
     return new CustomerComparisonItemResolver(id, this.ctx);
   }
 
+  async externalReference(id: string) {
+    const { CustomerExternalReferenceResolver } = await import(
+      "./CustomerExternalReferenceResolver.js"
+    );
+    return new CustomerExternalReferenceResolver(id, this.ctx);
+  }
+
   async address(id: string) {
     const { CustomerAddressResolver } = await import(
       "./CustomerAddressResolver.js"

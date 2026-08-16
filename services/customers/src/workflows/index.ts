@@ -1,5 +1,6 @@
 import { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
 import { CustomerDeleteWorkflow } from "./CustomerDeleteWorkflow.js";
+import { CustomerExternalReferenceSyncWorkflow } from "./CustomerExternalReferenceSyncWorkflow.js";
 import {
   CustomerComparisonCategoryClearWorkflow,
   CustomerComparisonVariantAddWorkflow,
@@ -71,6 +72,7 @@ export const workflows = [
   CustomerUpdateWorkflow,
   CustomerProvisionFromIamWorkflow,
   CustomerDeleteWorkflow,
+  CustomerExternalReferenceSyncWorkflow,
   StorefrontAuthProvisionWorkflow,
   StorefrontAuthDeprovisionWorkflow,
   WishlistCreateWorkflow,
@@ -96,6 +98,7 @@ export const workflows = [
 
 export { CustomerCreateWorkflow } from "./CustomerCreateWorkflow.js";
 export { CustomerDeleteWorkflow } from "./CustomerDeleteWorkflow.js";
+export { CustomerExternalReferenceSyncWorkflow } from "./CustomerExternalReferenceSyncWorkflow.js";
 export * from "./CustomerEntityCreateWorkflows.js";
 export * from "./CustomerEntityDeleteWorkflows.js";
 export * from "./CustomerEntityUpdateWorkflows.js";

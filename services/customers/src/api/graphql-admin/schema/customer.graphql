@@ -130,6 +130,21 @@ type Customer implements Node @key(fields: "id") {
 
   """The customer's persisted product comparison selection."""
   comparison: CustomerComparison
+
+  """External CRM/ERP identities currently linked to this customer."""
+  externalReferences: [CustomerExternalReference!]!
+}
+
+"""A store-scoped customer identity in an external CRM or ERP system."""
+type CustomerExternalReference implements Node @key(fields: "id") {
+  id: ID!
+  customer: Customer!
+  externalSystem: String!
+  externalType: String!
+  externalId: String!
+  metadata: JSON!
+  createdAt: DateTime!
+  updatedAt: DateTime!
 }
 
 type CustomerConnection {

@@ -398,6 +398,8 @@ export type Customer = Node & {
   displayName: Scalars['String']['output'];
   email: Maybe<Scalars['Email']['output']>;
   emailVerified: Scalars['Boolean']['output'];
+  /** External CRM/ERP identities currently linked to this customer. */
+  externalReferences: Array<CustomerExternalReference>;
   firstName: Maybe<Scalars['String']['output']>;
   gender: Maybe<Scalars['String']['output']>;
   groupMemberships: CustomerGroupMembershipConnection;
@@ -1185,6 +1187,19 @@ export type CustomerEdge = {
   __typename?: 'CustomerEdge';
   cursor: Scalars['String']['output'];
   node: Customer;
+};
+
+/** A store-scoped customer identity in an external CRM or ERP system. */
+export type CustomerExternalReference = Node & {
+  __typename?: 'CustomerExternalReference';
+  createdAt: Scalars['DateTime']['output'];
+  customer: Customer;
+  externalId: Scalars['String']['output'];
+  externalSystem: Scalars['String']['output'];
+  externalType: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  metadata: Scalars['JSON']['output'];
+  updatedAt: Scalars['DateTime']['output'];
 };
 
 export type CustomerGroup = Node & {
@@ -3527,7 +3542,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Node: ( Customer ) | ( CustomerAddress ) | ( CustomerComparison ) | ( CustomerComparisonItem ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier ) | ( Product ) | ( Variant );
+  Node: ( Customer ) | ( CustomerAddress ) | ( CustomerComparison ) | ( CustomerComparisonItem ) | ( CustomerConsent ) | ( CustomerConsentEvent ) | ( CustomerDataRequest ) | ( CustomerExternalReference ) | ( CustomerGroup ) | ( CustomerGroupMembership ) | ( CustomerMerge ) | ( CustomerMonetaryStatistics ) | ( CustomerSegment ) | ( CustomerSegmentMembership ) | ( CustomerTag ) | ( CustomerTagAssignment ) | ( CustomerTaxExemption ) | ( CustomerTaxIdentifier ) | ( Product ) | ( Variant );
   UserError: ( GenericUserError );
 }>;
 
@@ -3607,6 +3622,7 @@ export type ResolversTypes = ResolversObject<{
   CustomerDeleteInput: CustomerDeleteInput;
   CustomerDeletePayload: ResolverTypeWrapper<CustomerDeletePayload>;
   CustomerEdge: ResolverTypeWrapper<CustomerEdge>;
+  CustomerExternalReference: ResolverTypeWrapper<CustomerExternalReference>;
   CustomerGroup: ResolverTypeWrapper<CustomerGroup>;
   CustomerGroupConnection: ResolverTypeWrapper<CustomerGroupConnection>;
   CustomerGroupCreateInput: CustomerGroupCreateInput;
@@ -3829,6 +3845,7 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerDeleteInput: CustomerDeleteInput;
   CustomerDeletePayload: CustomerDeletePayload;
   CustomerEdge: CustomerEdge;
+  CustomerExternalReference: CustomerExternalReference;
   CustomerGroup: CustomerGroup;
   CustomerGroupConnection: CustomerGroupConnection;
   CustomerGroupCreateInput: CustomerGroupCreateInput;
@@ -3988,6 +4005,7 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
   displayName?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   email?: Resolver<Maybe<ResolversTypes['Email']>, ParentType, ContextType>;
   emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  externalReferences?: Resolver<Array<ResolversTypes['CustomerExternalReference']>, ParentType, ContextType>;
   firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   gender?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   groupMemberships?: Resolver<ResolversTypes['CustomerGroupMembershipConnection'], ParentType, ContextType, Partial<CustomerGroupMembershipsArgs>>;
@@ -4245,6 +4263,19 @@ export type CustomerDeletePayloadResolvers<ContextType = ServiceContext, ParentT
 export type CustomerEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerEdge'] = ResolversParentTypes['CustomerEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CustomerExternalReferenceResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerExternalReference'] = ResolversParentTypes['CustomerExternalReference']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['CustomerExternalReference']>, { __typename: 'CustomerExternalReference' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
+  externalId?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  externalSystem?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  externalType?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -4712,7 +4743,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Customer' | 'CustomerAddress' | 'CustomerComparison' | 'CustomerComparisonItem' | 'CustomerConsent' | 'CustomerConsentEvent' | 'CustomerDataRequest' | 'CustomerGroup' | 'CustomerGroupMembership' | 'CustomerMerge' | 'CustomerMonetaryStatistics' | 'CustomerSegment' | 'CustomerSegmentMembership' | 'CustomerTag' | 'CustomerTagAssignment' | 'CustomerTaxExemption' | 'CustomerTaxIdentifier' | 'Product' | 'Variant', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Customer' | 'CustomerAddress' | 'CustomerComparison' | 'CustomerComparisonItem' | 'CustomerConsent' | 'CustomerConsentEvent' | 'CustomerDataRequest' | 'CustomerExternalReference' | 'CustomerGroup' | 'CustomerGroupMembership' | 'CustomerMerge' | 'CustomerMonetaryStatistics' | 'CustomerSegment' | 'CustomerSegmentMembership' | 'CustomerTag' | 'CustomerTagAssignment' | 'CustomerTaxExemption' | 'CustomerTaxIdentifier' | 'Product' | 'Variant', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -4773,6 +4804,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CustomerDataRequestUpdatePayload?: CustomerDataRequestUpdatePayloadResolvers<ContextType>;
   CustomerDeletePayload?: CustomerDeletePayloadResolvers<ContextType>;
   CustomerEdge?: CustomerEdgeResolvers<ContextType>;
+  CustomerExternalReference?: CustomerExternalReferenceResolvers<ContextType>;
   CustomerGroup?: CustomerGroupResolvers<ContextType>;
   CustomerGroupConnection?: CustomerGroupConnectionResolvers<ContextType>;
   CustomerGroupCreatePayload?: CustomerGroupCreatePayloadResolvers<ContextType>;

@@ -7,6 +7,7 @@ import type {
   CustomerComparison,
   CustomerComparisonItem,
   CustomerDataRequest,
+  CustomerExternalReference,
   CustomerGroup,
   CustomerGroupMembership,
   CustomerMerge,
@@ -25,6 +26,7 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { Repository } from "../repositories/Repository.js";
 import { CustomerAddressLoader } from "./CustomerAddressLoader.js";
 import { CustomerConsentLoader } from "./CustomerConsentLoader.js";
+import { CustomerExternalReferenceLoader } from "./CustomerExternalReferenceLoader.js";
 import { CustomerComparisonLoader } from "./CustomerComparisonLoader.js";
 import { CustomerGroupLoader } from "./CustomerGroupLoader.js";
 import { CustomerLifecycleLoader } from "./CustomerLifecycleLoader.js";
@@ -76,6 +78,14 @@ export class Loader {
   >;
   readonly customerMerge: DataLoader<string, CustomerMerge | null>;
   readonly customerDataRequest: DataLoader<string, CustomerDataRequest | null>;
+  readonly externalReference: DataLoader<
+    string,
+    CustomerExternalReference | null
+  >;
+  readonly externalReferencesByCustomer: DataLoader<
+    string,
+    CustomerExternalReference[]
+  >;
   readonly wishlist: DataLoader<string, CustomerWishlist | null>;
   readonly wishlistItem: DataLoader<string, CustomerWishlistItem | null>;
   readonly defaultWishlist: DataLoader<string, CustomerWishlist | null>;
@@ -96,6 +106,9 @@ export class Loader {
     const addressLoader = new CustomerAddressLoader(repository);
     const taxLoader = new CustomerTaxLoader(repository);
     const consentLoader = new CustomerConsentLoader(repository);
+    const externalReferenceLoader = new CustomerExternalReferenceLoader(
+      repository
+    );
     const comparisonLoader = new CustomerComparisonLoader(repository);
     const groupLoader = new CustomerGroupLoader(repository);
     const tagLoader = new CustomerTagLoader(repository);
@@ -125,6 +138,9 @@ export class Loader {
     this.monetaryStatistics = statisticsLoader.monetaryStatistics;
     this.customerMerge = lifecycleLoader.customerMerge;
     this.customerDataRequest = lifecycleLoader.customerDataRequest;
+    this.externalReference = externalReferenceLoader.externalReference;
+    this.externalReferencesByCustomer =
+      externalReferenceLoader.externalReferencesByCustomer;
     this.wishlist = wishlistLoader.wishlist;
     this.wishlistItem = wishlistLoader.wishlistItem;
     this.defaultWishlist = wishlistLoader.defaultWishlist;

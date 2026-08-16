@@ -13,6 +13,7 @@ import {
   CustomerComparisonResolver,
 } from "../../../resolvers/admin/CustomerComparisonResolver.js";
 import { CustomerDataRequestResolver } from "../../../resolvers/admin/CustomerDataRequestResolver.js";
+import { CustomerExternalReferenceResolver } from "../../../resolvers/admin/CustomerExternalReferenceResolver.js";
 import { CustomerGroupMembershipResolver } from "../../../resolvers/admin/CustomerGroupMembershipResolver.js";
 import { CustomerGroupResolver } from "../../../resolvers/admin/CustomerGroupResolver.js";
 import { CustomerMergeResolver } from "../../../resolvers/admin/CustomerMergeResolver.js";
@@ -66,6 +67,9 @@ export const typeResolvers: Partial<Resolvers> = {
       if (obj instanceof CustomerDataRequestResolver) {
         return "CustomerDataRequest";
       }
+      if (obj instanceof CustomerExternalReferenceResolver) {
+        return "CustomerExternalReference";
+      }
       return null;
     },
   },
@@ -114,6 +118,23 @@ export const typeResolvers: Partial<Resolvers> = {
         id,
         parseGraphqlInfo(info),
         ctx,
+      );
+    },
+  },
+  CustomerExternalReference: {
+    __resolveReference: (
+      reference: { __typename: "CustomerExternalReference"; id: string },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo
+    ) => {
+      const id = decodeGlobalIdByType(
+        reference.id,
+        GlobalIdEntity.CustomerExternalReference
+      );
+      return CustomerExternalReferenceResolver.load(
+        id,
+        parseGraphqlInfo(info),
+        ctx
       );
     },
   },

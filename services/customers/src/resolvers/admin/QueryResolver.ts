@@ -23,6 +23,7 @@ import {
 } from "./CustomerComparisonResolver.js";
 import { CustomerDataRequestConnectionResolver } from "./CustomerDataRequestConnectionResolver.js";
 import { CustomerDataRequestResolver } from "./CustomerDataRequestResolver.js";
+import { CustomerExternalReferenceResolver } from "./CustomerExternalReferenceResolver.js";
 import { CustomerGroupConnectionResolver } from "./CustomerGroupConnectionResolver.js";
 import { CustomerGroupMembershipResolver } from "./CustomerGroupMembershipResolver.js";
 import { CustomerGroupResolver } from "./CustomerGroupResolver.js";
@@ -174,6 +175,16 @@ export class CustomersQueryResolver extends CustomersType<
           return null;
         }
         return new CustomerConsentEventResolver(id, this.$ctx);
+      }
+      case GlobalIdEntity.CustomerExternalReference: {
+        const id = this.safeDecodeId(
+          args.id,
+          GlobalIdEntity.CustomerExternalReference
+        );
+        if (!id || !(await this.$ctx.loaders.externalReference.load(id))) {
+          return null;
+        }
+        return new CustomerExternalReferenceResolver(id, this.$ctx);
       }
       case GlobalIdEntity.CustomerGroup: {
         const id = this.safeDecodeId(args.id, GlobalIdEntity.CustomerGroup);
