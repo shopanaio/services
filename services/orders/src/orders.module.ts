@@ -7,6 +7,7 @@ import {
   PublishOrderLoyaltyRewardEligibleWorkflow,
   PublishOrderLoyaltyRewardReversedWorkflow,
 } from './workflows/LoyaltyRewardWorkflows.js';
+import { OrderPaymentEventHandlers } from './handlers/OrderPaymentEventHandlers.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'order' })],
@@ -19,6 +20,7 @@ import {
     OrdersNestService,
     PublishOrderLoyaltyRewardEligibleWorkflow,
     PublishOrderLoyaltyRewardReversedWorkflow,
+    OrderPaymentEventHandlers,
   ],
   exports: [Repository],
 })

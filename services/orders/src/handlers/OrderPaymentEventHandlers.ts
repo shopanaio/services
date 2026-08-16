@@ -1,0 +1,487 @@
+import { Injectable } from "@nestjs/common";
+import type { PaymentEvents } from "@shopana/broker-types";
+import type {
+  DomainEvent,
+  EventHandlerDelivery,
+  EventHandlerResponse,
+} from "@shopana/events";
+import {
+  EventHandler,
+  EventHandlers,
+  InjectBroker,
+  type ServiceBroker,
+} from "@shopana/shared-kernel";
+import { sql } from "drizzle-orm";
+import { Repository } from "../repositories/Repository.js";
+
+type PaymentEventPayload =
+  | PaymentEvents.CollectionStateChanged
+  | PaymentEvents.SessionCreated
+  | PaymentEvents.RequiresAction
+  | PaymentEvents.RequiresConfirmation
+  | PaymentEvents.ConfirmationCompleted
+  | PaymentEvents.Pending
+  | PaymentEvents.Cancelled
+  | PaymentEvents.Authorized
+  | PaymentEvents.Captured
+  | PaymentEvents.Failed
+  | PaymentEvents.Voided
+  | PaymentEvents.Refunded
+  | PaymentEvents.Expired
+  | PaymentEvents.DisputeChanged;
+
+type PaymentDomainEvent = DomainEvent<string, PaymentEventPayload>;
+
+@Injectable()
+export class OrderPaymentEventHandlers extends EventHandlers {
+  constructor(
+    @InjectBroker("order") broker: ServiceBroker,
+    private readonly repository: Repository,
+  ) {
+    super(broker);
+  }
+
+  @EventHandler("payment.collection.state_changed", { retry: { maxAttempts: 20 } })
+  handleCollectionStateChanged(input: {
+    event: DomainEvent<"payment.collection.state_changed", PaymentEvents.CollectionStateChanged>;
+    delivery: EventHandlerDelivery;
+  }) {
+    return this.project(input.event);
+  }
+
+  @EventHandler("payment.session.created", { retry: { maxAttempts: 20 } })
+  handleSessionCreated(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.requires_action", { retry: { maxAttempts: 20 } })
+  handleRequiresAction(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.requires_confirmation", { retry: { maxAttempts: 20 } })
+  handleRequiresConfirmation(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.confirmation.completed", { retry: { maxAttempts: 20 } })
+  handleConfirmationCompleted(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.pending", { retry: { maxAttempts: 20 } })
+  handlePending(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.cancelled", { retry: { maxAttempts: 20 } })
+  handleCancelled(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.authorized", { retry: { maxAttempts: 20 } })
+  handleAuthorized(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.captured", { retry: { maxAttempts: 20 } })
+  handleCaptured(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.failed", { retry: { maxAttempts: 20 } })
+  handleFailed(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.voided", { retry: { maxAttempts: 20 } })
+  handleVoided(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.refunded", { retry: { maxAttempts: 20 } })
+  handleRefunded(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.expired", { retry: { maxAttempts: 20 } })
+  handleExpired(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  @EventHandler("payment.dispute.changed", { retry: { maxAttempts: 20 } })
+  handleDisputeChanged(input: { event: PaymentDomainEvent; delivery: EventHandlerDelivery }) { return this.project(input.event); }
+
+  private async project(event: PaymentDomainEvent): Promise<EventHandlerResponse> {
+    try {
+      await this.repository.txManager.run(async () => {
+        const payload = event.payload;
+        const inserted = await this.repository.db.execute<{ eventId: string }>(sql`
+          INSERT INTO "orders"."order_payment_event_inbox" (
+            "event_id", "store_id", "order_id", "payment_collection_id",
+            "event_type", "event_sequence", "payload", "occurred_at"
+          ) VALUES (
+            ${event.eventId}, ${payload.storeId}::uuid, ${payload.orderId}::uuid,
+            ${payload.paymentCollectionId}::uuid, ${event.eventType},
+            ${requiredEventSequence(event)},
+            ${JSON.stringify(payload)}::jsonb, ${event.timestamp}::timestamptz
+          )
+          ON CONFLICT ("event_id") DO NOTHING
+          RETURNING "event_id" AS "eventId"
+        `);
+        if (inserted.length === 0) return;
+        await projectPaymentDetails(this.repository, event.eventType, payload);
+        const paymentStatus = event.eventType === "payment.collection.state_changed"
+          ? orderPaymentStatus((payload as PaymentEvents.CollectionStateChanged).state)
+          : terminalPaymentStatus(event.eventType, payload);
+        if (paymentStatus) {
+          await projectPaymentStatus(
+            this.repository,
+            payload,
+            paymentStatus,
+            event.eventType,
+            requiredEventSequence(event),
+            event.eventId,
+            event.context.correlationId,
+          );
+        }
+      });
+      return { success: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: {
+          message,
+          code: "ORDER_PAYMENT_PROJECTION_FAILED",
+          retryable: !message.includes("does not exist"),
+        },
+      };
+    }
+  }
+}
+
+async function projectPaymentDetails(
+  repository: Repository,
+  eventType: string,
+  payload: PaymentEventPayload,
+): Promise<void> {
+  if (eventType === "payment.session.created") {
+    const created = payload as PaymentEvents.SessionCreated;
+    await repository.db.execute(sql`
+      INSERT INTO "orders"."order_payment_attempts" (
+        "id", "store_id", "order_id", "payment_method_id", "currency_code",
+        "status", "requested_amount", "idempotency_key", "created_at", "updated_at"
+      )
+      SELECT ${created.paymentSessionId}::uuid, ${created.storeId}::uuid,
+             ${created.orderId}::uuid, method."id", ${created.amount.currencyCode},
+             'PENDING', ${created.amount.amountMinor}::bigint,
+             ${created.paymentSessionId}, ${created.occurredAt}::timestamptz,
+             ${created.occurredAt}::timestamptz
+        FROM "orders"."order_payment_methods" AS method
+       WHERE method."store_id" = ${created.storeId}::uuid
+         AND method."order_id" = ${created.orderId}::uuid
+         AND method."is_selected" = true
+       LIMIT 1
+      ON CONFLICT ("id") DO NOTHING
+    `);
+    return;
+  }
+
+  if (eventType === "payment.requires_action") {
+    const action = payload as PaymentEvents.RequiresAction;
+    await repository.db.execute(sql`
+      UPDATE "orders"."order_payment_attempts"
+         SET "status" = 'REQUIRES_ACTION',
+             "provider_attempt_id" = ${action.providerReference},
+             "customer_action_type" = ${action.customerAction.type}::"orders"."order_payment_customer_action_type",
+             "customer_action_url" = ${action.customerAction.type === "REDIRECT" ? action.customerAction.url : null},
+             "customer_action_payload" = ${JSON.stringify(action.customerAction)}::jsonb,
+             "expires_at" = ${action.customerAction.expiresAt}::timestamptz,
+             "updated_at" = GREATEST("updated_at", ${action.occurredAt}::timestamptz)
+       WHERE "store_id" = ${action.storeId}::uuid
+         AND "order_id" = ${action.orderId}::uuid
+         AND "id" = ${action.paymentSessionId}::uuid
+    `);
+    return;
+  }
+
+  if (eventType === "payment.pending") {
+    const pending = payload as PaymentEvents.Pending;
+    await updateAttempt(repository, pending, "PENDING", {
+      providerReference: pending.providerReference,
+      expiresAt: pending.expiresAt,
+    });
+    return;
+  }
+  if (eventType === "payment.authorized") {
+    const authorized = payload as PaymentEvents.Authorized;
+    await updateAttempt(repository, authorized, "AUTHORIZED", {
+      providerReference: authorized.providerReference,
+      processedAt: authorized.occurredAt,
+    });
+    await insertTransaction(repository, authorized, "AUTHORIZATION", authorized.amount, authorized.networkTransactionId);
+    return;
+  }
+  if (eventType === "payment.captured") {
+    const captured = payload as PaymentEvents.Captured;
+    await updateAttempt(
+      repository,
+      captured,
+      captured.resultingState === "CAPTURED" ? "PAID" : "AUTHORIZED",
+      { providerReference: captured.providerReference, processedAt: captured.occurredAt },
+    );
+    await insertTransaction(
+      repository,
+      captured,
+      captured.operationType === "CAPTURE" ? "CAPTURE" : "SALE",
+      captured.amount,
+      captured.networkTransactionId,
+    );
+    return;
+  }
+  if (eventType === "payment.failed") {
+    const failed = payload as PaymentEvents.Failed;
+    if (failed.sessionState !== "FAILED") return;
+    await repository.db.execute(sql`
+      UPDATE "orders"."order_payment_attempts"
+         SET "status" = 'FAILED', "failure_code" = ${failed.failure.code},
+             "failure_message" = ${failed.failure.message},
+             "processed_at" = ${failed.occurredAt}::timestamptz,
+             "updated_at" = GREATEST("updated_at", ${failed.occurredAt}::timestamptz)
+       WHERE "store_id" = ${failed.storeId}::uuid
+         AND "order_id" = ${failed.orderId}::uuid
+         AND "id" = ${failed.paymentSessionId}::uuid
+    `);
+    return;
+  }
+  if (eventType === "payment.cancelled" || eventType === "payment.expired") {
+    const terminal = payload as PaymentEvents.Cancelled | PaymentEvents.Expired;
+    await updateAttempt(
+      repository,
+      terminal,
+      eventType === "payment.cancelled" ? "CANCELLED" : "EXPIRED",
+      { processedAt: terminal.occurredAt },
+    );
+    return;
+  }
+  if (eventType === "payment.voided") {
+    const voided = payload as PaymentEvents.Voided;
+    if (voided.resultingState === "VOIDED") {
+      await updateAttempt(repository, voided, "CANCELLED", {
+        providerReference: voided.providerReference,
+        processedAt: voided.occurredAt,
+      });
+    }
+    await insertTransaction(repository, voided, "VOID", voided.voidedTotal, null);
+    return;
+  }
+  if (eventType === "payment.refunded") {
+    const refunded = payload as PaymentEvents.Refunded;
+    await insertTransaction(repository, refunded, "REFUND", refunded.amount, null);
+    return;
+  }
+  if (eventType === "payment.dispute.changed") {
+    const dispute = payload as PaymentEvents.DisputeChanged;
+    await repository.db.execute(sql`
+      INSERT INTO "orders"."order_payment_disputes" (
+        "id", "store_id", "order_id", "currency_code", "provider",
+        "provider_dispute_id", "status", "reason", "amount", "evidence",
+        "response_due_at", "resolved_at", "created_at", "updated_at"
+      ) VALUES (
+        ${dispute.paymentDisputeId}::uuid, ${dispute.storeId}::uuid,
+        ${dispute.orderId}::uuid, ${dispute.amount.currencyCode},
+        ${dispute.providerCode}, ${dispute.providerDisputeReference},
+        ${dispute.state}::"orders"."order_dispute_status", ${dispute.reasonCode},
+        ${dispute.amount.amountMinor}::bigint,
+        ${JSON.stringify({
+          paymentCollectionId: dispute.paymentCollectionId,
+          paymentSessionId: dispute.paymentSessionId,
+          providerReference: dispute.providerReference,
+        })}::jsonb,
+        ${dispute.responseDueAt}::timestamptz,
+        ${["WON", "LOST", "ACCEPTED", "CLOSED"].includes(dispute.state) ? dispute.occurredAt : null}::timestamptz,
+        ${dispute.occurredAt}::timestamptz, ${dispute.occurredAt}::timestamptz
+      )
+      ON CONFLICT ("id") DO UPDATE
+        SET "status" = EXCLUDED."status", "reason" = EXCLUDED."reason",
+            "amount" = EXCLUDED."amount", "evidence" = EXCLUDED."evidence",
+            "response_due_at" = EXCLUDED."response_due_at",
+            "resolved_at" = EXCLUDED."resolved_at",
+            "updated_at" = GREATEST(
+              "orders"."order_payment_disputes"."updated_at",
+              EXCLUDED."updated_at"
+            )
+    `);
+  }
+}
+
+async function updateAttempt(
+  repository: Repository,
+  event: Exclude<PaymentEventPayload, PaymentEvents.CollectionStateChanged | PaymentEvents.DisputeChanged>,
+  status: "PENDING" | "AUTHORIZED" | "PAID" | "CANCELLED" | "EXPIRED",
+  values: Readonly<{
+    providerReference?: string;
+    expiresAt?: string;
+    processedAt?: string;
+  }>,
+): Promise<void> {
+  await repository.db.execute(sql`
+    UPDATE "orders"."order_payment_attempts"
+       SET "status" = ${status}::"orders"."order_payment_attempt_status",
+           "provider_attempt_id" = COALESCE(${values.providerReference ?? null}, "provider_attempt_id"),
+           "expires_at" = COALESCE(${values.expiresAt ?? null}::timestamptz, "expires_at"),
+           "processed_at" = COALESCE(${values.processedAt ?? null}::timestamptz, "processed_at"),
+           "updated_at" = GREATEST("updated_at", ${event.occurredAt}::timestamptz)
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "order_id" = ${event.orderId}::uuid
+       AND "id" = ${event.paymentSessionId}::uuid
+  `);
+}
+
+async function insertTransaction(
+  repository: Repository,
+  event: PaymentEvents.Authorized | PaymentEvents.Captured | PaymentEvents.Voided | PaymentEvents.Refunded,
+  kind: "AUTHORIZATION" | "CAPTURE" | "SALE" | "REFUND" | "VOID",
+  amount: PaymentEvents.Authorized["amount"],
+  providerTransactionId: string | null,
+): Promise<void> {
+  if (BigInt(amount.amountMinor) <= 0n) return;
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_payment_transactions" (
+      "id", "store_id", "order_id", "payment_attempt_id", "currency_code",
+      "kind", "status", "amount", "provider", "provider_transaction_id",
+      "provider_data", "processed_at", "created_at", "updated_at"
+    ) VALUES (
+      ${event.operationId}::uuid, ${event.storeId}::uuid, ${event.orderId}::uuid,
+      ${event.paymentSessionId}::uuid, ${amount.currencyCode},
+      ${kind}::"orders"."order_payment_transaction_kind", 'SUCCESS',
+      ${amount.amountMinor}::bigint, ${event.providerCode}, ${providerTransactionId},
+      ${JSON.stringify({
+        paymentCollectionId: event.paymentCollectionId,
+        paymentSessionId: event.paymentSessionId,
+        operationType: event.operationType,
+      })}::jsonb,
+      ${event.occurredAt}::timestamptz, ${event.occurredAt}::timestamptz,
+      ${event.occurredAt}::timestamptz
+    )
+    ON CONFLICT DO NOTHING
+  `);
+}
+
+async function projectPaymentStatus(
+  repository: Repository,
+  event: PaymentEventPayload,
+  paymentStatus: string,
+  eventType: string,
+  eventSequence: number,
+  eventId: string,
+  correlationId: string,
+): Promise<void> {
+  const projected = await repository.db.execute<{ orderId: string }>(sql`
+    INSERT INTO "orders"."order_payment_projection" (
+      "store_id", "order_id", "payment_collection_id", "payment_status",
+      "last_event_sequence", "updated_at"
+    ) VALUES (
+      ${event.storeId}::uuid, ${event.orderId}::uuid,
+      ${event.paymentCollectionId}::uuid,
+      ${paymentStatus}::"orders"."order_payment_status",
+      ${eventSequence}, ${event.occurredAt}::timestamptz
+    )
+    ON CONFLICT ("store_id", "order_id") DO UPDATE
+      SET "payment_collection_id" = EXCLUDED."payment_collection_id",
+          "payment_status" = EXCLUDED."payment_status",
+          "last_event_sequence" = EXCLUDED."last_event_sequence",
+          "updated_at" = GREATEST(
+            "orders"."order_payment_projection"."updated_at",
+            EXCLUDED."updated_at"
+          )
+      WHERE "orders"."order_payment_projection"."last_event_sequence" < EXCLUDED."last_event_sequence"
+    RETURNING "order_id" AS "orderId"
+  `);
+  if (projected.length === 0) return;
+  const currentRows = await repository.db.execute<{
+    revision: number;
+    paymentStatus: string;
+  }>(sql`
+    SELECT "revision", "payment_status" AS "paymentStatus"
+      FROM "orders"."orders"
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "id" = ${event.orderId}::uuid
+     FOR UPDATE
+  `);
+  const current = currentRows[0];
+  if (!current) throw new Error("ORDER_NOT_FOUND");
+  if (current.paymentStatus === paymentStatus) return;
+  const revision = current.revision + 1;
+  await repository.db.execute(sql`
+    UPDATE "orders"."orders"
+       SET "payment_status" = ${paymentStatus}::"orders"."order_payment_status",
+           "revision" = ${revision},
+           "updated_at" = GREATEST("updated_at", ${event.occurredAt}::timestamptz)
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "id" = ${event.orderId}::uuid
+  `);
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_revisions" (
+      "store_id", "order_id", "revision", "status", "payment_status",
+      "fulfillment_status", "delivery_status", "return_status", "currency_code",
+      "subtotal_amount", "discount_amount", "shipping_amount", "tax_amount",
+      "duty_amount", "adjustment_amount", "total_amount", "snapshot", "reason",
+      "created_by_type", "created_at"
+    )
+    SELECT "store_id", "id", "revision", "status", "payment_status",
+           "fulfillment_status", "delivery_status", "return_status", "currency_code",
+           "subtotal_amount", "discount_amount", "shipping_amount", "tax_amount",
+           "duty_amount", "adjustment_amount", "total_amount",
+           jsonb_build_object(
+             'paymentCollectionId', ${event.paymentCollectionId},
+             'paymentEventId', ${eventId},
+             'paymentEventType', ${eventType}
+           ),
+           ${`Payment projection applied: ${eventType}`}, 'SYSTEM', ${event.occurredAt}::timestamptz
+      FROM "orders"."orders"
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "id" = ${event.orderId}::uuid
+  `);
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_status_history" (
+      "store_id", "order_id", "order_revision", "order_status", "payment_status",
+      "fulfillment_status", "delivery_status", "return_status", "reason_code",
+      "actor_type", "metadata", "happened_at"
+    )
+    SELECT "store_id", "id", "revision", "status", "payment_status",
+           "fulfillment_status", "delivery_status", "return_status",
+           ${eventType}, 'SYSTEM',
+           jsonb_build_object('paymentCollectionId', ${event.paymentCollectionId}),
+           ${event.occurredAt}::timestamptz
+      FROM "orders"."orders"
+     WHERE "store_id" = ${event.storeId}::uuid
+       AND "id" = ${event.orderId}::uuid
+  `);
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_events" (
+      "store_id", "order_id", "event_type", "aggregate_revision", "actor_type",
+      "correlation_id", "idempotency_key", "payload", "happened_at"
+    ) VALUES (
+      ${event.storeId}::uuid, ${event.orderId}::uuid,
+      ${eventType}, ${revision}, 'SYSTEM',
+      ${uuidOrNull(correlationId)}::uuid, ${eventId}, ${JSON.stringify(event)}::jsonb,
+      ${event.occurredAt}::timestamptz
+    )
+  `);
+}
+
+function orderPaymentStatus(state: PaymentEvents.CollectionStateChanged["state"]): string | null {
+  switch (state) {
+    case "OPEN": return null;
+    case "PENDING": return "PENDING";
+    case "PARTIALLY_AUTHORIZED":
+    case "AUTHORIZED": return "AUTHORIZED";
+    case "PARTIALLY_PAID": return "PARTIALLY_PAID";
+    case "PAID": return "PAID";
+    case "PARTIALLY_REFUNDED": return "PARTIALLY_REFUNDED";
+    case "REFUNDED": return "REFUNDED";
+    case "CANCELLED": return "FAILED";
+  }
+}
+
+function terminalPaymentStatus(eventType: string, payload: PaymentEventPayload): string | null {
+  if (eventType === "payment.failed") {
+    const failed = payload as PaymentEvents.Failed;
+    return failed.sessionState === "FAILED" ? "FAILED" : null;
+  }
+  if (eventType === "payment.cancelled") return "FAILED";
+  if (eventType === "payment.expired") return "EXPIRED";
+  if (eventType === "payment.voided") return "VOIDED";
+  return null;
+}
+
+function uuidOrNull(value: string): string | null {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
+}
+
+function requiredEventSequence(event: PaymentDomainEvent): number {
+  if (!Number.isSafeInteger(event.eventSequence) || (event.eventSequence ?? 0) <= 0) {
+    throw new Error("PAYMENT_EVENT_SEQUENCE_INVALID");
+  }
+  return event.eventSequence!;
+}

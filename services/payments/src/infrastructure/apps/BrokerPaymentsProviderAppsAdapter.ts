@@ -4,7 +4,7 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 import type { PaymentsProviderAppsPort } from "../../contracts/ports.js";
 import { providerConfigurationResultSchema, providerDiscoveryResultSchema } from "../../checkout-pipeline/schemas.js";
 import { PaymentsCheckoutError } from "../../checkout-pipeline/errors.js";
-import { parseProviderOperationResult } from "../../contracts/schemas.js";
+import { parseProviderOperationResult, parseProviderReconcileResult } from "../../contracts/schemas.js";
 
 export class BrokerPaymentsProviderAppsAdapter implements PaymentsProviderAppsPort {
   private readonly routeStores = new Map<string, string>();
@@ -28,12 +28,12 @@ export class BrokerPaymentsProviderAppsAdapter implements PaymentsProviderAppsPo
   }
   async getMethods(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderMethodDiscoveryRequest) { return providerDiscoveryResultSchema.parse((await this.execute(route, request)).data) as Payments.PaymentProviderMethodDiscoveryResult; }
   async createPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCreatePaymentRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
-  async confirmPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderConfirmRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
-  async cancel(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCancelRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
-  async capture(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCaptureRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
-  async void(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderVoidRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
-  async refund(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderRefundRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderOperationResult; }
-  async reconcile(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderReconcileRequest) { return (await this.execute(route, request)).data as Payments.PaymentProviderReconcileResult; }
+  async confirmPayment(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderConfirmRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
+  async cancel(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCancelRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
+  async capture(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderCaptureRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
+  async void(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderVoidRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
+  async refund(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderRefundRequest) { return parseProviderOperationResult((await this.execute(route, request)).data); }
+  async reconcile(route: Payments.PaymentProviderRouteSnapshot, request: Payments.PaymentProviderReconcileRequest) { return parseProviderReconcileResult((await this.execute(route, request)).data); }
 
   private async execute<T>(route: Payments.PaymentProviderRouteSnapshot, input: T): Promise<Apps.ExecuteCapabilityResult> {
     const storeId = this.routeStores.get(route.capabilityRouteId);

@@ -12,8 +12,8 @@ export class PaymentProviderAccountService {
     if (!route) throw new Error("PAYMENT_PROVIDER_ROUTE_UNAVAILABLE");
     const validation = await this.apps.validateConfiguration(route, { protocolVersion: 1, correlationId: params.correlationId, deadlineAt: new Date(Date.now() + 10_000).toISOString(), mode: params.mode });
     if (validation.status === "INVALID") throw new Error("PAYMENT_PROVIDER_CONFIGURATION_INVALID");
-    if (!validation.supportedOperations.includes("getMethods") || !validation.supportedOperations.includes("createPayment") || (params.captureMode === "MANUAL" && !validation.supportedOperations.includes("capture")) || validation.supportedCurrencyCodes.length === 0 || validation.supportedSessionKinds.length === 0) throw new Error("PAYMENT_PROVIDER_CONFIGURATION_UNSUPPORTED");
-    const requiredOperations: Payments.PaymentProviderOperation[] = ["getMethods", "createPayment", ...(params.captureMode === "MANUAL" ? ["capture" as const] : [])];
+    if (!validation.supportedOperations.includes("getMethods") || !validation.supportedOperations.includes("createPayment") || (params.captureMode === "MANUAL" && !validation.supportedOperations.includes("capture")) || (validation.capabilities.supportsSettlementConfirmation && !validation.supportedOperations.includes("confirmPayment")) || validation.supportedCurrencyCodes.length === 0 || validation.supportedSessionKinds.length === 0) throw new Error("PAYMENT_PROVIDER_CONFIGURATION_UNSUPPORTED");
+    const requiredOperations: Payments.PaymentProviderOperation[] = ["getMethods", "createPayment", ...(params.captureMode === "MANUAL" ? ["capture" as const] : []), ...(validation.capabilities.supportsSettlementConfirmation ? ["confirmPayment" as const] : [])];
     const requiredRoutes = await Promise.all(requiredOperations.map((operation) => this.apps.resolveRoute({ storeId: params.storeId, installationId: params.installationId, operation })));
     if (requiredRoutes.some((candidate) => candidate === null || candidate.appCode !== route.appCode || candidate.appVersion !== route.appVersion)) throw new Error("PAYMENT_PROVIDER_ROUTE_UNAVAILABLE");
     const now = new Date().toISOString();

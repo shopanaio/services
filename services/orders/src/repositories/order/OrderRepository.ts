@@ -19,7 +19,6 @@ import {
   orderItems,
   orderPaymentMethods,
   orders,
-  orderSelectedPaymentMethods,
 } from "@src/repositories/models/index";
 import { coerceMoney, coerceNullableMoney } from "@src/utils/money";
 import { BaseRepository } from "../BaseRepository.js";
@@ -91,8 +90,9 @@ export type OrderCreateData = Readonly<{
   paymentMethods: Array<{
     code: string;
     provider: string;
+    title: string | null;
     flow: string;
-    metadata: Record<string, unknown> | null;
+    providerData: Record<string, unknown> | null;
     customerInput: Record<string, unknown> | null;
   }>;
   selectedPaymentMethod: { code: string; provider: string } | null;
@@ -261,20 +261,14 @@ export class OrderRepository extends BaseRepository {
           storeId: input.storeId,
           code: method.code,
           provider: method.provider,
+          title: method.title,
           flow: method.flow,
-          metadata: method.metadata ?? {},
-          customerInput: method.customerInput ?? {},
+          isSelected: input.selectedPaymentMethod?.code === method.code &&
+            input.selectedPaymentMethod.provider === method.provider,
+          providerData: method.providerData ?? {},
+          customerInputSnapshot: method.customerInput ?? {},
         })),
       );
-    }
-
-    if (input.selectedPaymentMethod) {
-      await this.connection.insert(orderSelectedPaymentMethods).values({
-        orderId: input.id,
-        storeId: input.storeId,
-        code: input.selectedPaymentMethod.code,
-        provider: input.selectedPaymentMethod.provider,
-      });
     }
 
     if (input.appliedDiscounts.length > 0) {

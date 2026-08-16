@@ -80,6 +80,10 @@ interface PlaceOrderSnapshot {
   inventoryLines: Inventory.ReserveCheckoutInventoryParams["lines"];
   selectedPayment: null | {
     methodHandle: string;
+    code: string;
+    title: string;
+    provider: string;
+    flow: Payments.PaymentsCheckoutMethod["flow"];
     customerInput: Payments.PaymentsCheckoutMethodSelectionIntent["customerInput"];
   };
   customer: Payments.PaymentProviderCustomerSnapshot | null;
@@ -284,9 +288,19 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       throw new Error("CHECKOUT_PIPELINE_INCOMPLETE");
     }
     const selection = payment.data.selection;
-    const selectedPayment = selection.status === "SELECTED"
+    const selectedMethod = selection.status === "SELECTED"
+      ? payment.data.methods.find((method) => method.handle === selection.methodHandle)
+      : null;
+    if (selection.status === "SELECTED" && !selectedMethod) {
+      throw new Error("CHECKOUT_PAYMENT_METHOD_BINDING_MISSING");
+    }
+    const selectedPayment = selection.status === "SELECTED" && selectedMethod
       ? {
           methodHandle: selection.methodHandle,
+          code: selectedMethod.code,
+          title: selectedMethod.title,
+          provider: selectedMethod.provider,
+          flow: selectedMethod.flow,
           customerInput: selection.customerInput,
         }
       : null;
@@ -532,6 +546,15 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       userId: input.userId,
       idempotencyKey: `${input.idempotencyKey}:order`,
       checkout: snapshot.checkout,
+      payment: snapshot.selectedPayment
+        ? {
+            code: snapshot.selectedPayment.code,
+            title: snapshot.selectedPayment.title,
+            provider: snapshot.selectedPayment.provider,
+            flow: snapshot.selectedPayment.flow,
+            customerInput: snapshot.selectedPayment.customerInput,
+          }
+        : null,
       loyaltyRewardEligibility: snapshot.orderRewardEligibility,
     });
   }

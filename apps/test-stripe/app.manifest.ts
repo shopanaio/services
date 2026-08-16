@@ -1,4 +1,5 @@
 import { defineAppManifest } from "@shopana/app-sdk";
+import { PAYMENTS_PROVIDER_APP_PERMISSIONS } from "@shopana/broker-types";
 
 export const testStripeManifest = defineAppManifest({
   schemaVersion: 2,
@@ -19,7 +20,7 @@ export const testStripeManifest = defineAppManifest({
     uninstallWorkflow: "uninstall",
     healthAction: "health",
   },
-  permissions: [],
+  permissions: [...PAYMENTS_PROVIDER_APP_PERMISSIONS],
   capabilities: [
     {
       key: "payments.provider",

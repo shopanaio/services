@@ -123,7 +123,7 @@ export class TestStripeApp implements ShopanaApp {
   private getMethods(input: unknown): Payments.PaymentProviderMethodDiscoveryResult {
     const request = requireInput<Payments.PaymentProviderMethodDiscoveryRequest>(input);
     const methods: Payments.PaymentProviderMethodDefinition[] = [
-      method("card", "test-stripe-card", "Test card", "ONLINE", "SUCCEEDED"),
+      method("card", "test-stripe-card", "Test card", "ONLINE", "REQUIRES_CONFIRMATION"),
       method("card-3ds", "test-stripe-card-3ds", "Test card · 3DS", "ONLINE", "REQUIRES_ACTION"),
       method("bank-transfer", "test-stripe-bank-transfer", "Test bank transfer", "OFFLINE", "PENDING"),
       method("declined-card", "test-stripe-declined-card", "Test declined card", "ONLINE", "FAILED"),
@@ -184,6 +184,16 @@ export class TestStripeApp implements ShopanaApp {
           nextReconcileAt: addMinutes(1),
           observedAt: now(),
           metadata: { testScenario: "pending" },
+        };
+      }
+
+      if (request.providerMethodKey === "card") {
+        return {
+          status: "REQUIRES_CONFIRMATION",
+          providerReference,
+          confirmationExpiresAt: addMinutes(5),
+          observedAt: now(),
+          metadata: { testScenario: "requires_confirmation" },
         };
       }
 

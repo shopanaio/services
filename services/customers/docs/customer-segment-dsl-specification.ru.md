@@ -97,9 +97,12 @@ Keywords нечувствительны к регистру. Canonical printer �
 AND OR NOT BETWEEN IN IS NULL CONTAINS MATCHES NOT_MATCHES
 ```
 
-Имена attributes и parameters выводятся в `snake_case` и чувствительны к
-регистру на semantic validation. Parser может принять другое написание, но
-normalizer обязан привести identifier к lowercase до поиска в registry.
+Имена attributes и parameters выводятся в `snake_case`. Пользовательский ввод
+для identifiers нечувствителен к регистру: parser сохраняет исходный spelling и
+source range для diagnostics, а semantic analyzer перед lookup всегда применяет
+ASCII lowercase. Поэтому `Customer_Language` и `customer_language` обозначают
+один attribute. Registry содержит только ASCII lowercase names, удовлетворяющие
+`[a-z_][a-z0-9_]*`; Unicode case folding к identifiers не применяется.
 
 Lexical contract identifiers:
 
@@ -149,6 +152,14 @@ string literal после decoding — 1 024 Unicode code points.
 Scientific notation, `NaN`, `Infinity`, разделители тысяч и locale-specific
 decimal separators не поддерживаются.
 
+После lexical validation Integer должен помещаться в signed
+64-bit range `[-9223372036854775808, 9223372036854775807]`. Decimal допускает не
+более 38 significant digits и не более 18 fractional digits. Эти limits
+проверяются над decimal string до создания SQL bind value; JavaScript `number`
+для проверки или хранения не используется. Attribute descriptor может сузить
+domain, например запретить отрицательное значение, но не может расширить эти
+общие limits.
+
 Money attributes принимают decimal amount в единственной configured currency
 Store. Currency symbol и currency code в запросе не указываются:
 
@@ -159,6 +170,10 @@ amount_spent >= 500.00
 Semantic analyzer обязан преобразовать decimal string в integer minor units без
 использования IEEE-754 arithmetic. Значение с количеством decimal places больше
 currency exponent отклоняется.
+
+`currency_exponent` должен быть целым числом от 0 до 6. Рассчитанные minor units
+обязаны помещаться в signed 64-bit range PostgreSQL `bigint`; иначе возвращается
+`SEGMENT_INVALID_MONEY`.
 
 Normalized money value сохраняет как исходное canonical decimal, так и контекст,
 в котором были рассчитаны minor units: `currency_code` и `currency_exponent`.
@@ -393,7 +408,14 @@ Operators:
 
 Function registry определяет разрешенные parameters, их типы, operators и
 aggregate semantics. Неизвестные и повторяющиеся parameters являются semantic
-error.
+error. `IS NULL` и `IS NOT NULL` разрешены только для nullable non-aggregate
+parameters и следуют общей двухзначной NULL-семантике. Они фильтруют source rows
+до aggregation так же, как остальные non-aggregate parameters.
+
+Пустой parameter list разрешен. `function MATCHES ()` означает существование
+хотя бы одной source row, `NOT_MATCHES ()` — отсутствие source rows. Для
+functions без parameters это эквивалентно соответственно `IS NOT NULL` и
+`IS NULL`, но canonical printer не заменяет одну форму другой.
 
 При наличии хотя бы одного aggregate parameter `count`/`sum_*` source rows
 сначала фильтруются обычными parameters, после чего aggregates вычисляются даже
@@ -436,11 +458,22 @@ customer_lifecycle_status:
 
 String normalization:
 
-- `customer_email_domain` сравнивается case-insensitive после lowercase и IDNA
-  normalization;
-- `customer_language` нормализуется как BCP 47 tag;
-- `customer_source` сравнивается как сохраненный normalized source code;
-- `company_name` в v1 сравнивается case-insensitive после NFKC и trim.
+- `customer_email_domain` хранится в `customer.email_domain_normalized` и
+  нормализуется через IDNA2008/UTS #46 non-transitional processing, затем ASCII
+  lowercase; trailing dot удаляется;
+- `customer_language` хранится в `customer.preferred_locale_normalized` как
+  canonical BCP 47 tag: language lowercase, script title case, region uppercase;
+- `customer_source` является ASCII code
+  `[a-z0-9][a-z0-9._-]{0,63}` и сохраняется в lowercase;
+- `company_name` сравнивается по `customer.company_name_normalized`, полученному
+  через normalization contract `unicode-nfkc-casefold-v1`: Unicode NFKC, full
+  case fold, trim и collapse всех Unicode whitespace runs в один ASCII space.
+
+Конкретная библиотека с bundled Unicode/IDNA data и ее data version фиксируются
+package lock и golden tests normalization contract; runtime ICU/locale process
+не используется. Изменение результата хотя бы одного golden
+fixture считается изменением semantics и требует новой DSL version, а не
+незаметного обновления v1.
 
 `customer_updated_date` отражает business-visible изменение aggregate customer,
 а не техническое получение lock или увеличение revision. Любое изменение
@@ -463,12 +496,25 @@ ISO 3166-1 alpha-2 uppercase code. Region и city values должны созда
 Admin picker из canonical address representation; свободный ввод разрешается
 только после такой же normalization на сервере.
 
+Canonical address values v1:
+
+- country: `CC`, например `UA`;
+- region: `CC-REGION`, где `REGION` — uppercase persisted ISO 3166-2 subdivision
+  suffix `[A-Z0-9]{1,3}`;
+- city: `CC-REGION::city-key`, либо `CC::city-key`, если region отсутствует;
+- postal code: Unicode NFKC, uppercase, trim и collapse whitespace в один ASCII
+  space.
+
+`city-key` использует `unicode-nfkc-casefold-v1`. Address writer обязан хранить
+`region_key`, `city_key` и `postal_code_normalized` при записи; SQL compiler не
+нормализует columns во время query.
+
 Примеры:
 
 ```sql
 customer_countries CONTAINS 'UA'
 customer_regions CONTAINS 'US-CA'
-customer_cities CONTAINS 'US-CA-LosAngeles'
+customer_cities CONTAINS 'US-CA::los angeles'
 ```
 
 ### 11.3 Marketing consent
@@ -663,6 +709,52 @@ IDs и category snapshot приходят из order events. Rename или по�
 `SEGMENT_ATTRIBUTE_UNAVAILABLE`. Silent fallback или cross-service query не
 допускаются.
 
+Future availability contract уже фиксирован, чтобы включение не меняло DSL
+semantics. Orders публикует versioned full-replacement event одного completed
+order:
+
+```ts
+interface CompletedOrderPurchaseLinesProjectedV1 {
+  readonly storeId: string;
+  readonly customerId: string;
+  readonly orderId: string;
+  readonly orderRevision: number;
+  readonly completedAt: string;
+  readonly lines: readonly {
+    readonly lineId: string;
+    readonly productId: string;
+    readonly variantId: string | null;
+    readonly categoryIds: readonly string[];
+    readonly quantity: number;
+  }[];
+}
+```
+
+Customers хранит `customer_purchase_line_projection` с primary key
+`(store_id, order_id, line_id)`, customer/order revision, product/variant,
+positive quantity и completed timestamp, а category snapshot — в отдельной
+`customer_purchase_line_category_projection` с primary key
+`(store_id, order_id, line_id, category_id)`. Более новая order revision
+атомарно заменяет полный набор lines/categories; duplicate revision с тем же
+content hash является no-op, конфликтующий duplicate — invariant violation,
+stale revision игнорируется. Отмена уже completed order публикует replacement с
+пустым lines set либо отдельный versioned removal event той же revision model.
+
+Required indexes покрывают customer-first correlated evaluation и value-first
+bulk scan для product, variant, category и completed date. `count` использует
+`count(distinct order_id)`, `sum_quantity` — сумму line quantities после всех
+non-aggregate filters. IDs хранятся как internal UUID snapshots; Catalog lookup
+не выполняется ни при ingestion, ни при evaluation.
+
+Для Store-scoped semantic validation Customers также владеет компактной
+`customer_segment_catalog_identity(store_id, entity_type, entity_id,
+source_revision, deleted_at)` projection из versioned Catalog identity events.
+Tombstone сохраняется после удаления, чтобы исторический purchased predicate и
+его persisted definition оставались валидны; новый query может ссылаться на
+известную tombstone identity, но Admin catalog помечает ее unavailable for new
+selection. `products_purchased` становится `AVAILABLE` только после readiness
+обеих projections и их ordering/idempotency tests.
+
 ### 12.3 `birthday`
 
 ```sql
@@ -671,6 +763,12 @@ birthday BETWEEN today AND +30d
 
 `birthday` является virtual Date attribute и сравнивает month/day
 `customer.date_of_birth`, игнорируя year.
+
+Write-time `customer.birthday_month_day` хранит четыре ASCII digits `MMDD` из
+реальной `date_of_birth`; 29 февраля хранится как `0229`, а не переписывается.
+При evaluation невисокосного target year date adapter добавляет `0229` в set
+для target 28 февраля согласно policy ниже. Изменение `date_of_birth` и
+`birthday_month_day` выполняется одной transaction.
 
 Поддерживаются:
 
@@ -851,6 +949,10 @@ type SegmentFunctionParameter =
       readonly name: string;
       readonly operator: "in" | "not_in";
       readonly values: readonly [SegmentValue, ...SegmentValue[]];
+    }
+  | {
+      readonly name: string;
+      readonly operator: "is_null" | "is_not_null";
     };
 
 type SegmentValue =
@@ -907,7 +1009,10 @@ Typed values являются tagged objects, а не untyped JSON primitives:
 
 `storeConfigurationRevision` в этом contract является DSL-specific monotonic
 revision только currency code/exponent и timezone, а не общей revision любых
-Store settings.
+Store settings. Она сохраняется для audit, ordering событий конфигурации и
+диагностики, но сама по себе не участвует в equality check перед evaluation:
+freshness определяется только значениями полей, перечисленных в
+`contextDependencies`.
 
 AST normalization:
 
@@ -927,6 +1032,8 @@ AST normalization:
 12. function parameters сортируются по immutable registry order после проверки
     duplicate names; пользовательский порядок остается только в parsed AST для
     source diagnostics.
+13. `dependencies` и `contextDependencies` deduplicate и сортируются по ASCII
+    lexical order; порядок регистрации descriptors не влияет на persisted AST.
 
 AST не содержит SQL identifiers, table names, Drizzle objects или compiled SQL.
 
@@ -935,9 +1042,12 @@ unknown keys. Operator arity является structural invariant: `is_null` н
 содержать value, `between` всегда имеет обе boundaries, а `in` всегда содержит
 непустой массив. Persisted definition полностью валидируется при каждом чтении
 до выбора compiler; несовпадение derived `dependencies`,
-`contextDependencies`, `temporal` или `evaluationContext` с validated root
-считается internal corruption и fail closed. Compiler не доверяет отдельно
-сохраненным derived полям без такой проверки.
+`contextDependencies` или `temporal` с validated root, а также несовпадение
+money literals с currency snapshot внутри `evaluationContext`, считается
+internal corruption и fail closed. `storeConfigurationRevision` нельзя вывести
+из root, поэтому при persisted-definition validation проверяются ее тип,
+неотрицательность и наличие, но не равенство текущей Store revision. Compiler не
+доверяет отдельно сохраненным derived полям без такой проверки.
 
 ### 14.1 Canonical printer
 
@@ -965,6 +1075,10 @@ Canonical printer детерминирован и выдает одну стро
 результат на всех runtime nodes. Нормативный round trip:
 `parse(print(ast)) -> normalize` дает AST, структурно равный исходному ast.
 
+Canonical query сохраняется вместе с definition и является результатом printer,
+а не исходной пользовательской строкой. Parsed AST и исходная строка живут
+только в рамках validation request и не являются persisted contract.
+
 ## 15. Peggy grammar contract
 
 Нормативная упрощенная grammar:
@@ -988,6 +1102,7 @@ Parameters         ::= Parameter ("," Parameter)*
 Parameter          ::= Identifier ParameterOperator Value
                      | Identifier BETWEEN Value AND Value
                      | Identifier (IN | NOT IN) "(" ValueList ")"
+                     | Identifier IS (NULL | NOT NULL)
 ValueList          ::= Value ("," Value)*
 Value              ::= DateTime | Date | RelativeDate | NamedDate
                      | Boolean | Number | String
@@ -1009,12 +1124,35 @@ boundary, поэтому `2026-08-16suffix`, `+30days` и datetime с trailing g
 Generated parser создается build-time из `.peggy`; runtime generation grammar и
 `eval` запрещены.
 
+Упрощенная EBNF выше задает syntactic structure, но checked-in `.peggy` является
+нормативным executable grammar. До подключения parser к API grammar обязана
+содержать отдельные lexical rules со следующими contracts:
+
+```text
+IntegerPart  ::= "0" | [1-9][0-9]*
+Number       ::= [+-]? IntegerPart ("." [0-9]+)?
+Date         ::= [0-9]{4} "-" [0-9]{2} "-" [0-9]{2}
+RelativeDate ::= [+-] IntegerPart [dDwWmMyY]
+```
+
+Leading zeros, включая `00`, `01` и `-00`, являются syntax error. DateTime rule
+принимает только формы раздела 5.6 и проверяется перед Date. После каждого
+keyword, boolean, named date, relative date, number, date и datetime parser
+проверяет отсутствие identifier character `[A-Za-z0-9_]`; после полного Query
+обязателен EOF. Whitespace rule принимает только `\x20`, `\x09`, `\x0A` и
+`\x0D`.
+
 Ограничение query UTF-8 bytes проверяется до запуска parser. Parser дополнительно
 считает raw tokens, raw AST nodes и текущую syntactic nesting depth и прекращает
 разбор при достижении limits из раздела 19. Эти checks выполняются до
 normalization: цепочка `NOT NOT ...`, лишние singleton parentheses или другие
 узлы, которые позже исчезнут, все равно учитываются. Реализация не должна
 полагаться только на глубину JavaScript call stack.
+
+Peggy syntax failure создает ровно одну diagnostic — самую дальнюю достигнутую
+ошибку parser. Limit failure создает одну `SEGMENT_COMPLEXITY_LIMIT`. Limit в 50
+diagnostics относится к semantic validation, которая может продолжать обход
+независимых branches после локальной ошибки.
 
 ## 16. Semantic validation
 
@@ -1031,6 +1169,15 @@ Validation выполняется после parse и до записи segment:
 9. Рассчитать complexity score.
 10. Построить canonical query и canonical AST.
 11. Опционально выполнить bounded `EXPLAIN`/preview после успешной validation.
+
+Entity references группируются по entity type и проверяются batch query в
+Customers database с обязательным trusted `store_id`. В v1 это CustomerTag и
+CustomerGroup. Descriptor, чья identity принадлежит другому service, не может
+быть `AVAILABLE`, пока Customers не владеет локальной projection этих identities;
+synchronous lookup в Catalog/Orders во время validation запрещен так же, как во
+время evaluation. Отсутствующий, deleted или принадлежащий другому Store entity
+возвращает `SEGMENT_INVALID_ENTITY_ID` без раскрытия факта существования в другом
+Store.
 
 Client не может прислать одновременно независимые `query` и `definition`.
 Mutation принимает `query`; `definition` строится сервером и доступен только
@@ -1078,6 +1225,35 @@ Registry является единственным местом, где DSL name
 columns/tables. Пользовательский identifier никогда не интерполируется как SQL
 identifier.
 
+### 17.1 Availability и migration matrix
+
+Каждый descriptor объявляет стабильные IDs `normalizationContract` и
+`indexContract`. `AVAILABLE` разрешен только если architecture test находит все
+перечисленные Drizzle columns/indexes и normalization writer использует тот же
+contract ID. Минимальная matrix v1:
+
+| Attribute family | Required persisted data | Required access paths |
+| --- | --- | --- |
+| profile equality | `email_domain_normalized`, `preferred_locale_normalized`, `company_name_normalized`, normalized `source` | `(store_id, value, id)` partial для non-deleted customer |
+| profile range/date | исходная scalar/date/timestamp column | `(store_id, value, id)` partial для non-deleted customer |
+| address lists | `country_code`, `region_key`, `city_key`, `postal_code_normalized` | `(store_id, customer_id, value)` и `(store_id, value, customer_id)`, partial `deleted_at IS NULL` |
+| consent | channel и state | `(store_id, customer_id, channel)` и `(store_id, channel, state, customer_id)` |
+| tags/groups | relation ID, для group также `expires_at` | оба customer-first/value-first access paths; expiry index без `now()` predicate |
+| tax | status, country, `valid_from`, `valid_to`, `deleted_at` | customer-first и value/validity-first paths, выбранные fixtures `EXPLAIN` |
+| statistics | counters и lifecycle timestamps | отдельный `(store_id, value, customer_id)` для каждого AVAILABLE range attribute |
+| money | currency и minor-unit value | `(store_id, currency_code, value, customer_id)` |
+| order function | status, currency, amount, lifecycle timestamps | correlated customer-first и bulk value/time-first paths |
+| birthday | persisted month/day key | `(store_id, birthday_month_day, id)` partial для non-deleted customer |
+
+Один composite index не считается заменой другого, если порядок leading columns
+не поддерживает указанный access path. До миграции writer, пересоздания test
+fixtures и успешного architecture test descriptor остается `UNAVAILABLE`.
+
+До включения commerce attributes projection обязана вычислять `first_order_at`
+и `last_order_at` только по `completed_at` rows со status `COMPLETED`. Order
+creation time не является допустимым fallback. Миграция меняет projection
+напрямую без backfill compatibility branch; тестовые данные пересобираются.
+
 ## 18. Drizzle SQL compilation
 
 Из validated AST и trusted Store context строятся три evaluation/scan режима:
@@ -1093,6 +1269,12 @@ preview и как optimization для non-temporal initial materialization.
 `compileStoreCustomers` является tenant-scoped stable keyset scan всех
 non-deleted customers по `(store_id, customer_id)` и обязателен для exhaustive
 materialization temporal definition. Он не принимает DSL predicate.
+
+Оба bulk compiler используют ascending `customer.id` и opaque cursor, содержащий
+последний UUID и version cursor contract. Условие следующей страницы —
+`customer.id > cursor.customerId`; offset pagination запрещена. Один run фиксирует
+definition revision, generation, Store context и `effectiveAt`, но каждая
+страница читает новый committed database state по правилам раздела 18.4.
 
 Все evaluation paths обязаны использовать один `compileCustomerMatch`, одни
 attribute compilers и одинаковую семантику. Результат bulk candidate query сам
@@ -1175,7 +1357,7 @@ SQL fragments с bind parameters.
 Bulk materialization не обязана удерживать одну долгую database transaction или
 один PostgreSQL snapshot на весь Store. Изменения customer state во время scan
 согласуются через per-customer locking и event-driven reevaluation из раздела
-21.5. Preview, `compileSegmentMembers` и `compileCustomerMatch` гарантируют
+21.6. Preview, `compileSegmentMembers` и `compileCustomerMatch` гарантируют
 одинаковый результат только при одинаковых definition, database state,
 Store timezone/currency и `effectiveAt`.
 
@@ -1186,6 +1368,28 @@ Semantic validation получает currency, currency exponent, IANA timezone 
 сохраняет snapshot в `definition.evaluationContext`. Context dependencies
 извлекаются так:
 
+Нормативный trusted contract:
+
+```ts
+interface SegmentStoreEvaluationContext {
+  readonly storeId: string;
+  readonly currencyCode: string;
+  readonly currencyExponent: number;
+  readonly timeZone: string;
+  readonly configurationRevision: number;
+}
+```
+
+Request path получает этот объект из authenticated platform context. Background
+workers читают принадлежащую Customers read model
+`customer_segment_store_context(store_id primary key, currency_code,
+currency_exponent, time_zone, configuration_revision, updated_at)`. Hardcoded
+`UTC`, первая currency из массива и process environment не являются trusted
+fallback. Create/update/preview сравнивают request context с локальной read
+model; при различии revision операция временно возвращает retryable
+`SEGMENT_STORE_CONTEXT_NOT_READY`, не создавая definition на неизвестном
+snapshot.
+
 - любой Money value/attribute/function добавляет `currency`;
 - любой named/relative date или `birthday` predicate добавляет `timezone`;
 - absolute Date над timestamp source и DateTime без offset добавляют `timezone`;
@@ -1195,9 +1399,17 @@ Semantic validation получает currency, currency exponent, IANA timezone 
   predicate математически не изменится от настройки.
 
 Compiler перед evaluation проверяет, что зависимые поля trusted Store context
-совпадают с snapshot definition. Mismatch fail closed с internal
+совпадают с snapshot definition:
+
+- dependency `currency` сравнивает `currencyCode` и `currencyExponent`;
+- dependency `timezone` сравнивает `timeZone`;
+- отличие только `storeConfigurationRevision` не является stale context и не
+  блокирует evaluation.
+
+Mismatch хотя бы одного зависимого значения fail closed с internal
 `SEGMENT_EVALUATION_CONTEXT_STALE`; использовать старые minor units или timezone
-запрещено.
+запрещено. Segment без соответствующей context dependency не пересобирается и
+не становится stale из-за изменения независимого поля Store context.
 
 Store currency code и exponent являются immutable с момента создания Store.
 Store configuration API не предоставляет command их изменения. Это устраняет
@@ -1223,6 +1435,34 @@ DYNAMIC segment система:
 получает materialization status `FAILED` и требует merchant correction. Store
 configuration workflow не считается завершенным, пока enqueue обновления всех
 затронутых segments не записан durable.
+
+Минимальный event payload является versioned и содержит полное новое состояние,
+а не patch:
+
+```ts
+interface StoreConfigurationUpdatedV1 {
+  readonly storeId: string;
+  readonly configurationRevision: number;
+  readonly currencyCode: string;
+  readonly currencyExponent: number;
+  readonly timeZone: string;
+  readonly occurredAt: string;
+}
+```
+
+Customers принимает событие только если revision больше локальной; duplicate
+revision с тем же payload является no-op, а с другим payload — invariant
+violation. Обновление локальной context row, перенормализация затронутых
+segments и enqueue их rebuild выполняются в одной Customers transaction до
+acknowledgement события. Пропуск revision разрешен, поскольку payload полный:
+обработчик применяет последний payload и перестраивает segments непосредственно
+из предыдущего локального snapshot в новый.
+
+Store creation публикует тот же payload с первой revision и тем самым создает
+локальную context row до операций с DYNAMIC segments. До сравнения revisions
+handler сначала проверяет immutable currency code/exponent относительно уже
+существующей row; их изменение идет по invariant-violation path ниже и никогда
+не обновляет локальный snapshot.
 
 Получение события с измененными currency code/exponent считается integration
 invariant violation: Customers не обновляет context snapshot, все
@@ -1268,6 +1508,13 @@ Preview и background materialization имеют отдельные statement ti
 limits и общие resource budgets. Timeout background page является retryable job
 failure и не переводит generation в `READY`.
 
+Нормативные defaults v1: preview `first` по умолчанию 50 и максимум 100,
+statement timeout 2 секунды; background page 500 customers и statement timeout
+10 секунд. Worker может динамически уменьшить размер следующей page после
+timeout, но не увеличить выше 500. Изменение этих operational defaults не меняет
+DSL semantics; architecture tests проверяют, что timeout действительно
+устанавливается transaction-local перед query.
+
 ## 19. Complexity limits
 
 Лимиты v1:
@@ -1297,10 +1544,19 @@ Complexity score:
 | aggregate function | 5 |
 | `OR` child after first | +1 |
 
-Максимальный score ACTIVE segment — 40. Query bytes и raw parser limits
-применяются до или во время parse. Остальные structural limits и complexity
-score применяются после normalization, но до SQL compilation. Все они являются
-configuration constants DSL version, а не merchant-editable Store settings.
+Максимальный score любого сохраняемого DYNAMIC segment и preview query — 40,
+независимо от status. Query с большим score нельзя сохранить как DRAFT с
+надеждой активировать позже. Query bytes и raw parser limits применяются до или
+во время parse. Остальные structural limits и complexity score применяются
+после normalization, но до SQL compilation. Все они являются configuration
+constants DSL version, а не merchant-editable Store settings.
+
+Cost leaf определяется descriptor, а не выводится compiler динамически.
+Logical `AND`, первый child `OR` и `NOT` имеют cost 0; каждый дополнительный
+child одного normalized `OR` добавляет 1. Function cost начисляется один раз за
+function node независимо от числа parameters. `referenced entity IDs total`
+считается после deduplication внутри каждого `IN`, но одинаковый ID в разных
+clauses считается один раз глобально.
 
 Preview дополнительно использует statement timeout и ограниченный result set.
 Timeout возвращает user error и не активирует segment.
@@ -1332,6 +1588,62 @@ Semantic analyzer помечает definition как `temporal`. Evaluator об�
   temporal evaluator над AST с учетом `AND`, `OR` и `NOT`, а не независимый
   минимум только среди currently matching leaves.
 
+### 20.1 Нормативный boundary evaluator
+
+Каждый evaluator возвращает пару `{ value, nextChangeAt }`, где
+`nextChangeAt` либо `NULL`, либо первый instant строго после `effectiveAt`, в
+который текущее значение node может перестать быть достоверным без нового domain
+event. Boundary не обязана гарантировать изменение результата: безопасная
+консервативная reevaluation разрешена.
+
+Leaf rules v1:
+
+1. Time-independent scalar/list/function predicate возвращает `NULL`.
+2. Любой predicate с `today`, `yesterday` или relative Date возвращает начало
+   следующего calendar day Store. Это нормативная v1 стратегия даже когда можно
+   математически вычислить более поздний день.
+3. `birthday` с time-relative boundary возвращает начало следующего calendar
+   day Store. `birthday` только с absolute dates либо `IS [NOT] NULL` возвращает
+   `NULL`.
+4. Group list predicate возвращает минимальный будущий `expires_at` среди rows,
+   способных изменить этот leaf: для `CONTAINS value`/`NOT CONTAINS value` — rows
+   данного group ID, для list `IS [NOT] NULL` — все active group rows customer.
+5. Tax leaf возвращает минимальную будущую boundary среди относящихся к нему
+   non-deleted rows: начало `valid_from` и начало calendar day после inclusive
+   `valid_to`. Stored terminal `REJECTED`/`REVOKED` row не добавляет expiry
+   boundary, которая не может изменить effective terminal status.
+6. Если несколько mechanisms применимы одному leaf, выбирается минимальный
+   non-null instant.
+
+Logical composition:
+
+```text
+NOT child:
+  value = !child.value
+  next  = child.next
+
+AND children:
+  value = every(child.value)
+  if value = true:  next = min(next всех children)
+  if value = false: next = min(next только children с value = false)
+
+OR children:
+  value = some(child.value)
+  if value = false: next = min(next всех children)
+  if value = true:  next = min(next только children с value = true)
+```
+
+`min` игнорирует `NULL`; если множество пусто, результат `NULL`. При `false AND`
+результат без domain event может стать true только после изменения каждого
+currently false child, а при `true OR` — false только после изменения каждого
+currently true child. Reevaluation на ранней boundary заново рассчитывает весь
+AST и следующую boundary.
+
+Начало следующего Store day вычисляется timezone library из local calendar date,
+а затем конвертируется в UTC instant; добавление фиксированных 24 часов
+запрещено. Все leaf и SQL evaluators используют один date/time adapter и golden
+fixtures DST, end-of-month, leap year и IANA timezone transitions.
+
 `customer_segment_membership.expires_at` может обслуживать простой переход
 `true -> false`, но его недостаточно для `false -> true`, например birthday в
 будущем. Для общей реализации нужна owned evaluation queue:
@@ -1345,7 +1657,12 @@ customer_segment_temporal_schedule(
   evaluation_generation,
   evaluate_at,
   schedule_token,
+  attempt_count,
+  lease_until,
+  claimed_by,
+  last_error,
   created_at,
+  updated_at,
   primary key (store_id, segment_id, customer_id)
 )
 ```
@@ -1354,6 +1671,9 @@ customer_segment_temporal_schedule(
 customer/segment.
 `schedule_token` детерминированно включает definition revision, generation,
 evaluated effectiveAt и boundary и используется для идемпотентного claim.
+Нормативно это lowercase hex SHA-256 от UTF-8 строки
+`v1\0<storeId>\0<segmentId>\0<customerId>\0<definitionRevision>\0<generation>\0<effectiveAt>\0<boundary>`,
+где instants имеют canonical UTC ISO representation с millisecond precision.
 Каждая customer evaluation в той же transaction и под тем же lock, что
 membership/evaluation state:
 
@@ -1363,12 +1683,38 @@ membership/evaluation state:
 3. удаляет прежнюю queue row, если будущей boundary больше нет;
 4. записывает revision/generation вместе с row.
 
-Worker claim-ит due rows через bounded `FOR UPDATE SKIP LOCKED`, повторно
-проверяет segment `ACTIVE`, `READY`, revision/generation и соответствие текущему
-`schedule_token`, затем выполняет обычный per-customer evaluation protocol.
-Stale item является no-op. Успешная evaluation атомарно заменяет item следующей
-boundary либо удаляет его. Crash после claim не может навсегда потерять item:
-claim использует transaction lock или lease с durable retry.
+Worker claim-ит due rows через bounded `FOR UPDATE SKIP LOCKED` только для
+segment в состояниях `ACTIVE` и `READY`, повторно проверяет revision/generation
+и соответствие текущему `schedule_token`, затем выполняет обычный per-customer
+evaluation protocol. Due rows segment в `PENDING` или `RUNNING` остаются durable
+и не claim-ятся, не удаляются и не считаются stale; сразу после перехода в
+`READY` они становятся claimable. Stale item — это только item неактивного
+segment либо item с несовпадающими revision, generation или `schedule_token`.
+Он является no-op. Успешная evaluation атомарно заменяет item следующей boundary
+либо удаляет его. Crash после claim не может навсегда потерять item: claim
+использует transaction lock или lease с durable retry.
+
+Нормативный claim использует lease: короткая transaction выбирает не более 100
+due rows через `FOR UPDATE SKIP LOCKED`, устанавливает `claimed_by`, увеличивает
+`attempt_count` и устанавливает `lease_until`. Evaluation выполняется после
+commit claim transaction. Row с истекшей lease снова claimable. Успех удаляет
+или заменяет row только при совпадении `schedule_token`; старый worker не может
+удалить более новую schedule. Retry использует exponential backoff с jitter,
+начиная с 1 секунды и с cap 5 минут. После 20 неудачных attempts текущий ACTIVE
+segment переводится в `FAILED`; row и `last_error` сохраняются для operator
+diagnostics и ручного retry той же generation.
+
+Перед публикацией temporal generation bulk finalizer после полного scan и
+event-queue watermark фиксирует один `publicationEffectiveAt`, не более ранний,
+чем `effectiveAt` bulk run. Все schedule rows текущей revision/generation с
+`evaluate_at <= publicationEffectiveAt` переоцениваются с этим единым instant по
+обычному lock protocol. Такая evaluation сразу рассчитывает boundary строго
+после `publicationEffectiveAt`, поэтому пропущенные промежуточные clock
+boundaries не требуется воспроизводить по одной. Только после drain этих due
+rows finalizer в transaction повторно проверяет status/revision/generation и
+переводит segment в `READY`. Due row, добавленная конкурентным event path после
+этого drain, не теряется: event transaction сначала инвалидирует stale positive,
+а сохраненная schedule row становится claimable сразу после `READY`.
 
 Initial/rebuild materialization temporal definition обязана выполнить
 `compileStoreCustomers` и оценить каждого non-deleted customer, включая текущий
@@ -1413,6 +1759,11 @@ customer_segment.materialization_status nullable enum
 customer_segment_membership.evaluated_generation nullable integer
 ```
 
+`revision`, `definition_revision` и `evaluation_generation` используют GraphQL
+`Int`/PostgreSQL `integer` и guarded increment: значение не может превышать
+`2147483647`; попытка overflow fail closed с internal operator error. Все три
+имеют `CHECK >= 0`.
+
 Для RULE membership `evaluated_generation` обязателен, для non-RULE — `NULL`.
 Для DYNAMIC segment materialization status обязателен, для MANUAL — `NULL`.
 
@@ -1422,7 +1773,84 @@ MANUAL и DYNAMIC merchant создает новый segment. MANUAL segment н�
 RULE memberships, а DYNAMIC segment не может иметь MANUAL/IMPORT/SYSTEM
 memberships. Эти ограничения проверяются write scripts и eligibility reads.
 
-### 21.1 Definition change
+### 21.1 Persistence contract
+
+До включения первого DYNAMIC segment миграция атомарно добавляет:
+
+```text
+customer_segment_evaluation_cause_sequence bigint sequence
+
+customer_segment_materialization_run(
+  store_id, segment_id, definition_revision, evaluation_generation,
+  status, cause_sequence, scan_effective_at, scan_cursor, scan_completed_at,
+  queue_watermark, publication_effective_at,
+  attempt_count, lease_until, claimed_by, last_error,
+  created_at, updated_at,
+  primary key (store_id, segment_id, evaluation_generation)
+)
+
+customer_segment_evaluation_state(
+  store_id, segment_id, customer_id,
+  definition_revision, evaluation_generation,
+  evaluated_at, matched, cause_sequence, evaluator_token,
+  source_event_id, updated_at,
+  primary key (store_id, segment_id, customer_id)
+)
+
+customer_segment_evaluation_lock(
+  store_id, segment_id, customer_id, created_at,
+  primary key (store_id, segment_id, customer_id)
+)
+```
+
+Materialization run status: `PENDING | RUNNING | SUCCEEDED | FAILED`. Единственный
+run текущей generation определяется tuple primary key; retry обновляет ту же row,
+а не создает новую generation. `scan_cursor`, watermark и publication instant
+записываются transactionally, поэтому crash продолжает run с последней полностью
+завершенной page.
+
+Обязательные constraints:
+
+- DYNAMIC segment имеет non-null materialization status и generation; MANUAL —
+  null status и generation `0`;
+- RULE membership имеет оба evaluated revision/generation, остальные sources —
+  оба `NULL`;
+- RULE разрешен только для DYNAMIC, non-RULE — только для MANUAL; cross-table
+  invariant проверяется одним repository write path и eligibility query, потому
+  что обычный PostgreSQL `CHECK` не читает parent row;
+- parent `customer` и `customer_segment` получают unique `(store_id, id)`;
+  memberships, lock/state/run и обе queues используют composite foreign keys
+  `(store_id, customer_id)` и `(store_id, segment_id)`, поэтому cross-store pair
+  невозможно записать даже вне repository;
+- `evaluated_at < expires_at`, если expiry не null;
+- revision/generation queue/state/run обязаны быть неотрицательными.
+
+Обязательные indexes:
+
+- run claim: `(status, lease_until, created_at)` и
+  `(store_id, segment_id, evaluation_generation)`;
+- temporal claim: `(evaluate_at, lease_until)`;
+- reevaluation claim: `(definition_revision, evaluation_generation,
+  completed_at, available_at, lease_until, sequence)`;
+- eligibility: `(store_id, customer_id, expires_at, segment_id)` с included
+  source/revision/generation либо эквивалентным covering plan;
+- cleanup: каждый queue/state table имеет `(store_id, customer_id)` и
+  `(store_id, segment_id, evaluation_generation)` access path.
+
+Все workers используют DBOS durable workflows только как orchestration; progress,
+leases, watermark и idempotency остаются в Customers PostgreSQL и не зависят от
+in-memory process state.
+
+Lease duration v1 — 60 секунд. Materialization coordinator с долгой работой
+renew-ит lease каждые 20 секунд отдельной transaction; customer/temporal queue
+item должен завершить одну bounded evaluation до 60 секунд и lease не renew-ит.
+После потери lease worker завершает текущий SQL, но перед mutation обязан
+проверить `claimed_by`/token и сделать no-op. Completed reevaluation rows
+сохраняются 30 дней (`EVENT_IDEMPOTENCY_RETENTION_DAYS=30`), после чего bounded
+cleanup удаляет их pages; producer redelivery contract не может превышать этот
+срок.
+
+### 21.2 Definition change
 
 Изменение canonical query/AST:
 
@@ -1434,7 +1862,7 @@ memberships. Эти ограничения проверяются write scripts 
 6. запускает durable bulk materialization новой revision/generation;
 7. не изменяет MANUAL memberships других segments.
 
-### 21.2 Activation и status transitions
+### 21.3 Activation и status transitions
 
 Переход DYNAMIC segment из любого неактивного status в `ACTIVE` всегда:
 
@@ -1456,11 +1884,35 @@ false negatives, но исключает partial audience и false positives. О
 MANUAL segment не использует materialization status или
 `evaluation_generation` для своих memberships.
 
-### 21.3 Customer lifecycle events
+### 21.4 Customer lifecycle events
 
 `customerUpdated.reasons` и `customerStatisticsUpdated.reasons` сопоставляются с
 извлеченными dependencies. Пересчитываются только подходящие ACTIVE DYNAMIC
 segments для затронутого customer.
+
+Нормативное отображение reasons:
+
+| Event reason | Segment dependencies |
+| --- | --- |
+| `PROFILE` | `profile` |
+| `CONTACT` | `contact` |
+| `COMPANY` | `company` |
+| `STATUS` | `status` |
+| `ADDRESS` | `address` |
+| `CONSENT` | `consent` |
+| `TAG` | `tag` |
+| `GROUP` | `group` |
+| `TAX_IDENTIFIER` | `taxIdentifier` |
+| `TAX_EXEMPTION` | `taxExemption` |
+| `ORDER` | `statistics.order` |
+| `CHECKOUT` | `statistics.checkout` |
+| `REFUND` | `statistics.refund` |
+
+Dependency `customer.any` совпадает с любым `customerUpdated` reason, но не с
+`customerStatisticsUpdated`. Empty или unknown reason fail closed: Customers
+инвалидирует customer во всех ACTIVE DYNAMIC segments и записывает warning с
+event type/ID без PII. Producer event schemas используют non-empty deduplicated
+reason arrays; добавление reason является additive contract change.
 
 Та же Customers database transaction, которая принимает новое domain state или
 revision/version owned projection, для каждого затронутого ACTIVE DYNAMIC segment
@@ -1478,9 +1930,16 @@ revision/version owned projection, для каждого затронутого 
 deduplicate, затем сортируются лексикографически по
 `(store_id, customer_id, segment_id)` и только после этого приобретаются.
 Порядок обязателен для event handlers, bulk workers, lifecycle cleanup и
-temporal workers. Реализация использует один документированный
-transaction-scoped advisory-lock key derivation либо row-lock table; смешивать
-несовместимые lock primitives для одной пары запрещено.
+temporal workers. Нормативная реализация использует
+`customer_segment_evaluation_lock`: transaction выполняет idempotent
+`INSERT ... ON CONFLICT DO NOTHING`, затем `SELECT ... FOR UPDATE` всех keys в
+canonical order. Advisory locks для этого protocol запрещены, чтобы hash
+collision или различная key derivation не меняли correctness.
+
+Нормативная identity этого lock во всех paths — упорядоченный tuple
+`(store_id, customer_id, segment_id)`. Реализация обязана предоставлять одну
+общую функцию построения и сортировки lock rows; перестановка `customer_id` и
+`segment_id` создает другой key и запрещена.
 
 Таким образом, после видимости нового owned state окно до reevaluation дает
 только false negative. Запись нового state отдельно от invalidation/enqueue
@@ -1513,7 +1972,7 @@ Derived RULE reevaluation не увеличивает merchant-facing
 `customer_segment.revision`, иначе фоновые события будут создавать постоянные
 optimistic concurrency conflicts в Admin.
 
-### 21.4 Counts и reads
+### 21.5 Counts и reads
 
 `customersCount`, segment members preview и все eligibility reads считают
 membership current только когда одновременно выполняются:
@@ -1546,12 +2005,14 @@ Consistency contract DYNAMIC segments — fail closed, event-driven consistency:
 - reevaluation может временно не вернуть подходящего customer, но не оставляет
   заведомо stale eligible customer;
 - `READY` означает завершение полного initial/rebuild scan и barrier до его
-  watermark, а не отсутствие более новых pending customer events;
+  event-queue watermark, а для temporal definition также завершение temporal
+  finalization до зафиксированного `publicationEffectiveAt`; это не означает
+  отсутствие более новых pending customer events или clock boundaries;
 - critical checkout eligibility может использовать DYNAMIC segment только через
   этот current-membership predicate; чтение membership table без status,
   revision, generation, expiry и customer checks запрещено.
 
-### 21.5 Concurrency bulk materialization и customer events
+### 21.6 Concurrency bulk materialization и customer events
 
 Bulk scan не имеет права безусловно вставлять IDs, найденные ранее
 `compileSegmentMembers`: состояние customer могло измениться после чтения page.
@@ -1559,7 +2020,7 @@ Bulk scan не имеет права безусловно вставлять IDs
 протокол:
 
 1. получить transaction-scoped lock по
-   `(store_id, segment_id, customer_id)`;
+   `(store_id, customer_id, segment_id)`;
 2. прочитать durable evaluation state; bulk run с более ранним `effectiveAt`,
    чем уже завершенная evaluation той же definition revision и generation,
    пропускает запись;
@@ -1576,28 +2037,26 @@ memberships и non-match не требует будущего timer. Temporal ru
 exhaustive `compileStoreCustomers`; каждый customer получает evaluation-state
 tombstone и актуальный future boundary даже при результате `not match`.
 
-Отдельный state необходим и для результата `not match`, поскольку отсутствие
-membership само по себе не сохраняет freshness tombstone:
-
-```text
-customer_segment_evaluation_state(
-  store_id,
-  segment_id,
-  customer_id,
-  definition_revision,
-  evaluation_generation,
-  evaluated_at,
-  matched,
-  source_event_id,
-  primary key (store_id, segment_id, customer_id)
-)
-```
+Отдельный state из раздела 21.1 необходим и для результата `not match`,
+поскольку отсутствие membership само по себе не сохраняет freshness tombstone.
 
 Эта таблица является coordination state, а не источником eligibility. При
-сравнении freshness более поздний `evaluated_at` одной пары definition
-revision/evaluation generation имеет приоритет; state другой generation не
-сравнивается и не может записать membership. Равные значения разрешаются
-детерминированным run/event ID.
+сравнении freshness одной пары definition revision/evaluation generation
+используется tuple `(evaluated_at, cause_sequence, evaluator_token)` в ascending
+lexicographic order. Event queue передает свой `sequence` как `cause_sequence`;
+bulk выделяет один `cause_sequence` при создании materialization run, а temporal
+evaluation — при claim из той же database sequence. `evaluator_token` является
+последним deterministic tie-breaker: canonical primary-key tuple
+materialization run для bulk,
+`source_event_id` для event queue и `schedule_token` для temporal evaluation.
+State
+другой generation не сравнивается и не может записать membership.
+
+Event reevaluation использует `requested_effective_at`, записанный database
+transaction timestamp при invalidation/enqueue. Он не использует старый
+`occurredAt` source event как evaluation clock: source ordering уже проверен
+projection handler, а DSL оценивается относительно момента принятия нового
+owned state. Bulk продолжает использовать закрепленный run `effectiveAt`.
 
 Таким образом, если более свежая event reevaluation завершилась первой, bulk
 увидит ее evaluation state и не перезапишет результат более старым
@@ -1607,36 +2066,42 @@ revision/evaluation generation имеет приоритет; state другой
 Каждый relevant customer/statistics event до acknowledgement атомарно
 инвалидирует stale positive и durable-enqueue идемпотентную reevaluation для
 всех затронутых ACTIVE DYNAMIC segments. Bulk job
-считается завершенным только после scan и обработки reevaluations до durable
-queue watermark, зафиксированного в конце scan. Events после watermark
-обрабатываются обычным event path. Queue item имеет idempotency key
+считается завершенным только после scan, обработки reevaluations до durable
+queue watermark, зафиксированного в конце scan, и temporal finalization для
+temporal definition по правилам раздела 20. Events после watermark обрабатываются
+обычным event path. Queue item имеет idempotency key
 `(segment_id, customer_id, definition_revision, evaluation_generation,
 source_event_id)`. Membership write является idempotent upsert/delete под unique
 customer/segment key и выполняется в одной transaction с evaluation state.
 
-Bulk job переводит materialization status в `READY` только после scan и queue
-watermark и только если status/revision/generation segment все еще совпадают с
-run. Иначе completion является no-op. Terminal failure записывает `FAILED`, но
-не меняет generation и не возвращает старые memberships в eligibility.
+Bulk job переводит materialization status в `READY` только после scan,
+event-queue watermark и, для temporal definition, temporal finalization до
+`publicationEffectiveAt`, и только если status/revision/generation segment все
+еще совпадают с run. Иначе completion является no-op. Terminal failure записывает
+`FAILED`, но не меняет generation и не возвращает старые memberships в
+eligibility.
 
 Event-driven reevaluation использует отдельную idempotent append-only queue, а
 не `customer_segment_temporal_schedule`:
 
 ```text
 customer_segment_reevaluation_queue(
-  sequence bigint generated by monotonic database sequence,
+  sequence bigint generated from customer_segment_evaluation_cause_sequence,
   store_id,
   segment_id,
   customer_id,
   definition_revision,
   evaluation_generation,
   source_event_id,
+  requested_effective_at,
   available_at,
   attempt_count,
   lease_until,
+  claimed_by,
   completed_at,
   last_error,
   created_at,
+  updated_at,
   primary key (sequence),
   unique (
     store_id,
@@ -1662,6 +2127,13 @@ transaction, что membership/evaluation state. Rows не удаляются р
 retry; terminal retry exhaustion переводит materialization в `FAILED`, когда
 item принадлежит blocking generation/barrier.
 
+Queue claim использует тот же batch size 100, lease и retry policy, что temporal
+worker. Для item, созданного после `READY` и не входящего в materialization
+barrier, terminal exhaustion также переводит segment в `FAILED`: продолжать
+публиковать generation при известной необработанной invalidation запрещено.
+Operator retry очищает terminal marker, сохраняет generation и source event ID и
+возобновляет attempts с той же queue row.
+
 Queue watermark является монотонным `sequence`, выдаваемым
 `customer_segment_reevaluation_queue` в той же transaction, где выполняются
 event invalidation и enqueue. В
@@ -1670,7 +2142,7 @@ revision/generation с sequence не выше него. Barrier считаетс
 только когда для каждой такой row установлен `completed_at`; отсутствие
 claimable rows само по себе не означает completion из-за действующих leases.
 Event, committed после barrier,
-сначала инвалидирует membership по правилам раздела 21.3 и потому не создает
+сначала инвалидирует membership по правилам раздела 21.4 и потому не создает
 false-positive окно после перехода run в `READY`.
 
 ## 22. GraphQL contract
@@ -1701,6 +2173,23 @@ Create contract использует следующие invariants:
 Validation/preview:
 
 ```graphql
+extend type Query {
+  customerSegmentQueryValidate(
+    query: String!
+  ): CustomerSegmentQueryValidationResult!
+
+  customerSegmentPreview(
+    query: String!
+    first: Int = 50
+    after: String
+  ): CustomerSegmentPreview!
+}
+
+enum CustomerSegmentDiagnosticSeverity {
+  ERROR
+  WARNING
+}
+
 type CustomerSegmentQueryDiagnostic {
   code: String!
   message: String!
@@ -1719,6 +2208,24 @@ type CustomerSegmentQueryValidationResult {
   diagnostics: [CustomerSegmentQueryDiagnostic!]!
 }
 
+type CustomerSegmentUserError implements UserError {
+  message: String!
+  field: [String!]
+  code: String!
+  diagnostic: CustomerSegmentQueryDiagnostic
+}
+
+type CustomerSegmentCreatePayload {
+  segment: CustomerSegment
+  userErrors: [CustomerSegmentUserError!]!
+}
+
+type CustomerSegmentUpdatePayload {
+  segment: CustomerSegment
+  operationResults: [CustomerOperationResult!]!
+  userErrors: [CustomerSegmentUserError!]!
+}
+
 type CustomerSegmentPreview {
   validation: CustomerSegmentQueryValidationResult!
   customers: CustomerConnection
@@ -1726,6 +2233,26 @@ type CustomerSegmentPreview {
   timedOut: Boolean!
 }
 ```
+
+Обе operations требуют Admin permission `customers.segments.read`; сохранение и
+активация требуют `customers.segments.manage`. `first` находится в диапазоне
+1..100. `after` использует тот же versioned customer-ID cursor contract, что
+`compileSegmentMembers`. Preview фиксирует один `effectiveAt` на весь request.
+`validation.valid` равен `false` при наличии хотя бы одной `ERROR`; `WARNING` не
+блокирует preview или сохранение. `valid` рассчитывается до truncation массива
+diagnostics, поэтому скрытая 51-я error все равно дает `false`.
+
+Если validation неуспешна, `customers` и `totalCount` равны `null`,
+`timedOut=false`. Если SQL statement timeout наступил после успешной validation,
+validation остается `valid=true`, `customers`/`totalCount` равны `null`,
+`timedOut=true`, а diagnostics содержит `SEGMENT_PREVIEW_TIMEOUT`. Preview не
+вычисляет unlimited exact count: `totalCount` возвращается только если count
+завершился в том же 2-second budget; иначе весь preview считается timed out.
+
+Create/update payloads используют `CustomerSegmentUserError`: query error имеет
+`diagnostic`, business error — `diagnostic=null`. Старый `GenericUserError` в
+этих двух payloads заменяется тем же atomic GraphQL cutover, что writable JSON
+input. GraphQL transport error для пользовательской ошибки DSL не используется.
 
 Diagnostic coordinates используют следующий единый contract:
 
@@ -1736,6 +2263,54 @@ Diagnostic coordinates используют следующий единый cont
 - coordinates относятся к исходной query до normalization и canonical print.
 
 Preview не создает segment и не записывает memberships.
+
+Attribute catalog для visual builder является read-only operation:
+
+```graphql
+extend type Query {
+  customerSegmentAttributeCatalog: [CustomerSegmentAttributeDescriptor!]!
+}
+
+enum CustomerSegmentAttributeKind {
+  SCALAR
+  LIST
+  FUNCTION
+  VIRTUAL
+}
+
+enum CustomerSegmentAttributeAvailability {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+type CustomerSegmentFunctionParameterDescriptor {
+  name: String!
+  presentationKey: String!
+  valueType: String!
+  operators: [String!]!
+  enumValues: [String!]!
+  aggregate: Boolean!
+  nullable: Boolean!
+}
+
+type CustomerSegmentAttributeDescriptor {
+  name: String!
+  presentationKey: String!
+  kind: CustomerSegmentAttributeKind!
+  valueType: String!
+  operators: [String!]!
+  enumValues: [String!]!
+  parameters: [CustomerSegmentFunctionParameterDescriptor!]!
+  availability: CustomerSegmentAttributeAvailability!
+  unavailabilityReason: String
+}
+```
+
+Descriptor публикует stable `name`, localized presentation key, kind, value
+type, allowed operators, enum values, function parameters, availability и
+unavailability reason. Он не публикует SQL/table/index metadata. Catalog
+строится из того же immutable registry, что semantic analyzer; отдельный вручную
+поддерживаемый UI catalog запрещен.
 
 ## 23. Diagnostics
 
@@ -1754,15 +2329,29 @@ Preview не создает segment и не записывает memberships.
 | `SEGMENT_INVALID_DATE_RANGE` | lower boundary позже upper boundary |
 | `SEGMENT_INVALID_MONEY` | amount нельзя точно представить в Store currency |
 | `SEGMENT_EVALUATION_CONTEXT_STALE` | persisted context не совпадает с trusted Store context; internal/fail-closed |
+| `SEGMENT_STORE_CONTEXT_NOT_READY` | локальный Store context еще не догнал trusted request revision; retryable |
 | `SEGMENT_DUPLICATE_PARAMETER` | function parameter повторяется |
 | `SEGMENT_COMPLEXITY_LIMIT` | превышен structural limit или score |
 | `SEGMENT_PREVIEW_TIMEOUT` | bounded preview превысил timeout |
+| `SEGMENT_DIAGNOSTICS_TRUNCATED` | semantic analyzer нашел больше 50 diagnostics |
 | `SEGMENT_TYPE_IMMUTABLE` | update пытается изменить MANUAL/DYNAMIC type |
 | `SEGMENT_QUERY_REQUIRED` | DYNAMIC create/update не содержит non-empty query |
 | `SEGMENT_QUERY_NOT_ALLOWED` | MANUAL segment получил query/definition |
 
-Каждая syntax/semantic diagnostic должна указывать source range. Ошибки
+Каждая query syntax/semantic diagnostic должна указывать source range. Ошибки
 referenced entities дополнительно указывают attribute/parameter и array index.
+Business errors `SEGMENT_TYPE_IMMUTABLE`, `SEGMENT_QUERY_REQUIRED` и
+`SEGMENT_QUERY_NOT_ALLOWED` используют GraphQL field path, а не фиктивный query
+range. Internal `SEGMENT_EVALUATION_CONTEXT_STALE` не возвращается в query
+diagnostics: API показывает generic retry/operator error и correlation ID.
+`SEGMENT_STORE_CONTEXT_NOT_READY` является retryable user-visible operation
+error без query range.
+
+Diagnostic `message` не является stable API; stable contract — `code`, severity,
+coordinates и optional structured details. Semantic analyzer обходит AST в
+source order, сортирует diagnostics по `(startOffset, endOffset, code)` и
+при переполнении оставляет первые 49 и добавляет 50-й warning
+`SEGMENT_DIAGNOSTICS_TRUNCATED`.
 
 ## 24. Business examples
 
@@ -1853,7 +2442,9 @@ AND customer_lifecycle_status = 'ACTIVE'
 Правила:
 
 - изменение printer formatting без изменения AST semantics не требует новой
-  DSL version;
+  DSL version, но уже сохраненные canonical query не переписываются фоново;
+  новый printer применяется только при следующем merchant definition update
+  либо context renormalization, которые атомарно сохраняют query и AST;
 - изменение NULL, date, money или operator semantics требует новой version;
 - новые additive attributes и enum values могут добавляться в v1 registry;
 - удаление или изменение существующего attribute требует новой version;
@@ -1875,6 +2466,20 @@ AND customer_lifecycle_status = 'ACTIVE'
 - freshness только по `definition_revision` без `evaluation_generation`;
 - invalidate-only обработку dynamic memberships.
 
+Baseline implementation audit перед началом работ также считает blockers:
+
+- Customers background `ServiceContext` с hardcoded `UTC` вместо trusted Store
+  timezone/currency context;
+- `customer_statistics.first_order_at`/`last_order_at`, рассчитанные по order
+  `created_at`, а не completion time завершенных orders;
+- отсутствие normalized profile/address columns matrix раздела 17.1;
+- отсутствие materialization run, evaluation lock/state и обеих durable queues;
+- eligibility reads, проверяющие только definition revision без generation и
+  publication status.
+
+Atomic release обязан удалить каждый blocker; наличие любого из них не позволяет
+объявить DYNAMIC DSL доступным.
+
 До включения DSL v1 одним atomic release должны быть согласованы GraphQL schema,
 generated types, create/update scripts, Drizzle models/migrations, eligibility
 reads, event handlers и knowledge base. Смешанный режим, в котором новый API
@@ -1889,7 +2494,9 @@ backfill и без compatibility branches.
 - precedence и parentheses;
 - keywords в разном регистре;
 - escaped strings;
+- rejection leading-zero numbers, integer/decimal bounds и empty `MATCHES()`;
 - dates, datetimes и relative dates;
+- `IS NULL`/`IS NOT NULL` для nullable function parameters;
 - lexical priority `DateTime > Date > RelativeDate > Number`, keyword boundaries
   и rejection comments/trailing garbage;
 - source ranges для invalid query;
@@ -1907,6 +2514,8 @@ backfill и без compatibility branches.
 - Date/DateTime type separation и invalid calendar dates;
 - money conversion;
 - duplicate parameters;
+- разрешение null-operators только для nullable non-aggregate function
+  parameters;
 - complexity limits;
 - unavailable attributes;
 - temporal extraction для `today`, `yesterday`, relative dates, group expiry и
@@ -1923,6 +2532,8 @@ backfill и без compatibility branches.
 - `CONTAINS`/`NOT CONTAINS` через `EXISTS`/`NOT EXISTS`;
 - date boundaries в Store timezone;
 - aggregate function filters до aggregation;
+- function parameter `IS NULL`/`IS NOT NULL` фильтрует source rows до
+  aggregation;
 - aggregate `count`/`sum_*` на пустом filtered set;
 - mandatory Store currency filter для function money parameters;
 - mismatch persisted/trusted Store evaluation context fail closed;
@@ -1931,16 +2542,27 @@ backfill и без compatibility branches.
   `completed_at`, а не `created_at`;
 - Date/timestamptz predicate использует UTC half-open bounds без function wrapper
   над indexed column.
+- оба bulk compiler используют ascending ID keyset cursor без offset pagination;
 
 ### Physical indexes
 
 - каждый `AVAILABLE` descriptor имеет существующие normalization columns и все
   indexes своего `indexContract`;
+- golden normalization fixtures покрывают Unicode NFKC/casefold, IDNA,
+  BCP-47, address city/region/postal keys и фиксируют normalization contract ID;
 - scalar/list/statistics/function queries используют ожидаемые indexes на
   representative `EXPLAIN` fixtures без `ANALYZE` в request path;
 - отсутствие обязательного index/column не позволяет registry объявить
   attribute `AVAILABLE`;
 - background page timeout остается retryable и не публикует generation.
+
+Representative fixture содержит не менее 100 000 customers одного Store,
+300 000 addresses, 500 000 classification relations и 1 000 000 order
+projection rows с `ANALYZE` statistics, созданной до assertions. Для selective
+predicates с ожидаемой cardinality не более 1% plan должен содержать descriptor
+index и не должен содержать sequential scan большой source table. Preview и
+background queries дополнительно доказывают применение transaction-local
+statement timeout.
 
 ### Evaluation parity
 
@@ -1957,6 +2579,10 @@ pages bulk run, пересекающего полночь Store timezone.
 
 ### Materialization concurrency
 
+- schema constraints раздела 21.1 запрещают invalid source/type,
+  revision/generation и cross-store combinations;
+- row locks создаются и захватываются в canonical
+  `(store_id, customer_id, segment_id)` order;
 - event reevaluation до bulk write не перезаписывается более старым
   `effectiveAt`;
 - event reevaluation после bulk write исправляет membership;
@@ -1971,6 +2597,9 @@ pages bulk run, пересекающего полночь Store timezone.
 - pending reevaluation дает false negative, но не false positive;
 - queue watermark включает все committed items до barrier, а более позднее
   событие инвалидирует membership до enqueue;
+- due temporal rows не claim-ятся и не теряются во время `PENDING`/`RUNNING`, а
+  temporal finalization обрабатывает boundaries до `publicationEffectiveAt`
+  перед `READY`;
 - `customerCreated` оценивается во всех ACTIVE DYNAMIC segments;
 - `customerDeleted` очищает membership/state/queue;
 - `customerMerged` очищает source и пересчитывает target;
@@ -2003,6 +2632,13 @@ pages bulk run, пересекающего полночь Store timezone.
   inclusive off-by-one;
 - membership/state/next queue item записываются атомарно, stale generation item
   является no-op, crash после claim сохраняет retryability.
+- table-driven tests напрямую проверяют `{value, nextChangeAt}` для leaf,
+  `AND`, `OR` и `NOT`, включая одновременно true/false children с `NULL` и
+  несколькими future boundaries;
+- истекшая lease повторно claim-ится, а worker со старым `schedule_token` не
+  удаляет замененную schedule row;
+- 20 terminal failures переводят текущий segment в `FAILED`, operator retry
+  продолжает ту же generation.
 
 ### Store context changes
 
@@ -2012,31 +2648,70 @@ pages bulk run, пересекающего полночь Store timezone.
 - timezone change пересобирает зависимые Date predicates;
 - timezone change также пересобирает tax list predicates с calendar validity;
 - старый context snapshot никогда не компилируется с новым Store context;
+- изменение только общей `storeConfigurationRevision` без изменения зависимых
+  context values не делает segment stale;
 - invalid query после context change остается fail closed со status `FAILED`.
 
 ## 28. Рекомендуемый порядок реализации
 
-1. Создать package `packages/customer-segment-dsl` с AST, Zod schemas, Peggy
-   grammar, generated parser, normalizer и printer.
-2. Добавить write-time normalization columns и обязательные scalar/list/date/
-   statistics/function indexes, затем реализовать profile, address, consent,
-   classification и aggregate statistics registry. Descriptor остается
-   `UNAVAILABLE`, пока его physical contract не готов.
-3. Подключить parse/semantic validation к segment create/update scripts.
-4. Сделать type immutable, а `definition` server-generated и read-only для
-   GraphQL input; удалить старый mixed write contract одним release.
-5. Реализовать Drizzle compilers `compileCustomerMatch`,
-   `compileSegmentMembers` и exhaustive `compileStoreCustomers`.
-6. Добавить validation и preview GraphQL operations.
-7. Сохранять extracted dependencies и реализовать атомарные invalidation +
-   targeted reevaluation в transaction принятия owned state/projection.
-8. Добавить durable bulk materialization по `definition_revision` и
-   `evaluation_generation`, materialization status,
-   `customer_segment_evaluation_state` и единый per-customer locking protocol.
-9. Добавить отдельные durable `customer_segment_temporal_schedule` и
-   `customer_segment_reevaluation_queue`: первая выполняет atomic boundary
-   replacement, вторая — watermark/idempotency/claim semantics; temporal
-   materialization использует exhaustive scan.
-10. Реализовать Admin visual builder поверх attribute registry и advanced text
-    editor поверх canonical query.
-11. Добавить purchase line projection и включить `products_purchased`.
+1. **Core language.** Создать package `packages/customer-segment-dsl` с AST,
+   strict Zod schemas, checked-in Peggy grammar/generated parser, normalizer,
+   printer, diagnostics и golden lexical/round-trip tests. Gate: все Parser и
+   canonical AST tests раздела 27 проходят без database.
+2. **Store context projection.** Добавить versioned
+   `storeConfigurationUpdated`, локальную `customer_segment_store_context` и
+   убрать hardcoded timezone/currency fallback из Customers background context.
+   Gate: duplicate/out-of-order/context-not-ready tests проходят; currency
+   mutation отсутствует в Store API.
+3. **Physical attribute foundation.** Одной migration добавить normalization
+   columns/writers, исправить commerce statistics на completed-time semantics и
+   создать indexes matrix раздела 17.1. Gate: architecture test запрещает
+   `AVAILABLE` без column, writer contract или index.
+4. **Registry и semantic analyzer.** Реализовать descriptors profile, address,
+   consent, classification, tax, statistics, `orders_placed` и `birthday`, затем
+   batch Store-scoped entity validation, dependency/context/temporal extraction
+   и complexity. Gate: Semantic analyzer и normalization suites раздела 27.
+5. **SQL evaluation.** Реализовать `compileCustomerMatch`,
+   `compileSegmentMembers`, `compileStoreCustomers`, один date/time adapter и
+   recursive boundary evaluator. Gate: SQL truth tables, representative
+   `EXPLAIN` и evaluation parity без materialized path.
+6. **Coordination persistence.** Одной migration добавить generation/status,
+   materialization run, evaluation state, temporal schedule, reevaluation queue,
+   constraints и claim/cleanup indexes из разделов 20–21. Gate: schema tests,
+   lease recovery и canonical row-lock order tests.
+7. **Atomic API cutover.** Подключить validation к create/update, сделать type
+   immutable и definition server-generated/read-only; в том же release удалить
+   writable JSON/mutable-type inputs и старый database constraint. Gate:
+   generated GraphQL types, scripts, models, eligibility reads и documentation
+   согласованы; mixed mode отсутствует.
+8. **Validation, catalog и preview API.** Добавить точные Query operations
+   раздела 22, permissions, cursor/timeout handling и attribute catalog. Gate:
+   invalid query ничего не пишет, preview parity и timeout tests проходят.
+9. **Bulk materialization.** Реализовать durable run scanning, generation
+   barrier, per-customer lock, evaluation tombstones, resume cursor и publish
+   `READY`. Сначала поддержать non-temporal definitions. Gate: concurrency suite
+   для bulk/event ordering, activation и crash resume.
+10. **Atomic event reevaluation.** Заменить invalidate-only handler на reason-
+    targeted invalidation + enqueue в той же transaction, где Customers принимает
+    owned state/projection. Добавить create/delete/merge/context handlers и
+    watermark drain. Gate: после commit возможны только false negatives, все
+    acknowledgement/idempotency tests раздела 27 проходят.
+11. **Temporal materialization.** Включить exhaustive scan для temporal
+    definitions, atomic schedule replacement, leased worker и publication
+    finalization до `publicationEffectiveAt`. Gate: вся Temporal behavior suite,
+    DST fixtures и terminal retry/operator retry проходят.
+12. **Admin UI.** Реализовать visual builder только из attribute catalog и
+    advanced editor из canonical query. UI не хранит собственную operator/type
+    matrix. Gate: unavailable descriptors нельзя выбрать, diagnostics используют
+    UTF-16 coordinates.
+13. **Purchase facts extension.** Отдельно определить versioned completed order
+    line event с immutable product/variant/category snapshot, добавить owned
+    projection и indexes, затем переключить `products_purchased` в `AVAILABLE`.
+    Gate: projection ordering/idempotency, historical category semantics и
+    function aggregate parity tests.
+
+Шаг нельзя начинать через compatibility shim, обходящий gate предыдущего шага.
+Шаги 6–11 выпускаются как один atomic backend release до доступности первого
+ACTIVE DYNAMIC segment: production path без queue, generation barrier или
+temporal schedule запрещен. Поскольку production data отсутствуют, migrations
+не содержат backfill и compatibility branches; test fixtures пересоздаются.

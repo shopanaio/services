@@ -60,6 +60,37 @@ export const PaymentFailureSchema = z
   })
   .strict();
 
+export const PaymentSettlementConfirmationSchema = z
+  .discriminatedUnion("decision", [
+    z.object({
+      decision: z.literal("APPROVED"),
+      confirmationId: identifierSchema,
+      confirmedAt: timestampSchema,
+      expiresAt: timestampSchema,
+      checkoutVersion: z.number().int().safe().nonnegative(),
+      finalQuoteRevision: identifierSchema,
+      inventoryReservationRevision: identifierSchema.nullable(),
+    }).strict(),
+    z.object({
+      decision: z.literal("REJECTED"),
+      confirmationId: identifierSchema,
+      confirmedAt: timestampSchema,
+      failure: PaymentFailureSchema,
+    }).strict(),
+  ])
+  .superRefine((confirmation, context) => {
+    if (
+      confirmation.decision === "APPROVED" &&
+      Date.parse(confirmation.expiresAt) <= Date.parse(confirmation.confirmedAt)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expiresAt"],
+        message: "Settlement confirmation must expire after it was approved",
+      });
+    }
+  });
+
 const paymentInstrumentSchema = z.discriminatedUnion("type", [
   z
     .object({
@@ -608,11 +639,14 @@ export interface ProviderCompletionBoundaryExpectation {
   route: Payments.PaymentProviderRouteSnapshot;
   session: Pick<
     Payments.PaymentSessionSnapshot,
-    "paymentSessionId" | "organizationId" | "storeId"
+    | "paymentSessionId"
+    | "organizationId"
+    | "storeId"
+    | "providerReference"
   >;
   operation: Pick<
     Payments.PaymentOperationSnapshot,
-    "operationId" | "type" | "confirmation"
+    "operationId" | "type" | "state" | "confirmation"
   >;
 }
 
@@ -698,10 +732,23 @@ export function parseProviderCompletion(
       parsed.result as Payments.PaymentProviderOperationResult,
     );
   }
-  if (parsed.operationType === "CONFIRM") {
+  const resultProviderReference = parsed.result.providerReference;
+  assertBoundary(
+    resultProviderReference === null ||
+      expected.session.providerReference === null ||
+      resultProviderReference === expected.session.providerReference,
+    "Callback providerReference does not match the persisted session",
+  );
+  if (parsed.operationType === "CONFIRM" || parsed.operationType === "CAPTURE") {
     assertBoundary(
       expected.operation.confirmation?.decision === "APPROVED",
-      "CONFIRM operation requires a persisted approved settlement confirmation",
+      `${parsed.operationType} operation requires a persisted approved settlement confirmation`,
+    );
+  }
+  if (expected.operation.state === "REQUIRES_CONFIRMATION") {
+    assertBoundary(
+      parsed.result.status === "FAILED",
+      "Only a failure may complete an operation that is awaiting platform confirmation",
     );
   }
   assertRouteIdentity(expected.context, expected.route);

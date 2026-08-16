@@ -112,6 +112,33 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       }
 
       const now = await DBOS.now();
+      if (
+        session.state === "PENDING" &&
+        session.nextReconcileAt &&
+        Date.parse(session.nextReconcileAt) <= now
+      ) {
+        await this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
+          "payments.executeOperation",
+          {
+            type: "RECONCILE",
+            params: {
+              storeId: input.storeId,
+              paymentSessionId: session.paymentSessionId,
+              expectedSessionRevision: session.revision,
+              idempotencyKey: `${input.idempotencyKey}:payment-reconcile:${session.revision}`,
+              correlationId: input.correlationId,
+            },
+          },
+          {
+            source: "workflow",
+            organizationId: input.organizationId,
+            workflowId,
+            stepId: "reconcilePendingPayment",
+            callId: `${session.paymentSessionId}:${session.revision}`,
+          },
+        );
+        continue;
+      }
       const deadline = paymentDeadline(session);
       const delay = Date.parse(deadline) - now;
       if (delay > 0) {

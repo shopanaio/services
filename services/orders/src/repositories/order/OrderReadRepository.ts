@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import type {
   OrderReadPort,
   OrderReadPortRow,
@@ -19,7 +19,6 @@ import {
   orderRecipients,
   orders,
   ordersPiiRecords,
-  orderSelectedPaymentMethods,
 } from "@src/repositories/models/index";
 import { coerceToDate } from "@src/utils/date";
 import { BaseRepository } from "@src/repositories/BaseRepository";
@@ -184,16 +183,22 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       code: row.code,
       provider: row.provider,
       flow: row.flow,
-      metadata: row.metadata,
-      customer_input: row.customerInput,
+      metadata: {
+        ...row.providerData,
+        ...(row.title ? { title: row.title } : {}),
+      },
+      customer_input: row.customerInputSnapshot,
     }));
   }
 
   async findSelectedPaymentMethod(orderId: string): Promise<OrderSelectedPaymentMethodRow | null> {
     const [row] = await this.connection
       .select()
-      .from(orderSelectedPaymentMethods)
-      .where(eq(orderSelectedPaymentMethods.orderId, orderId))
+      .from(orderPaymentMethods)
+      .where(and(
+        eq(orderPaymentMethods.orderId, orderId),
+        eq(orderPaymentMethods.isSelected, true),
+      ))
       .limit(1);
     return row ? {
       order_id: row.orderId,

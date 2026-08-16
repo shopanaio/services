@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   integer,
   jsonb,
@@ -165,23 +166,21 @@ export const orderDeliveryMethods = ordersSchema.table(
 export const orderPaymentMethods = ordersSchema.table(
   "order_payment_methods",
   {
+    id: uuid("id").primaryKey().default(sql`uuidv7()`),
     orderId: uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").notNull(),
+    billingAddressId: uuid("billing_address_id"),
     code: text("code").notNull(),
     provider: text("provider").notNull(),
+    title: text("title"),
     flow: varchar("flow", { length: 32 }).notNull(),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    customerInput: jsonb("customer_input").$type<Record<string, unknown>>().notNull().default({}),
+    isSelected: boolean("is_selected").notNull().default(false),
+    providerData: jsonb("provider_data").$type<Record<string, unknown>>().notNull().default({}),
+    customerInputSnapshot: jsonb("customer_input_snapshot").$type<Record<string, unknown>>().notNull().default({}),
+    ...auditColumns(),
   },
-  (table) => [primaryKey({ columns: [table.orderId, table.code, table.provider] })],
+  (table) => [index("order_payment_methods_store_order_idx").on(table.storeId, table.orderId, table.id)],
 );
-
-export const orderSelectedPaymentMethods = ordersSchema.table("order_selected_payment_methods", {
-  orderId: uuid("order_id").primaryKey().references(() => orders.id, { onDelete: "cascade" }),
-  storeId: uuid("store_id").notNull(),
-  code: text("code").notNull(),
-  provider: text("provider").notNull(),
-});
 
 export const orderAppliedDiscounts = ordersSchema.table(
   "order_applied_discounts",

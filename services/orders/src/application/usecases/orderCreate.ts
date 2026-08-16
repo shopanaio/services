@@ -45,6 +45,13 @@ export interface CreateOrderFromCheckoutPlacementInput {
   userId: string | null;
   idempotencyKey: string;
   checkout: CheckoutDto;
+  payment: null | {
+    code: string;
+    title: string;
+    provider: string;
+    flow: "ONLINE" | "OFFLINE" | "ON_DELIVERY";
+    customerInput: Record<string, unknown> | null;
+  };
   loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
 }
 
@@ -104,7 +111,8 @@ export class CreateOrderUseCase extends UseCase<
     const relations = this.buildRelations(
       id,
       input.storeId,
-      checkoutAggregate
+      checkoutAggregate,
+      input.payment,
     );
 
     const appliedDiscounts: OrderCreateData["appliedDiscounts"] =
@@ -148,7 +156,8 @@ export class CreateOrderUseCase extends UseCase<
   private buildRelations(
     orderId: string,
     storeId: string,
-    checkoutAggregate: Checkout
+    checkoutAggregate: Checkout,
+    payment: CreateOrderFromCheckoutPlacementInput["payment"],
   ): Pick<
     OrderCreateData,
     | "contact"
@@ -251,8 +260,19 @@ export class CreateOrderUseCase extends UseCase<
       deliveryGroupMappings,
       deliveryMethods,
       selectedDeliveryMethods,
-      paymentMethods: [], // TODO: Add when payment methods are available in checkout
-      selectedPaymentMethod: null,
+      paymentMethods: payment
+        ? [{
+            code: payment.code,
+            provider: payment.provider,
+            title: payment.title,
+            flow: payment.flow,
+            providerData: {},
+            customerInput: payment.customerInput,
+          }]
+        : [],
+      selectedPaymentMethod: payment
+        ? { code: payment.code, provider: payment.provider }
+        : null,
     };
   }
 

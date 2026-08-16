@@ -12,6 +12,7 @@
   "dependencies": {
     "@nestjs/common": "^10.0.0",
     "@shopana/broker-types": "*",
+    "@shopana/events": "workspace:*",
     "@shopana/function-runner": "workspace:*",
     "@shopana/shared-kernel": "*",
     "@shopana/shared-service-api": "*",

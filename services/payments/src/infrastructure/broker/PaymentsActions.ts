@@ -1,7 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { PaymentsActionNames, PaymentsCheckoutActionNames, type Payments } from "@shopana/broker-types";
 import { Action, BrokerActions, InjectBroker, type BrokerCallContext, type ServiceBroker, ZodSchema } from "@shopana/shared-kernel";
-import { PaymentLifecycleActionSchemas } from "../../contracts/schemas.js";
+import {
+  CompleteProviderOperationParamsSchema,
+  PaymentLifecycleActionSchemas,
+  ReportPaymentProviderEventParamsSchema,
+  parseProviderCompletionContext,
+} from "../../contracts/schemas.js";
 import { parsePaymentsCheckoutRequest, parsePaymentsCheckoutResult } from "../../checkout-pipeline/schemas.js";
 import { PaymentsCheckoutError } from "../../checkout-pipeline/errors.js";
 import { PaymentsCheckoutMethodsService } from "../../checkout-pipeline/PaymentsCheckoutMethodsService.js";
@@ -117,6 +122,36 @@ export class PaymentsActions extends BrokerActions {
     return this.lifecycle.getSession(params);
   }
 
+  @Action(PaymentsActionNames.cancel)
+  @ZodSchema(PaymentLifecycleActionSchemas.cancel)
+  cancelPayment(params: Payments.CancelPaymentParams) {
+    return this.runOperation("CANCEL", params);
+  }
+
+  @Action(PaymentsActionNames.capture)
+  @ZodSchema(PaymentLifecycleActionSchemas.capture)
+  capturePayment(params: Payments.CapturePaymentParams) {
+    return this.runOperation("CAPTURE", params);
+  }
+
+  @Action(PaymentsActionNames.void)
+  @ZodSchema(PaymentLifecycleActionSchemas.void)
+  voidPayment(params: Payments.VoidPaymentParams) {
+    return this.runOperation("VOID", params);
+  }
+
+  @Action(PaymentsActionNames.refund)
+  @ZodSchema(PaymentLifecycleActionSchemas.refund)
+  refundPayment(params: Payments.RefundPaymentParams) {
+    return this.runOperation("REFUND", params);
+  }
+
+  @Action(PaymentsActionNames.reconcile)
+  @ZodSchema(PaymentLifecycleActionSchemas.reconcile)
+  reconcilePayment(params: Payments.ReconcilePaymentParams) {
+    return this.runOperation("RECONCILE", params);
+  }
+
   @Action(PaymentsActionNames.expire)
   @ZodSchema(PaymentLifecycleActionSchemas.expire)
   expirePayment(params: Payments.ExpirePaymentParams) {
@@ -133,6 +168,69 @@ export class PaymentsActions extends BrokerActions {
           reason: params.reason,
           idempotencyKey: params.idempotencyKey,
         },
+      },
+    );
+  }
+
+  @Action(PaymentsActionNames.completeProviderOperation)
+  @ZodSchema(CompleteProviderOperationParamsSchema)
+  completeProviderOperation(
+    params: Payments.CompleteProviderOperationParams,
+    brokerContext: BrokerCallContext,
+  ) {
+    const context = parseProviderCompletionContext(brokerContext);
+    return this.broker.runWorkflow<Payments.CompleteProviderOperationResult>(
+      "payments.completeProviderOperation",
+      { params, context },
+      {
+        source: "content",
+        organizationId: context.organizationId,
+        resourceId: params.operationId,
+        operation: "payments.completeProviderOperation",
+        content: params,
+      },
+    );
+  }
+
+  @Action(PaymentsActionNames.reportProviderEvent)
+  @ZodSchema(ReportPaymentProviderEventParamsSchema)
+  reportPaymentProviderEvent(
+    params: Payments.ReportPaymentProviderEventParams,
+    brokerContext: BrokerCallContext,
+  ) {
+    const context = parseProviderCompletionContext(brokerContext);
+    return this.broker.runWorkflow<Payments.ReportPaymentProviderEventResult>(
+      "payments.reportProviderEvent",
+      { params, context },
+      {
+        source: "content",
+        organizationId: context.organizationId,
+        resourceId: params.providerAccountId,
+        operation: "payments.reportProviderEvent",
+        content: params,
+      },
+    );
+  }
+
+  private runOperation(
+    type: "CANCEL" | "CAPTURE" | "VOID" | "REFUND" | "RECONCILE",
+    params:
+      | Payments.CancelPaymentParams
+      | Payments.CapturePaymentParams
+      | Payments.VoidPaymentParams
+      | Payments.RefundPaymentParams
+      | Payments.ReconcilePaymentParams,
+  ) {
+    const { correlationId, ...workflowContent } = params;
+    void correlationId;
+    return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
+      "payments.executeOperation",
+      { type, params },
+      {
+        source: "content",
+        resourceId: params.paymentSessionId,
+        operation: `payments.${type.toLowerCase()}`,
+        content: workflowContent,
       },
     );
   }
