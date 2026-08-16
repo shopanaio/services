@@ -1,0 +1,12 @@
+mutation CustomerDataRequestDelete($input: CustomerDataRequestDeleteInput!) {
+  customersMutation {
+    customerDataRequestDelete(input: $input) {
+      deletedDataRequestId
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+mutation CustomerGroupDelete($input: CustomerGroupDeleteInput!) {
+  customersMutation {
+    customerGroupDelete(input: $input) {
+      deletedGroupId
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

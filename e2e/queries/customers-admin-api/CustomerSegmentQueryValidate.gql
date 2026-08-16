@@ -1,0 +1,19 @@
+query CustomerSegmentQueryValidate($query: String!) {
+  customersQuery {
+    customerSegmentQueryValidate(query: $query) {
+      valid
+      canonicalQuery
+      definition
+      complexity
+      diagnostics {
+        code
+        message
+        severity
+        startOffset
+        endOffset
+        line
+        column
+      }
+    }
+  }
+}

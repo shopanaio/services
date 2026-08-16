@@ -1,0 +1,62 @@
+mutation CustomerGroupUpdate(
+  $groupId: ID!
+  $expectedRevision: Int!
+  $operations: CustomerGroupUpdateInput!
+) {
+  customersMutation {
+    customerGroupUpdate(
+      groupId: $groupId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      group {
+        id
+        code
+        name
+        description
+        isDefault
+        isActive
+        revision
+        customersCount
+        customerMemberships(first: 100) {
+          edges {
+            cursor
+            node {
+              id
+              isPrimary
+              source
+              assignedById
+              assignedAt
+              expiresAt
+              isActive
+              customer {
+                id
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

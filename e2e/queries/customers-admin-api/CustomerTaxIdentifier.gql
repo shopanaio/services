@@ -1,0 +1,22 @@
+query CustomerTaxIdentifier($id: ID!) {
+  customersQuery {
+    customerTaxIdentifier(id: $id) {
+      id
+      customer {
+        id
+      }
+      identifierType
+      countryCode
+      value
+      normalizedValue
+      status
+      isPrimary
+      verifiedAt
+      validFrom
+      validTo
+      createdAt
+      updatedAt
+      deletedAt
+    }
+  }
+}

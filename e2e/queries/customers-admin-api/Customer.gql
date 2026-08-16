@@ -1,0 +1,288 @@
+query Customer($id: ID!) {
+  customersQuery {
+    customer(id: $id) {
+      id
+      lifecycleStatus
+      accountStatus
+      iamPrincipalId
+      email
+      emailVerified
+      phoneE164
+      phoneVerified
+      prefix
+      firstName
+      middleName
+      lastName
+      suffix
+      displayName
+      preferredLocale
+      dateOfBirth
+      gender
+      companyName
+      jobTitle
+      note
+      blockedReason
+      moderationNote
+      source
+      createdByUserId
+      revision
+      lastActivityAt
+      createdAt
+      updatedAt
+      deletedAt
+      redactedAt
+      mergedInto {
+        id
+      }
+      defaultShippingAddress {
+        id
+      }
+      defaultBillingAddress {
+        id
+      }
+      addresses(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            label
+            address1
+            address2
+            city
+            regionCode
+            countryCode
+            isDefaultShipping
+            isDefaultBilling
+            validationStatus
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      consents {
+        id
+        channel
+        state
+        optInLevel
+        contactPoint
+        source
+        consentedAt
+        withdrawnAt
+        events(first: 100) {
+          edges {
+            cursor
+            node {
+              id
+              previousState
+              newState
+              optInLevel
+              contactPoint
+              source
+              actorType
+              actorId
+              requestId
+              idempotencyKey
+              evidence
+              occurredAt
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+      taxIdentifiers(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            identifierType
+            countryCode
+            value
+            normalizedValue
+            status
+            isPrimary
+            verifiedAt
+            validFrom
+            validTo
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      taxExemptions(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            code
+            countryCode
+            regionCode
+            reason
+            status
+            certificateFileId
+            validFrom
+            validTo
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      groupMemberships(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            isPrimary
+            source
+            assignedAt
+            expiresAt
+            isActive
+            group {
+              id
+              code
+              name
+              customersCount
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      tagAssignments(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            assignedAt
+            tag {
+              id
+              name
+              customersCount
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      segmentMemberships(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            source
+            evaluatedAt
+            expiresAt
+            isActive
+            segment {
+              id
+              name
+              type
+              status
+              customersCount
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      statistics {
+        ordersCount
+        completedOrdersCount
+        cancelledOrdersCount
+        returnsCount
+        firstOrderId
+        firstOrderAt
+        lastOrderId
+        lastOrderAt
+        lastCheckoutAt
+        updatedAt
+      }
+      monetaryStatistics(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            currencyCode
+            ordersCount
+            totalSpentMinor
+            totalRefundedMinor
+            netSpentMinor
+            averageOrderValueMinor
+            updatedAt
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      comparison {
+        id
+        revision
+        createdAt
+        updatedAt
+        items {
+          id
+          productId
+          variantId
+          position
+          addedAt
+          updatedAt
+          product {
+            id
+          }
+          variant {
+            id
+          }
+        }
+      }
+      externalReferences {
+        id
+        externalSystem
+        externalType
+        externalId
+        metadata
+        createdAt
+        updatedAt
+      }
+    }
+  }
+}

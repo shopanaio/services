@@ -1,0 +1,42 @@
+query CustomerGroups(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerGroupWhereInput
+  $orderBy: [CustomerGroupOrderByInput!]
+) {
+  customersQuery {
+    customerGroups(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          code
+          name
+          description
+          isDefault
+          isActive
+          revision
+          customersCount
+          createdAt
+          updatedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

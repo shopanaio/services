@@ -1,0 +1,12 @@
+mutation CustomerMergeDelete($input: CustomerMergeDeleteInput!) {
+  customersMutation {
+    customerMergeDelete(input: $input) {
+      deletedMergeId
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

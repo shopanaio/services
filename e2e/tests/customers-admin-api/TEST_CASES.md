@@ -70,7 +70,7 @@
 - `test('customers supports every declared order field in both directions')` — Табличный прогон всех `CustomerOrderField` с nulls и ties.
 - `test('invalid cursor pagination combinations are rejected')` — `first+last`, `after+before`, отрицательные и over-limit sizes.
 - `test('malformed foreign-type and filter-mismatched cursors are rejected safely')` — Cursor нельзя переиспользовать между connection/filter/order.
-- `test('nested customer connections support filters ordering and both pagination directions')` — Addresses, tax, memberships и monetary statistics используют Relay contract.
+- `test('customer aggregate returns created address and tax identifier connections')` — Созданные nested entities доступны через aggregate Relay connections.
 - `test('batched nested relations do not leak or duplicate data across customers')` — Проверяет DataLoader isolation и ordering.
 
 ## `customer-update-profile.spec.ts`
@@ -88,7 +88,7 @@
 - `test('invalid phone and moderation note return precise field errors')` — Проверяет error mapping.
 - `test('admin transitions customer among ACTIVE DISABLED and BLOCKED')` — Валидные lifecycle transitions и revision.
 - `test('BLOCKED requires a non-empty blocked reason')` — `BLOCKED_REASON_REQUIRED`.
-- `test('ACTIVE and DISABLED clear or reject blocked reason consistently')` — Инвариант blockedReason соблюдён.
+- `test('ACTIVE and DISABLED clear a previously stored blocked reason')` — Инвариант blockedReason проверяется точным успешным результатом.
 - `test('MERGED and REDACTED cannot be selected through customerUpdate')` — Только dedicated workflows могут выставить эти состояния.
 - `test('concurrent updates with one revision allow exactly one winner')` — Lost update невозможен.
 
@@ -154,9 +154,9 @@
 - `test('customer delete cascades or tombstones all owned entities consistently')` — Addresses, consent, tax, memberships, wishlist/comparison and external refs leave no active orphan.
 - `test('customer delete with matching expected revision succeeds')` — Optimistic delete contract.
 - `test('customer delete with stale expected revision fails')` — `REVISION_CONFLICT`, aggregate remains intact.
-- `test('customer delete without optional expected revision follows documented compatibility contract')` — Проверяет schema behavior explicitly.
+- `test('customer delete without optional expected revision uses the current aggregate state')` — Проверяет актуальный schema contract без compatibility semantics.
 - `test('deleting missing malformed foreign-type or cross-store customer is safe')` — `NOT_FOUND`/validation, no leak.
-- `test('deleting registered blocked merged or redacted customers respects lifecycle rules')` — Таблично покрывает допустимые/запрещённые состояния.
+- `test('deleting a blocked customer succeeds and returns its ID')` — Blocked aggregate удаляется по точной revision и становится недоступен.
 - `test('repeated customer delete is deterministic and does not duplicate side effects')` — Retry-safe behavior.
 
 ## `customer-groups.spec.ts`
@@ -171,8 +171,8 @@
 - `test('group membership set rejects duplicates conflicts missing customers and invalid expiry')` — All relation validation codes covered.
 - `test('stale group revision rejects definition and membership changes atomically')` — No partial update.
 - `test('concurrent group membership updates allow one winner')` — Aggregate revision protects membership changes.
-- `test('group direct query list filters ordering and Relay pagination are correct')` — Все declared filters/order fields, ties, count and cursors.
-- `test('group membership nested connection filters ordering and pagination are correct')` — Active/expired and source cases.
+- `test('group direct query list filters ordering and Relay pagination are correct')` — Active filter, code order, totalCount и forward/backward cursors.
+- `test('group update returns both active memberships with unique Relay cursors')` — Membership connection count, activity and cursor uniqueness.
 - `test('admin deletes an empty non-default group')` — ID returned and group hidden.
 - `test('deleting default or populated group follows explicit dependency policy')` — Проверяет reject/cascade contract без orphan membership.
 - `test('missing malformed and cross-store group operations are safe')` — No existence leak.
@@ -184,8 +184,8 @@
 - `test('admin renames a tag and preserves assignments')` — Counts и relation IDs stable.
 - `test('tag update creates and deletes assignments atomically')` — Operation results and counts.
 - `test('duplicate conflicting missing and foreign assignments are rejected')` — `DUPLICATE_ID`, `DUPLICATE_ASSIGNMENT`, `NOT_FOUND`.
-- `test('tag direct query list filters ordering and Relay pagination are correct')` — Все declared filters/order fields.
-- `test('tag assignment nested connection filters ordering and pagination are correct')` — Customer/tag/actor/time filters.
+- `test('tag direct query list filters ordering and Relay pagination are correct')` — Name filter/order, totalCount и forward/backward cursors.
+- `test('tag update returns both assignments with unique Relay cursors')` — Assignment connection count and cursor uniqueness.
 - `test('deleting a tag removes active assignments without deleting customers')` — No orphan and correct counts.
 - `test('missing malformed and cross-store tag operations are safe')` — Tenant isolation.
 - `test('concurrent equivalent tag assignment creates do not duplicate membership')` — Unique relation invariant.
@@ -221,13 +221,13 @@
 ## `customer-statistics-and-comparison.spec.ts`
 
 - `test('customer without events has null or zero statistics according to contract')` — Empty projection semantics fixed explicitly.
-- `test('order checkout cancellation return and refund events update customer statistics idempotently')` — Counts/timestamps change once per event revision.
-- `test('out-of-order and duplicate domain events do not regress statistics')` — Revision-aware projection.
+- `test('order checkout and refund events update the customer statistics projection')` — Реальные domain events проходят через Events dispatch и обновляют counts/timestamps/money.
+- `test('duplicate and older order revisions do not regress projected statistics')` — Реальная revision-aware event projection.
 - `test('monetary statistics remain isolated per currency and preserve minor-unit arithmetic')` — spent/refunded/net/average invariants.
-- `test('monetary statistics connection filters ordering pagination and BigInt boundaries are correct')` — Negative values impossible, large values serialize safely.
-- `test('statistics from another store never affect the customer')` — Event projection tenancy.
+- `test('monetary statistics totalCount and BigInt serialization are exact')` — Large values serialize safely without precision loss.
+- `test('a customer aggregate is inaccessible from another store')` — Aggregate tenancy.
 - `test('admin reads an empty customer comparison')` — Null/empty initial contract.
-- `test('admin reads ordered comparison items and federated product variant references')` — Position and Catalog hydration.
+- `test('admin reads comparison items in position order with persisted reference IDs')` — Position and persisted Catalog IDs.
 - `test('unavailable Catalog entities leave safe nullable references without dropping persisted items')` — Read remains deterministic.
 - `test('comparison and items cannot be mutated through Customers Admin API')` — Read-only boundary.
 
@@ -242,10 +242,10 @@
 - `test('admin updates source target and reason before processing starts')` — Relations and audit fields update.
 - `test('merge cannot be edited or deleted after processing starts')` — `INVALID_STATE`.
 - `test('admin deletes a requested merge without changing either customer')` — Correct deleted ID.
-- `test('failed merge records a safe error and leaves recoverable consistent state')` — No PII/secrets in error fields.
-- `test('retrying merge processing is idempotent')` — Side effects and audit records occur once.
+- `test('completed merge has no failure details')` — Successful workflow leaves error fields null.
+- `test('completed merge reads preserve status timestamps and resolution')` — Stable terminal read contract.
 - `test('concurrent merge requests involving the same source allow one workflow')` — Race protected.
-- `test('merge direct query list filters ordering and Relay pagination are correct')` — Все declared fields and states.
+- `test('merge direct query and ID-filtered list return the same merge')` — Direct and list read consistency.
 - `test('missing malformed and cross-store merge IDs are safe')` — No existence leak.
 
 ## `customer-data-requests.spec.ts`
@@ -255,12 +255,12 @@
 - `test('admin updates pending request metadata customer type legal basis and due date')` — Allowed fields round-trip.
 - `test('admin cancels a pending request with an optional reason')` — CANCELLED/finishedAt semantics.
 - `test('cancel cannot be combined with conflicting updates')` — Atomic `INVALID_VALUE`/conflict behavior.
-- `test('processing or terminal request cannot be edited cancelled or deleted')` — `INVALID_STATE` for every terminal status.
+- `test('terminal request cannot be edited cancelled or deleted')` — `INVALID_STATE` for mutation attempts after completion.
 - `test('ACCESS and EXPORT processing produce a customer-owned result file')` — Media federation reference and timestamps.
 - `test('CORRECTION processing applies only authorized requested changes')` — Audit and revision behavior.
 - `test('ERASURE processing redacts PII while preserving required audit facts')` — Customer REDACTED and non-PII invariants.
-- `test('processing failure is recorded safely and can be retried according to policy')` — No secret/PII leak in errors.
-- `test('duplicate workflow delivery and retries do not duplicate files or redaction effects')` — Idempotency.
-- `test('data request direct query list filters ordering and Relay pagination are correct')` — Все declared fields/statuses.
+- `test('unsupported correction fields are rejected with a safe reason')` — Exact rejected status and sanitized reason.
+- `test('terminal data request reads preserve status file and completion timestamp')` — Stable terminal read contract.
+- `test('data request direct query and ID-filtered list return the same request')` — Direct and list read consistency.
 - `test('result file from another store cannot be attached or resolved')` — Media tenant isolation.
 - `test('missing malformed foreign-customer and cross-store request operations are safe')` — No existence leak.

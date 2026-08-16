@@ -1,0 +1,47 @@
+query CustomerDataRequests(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerDataRequestWhereInput
+  $orderBy: [CustomerDataRequestOrderByInput!]
+) {
+  customersQuery {
+    customerDataRequests(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          customer {
+            id
+          }
+          type
+          status
+          legalBasis
+          requestMetadata
+          resultFileId
+          rejectionReason
+          requestedAt
+          dueAt
+          startedAt
+          finishedAt
+          updatedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

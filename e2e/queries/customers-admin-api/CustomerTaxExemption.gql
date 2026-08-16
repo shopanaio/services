@@ -1,0 +1,21 @@
+query CustomerTaxExemption($id: ID!) {
+  customersQuery {
+    customerTaxExemption(id: $id) {
+      id
+      customer {
+        id
+      }
+      code
+      countryCode
+      regionCode
+      reason
+      status
+      certificateFileId
+      validFrom
+      validTo
+      createdAt
+      updatedAt
+      deletedAt
+    }
+  }
+}

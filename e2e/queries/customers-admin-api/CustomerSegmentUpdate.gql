@@ -1,0 +1,74 @@
+mutation CustomerSegmentUpdate(
+  $segmentId: ID!
+  $expectedRevision: Int!
+  $operations: CustomerSegmentUpdateInput!
+) {
+  customersMutation {
+    customerSegmentUpdate(
+      segmentId: $segmentId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      segment {
+        id
+        name
+        description
+        color
+        type
+        status
+        query
+        definition
+        definitionRevision
+        evaluationGeneration
+        materializationStatus
+        revision
+        customersCount
+        customerMemberships(first: 100) {
+          edges {
+            cursor
+            node {
+              id
+              source
+              evaluatedAt
+              expiresAt
+              isActive
+              customer {
+                id
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+        diagnostic {
+          code
+          message
+          severity
+          startOffset
+          endOffset
+          line
+          column
+        }
+      }
+    }
+  }
+}

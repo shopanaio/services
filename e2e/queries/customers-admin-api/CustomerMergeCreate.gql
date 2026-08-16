@@ -1,0 +1,32 @@
+mutation CustomerMergeCreate($input: CustomerMergeCreateInput!) {
+  customersMutation {
+    customerMergeCreate(input: $input) {
+      merge {
+        id
+        sourceCustomer {
+          id
+        }
+        targetCustomer {
+          id
+        }
+        status
+        reason
+        requestedByType
+        requestedById
+        idempotencyKey
+        resolution
+        errorCode
+        errorMessage
+        requestedAt
+        startedAt
+        finishedAt
+        updatedAt
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

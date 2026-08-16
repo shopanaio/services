@@ -1,0 +1,40 @@
+query CustomerSegmentPreview($query: String!, $first: Int = 50, $after: String) {
+  customersQuery {
+    customerSegmentPreview(query: $query, first: $first, after: $after) {
+      validation {
+        valid
+        canonicalQuery
+        definition
+        complexity
+        diagnostics {
+          code
+          message
+          severity
+          startOffset
+          endOffset
+          line
+          column
+        }
+      }
+      customers {
+        edges {
+          cursor
+          node {
+            id
+            displayName
+            email
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+      totalCount
+      timedOut
+    }
+  }
+}

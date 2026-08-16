@@ -1,0 +1,38 @@
+query CustomerTags(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerTagWhereInput
+  $orderBy: [CustomerTagOrderByInput!]
+) {
+  customersQuery {
+    customerTags(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          name
+          normalizedName
+          customersCount
+          createdAt
+          updatedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

@@ -1,0 +1,8 @@
+query CustomerNodes($ids: [ID!]!) {
+  customersQuery {
+    nodes(ids: $ids) {
+      __typename
+      id
+    }
+  }
+}

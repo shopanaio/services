@@ -1,0 +1,34 @@
+mutation CustomerDataRequestCreate($input: CustomerDataRequestCreateInput!) {
+  customersMutation {
+    customerDataRequestCreate(input: $input) {
+      dataRequest {
+        id
+        customer {
+          id
+        }
+        type
+        status
+        requestedByType
+        requestedById
+        idempotencyKey
+        legalBasis
+        requestMetadata
+        resultFileId
+        resultFile {
+          id
+        }
+        rejectionReason
+        requestedAt
+        dueAt
+        startedAt
+        finishedAt
+        updatedAt
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

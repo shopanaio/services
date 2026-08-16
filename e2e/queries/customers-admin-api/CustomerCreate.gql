@@ -1,0 +1,43 @@
+mutation CustomerCreate($input: CustomerCreateInput!) {
+  customersMutation {
+    customerCreate(input: $input) {
+      customer {
+        id
+        lifecycleStatus
+        accountStatus
+        iamPrincipalId
+        email
+        emailVerified
+        phoneE164
+        phoneVerified
+        prefix
+        firstName
+        middleName
+        lastName
+        suffix
+        displayName
+        preferredLocale
+        dateOfBirth
+        gender
+        companyName
+        jobTitle
+        note
+        blockedReason
+        moderationNote
+        source
+        createdByUserId
+        revision
+        lastActivityAt
+        createdAt
+        updatedAt
+        deletedAt
+        redactedAt
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

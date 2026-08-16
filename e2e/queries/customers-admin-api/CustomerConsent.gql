@@ -1,0 +1,48 @@
+query CustomerConsent($id: ID!) {
+  customersQuery {
+    customerConsent(id: $id) {
+      id
+      customer {
+        id
+      }
+      channel
+      state
+      optInLevel
+      contactPoint
+      source
+      sourceLocationId
+      sourceIp
+      userAgent
+      consentedAt
+      withdrawnAt
+      createdAt
+      updatedAt
+      events(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            previousState
+            newState
+            optInLevel
+            contactPoint
+            source
+            actorType
+            actorId
+            requestId
+            idempotencyKey
+            evidence
+            occurredAt
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

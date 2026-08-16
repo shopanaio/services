@@ -1,0 +1,26 @@
+mutation CustomerAccountsSettingsUpdate($input: CustomerAccountsSettingsUpdateInput!) {
+  customersMutation {
+    customerAccountsSettingsUpdate(input: $input) {
+      settings {
+        realmEnabled
+        registrationMode
+        revision
+        methods {
+          method
+          enabled
+          configured
+        }
+        providers {
+          provider
+          enabled
+          configured
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

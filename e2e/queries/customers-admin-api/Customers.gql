@@ -1,0 +1,53 @@
+query Customers(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerWhereInput
+  $orderBy: [CustomerOrderByInput!]
+) {
+  customersQuery {
+    customers(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          email
+          phoneE164
+          firstName
+          lastName
+          displayName
+          preferredLocale
+          dateOfBirth
+          companyName
+          lifecycleStatus
+          accountStatus
+          emailVerified
+          phoneVerified
+          source
+          lastActivityAt
+          createdAt
+          updatedAt
+          statistics {
+            ordersCount
+            lastOrderAt
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

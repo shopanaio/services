@@ -1,0 +1,41 @@
+query CustomerSegment($id: ID!) {
+  customersQuery {
+    customerSegment(id: $id) {
+      id
+      name
+      description
+      color
+      type
+      status
+      query
+      definition
+      definitionRevision
+      evaluationGeneration
+      materializationStatus
+      revision
+      customersCount
+      customerMemberships(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            source
+            evaluatedAt
+            expiresAt
+            isActive
+            customer {
+              id
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

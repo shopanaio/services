@@ -1,0 +1,34 @@
+query CustomerAddress($id: ID!) {
+  customersQuery {
+    customerAddress(id: $id) {
+      id
+      customer {
+        id
+      }
+      label
+      prefix
+      firstName
+      middleName
+      lastName
+      suffix
+      companyName
+      phoneE164
+      address1
+      address2
+      city
+      regionName
+      regionCode
+      postalCode
+      countryCode
+      isDefaultShipping
+      isDefaultBilling
+      validationStatus
+      validatedAt
+      latitude
+      longitude
+      createdAt
+      updatedAt
+      deletedAt
+    }
+  }
+}

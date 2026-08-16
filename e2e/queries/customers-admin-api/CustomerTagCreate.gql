@@ -1,0 +1,20 @@
+mutation CustomerTagCreate($input: CustomerTagCreateInput!) {
+  customersMutation {
+    customerTagCreate(input: $input) {
+      tag {
+        id
+        name
+        normalizedName
+        customersCount
+        createdAt
+        updatedAt
+        deletedAt
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

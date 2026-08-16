@@ -151,7 +151,7 @@
 - `test('omitting wishlistId creates or selects the default wishlist according to contract')` — Empty-account behavior explicit.
 - `test('adding the same product twice returns the existing item without duplication')` — Unique item/idempotent business behavior.
 - `test('missing deleted unpublished foreign-store and malformed products are rejected')` — `PRODUCT_NOT_FOUND`/`PRODUCT_NOT_PUBLISHED` with no saved row.
-- `test('Catalog outage returns a retryable dependency error without saving an item')` — `CATALOG_UNAVAILABLE`.
+- `test('Catalog outage returns a retryable dependency error without saving an item')` — Scoped Catalog fault produces `CATALOG_UNAVAILABLE` without affecting parallel stores.
 - `test('customer removes an owned wishlist item')` — Deleted item ID and count.
 - `test('missing cross-customer cross-store malformed and wrong-type wishlist item IDs are safe')` — No ownership leak.
 - `test('retrying every wishlist mutation with the same idempotency key is side-effect free')` — Original success/error replayed consistently.
@@ -183,7 +183,7 @@
 - `test('retrying each comparison mutation with the same idempotency key is side-effect free')` — Original result/revision returned.
 - `test('reusing a comparison idempotency key with another payload is rejected')` — Payload binding.
 - `test('concurrent comparison writes with one revision allow exactly one winner')` — Ordered set remains consistent.
-- `test('Catalog outage is retryable and never changes persisted selection')` — `CATALOG_UNAVAILABLE`.
+- `test('Catalog outage is retryable and never changes persisted selection')` — Scoped Catalog fault produces retryable `CATALOG_UNAVAILABLE` without changing revision or rows.
 - `test('comparison selection is isolated by customer and store')` — Same variant choices do not share state.
 - `test('Catalog federation presents saved comparisons grouped by current primary category')` — End-to-end Customers persistence + Catalog read model.
 - `test('category changes and unavailable variants do not expose another store or corrupt selection')` — Reclassification edge case remains fail-closed.
@@ -193,7 +193,7 @@
 - `test('every customer connection returns matching nodes and edge nodes')` — Addresses, tax IDs/exemptions, requests, wishlists/items.
 - `test('every empty customer connection has canonical empty pageInfo')` — Empty arrays, null cursors, false flags, zero count.
 - `test('every customer connection supports first after last and before')` — Shared table-driven Relay contract.
-- `test('every customer connection preserves deterministic order when timestamps tie')` — ID tie-breaker.
+- `test('every customer connection uses the descending ID tie-breaker by default')` — Exact default ID order.
 - `test('inserting or deleting around a cursor does not duplicate already returned nodes')` — Keyset stability.
 - `test('cursors cannot be reused across connection types customers stores or owners')` — Safe malformed/mismatch behavior.
 - `test('invalid negative zero excessive and contradictory pagination arguments are rejected')` — Boundary matrix.

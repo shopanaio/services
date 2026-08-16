@@ -1,11 +1,39 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
-import { ActionRegistry, InjectBroker, ServiceBroker } from "@shopana/shared-kernel";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
+import {
+  ActionRegistry,
+  InjectBroker,
+  ServiceBroker,
+  type ActionHandler,
+  type ActionMetadata,
+} from "@shopana/shared-kernel";
 import { getConfig } from "@shopana/shared-service-config";
 
 type CallActionRequest = {
   action?: unknown;
   params?: unknown;
+};
+
+type ScopedFaultRequest = {
+  action?: unknown;
+  storeId?: unknown;
+};
+
+type ScopedFault = {
+  original: ActionHandler;
+  metadata?: ActionMetadata;
+  storeIds: Set<string>;
 };
 
 const DEFAULT_HOST = "127.0.0.1";
@@ -15,10 +43,11 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TestActionProxyService.name);
   private server: Server | null = null;
+  private readonly scopedFaults = new Map<string, ScopedFault>();
 
   constructor(
     @InjectBroker("test") private readonly broker: ServiceBroker,
-    @Inject(ActionRegistry) private readonly actionRegistry: ActionRegistry
+    @Inject(ActionRegistry) private readonly actionRegistry: ActionRegistry,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -37,10 +66,17 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
       });
     });
 
-    this.logger.log(`Test action proxy listening on http://${DEFAULT_HOST}:${port}`);
+    this.logger.log(
+      `Test action proxy listening on http://${DEFAULT_HOST}:${port}`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
+    for (const [action, fault] of this.scopedFaults) {
+      this.actionRegistry.deregister(action);
+      this.actionRegistry.register(action, fault.original, fault.metadata);
+    }
+    this.scopedFaults.clear();
     if (!this.server) return;
 
     await new Promise<void>((resolve, reject) => {
@@ -62,7 +98,7 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
 
   private async handleRequest(
     request: IncomingMessage,
-    response: ServerResponse
+    response: ServerResponse,
   ): Promise<void> {
     try {
       if (request.method === "GET" && request.url === "/__test/health") {
@@ -87,7 +123,8 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
             ok: false,
             error: {
               code: "INVALID_ACTION",
-              message: "Request body must include non-empty string field \"action\"",
+              message:
+                'Request body must include non-empty string field "action"',
             },
           });
           return;
@@ -95,6 +132,28 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
 
         const result = await this.broker.call(action, body.params);
         this.sendJson(response, 200, { ok: true, result });
+        return;
+      }
+
+      if (
+        request.method === "POST" &&
+        request.url === "/__test/actions/fault"
+      ) {
+        const body = await readJsonBody<ScopedFaultRequest>(request);
+        const { action, storeId } = requireScopedFaultRequest(body);
+        this.enableScopedFault(action, storeId);
+        this.sendJson(response, 200, { ok: true });
+        return;
+      }
+
+      if (
+        request.method === "POST" &&
+        request.url === "/__test/actions/restore"
+      ) {
+        const body = await readJsonBody<ScopedFaultRequest>(request);
+        const { action, storeId } = requireScopedFaultRequest(body);
+        this.restoreScopedFault(action, storeId);
+        this.sendJson(response, 200, { ok: true });
         return;
       }
 
@@ -110,10 +169,47 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private enableScopedFault(action: string, storeId: string): void {
+    const active = this.scopedFaults.get(action);
+    if (active) {
+      active.storeIds.add(storeId);
+      return;
+    }
+
+    const fault: ScopedFault = {
+      original: this.actionRegistry.resolve(action),
+      metadata: this.actionRegistry.getMetadata(action),
+      storeIds: new Set([storeId]),
+    };
+    this.actionRegistry.deregister(action);
+    this.actionRegistry.register(
+      action,
+      (params, context) => {
+        if (hasStoreId(params, fault.storeIds)) {
+          throw new Error(`Scoped e2e fault for ${action}`);
+        }
+        return fault.original(params, context);
+      },
+      fault.metadata,
+    );
+    this.scopedFaults.set(action, fault);
+  }
+
+  private restoreScopedFault(action: string, storeId: string): void {
+    const fault = this.scopedFaults.get(action);
+    if (!fault) return;
+    fault.storeIds.delete(storeId);
+    if (fault.storeIds.size > 0) return;
+
+    this.actionRegistry.deregister(action);
+    this.actionRegistry.register(action, fault.original, fault.metadata);
+    this.scopedFaults.delete(action);
+  }
+
   private sendJson(
     response: ServerResponse,
     statusCode: number,
-    payload: unknown
+    payload: unknown,
   ): void {
     response.statusCode = statusCode;
     response.setHeader("content-type", "application/json; charset=utf-8");
@@ -138,6 +234,29 @@ async function readJsonBody<T>(request: IncomingMessage): Promise<T> {
   if (!rawBody.trim()) return {} as T;
 
   return JSON.parse(rawBody) as T;
+}
+
+function requireScopedFaultRequest(body: ScopedFaultRequest): {
+  action: string;
+  storeId: string;
+} {
+  if (typeof body.action !== "string" || body.action.trim() === "") {
+    throw new Error(
+      'Fault request must include non-empty string field "action"',
+    );
+  }
+  if (typeof body.storeId !== "string" || body.storeId.trim() === "") {
+    throw new Error(
+      'Fault request must include non-empty string field "storeId"',
+    );
+  }
+  return { action: body.action, storeId: body.storeId };
+}
+
+function hasStoreId(params: unknown, storeIds: ReadonlySet<string>): boolean {
+  if (!params || typeof params !== "object" || !("storeId" in params))
+    return false;
+  return storeIds.has(String(params.storeId));
 }
 
 function parsePort(value: string | undefined): number | null {

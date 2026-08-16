@@ -1,0 +1,19 @@
+query CustomerAccountsSettings {
+  customersQuery {
+    customerAccountsSettings {
+      realmEnabled
+      registrationMode
+      revision
+      methods {
+        method
+        enabled
+        configured
+      }
+      providers {
+        provider
+        enabled
+        configured
+      }
+    }
+  }
+}

@@ -1,0 +1,41 @@
+mutation CustomerMergeUpdate($mergeId: ID!, $operations: CustomerMergeUpdateInput) {
+  customersMutation {
+    customerMergeUpdate(mergeId: $mergeId, operations: $operations) {
+      merge {
+        id
+        sourceCustomer {
+          id
+        }
+        targetCustomer {
+          id
+        }
+        status
+        reason
+        requestedByType
+        requestedById
+        idempotencyKey
+        resolution
+        errorCode
+        errorMessage
+        requestedAt
+        startedAt
+        finishedAt
+        updatedAt
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

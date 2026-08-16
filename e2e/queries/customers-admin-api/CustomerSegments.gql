@@ -1,0 +1,47 @@
+query CustomerSegments(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerSegmentWhereInput
+  $orderBy: [CustomerSegmentOrderByInput!]
+) {
+  customersQuery {
+    customerSegments(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          name
+          description
+          color
+          type
+          status
+          query
+          definition
+          definitionRevision
+          evaluationGeneration
+          materializationStatus
+          revision
+          customersCount
+          createdAt
+          updatedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

@@ -1,0 +1,11 @@
+query CustomerByEmail($email: Email!) {
+  customersQuery {
+    customerByEmail(email: $email) {
+      id
+      email
+      displayName
+      lifecycleStatus
+      revision
+    }
+  }
+}

@@ -1,0 +1,30 @@
+query CustomerTag($id: ID!) {
+  customersQuery {
+    customerTag(id: $id) {
+      id
+      name
+      normalizedName
+      customersCount
+      customerAssignments(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            assignedById
+            assignedAt
+            customer {
+              id
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

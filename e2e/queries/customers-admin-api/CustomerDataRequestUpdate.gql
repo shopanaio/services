@@ -1,0 +1,46 @@
+mutation CustomerDataRequestUpdate(
+  $dataRequestId: ID!
+  $operations: CustomerDataRequestUpdateInput
+) {
+  customersMutation {
+    customerDataRequestUpdate(dataRequestId: $dataRequestId, operations: $operations) {
+      dataRequest {
+        id
+        customer {
+          id
+        }
+        type
+        status
+        requestedByType
+        requestedById
+        idempotencyKey
+        legalBasis
+        requestMetadata
+        resultFileId
+        resultFile {
+          id
+        }
+        rejectionReason
+        requestedAt
+        dueAt
+        startedAt
+        finishedAt
+        updatedAt
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

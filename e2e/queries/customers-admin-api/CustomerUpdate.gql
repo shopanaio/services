@@ -1,0 +1,198 @@
+mutation CustomerUpdate(
+  $customerId: ID!
+  $expectedRevision: Int!
+  $operations: CustomerUpdateInput!
+) {
+  customersMutation {
+    customerUpdate(
+      customerId: $customerId
+      expectedRevision: $expectedRevision
+      operations: $operations
+    ) {
+      customer {
+        id
+        lifecycleStatus
+        accountStatus
+        email
+        emailVerified
+        phoneE164
+        phoneVerified
+        prefix
+        firstName
+        middleName
+        lastName
+        suffix
+        displayName
+        preferredLocale
+        dateOfBirth
+        gender
+        companyName
+        jobTitle
+        note
+        blockedReason
+        moderationNote
+        source
+        revision
+        createdAt
+        updatedAt
+        defaultShippingAddress {
+          id
+        }
+        defaultBillingAddress {
+          id
+        }
+        addresses(first: 100) {
+          edges {
+            node {
+              id
+              label
+              prefix
+              firstName
+              middleName
+              lastName
+              suffix
+              companyName
+              phoneE164
+              address1
+              address2
+              city
+              regionName
+              regionCode
+              postalCode
+              countryCode
+              isDefaultShipping
+              isDefaultBilling
+              validationStatus
+              validatedAt
+              latitude
+              longitude
+              createdAt
+              updatedAt
+            }
+          }
+          totalCount
+        }
+        consents {
+          id
+          channel
+          state
+          optInLevel
+          contactPoint
+          source
+          sourceLocationId
+          sourceIp
+          userAgent
+          consentedAt
+          withdrawnAt
+          createdAt
+          updatedAt
+        }
+        taxIdentifiers(first: 100) {
+          edges {
+            node {
+              id
+              identifierType
+              countryCode
+              value
+              normalizedValue
+              status
+              isPrimary
+              verifiedAt
+              validFrom
+              validTo
+              createdAt
+              updatedAt
+            }
+          }
+          totalCount
+        }
+        taxExemptions(first: 100) {
+          edges {
+            node {
+              id
+              code
+              countryCode
+              regionCode
+              reason
+              status
+              certificateFileId
+              validFrom
+              validTo
+              createdAt
+              updatedAt
+            }
+          }
+          totalCount
+        }
+        groupMemberships(first: 100) {
+          edges {
+            node {
+              id
+              isPrimary
+              source
+              assignedById
+              assignedAt
+              expiresAt
+              isActive
+              group {
+                id
+                code
+                name
+                customersCount
+              }
+            }
+          }
+          totalCount
+        }
+        tagAssignments(first: 100) {
+          edges {
+            node {
+              id
+              assignedById
+              assignedAt
+              tag {
+                id
+                name
+                customersCount
+              }
+            }
+          }
+          totalCount
+        }
+        segmentMemberships(first: 100) {
+          edges {
+            node {
+              id
+              source
+              evaluatedAt
+              expiresAt
+              isActive
+              segment {
+                id
+                name
+                type
+                status
+                customersCount
+              }
+            }
+          }
+          totalCount
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

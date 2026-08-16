@@ -1,0 +1,23 @@
+query CustomerSegmentAttributeCatalog {
+  customersQuery {
+    customerSegmentAttributeCatalog {
+      name
+      presentationKey
+      kind
+      valueType
+      operators
+      enumValues
+      parameters {
+        name
+        presentationKey
+        valueType
+        operators
+        enumValues
+        aggregate
+        nullable
+      }
+      availability
+      unavailabilityReason
+    }
+  }
+}

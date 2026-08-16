@@ -1,0 +1,45 @@
+query CustomerMerges(
+  $first: Int
+  $after: String
+  $last: Int
+  $before: String
+  $where: CustomerMergeWhereInput
+  $orderBy: [CustomerMergeOrderByInput!]
+) {
+  customersQuery {
+    customerMerges(
+      first: $first
+      after: $after
+      last: $last
+      before: $before
+      where: $where
+      orderBy: $orderBy
+    ) {
+      edges {
+        cursor
+        node {
+          id
+          sourceCustomer {
+            id
+          }
+          targetCustomer {
+            id
+          }
+          status
+          reason
+          requestedAt
+          startedAt
+          finishedAt
+          updatedAt
+        }
+      }
+      pageInfo {
+        hasNextPage
+        hasPreviousPage
+        startCursor
+        endCursor
+      }
+      totalCount
+    }
+  }
+}

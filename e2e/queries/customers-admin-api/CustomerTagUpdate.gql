@@ -1,0 +1,46 @@
+mutation CustomerTagUpdate($tagId: ID!, $operations: CustomerTagUpdateInput) {
+  customersMutation {
+    customerTagUpdate(tagId: $tagId, operations: $operations) {
+      tag {
+        id
+        name
+        normalizedName
+        customersCount
+        customerAssignments(first: 100) {
+          edges {
+            cursor
+            node {
+              id
+              assignedById
+              assignedAt
+              customer {
+                id
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
+          totalCount
+        }
+      }
+      operationResults {
+        type
+        applied
+        errors {
+          code
+          field
+          message
+        }
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

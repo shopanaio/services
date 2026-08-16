@@ -1,0 +1,8 @@
+query CustomerNode($id: ID!) {
+  customersQuery {
+    node(id: $id) {
+      __typename
+      id
+    }
+  }
+}

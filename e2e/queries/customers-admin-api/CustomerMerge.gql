@@ -1,0 +1,25 @@
+query CustomerMerge($id: ID!) {
+  customersQuery {
+    customerMerge(id: $id) {
+      id
+      sourceCustomer {
+        id
+      }
+      targetCustomer {
+        id
+      }
+      status
+      reason
+      requestedByType
+      requestedById
+      idempotencyKey
+      resolution
+      errorCode
+      errorMessage
+      requestedAt
+      startedAt
+      finishedAt
+      updatedAt
+    }
+  }
+}

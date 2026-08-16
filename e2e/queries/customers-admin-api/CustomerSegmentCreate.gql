@@ -1,0 +1,38 @@
+mutation CustomerSegmentCreate($input: CustomerSegmentCreateInput!) {
+  customersMutation {
+    customerSegmentCreate(input: $input) {
+      segment {
+        id
+        name
+        description
+        color
+        type
+        status
+        query
+        definition
+        definitionRevision
+        evaluationGeneration
+        materializationStatus
+        revision
+        customersCount
+        createdAt
+        updatedAt
+        deletedAt
+      }
+      userErrors {
+        code
+        field
+        message
+        diagnostic {
+          code
+          message
+          severity
+          startOffset
+          endOffset
+          line
+          column
+        }
+      }
+    }
+  }
+}

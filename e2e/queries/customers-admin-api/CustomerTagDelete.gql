@@ -1,0 +1,12 @@
+mutation CustomerTagDelete($input: CustomerTagDeleteInput!) {
+  customersMutation {
+    customerTagDelete(input: $input) {
+      deletedTagId
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

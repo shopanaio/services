@@ -1,0 +1,37 @@
+query CustomerGroup($id: ID!) {
+  customersQuery {
+    customerGroup(id: $id) {
+      id
+      code
+      name
+      description
+      isDefault
+      isActive
+      revision
+      customersCount
+      customerMemberships(first: 100) {
+        edges {
+          cursor
+          node {
+            id
+            isPrimary
+            source
+            assignedAt
+            expiresAt
+            isActive
+            customer {
+              id
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        totalCount
+      }
+    }
+  }
+}

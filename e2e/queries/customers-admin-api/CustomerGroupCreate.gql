@@ -1,0 +1,24 @@
+mutation CustomerGroupCreate($input: CustomerGroupCreateInput!) {
+  customersMutation {
+    customerGroupCreate(input: $input) {
+      group {
+        id
+        code
+        name
+        description
+        isDefault
+        isActive
+        revision
+        customersCount
+        createdAt
+        updatedAt
+        deletedAt
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}
