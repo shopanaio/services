@@ -193,10 +193,18 @@ export * as Orders from "./orders.js";
 export {
   OrderLoyaltyActionNames,
   OrderLoyaltyActions,
+  OrderFulfillmentActionNames,
+  OrderFulfillmentActions,
   OrderReviewActionNames,
   OrderReviewActions,
 } from "./orders.js";
 export type {
+  GetOrderDeliveryShipmentPlanParams,
+  GetOrderDeliveryShipmentPlanResult,
+  ListOrderDeliveryFulfillmentOrdersParams,
+  ListOrderDeliveryFulfillmentOrdersResult,
+  ApplyOrderDeliveryShipmentUpdateParams,
+  ApplyOrderDeliveryShipmentUpdateResult,
   OrderLoyaltyRewardEligibilitySnapshot,
   PublishOrderLoyaltyRewardEligibleParams,
   PublishOrderLoyaltyRewardEligibleResult,

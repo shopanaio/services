@@ -5,13 +5,24 @@ import { Repository } from './repositories/Repository.js';
 import { BrokerDeliveryCheckoutFactsAdapter } from './infrastructure/catalog/BrokerDeliveryCheckoutFactsAdapter.js';
 import { BrokerDeliveryProviderAppsAdapter } from './infrastructure/apps/BrokerDeliveryProviderAppsAdapter.js';
 import { DeliveryCheckoutService } from './application/checkout/DeliveryCheckoutService.js';
-import { DELIVERY_CHECKOUT_FACTS, DELIVERY_PROVIDER_APPS } from './application/tokens.js';
+import { DeliverySelectionCommitService } from './application/checkout/DeliverySelectionCommitService.js';
+import { DELIVERY_CHECKOUT_FACTS, DELIVERY_FULFILLMENT, DELIVERY_PROVIDER_APPS } from './application/tokens.js';
 import { DeliveryCheckoutActions } from './api/broker/DeliveryCheckoutActions.js';
 import { DeliveryCustomizationRunner } from './application/customization/DeliveryCustomizationRunner.js';
 import { DeliveryProviderAccountService } from './application/providers/DeliveryProviderAccountService.js';
 import { DeliveryProviderAccountActions } from './api/broker/DeliveryProviderAccountActions.js';
 import { DeliveryConfigurationActions } from './api/broker/DeliveryConfigurationActions.js';
 import { DeliveryExpiryCleanup } from './infrastructure/persistence/DeliveryExpiryCleanup.js';
+import { BrokerDeliveryFulfillmentAdapter } from './infrastructure/orders/BrokerDeliveryFulfillmentAdapter.js';
+import { BrokerDeliveryProviderAssetsAdapter } from './infrastructure/media/BrokerDeliveryProviderAssetsAdapter.js';
+import { DeliveryProviderAssetPolicyService } from './application/shipments/DeliveryProviderAssetPolicyService.js';
+import { DeliveryProviderObservationNormalizer } from './application/shipments/DeliveryProviderObservationNormalizer.js';
+import { DeliveryShipmentTransitionPolicy } from './domain/DeliveryShipmentTransitionPolicy.js';
+import { DeliveryShipmentService } from './application/shipments/DeliveryShipmentService.js';
+import { DeliveryShipmentActions } from './api/broker/DeliveryShipmentActions.js';
+import { CreateDeliveryShipmentWorkflow, CancelDeliveryShipmentWorkflow, ReconcileDeliveryShipmentWorkflow } from './workflows/DeliveryShipmentWorkflows.js';
+import { ConfigureDeliveryProviderAccountWorkflow } from './workflows/ConfigureDeliveryProviderAccountWorkflow.js';
+import { DeliveryShipmentOutboxWorkflow } from './workflows/DeliveryShipmentOutboxWorkflow.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'delivery' })],
@@ -30,6 +41,32 @@ import { DeliveryExpiryCleanup } from './infrastructure/persistence/DeliveryExpi
       provide: DELIVERY_PROVIDER_APPS,
       inject: [getBrokerToken('delivery')],
       useFactory: (broker: ServiceBroker) => new BrokerDeliveryProviderAppsAdapter(broker),
+    },
+    {
+      provide: DELIVERY_FULFILLMENT,
+      inject: [getBrokerToken('delivery')],
+      useFactory: (broker: ServiceBroker) => new BrokerDeliveryFulfillmentAdapter(broker),
+    },
+    {
+      provide: BrokerDeliveryProviderAssetsAdapter,
+      inject: [getBrokerToken('delivery')],
+      useFactory: (broker: ServiceBroker) => new BrokerDeliveryProviderAssetsAdapter(broker),
+    },
+    {
+      provide: DeliveryProviderAssetPolicyService,
+      inject: [Repository],
+      useFactory: (repository: Repository) => new DeliveryProviderAssetPolicyService(repository.providerAccounts),
+    },
+    DeliveryShipmentTransitionPolicy,
+    {
+      provide: DeliveryProviderObservationNormalizer,
+      inject: [DeliveryProviderAssetPolicyService, BrokerDeliveryProviderAssetsAdapter],
+      useFactory: (policies: DeliveryProviderAssetPolicyService, assets: BrokerDeliveryProviderAssetsAdapter) => new DeliveryProviderObservationNormalizer({ policies, assets }),
+    },
+    {
+      provide: DeliveryShipmentService,
+      inject: [Repository, DELIVERY_FULFILLMENT, DELIVERY_PROVIDER_APPS, DeliveryShipmentTransitionPolicy, DeliveryProviderObservationNormalizer],
+      useFactory: (repository: Repository, fulfillment: BrokerDeliveryFulfillmentAdapter, apps: BrokerDeliveryProviderAppsAdapter, transitions: DeliveryShipmentTransitionPolicy, normalizer: DeliveryProviderObservationNormalizer) => new DeliveryShipmentService({ repository, fulfillment, apps, transitions, normalizer }),
     },
     {
       provide: DeliveryCheckoutService,
@@ -52,6 +89,15 @@ import { DeliveryExpiryCleanup } from './infrastructure/persistence/DeliveryExpi
       inject: [getBrokerToken('delivery')],
       useFactory: (broker: ServiceBroker) => new DeliveryCustomizationRunner(broker),
     },
+    {
+      provide: DeliverySelectionCommitService,
+      inject: [Repository, DELIVERY_PROVIDER_APPS],
+      useFactory: (repository: Repository, apps: BrokerDeliveryProviderAppsAdapter) => new DeliverySelectionCommitService({
+        bindings: repository.optionBindings,
+        providerAccounts: repository.providerAccounts,
+        apps,
+      }),
+    },
     DeliveryCheckoutActions,
     {
       provide: DeliveryProviderAccountService,
@@ -61,6 +107,12 @@ import { DeliveryExpiryCleanup } from './infrastructure/persistence/DeliveryExpi
     DeliveryProviderAccountActions,
     DeliveryConfigurationActions,
     DeliveryExpiryCleanup,
+    DeliveryShipmentActions,
+    CreateDeliveryShipmentWorkflow,
+    CancelDeliveryShipmentWorkflow,
+    ReconcileDeliveryShipmentWorkflow,
+    ConfigureDeliveryProviderAccountWorkflow,
+    DeliveryShipmentOutboxWorkflow,
   ],
   exports: [Repository],
 })

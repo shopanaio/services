@@ -227,7 +227,7 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
   }
 }
 
-interface GroupPlan { groupId: string; destination: Delivery.DeliveryCheckoutDestinationIntent; profile: Delivery.DeliveryProfileSnapshot; lines: QuotedLine[]; origin: Delivery.DeliveryProviderOrigin; package: Delivery.DeliveryProviderPackage; ratedFactsHash: string; ratePlanRevision: string; eligibility: Delivery.DeliveryEligibilitySnapshot; issues: Delivery.DeliveryCheckoutIssue[]; }
+interface GroupPlan { groupId: string; destination: Delivery.DeliveryCheckoutDestinationIntent; profile: Delivery.DeliveryProfileSnapshot; lines: QuotedLine[]; origin: Delivery.DeliveryProviderOrigin; sender: Delivery.DeliveryProviderContact; package: Delivery.DeliveryProviderPackage; ratedFactsHash: string; ratePlanRevision: string; eligibility: Delivery.DeliveryEligibilitySnapshot; issues: Delivery.DeliveryCheckoutIssue[]; }
 
 function buildGroupPlan(params: Delivery.CalculateCheckoutDeliveryOptionsParams, set: Delivery.DeliveryProfileSetSnapshot, bucket: { destination: Delivery.DeliveryCheckoutDestinationIntent; profile: Delivery.DeliveryProfileSnapshot; lines: QuotedLine[]; matchedBy: "SELLING_PLAN" | "VARIANT" | "DEFAULT" }, facts: Map<string, Fact>): GroupPlan {
   const capableLocation = (group: Delivery.DeliveryLocationGroupSnapshot) => group.fulfillmentLocationIds.find((id) => bucket.lines.every((line) => { const fact = facts.get(line.lineId); const location = fact?.fulfillmentLocations.find((candidate) => candidate.locationId === id); return location && (location.availableQuantity === null || location.availableQuantity >= line.quantity); }));
@@ -257,7 +257,17 @@ function buildGroupPlan(params: Delivery.CalculateCheckoutDeliveryOptionsParams,
     locationGroupId: locationGroup.locationGroupId, locationGroupRevision: locationGroup.revision, zoneId: selectedZone?.zone.zoneId ?? "unmatched", zoneRevision: selectedZone?.zone.revision ?? 0, methodDefinitions: methods, failurePolicy: bucket.profile.failurePolicy };
   const ratedFactsHash = revision("drated_v1", { origin, destination: providerDestination(bucket.destination), packageSnapshot, currencyCode: params.context.currencyCode, channelCode: params.context.channelCode, localeCode: params.context.localeCode, targetCheckoutVersion: params.context.targetCheckoutVersion,
     physicalRevisions: bucket.lines.map((line) => facts.get(line.lineId)?.physicalRevision), pricingRevision: params.preliminary.revision });
-  return { groupId, destination: bucket.destination, profile: bucket.profile, lines: bucket.lines, origin, package: packageSnapshot, ratedFactsHash, ratePlanRevision: revision("drpgroup_v1", [groupId, ratedFactsHash]), eligibility, issues };
+  return { groupId, destination: bucket.destination, profile: bucket.profile, lines: bucket.lines, origin, sender: locationGroup.sender, package: packageSnapshot, ratedFactsHash, ratePlanRevision: revision("drpgroup_v1", [groupId, ratedFactsHash]), eligibility, issues };
+}
+
+function fulfillmentSnapshot(plan: GroupPlan) {
+  return {
+    lineIds: plan.lines.map(({ lineId }) => lineId).sort(),
+    origin: plan.origin,
+    destination: providerDestination(plan.destination),
+    sender: plan.sender,
+    packages: [plan.package] as const,
+  };
 }
 
 function manualCandidate(params: Delivery.CalculateCheckoutDeliveryOptionsParams, plan: GroupPlan, method: Delivery.DeliveryMethodDefinitionSnapshot & { rateSource: Extract<Delivery.DeliveryMethodRateSource, { type: "MANUAL" }> }, secret: string): DeliveryOptionBindingCandidate {
@@ -267,7 +277,7 @@ function manualCandidate(params: Delivery.CalculateCheckoutDeliveryOptionsParams
   return { option, binding: { source: "MANUAL", optionHandle: handle, checkoutId: params.context.checkoutId, basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
     targetCheckoutVersion: params.context.targetCheckoutVersion, groupId: plan.groupId, profileId: plan.profile.profileId, methodDefinitionId: method.methodDefinitionId,
     preliminaryRevision: params.preliminary.revision, ratePlanRevision: plan.ratePlanRevision, eligibilityRevision: plan.eligibility.eligibilityRevision,
-    customizationRevision: "pending", customizationPolicyRevision: "pending", ratedFactsHash: plan.ratedFactsHash, customerInputContract: null,
+    customizationRevision: "pending", customizationPolicyRevision: "pending", ratedFactsHash: plan.ratedFactsHash, customerInputContract: null, fulfillment: fulfillmentSnapshot(plan),
     expiresAt: params.context.deadlineAt, manualRateRevision: method.revision } };
 }
 
@@ -280,7 +290,7 @@ function carrierCandidate(params: Delivery.CalculateCheckoutDeliveryOptionsParam
   return { option, binding: { source: "CARRIER_SERVICE", optionHandle: handle, checkoutId: params.context.checkoutId, basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
     targetCheckoutVersion: params.context.targetCheckoutVersion, groupId: plan.groupId, profileId: plan.profile.profileId, methodDefinitionId: method.methodDefinitionId,
     preliminaryRevision: params.preliminary.revision, ratePlanRevision: plan.ratePlanRevision, eligibilityRevision: plan.eligibility.eligibilityRevision,
-    customizationRevision: "pending", customizationPolicyRevision: "pending", ratedFactsHash: plan.ratedFactsHash, customerInputContract: contract,
+    customizationRevision: "pending", customizationPolicyRevision: "pending", ratedFactsHash: plan.ratedFactsHash, customerInputContract: contract, fulfillment: fulfillmentSnapshot(plan),
     expiresAt: params.context.deadlineAt, carrierServiceAccountId: account.providerAccountId, carrierCode: account.providerCode, serviceCode: rate.serviceCode,
     quoteRoute: route, carrierServiceConfigurationRevision: account.capabilityStates.carrierService?.configurationRevision ?? "unknown", executionPolicyRevision: "delivery-provider-policy-v1",
     customerInputSchemaPolicyRevision: "delivery-schema-policy-v1", publicDataPolicyRevision: "delivery-public-data-policy-v1", quoteRevision } };

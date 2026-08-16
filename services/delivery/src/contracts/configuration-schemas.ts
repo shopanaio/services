@@ -2,6 +2,7 @@ import type { Delivery } from "@shopana/broker-types";
 import { z } from "zod";
 import {
   DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS,
+  DeliveryProviderContactSchema,
   DeliveryProviderJsonObjectSchema,
   assertDeliveryContractPayloadSize,
 } from "./schemas.js";
@@ -313,6 +314,7 @@ export const DeliveryLocationGroupSnapshotSchema = z
   .object({
     locationGroupId: identifierSchema,
     name: z.string().trim().min(1).max(255),
+    sender: DeliveryProviderContactSchema,
     fulfillmentLocationIds: z.array(identifierSchema).max(250).nonempty(),
     zones: z
       .array(

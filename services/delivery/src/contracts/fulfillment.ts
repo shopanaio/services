@@ -16,7 +16,10 @@ export interface DeliveryFulfillmentPort {
   }>): Promise<Delivery.DeliveryShipmentPlanAvailability>;
 
   applyShipmentUpdate(
-    update: Delivery.DeliveryFulfillmentShipmentUpdate,
+    input: Readonly<{
+      storeId: string;
+      update: Delivery.DeliveryFulfillmentShipmentUpdate;
+    }>,
   ): Promise<
     | Readonly<{ status: "APPLIED"; fulfillmentOrderRevision: number }>
     | Readonly<{ status: "DUPLICATE"; fulfillmentOrderRevision: number }>

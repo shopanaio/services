@@ -8,7 +8,7 @@ import { deserializeCheckout, type CheckoutDto } from "@shopana/checkout-sdk";
 import { v7 as uuidv7 } from "uuid";
 import type { OrderCreateData } from "@src/repositories/order/OrderRepository";
 import type { Repository } from "@src/repositories/Repository";
-import type { OrderLoyaltyRewardEligibilitySnapshot } from "@shopana/broker-types";
+import type { Delivery, OrderLoyaltyRewardEligibilitySnapshot } from "@shopana/broker-types";
 
 /** Checkout aggregate reconstructed from the immutable placement snapshot. */
 type Checkout = ReturnType<typeof deserializeCheckout>;
@@ -39,6 +39,7 @@ export interface CreateOrderUseCaseDependencies extends UseCaseDependencies {
 
 export interface CreateOrderFromCheckoutPlacementInput {
   orderId: string;
+  organizationId: string;
   storeId: string;
   checkoutId: string;
   credentialId: string;
@@ -53,6 +54,7 @@ export interface CreateOrderFromCheckoutPlacementInput {
     customerInput: Record<string, unknown> | null;
   };
   loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
+  deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[];
 }
 
 export class CreateOrderUseCase extends UseCase<
@@ -75,6 +77,7 @@ export class CreateOrderUseCase extends UseCase<
     }
     this.validateCheckout(checkout);
     this.validateLoyaltyRewardEligibility(checkout, input.loyaltyRewardEligibility);
+    this.validateDeliveryCommitments(checkout, input.deliveryCommitments);
     return this.repository.txManager.run(() => this.createInTransaction(checkout, input));
   }
 
@@ -150,7 +153,57 @@ export class CreateOrderUseCase extends UseCase<
       createdAt: checkoutSnapshot.capturedAt,
     });
 
+    await this.repository.fulfillment.createForOrder({
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      orderId: id,
+      checkoutId: input.checkoutId,
+      commitments: input.deliveryCommitments,
+      createdAt: checkoutSnapshot.capturedAt.toISOString(),
+    });
+
     return id;
+  }
+
+  private validateDeliveryCommitments(
+    checkout: Checkout,
+    commitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
+  ): void {
+    const groups = new Map(checkout.deliveryGroups.map((group) => [group.id, group]));
+    if (commitments.length !== groups.size) {
+      throw new Error("ORDER_DELIVERY_COMMITMENTS_INCOMPLETE");
+    }
+    const seenGroups = new Set<string>();
+    const seenLines = new Set<string>();
+    for (const commitment of commitments) {
+      const group = groups.get(commitment.groupId);
+      if (!group || seenGroups.has(commitment.groupId)) {
+        throw new Error("ORDER_DELIVERY_COMMITMENT_GROUP_INVALID");
+      }
+      seenGroups.add(commitment.groupId);
+      const expected = new Set(group.checkoutLines.map((line) => line.id));
+      if (commitment.lineIds.length !== expected.size || commitment.lineIds.some((lineId) => !expected.has(lineId))) {
+        throw new Error("ORDER_DELIVERY_COMMITMENT_LINES_INVALID");
+      }
+      for (const lineId of commitment.lineIds) {
+        if (seenLines.has(lineId)) throw new Error("ORDER_DELIVERY_COMMITMENT_LINE_DUPLICATE");
+        seenLines.add(lineId);
+      }
+      const packageLines = new Set(commitment.packages.flatMap((item) => item.items.map((line) => line.lineId)));
+      if ([...packageLines].some((lineId) => !expected.has(lineId))) {
+        throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_LINES_INVALID");
+      }
+      const checkoutLines = new Map(group.checkoutLines.map((line) => [line.id, line]));
+      const packagedQuantities = new Map<string, number>();
+      for (const item of commitment.packages.flatMap(({ items }) => items)) {
+        const checkoutLine = checkoutLines.get(item.lineId);
+        if (!checkoutLine || checkoutLine.purchasableId !== item.variantId) throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_ITEM_INVALID");
+        packagedQuantities.set(item.lineId, (packagedQuantities.get(item.lineId) ?? 0) + item.quantity);
+      }
+      if ([...packagedQuantities].some(([lineId, quantity]) => quantity > checkoutLines.get(lineId)!.quantity)) {
+        throw new Error("ORDER_DELIVERY_COMMITMENT_PACKAGE_QUANTITY_INVALID");
+      }
+    }
   }
 
   private buildRelations(

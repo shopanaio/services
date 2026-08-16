@@ -29,14 +29,7 @@ export class ProviderAccountRepository extends BaseRepository implements Deliver
   }
 
   async save(account: Delivery.DeliveryProviderAccountSnapshot, expectedAccountRevision: number | null) {
-    const current = await this.getById(account.storeId, account.providerAccountId);
-    if ((current === null && expectedAccountRevision !== null) ||
-        (current !== null && current.revision !== expectedAccountRevision)) {
-      if (current === null) throw new Error("Provider account revision conflict without a current snapshot");
-      return { status: "REVISION_CONFLICT" as const, current };
-    }
-    const now = new Date().toISOString();
-    await this.connection.insert(providerAccounts).values({
+    const values = {
       id: account.providerAccountId,
       organizationId: account.organizationId,
       storeId: account.storeId,
@@ -50,12 +43,28 @@ export class ProviderAccountRepository extends BaseRepository implements Deliver
       supportedOperations: account.supportedOperations,
       snapshot: account,
       createdAt: account.createdAt,
-      updatedAt: now,
-    }).onConflictDoUpdate({
-      target: providerAccounts.id,
-      set: { accountRevision: account.revision, supportedCountryCodes: account.supportedCountryCodes, supportedCurrencyCodes: account.supportedCurrencyCodes,
-        supportedOperations: account.supportedOperations, snapshot: account, updatedAt: now },
-    });
-    return { status: "SAVED" as const, account };
+      updatedAt: account.updatedAt,
+    };
+    if (expectedAccountRevision === null) {
+      const inserted = await this.connection.insert(providerAccounts).values(values).onConflictDoNothing().returning({ snapshot: providerAccounts.snapshot });
+      if (inserted.length > 0) return { status: "SAVED" as const, account };
+    } else {
+      const updated = await this.connection.update(providerAccounts).set({
+        accountRevision: account.revision,
+        supportedCountryCodes: account.supportedCountryCodes,
+        supportedCurrencyCodes: account.supportedCurrencyCodes,
+        supportedOperations: account.supportedOperations,
+        snapshot: account,
+        updatedAt: account.updatedAt,
+      }).where(and(
+        eq(providerAccounts.storeId, account.storeId),
+        eq(providerAccounts.id, account.providerAccountId),
+        eq(providerAccounts.accountRevision, expectedAccountRevision),
+      )).returning({ snapshot: providerAccounts.snapshot });
+      if (updated.length > 0) return { status: "SAVED" as const, account };
+    }
+    const current = await this.getById(account.storeId, account.providerAccountId);
+    if (!current) throw new Error("Provider account revision conflict without a current snapshot");
+    return { status: "REVISION_CONFLICT" as const, current };
   }
 }

@@ -55,6 +55,11 @@ export class TestFedexApp implements ShopanaApp {
     this.host.broker.register("resolveCustomerInput", (input) =>
       this.resolveCustomerInput(input),
     );
+    this.host.broker.register("validateShipmentConfiguration", (input) => this.validateShipmentConfiguration(input));
+    this.host.broker.register("createShipment", (input) => this.createShipment(input));
+    this.host.broker.register("cancelShipment", (input) => this.cancelShipment(input));
+    this.host.broker.register("getShipment", (input) => this.reconcileShipment(input));
+    this.host.broker.register("reconcileShipment", (input) => this.reconcileShipment(input));
   }
 
   start(): void {}
@@ -150,6 +155,46 @@ export class TestFedexApp implements ShopanaApp {
       rates,
       warnings: [],
     };
+  }
+
+  private validateShipmentConfiguration(input: unknown): Delivery.DeliveryProviderConfigurationValidationResult<"delivery.shipment-provider"> {
+    const request = requireInput<Delivery.DeliveryProviderConfigurationValidationRequest<"delivery.shipment-provider">>(input);
+    if (request.protocolVersion !== 2 || request.capability !== "delivery.shipment-provider") throw new Error("Unsupported delivery shipment protocol");
+    return {
+      status: "READY", capability: "delivery.shipment-provider", providerCode: "test-fedex", displayName: "FedEx Test",
+      supportedCountryCodes: SUPPORTED_COUNTRIES, supportedCurrencyCodes: SUPPORTED_CURRENCIES,
+      supportedOperations: ["validateShipmentConfiguration", "createShipment", "cancelShipment", "getShipment", "reconcileShipment"],
+      capabilities: { supportsLabels: false, labelAssetHosts: [], maxLabelBytes: 4 * 1024 * 1024, supportsMultipleParcels: true, supportsCancellation: true, supportsTracking: true, supportsReconciliation: true, supportsAsyncCompletion: false },
+      configurationRevision: "test-fedex-shipments-v1", failure: null,
+    };
+  }
+
+  private createShipment(input: unknown): Delivery.DeliveryProviderShipmentOperationResult<"CREATE"> {
+    const request = requireInput<Delivery.DeliveryProviderCreateShipmentRequest>(input);
+    const processedAt = new Date().toISOString();
+    const providerShipmentReference = digest("test-fedex-shipment-v1", [request.storeId, request.shipmentId]);
+    const providerParcelReference = digest("test-fedex-parcel-v1", request.packages.map(({ packageId }) => packageId));
+    return {
+      operation: "CREATE", status: "SUCCEEDED", providerShipmentReference, shipmentState: "ACCEPTED",
+      parcels: [{
+        providerParcelReference, packageIds: request.packages.map(({ packageId }) => packageId) as [string, ...string[]], state: "ACCEPTED",
+        tracking: [{ company: "FedEx Test", number: providerShipmentReference.slice(0, 20).toUpperCase(), url: null }],
+        labels: [], estimatedDeliveryAt: request.selectedRate.source === "MANUAL" ? null : null, deliveredAt: null,
+      }],
+      events: [{ providerEventId: digest("test-fedex-event-v1", [request.operationId, "accepted"]), providerShipmentSequence: "1", providerParcelReference, statusCode: "accepted", state: "ACCEPTED", message: "Shipment accepted by FedEx Test", location: request.origin.address, occurredAt: processedAt }],
+      processedAt, metadata: { simulator: true },
+    };
+  }
+
+  private cancelShipment(input: unknown): Delivery.DeliveryProviderShipmentOperationResult<"CANCEL"> {
+    const request = requireInput<Delivery.DeliveryProviderCancelShipmentRequest>(input);
+    const processedAt = new Date().toISOString();
+    return { operation: "CANCEL", status: "SUCCEEDED", providerShipmentReference: request.providerShipmentReference, shipmentState: "CANCELLED", parcels: [], events: [{ providerEventId: digest("test-fedex-event-v1", [request.operationId, "cancelled"]), providerShipmentSequence: null, providerParcelReference: null, statusCode: "cancelled", state: "CANCELLED", message: request.reason, location: null, occurredAt: processedAt }], processedAt, metadata: { simulator: true } };
+  }
+
+  private reconcileShipment(input: unknown): Delivery.DeliveryProviderReconcileShipmentResult {
+    const request = requireInput<Delivery.DeliveryProviderGetShipmentRequest | Delivery.DeliveryProviderReconcileShipmentRequest>(input);
+    return { status: "RECONCILED", providerShipmentReference: request.providerShipmentReference, shipmentState: "ACCEPTED", parcels: [], events: [], observedAt: new Date().toISOString(), metadata: { simulator: true } };
   }
 
   private resolveCustomerInput(

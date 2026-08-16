@@ -138,17 +138,20 @@ export interface DeliveryProviderAssetPolicySnapshot {
 }
 
 export interface DeliveryProviderAssetPolicyPort {
-  resolve(
+  resolve(input: Readonly<{
+    storeId: string;
+    providerAccountId: string;
     route: Extract<
       Delivery.DeliveryProviderRouteSnapshot,
       Readonly<{ capability: "delivery.shipment-provider" }>
-    >,
-  ): Promise<DeliveryProviderAssetPolicySnapshot>;
+    >;
+  }>): Promise<DeliveryProviderAssetPolicySnapshot>;
 }
 
 /** The only boundary allowed to fetch provider assets and assign platform media IDs. */
 export interface DeliveryProviderAssetsPort {
   ingestLabel(input: Readonly<{
+    storeId: string;
     policy: DeliveryProviderAssetPolicySnapshot;
     route: Extract<
       Delivery.DeliveryProviderRouteSnapshot,
@@ -284,6 +287,8 @@ export type DeliveryOptionBindingResolution =
   | Readonly<{
       status: "FOUND";
       binding: Delivery.DeliveryOptionBindingSnapshot;
+      option: Delivery.DeliveryCheckoutOption;
+      deliveryRevision: string;
     }>
   | Readonly<{
       status: "NOT_FOUND" | "EXPIRED" | "DELIVERY_REVISION_MISMATCH";
@@ -292,7 +297,7 @@ export type DeliveryOptionBindingResolution =
 export type DeliveryCommittedSelectionResolution =
   | Readonly<{
       status: "COMMITTED";
-      deliveryMethod: Delivery.DeliveryCommittedMethodSnapshot;
+      commitment: Delivery.DeliveryCommittedGroupSnapshot;
       duplicate: boolean;
     }>
   | Readonly<{
@@ -301,7 +306,8 @@ export type DeliveryCommittedSelectionResolution =
         | "EXPIRED"
         | "CHECKOUT_VERSION_MISMATCH"
         | "DELIVERY_REVISION_MISMATCH"
-        | "CUSTOMER_INPUT_INVALID";
+        | "CUSTOMER_INPUT_INVALID"
+        | "IDEMPOTENCY_CONFLICT";
       code: string;
       message: string;
     }>;
@@ -424,6 +430,7 @@ export interface DeliveryOptionBindingsPort {
    * completion, then returns the immutable Orders-owned delivery method snapshot.
    */
   commitSelection(input: Readonly<{
+    organizationId: string;
     storeId: string;
     checkoutId: string;
     checkoutVersion: number;
@@ -431,6 +438,11 @@ export interface DeliveryOptionBindingsPort {
     optionHandle: string;
     deliveryRevision: string;
     customerInput: Pricing.PricingCheckoutJsonObject | null;
+    recipient: Delivery.DeliveryProviderContact;
+    shipmentProvider: Readonly<{
+      providerAccountId: string;
+      configurationRevision: string;
+    }> | null;
     effectiveAt: string;
     idempotencyKey: string;
   }>): Promise<DeliveryCommittedSelectionResolution>;
