@@ -257,7 +257,10 @@ test.describe('Customers Storefront API — tax identifiers', () => {
   });
 
   test('concurrent primary updates preserve one-primary invariant', async () => {
-    const [a, b] = await Promise.all([create({ value: 'A' }), create({ value: 'B' })]);
+    const a = await create({ value: 'A' });
+    const b = await create({ value: 'B' });
+    expect(a.data?.payload.userErrors).toEqual([]);
+    expect(b.data?.payload.userErrors).toEqual([]);
     const revision = await kit.revision();
     const results = await Promise.all([
       update(a.data!.payload.taxIdentifier!.id as string, {

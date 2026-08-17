@@ -397,7 +397,9 @@ test.describe('Customers Storefront API — addresses', () => {
 
   test('stale customer revision rejects create update delete and default set', async () => {
     const address = await kit.seedAddress();
-    const stale = Math.max(1, (await kit.revision()) - 1);
+    const advanced = await create({ ...minimalAddress, address1: 'Advance revision' });
+    expect(advanced.data?.payload.userErrors).toEqual([]);
+    const stale = (await kit.revision()) - 1;
     const responses = await Promise.all([
       create(minimalAddress, { expectedRevision: stale }),
       update(address.globalId, minimalAddress, { expectedRevision: stale }),
@@ -423,7 +425,10 @@ test.describe('Customers Storefront API — addresses', () => {
   });
 
   test('concurrent default changes preserve the single-default invariants', async () => {
-    const [a, b] = await Promise.all([create(), create({ ...minimalAddress, address1: 'Second' })]);
+    const a = await create();
+    const b = await create({ ...minimalAddress, address1: 'Second' });
+    expect(a.data?.payload.userErrors).toEqual([]);
+    expect(b.data?.payload.userErrors).toEqual([]);
     const revision = await kit.revision();
     const results = await Promise.all([
       defaults(a.data!.payload.customerAddress!.id as string, ['SHIPPING'], {
@@ -445,12 +450,18 @@ test.describe('Customers Storefront API — addresses', () => {
     const owned = await kit.seedAddress();
     const foreignCustomer = await kit.createGuestCustomer();
     const foreign = await kit.seedAddress({ customerId: foreignCustomer.id });
-    const response = await kit.customerQuery<{ owned: { id: string }; foreign: null }>(
-      'owned: address(id: $owned) { id } foreign: address(id: $foreign) { id }',
-      { owned: owned.globalId, foreign: foreign.globalId },
-      '$owned: ID!, $foreign: ID!',
+    const ownedResponse = await kit.customerQuery<{ address: { id: string } | null }>(
+      'address(id: $id) { id }',
+      { id: owned.globalId },
+      '$id: ID!',
     );
-    expect(response.data?.customer).toEqual({ owned: { id: owned.globalId }, foreign: null });
+    const foreignResponse = await kit.customerQuery<{ address: { id: string } | null }>(
+      'address(id: $id) { id }',
+      { id: foreign.globalId },
+      '$id: ID!',
+    );
+    expect(ownedResponse.data?.customer?.address).toEqual({ id: owned.globalId });
+    expect(foreignResponse.data?.customer?.address).toBeNull();
   });
 
   test('addresses supports default stable forward and backward pagination', async () => {

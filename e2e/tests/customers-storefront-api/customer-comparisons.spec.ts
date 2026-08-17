@@ -56,12 +56,26 @@ test.describe('Customers Storefront API — comparisons', () => {
       idempotencyKey: uniqueKey(),
       ...overrides,
     });
-  const product = async (status: 'DRAFT' | 'PUBLISHED' = 'PUBLISHED') =>
-    kit.api.admin.product.createWithOptions({
+  const product = async (status: 'DRAFT' | 'PUBLISHED' = 'PUBLISHED') => {
+    const current = await kit.api.admin.product.createWithOptions({
       title: `Compare ${crypto.randomUUID()}`,
       status,
       options: [{ name: 'Size', values: ['S', 'M'] }],
     });
+    return {
+      ...current,
+      variants: {
+        ...current.variants,
+        edges: current.variants.edges.map((edge) => ({
+          ...edge,
+          node: {
+            ...edge.node,
+            id: kit.id('ProductVariant', kit.headless.rawId(edge.node.id)),
+          },
+        })),
+      },
+    };
+  };
 
   test('customer adds a published concrete variant to comparisons', async () => {
     const current = await product();

@@ -85,7 +85,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
   }) => {
     const storeB = new CustomersStorefrontTestKit(api, request);
     try {
-      await storeB.setup();
+      await storeB.setup({ reuseSession: true });
       const response = await storeB.customerQuery<{ id: string }>('id', undefined, '', {
         accessToken: kit.accessToken,
       });
@@ -251,6 +251,21 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
   });
 
   test('all user errors expose stable code field message and retryable values', async () => {
+    const currentRevision = await kit.revision();
+    const applied = await kit.mutation<{
+      customer: unknown;
+      userErrors: CustomerUserError[];
+    }>(
+      'customerUpdate',
+      'CustomerUpdateInput',
+      {
+        firstName: 'Revision advanced',
+        expectedRevision: currentRevision,
+        idempotencyKey: uniqueKey(),
+      },
+      `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+    expect(applied.data?.payload.userErrors).toEqual([]);
     const validation = await kit.mutation<{
       customer: unknown;
       userErrors: CustomerUserError[];
@@ -270,7 +285,11 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
     }>(
       'customerUpdate',
       'CustomerUpdateInput',
-      { firstName: 'Stale', expectedRevision: 1, idempotencyKey: uniqueKey() },
+      {
+        firstName: 'Stale',
+        expectedRevision: currentRevision,
+        idempotencyKey: uniqueKey(),
+      },
       `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,
     );
     for (const error of [

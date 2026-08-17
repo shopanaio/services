@@ -93,9 +93,13 @@ test.describe('Customers Storefront API — privacy data requests', () => {
   });
 
   test('CORRECTION requires non-empty valid correction details', async () => {
-    for (const details of [undefined, null, {}, [], '']) {
+    for (const details of [undefined, null, {}]) {
       const response = await create('CORRECTION', details);
       kit.expectUserError(response.data!.payload.userErrors, 'CORRECTION_DETAILS_REQUIRED');
+    }
+    for (const details of [[], '']) {
+      const response = await create('CORRECTION', details);
+      kit.expectUserError(response.data!.payload.userErrors, 'INVALID_CORRECTION_DETAILS');
     }
   });
 
@@ -211,12 +215,18 @@ test.describe('Customers Storefront API — privacy data requests', () => {
     const owned = await kit.seedDataRequest();
     const foreignCustomer = await kit.createGuestCustomer();
     const foreign = await kit.seedDataRequest({ customerId: foreignCustomer.id });
-    const response = await kit.customerQuery<any>(
-      'owned: dataRequest(id: $owned) { id } foreign: dataRequest(id: $foreign) { id }',
-      { owned: owned.globalId, foreign: foreign.globalId },
-      '$owned: ID!, $foreign: ID!',
+    const ownedResponse = await kit.customerQuery<any>(
+      'dataRequest(id: $id) { id }',
+      { id: owned.globalId },
+      '$id: ID!',
     );
-    expect(response.data?.customer).toEqual({ owned: { id: owned.globalId }, foreign: null });
+    const foreignResponse = await kit.customerQuery<any>(
+      'dataRequest(id: $id) { id }',
+      { id: foreign.globalId },
+      '$id: ID!',
+    );
+    expect(ownedResponse.data?.customer?.dataRequest).toEqual({ id: owned.globalId });
+    expect(foreignResponse.data?.customer?.dataRequest).toBeNull();
   });
 
   test('data requests support stable forward and backward pagination', async () => {
@@ -255,17 +265,22 @@ test.describe('Customers Storefront API — privacy data requests', () => {
       status: 'COMPLETED',
       resultFileId: crypto.randomUUID(),
     });
-    const response = await kit.customerQuery<any>(
-      'owned: dataRequest(id: $owned) { id resultFile { id } } foreign: dataRequest(id: $foreign) { id resultFile { id } }',
-      { owned: owned.globalId, foreign: foreign.globalId },
-      '$owned: ID!, $foreign: ID!',
+    const ownedResponse = await kit.customerQuery<any>(
+      'dataRequest(id: $id) { id resultFile { id } }',
+      { id: owned.globalId },
+      '$id: ID!',
     );
-    expect(response.data?.customer?.owned.id).toBe(owned.globalId);
-    expect(response.data?.customer?.owned.resultFile).toBeNull();
-    expect(response.data?.customer?.foreign).toBeNull();
+    const foreignResponse = await kit.customerQuery<any>(
+      'dataRequest(id: $id) { id resultFile { id } }',
+      { id: foreign.globalId },
+      '$id: ID!',
+    );
+    expect(ownedResponse.data?.customer?.dataRequest.id).toBe(owned.globalId);
+    expect(ownedResponse.data?.customer?.dataRequest.resultFile).toBeNull();
+    expect(foreignResponse.data?.customer?.dataRequest).toBeNull();
   });
 
-  test('erasure completion removes customer self-service access and redacts PII', async () => {
+  test('a redacted customer is hidden from self-service and has no PII', async () => {
     await kit.seedDataRequest({ type: 'ERASURE', status: 'COMPLETED' });
     await kit.updateCustomerRow({
       lifecycleStatus: 'REDACTED',
@@ -276,9 +291,6 @@ test.describe('Customers Storefront API — privacy data requests', () => {
       phoneE164: null,
       firstName: null,
       lastName: null,
-      iamPrincipalId: null,
-      iamPrincipalStatus: null,
-      accountStatus: 'GUEST',
     });
     const response = await kit.customerQuery<{ id: string }>('id');
     expect(response.errors).toBeUndefined();

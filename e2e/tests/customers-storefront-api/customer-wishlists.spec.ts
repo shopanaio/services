@@ -162,7 +162,7 @@ test.describe('Customers Storefront API — wishlists', () => {
       expect(result.data?.payload.wishlist).toEqual(expect.objectContaining({ name }));
     }
   });
-  test('rename to the same normalized name has deterministic no-op semantics', async () => {
+  test('rename to the same normalized name preserves the requested display form', async () => {
     const created = await create('Café');
     const wishlist = created.data!.payload.wishlist!;
     const response = await update(
@@ -171,9 +171,10 @@ test.describe('Customers Storefront API — wishlists', () => {
       wishlist.updatedAt as string,
     );
     expect(response.data?.payload.userErrors).toEqual([]);
-    expect(response.data?.payload.wishlist?.name).toBe('CAFÉ');
+    expect(response.data?.payload.wishlist?.name).toBe('CAFE\u0301');
   });
   test('stale malformed and future expectedUpdatedAt reject rename and delete', async () => {
+    await create('Default');
     const created = await create('Timestamp');
     const wishlist = created.data!.payload.wishlist!;
     for (const timestamp of [

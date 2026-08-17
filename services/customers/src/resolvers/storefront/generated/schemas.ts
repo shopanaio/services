@@ -134,7 +134,7 @@ export function CustomerDataRequestCancelInputSchema(): z.ZodObject<Properties<C
 
 export function CustomerDataRequestCreateInputSchema(): z.ZodObject<Properties<CustomerDataRequestCreateInput>> {
   return z.object({
-    correctionDetails: z.record(z.unknown()).nullish(),
+    correctionDetails: z.unknown().nullish(),
     idempotencyKey: z.string(),
     type: CustomerDataRequestTypeSchema
   })

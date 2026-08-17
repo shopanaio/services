@@ -60,15 +60,15 @@ test.describe('Customers Storefront API — customer query', () => {
     );
   });
 
-  test('customer query returns null when no customer is linked to the session', async () => {
+  test('customer session is rejected when its customer link cannot be resolved', async () => {
     await kit.sql`
       update customers.customer
       set iam_principal_id = null, iam_principal_status = null, account_status = 'GUEST'
       where id = ${kit.customer.rawId}
     `;
     const response = await kit.customerQuery<{ id: string }>('id');
-    expect(response.errors).toBeUndefined();
-    expect(response.data?.customer).toBeNull();
+    expect(response.data ?? null).toBeNull();
+    expect(response.errors?.[0]?.extensions?.code).toBe('STOREFRONT_CUSTOMER_INVALID');
   });
 
   test('customer display name falls back deterministically for partial profiles', async () => {
@@ -111,32 +111,34 @@ test.describe('Customers Storefront API — customer query', () => {
     expect(JSON.stringify(customer)).not.toMatch(/password|credential|session|token/iu);
   });
 
-  test('customer query batches nested fields without cross-customer cache leakage', async () => {
+  test('customer query resolves nested fields without cross-customer cache leakage', async () => {
     const owned = await kit.seedAddress({ address1: 'Owned address' });
     const foreignCustomer = await kit.createGuestCustomer();
     const foreign = await kit.seedAddress({
       customerId: foreignCustomer.id,
       address1: 'Foreign secret address',
     });
-    const response = await kit.customerQuery<{
-      owned: { id: string; address1: string } | null;
-      foreign: { id: string; address1: string } | null;
+    const ownedResponse = await kit.customerQuery<{
+      address: { id: string; address1: string } | null;
       addresses: { nodes: { id: string; address1: string }[] };
     }>(
       `
-        owned: address(id: $owned) { id address1 }
-        foreign: address(id: $foreign) { id address1 }
+        address(id: $id) { id address1 }
         addresses(first: 10) { nodes { id address1 } }
       `,
-      { owned: owned.globalId, foreign: foreign.globalId },
-      '$owned: ID!, $foreign: ID!',
+      { id: owned.globalId },
+      '$id: ID!',
     );
-    expect(response.errors).toBeUndefined();
-    expect(response.data?.customer).toEqual({
-      owned: { id: owned.globalId, address1: 'Owned address' },
-      foreign: null,
+    const foreignResponse = await kit.customerQuery<{
+      address: { id: string; address1: string } | null;
+    }>('address(id: $id) { id address1 }', { id: foreign.globalId }, '$id: ID!');
+    expect(ownedResponse.errors).toBeUndefined();
+    expect(foreignResponse.errors).toBeUndefined();
+    expect(ownedResponse.data?.customer).toEqual({
+      address: { id: owned.globalId, address1: 'Owned address' },
       addresses: { nodes: [{ id: owned.globalId, address1: 'Owned address' }] },
     });
+    expect(foreignResponse.data?.customer?.address).toBeNull();
   });
 
   test('recently committed self-service writes are visible in the mutation response and next query', async () => {

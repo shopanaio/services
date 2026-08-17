@@ -32,7 +32,7 @@ export type Scalars = {
   /** An ISO 8601-encoded date and time string. */
   ISO8601DateTime: { input: string; output: string; }
   /** A JSON-serializable value. */
-  JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
+  JSON: { input: unknown; output: unknown; }
   /** An RFC 3986 and RFC 3987 compliant URI string. */
   URL: { input: string; output: string; }
   /** An unsigned 64-bit integer serialized as a decimal string. */

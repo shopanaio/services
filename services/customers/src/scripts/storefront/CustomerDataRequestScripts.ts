@@ -182,9 +182,10 @@ const CORRECTION_FIELDS = new Set([
 ]);
 
 function validateCorrectionDetails(value: unknown): "missing" | "invalid" | null {
-  if (value == null || !isRecord(value) || Object.keys(value).length === 0) {
+  if (value == null || (isRecord(value) && Object.keys(value).length === 0)) {
     return "missing";
   }
+  if (!isRecord(value)) return "invalid";
   const fields = value.fields;
   if (!Array.isArray(fields) || fields.length === 0 || fields.length > 32) {
     return "invalid";

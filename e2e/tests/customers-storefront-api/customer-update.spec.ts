@@ -233,11 +233,18 @@ test.describe('Customers Storefront API — customer update', () => {
   });
 
   test('stale expected revision rejects the entire profile update', async () => {
-    await kit.updateCustomerRow({ firstName: 'Original', companyName: 'Original Co' });
+    const stale = await kit.revision();
+    const applied = await update({
+      firstName: 'Original',
+      companyName: 'Original Co',
+      expectedRevision: stale,
+      idempotencyKey: uniqueKey(),
+    });
+    expect(applied.data?.payload.userErrors).toEqual([]);
     const response = await update({
       firstName: 'Partial',
       companyName: 'Must not write',
-      expectedRevision: Math.max(1, (await kit.revision()) - 1),
+      expectedRevision: stale,
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.customer).toBeNull();

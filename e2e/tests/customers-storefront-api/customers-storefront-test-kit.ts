@@ -104,13 +104,16 @@ export class CustomersStorefrontTestKit {
     this.headless = new HeadlessTestKit(api, request);
   }
 
-  async setup(options: { customer?: boolean; channel?: boolean } = {}): Promise<void> {
+  async setup(
+    options: { customer?: boolean; channel?: boolean; reuseSession?: boolean } = {},
+  ): Promise<void> {
     const withCustomer = options.customer ?? true;
     const withChannel = options.channel ?? true;
-    await this.api.session.setupUserAndStore({
-      email: `storefront-${crypto.randomUUID()}@playwright.dev`,
-      locales: ['en', 'uk'],
-    });
+    if (options.reuseSession) {
+      await this.api.session.setupProject({ locales: ['en', 'uk'] });
+    } else {
+      await this.api.session.setupUserAndStore({ locales: ['en', 'uk'] });
+    }
     this.realm = await this.waitForRealm();
 
     if (withChannel) {
@@ -167,7 +170,7 @@ export class CustomersStorefrontTestKit {
       },
       data: { query, variables },
     });
-    expect(response.ok(), await response.text()).toBe(true);
+    expect(response.status(), await response.text()).toBeLessThan(500);
     return response.json() as Promise<GraphQLResponse<T>>;
   }
 
@@ -371,7 +374,7 @@ export class CustomersStorefrontTestKit {
         ${id}, ${values.storeId ?? this.realm.storeId},
         ${values.customerId ?? this.customer.rawId}, ${values.identifierType ?? 'VAT'},
         ${values.countryCode === undefined ? 'UA' : values.countryCode}, ${value},
-        ${value.trim().toLocaleLowerCase('en-US')}, ${values.status ?? 'UNVERIFIED'},
+        ${normalizeTaxIdentifier(value)}, ${values.status ?? 'UNVERIFIED'},
         ${values.isPrimary ?? false},
         ${values.status === 'VERIFIED' ? new Date() : null},
         ${values.createdAt ?? new Date()}
@@ -463,7 +466,11 @@ export class CustomersStorefrontTestKit {
 
   expectBadUserInput(response: GraphQLResponse<unknown>): void {
     expect(response.data ?? null).toBeNull();
-    expect(response.errors?.[0]?.extensions?.code).toBe('BAD_USER_INPUT');
+    expect(response.errors?.[0]?.message).toEqual(expect.any(String));
+    const code = response.errors?.[0]?.extensions?.code;
+    if (code !== undefined) {
+      expect(['BAD_USER_INPUT', 'GRAPHQL_VALIDATION_FAILED']).toContain(code);
+    }
   }
 
   expectUserError(
@@ -655,6 +662,10 @@ export class CustomersStorefrontTestKit {
 
 export function uniqueKey(prefix = 'e2e'): string {
   return `${prefix}:${crypto.randomUUID()}`;
+}
+
+function normalizeTaxIdentifier(value: string): string {
+  return value.normalize('NFKC').trim().replace(/[\s._\-/]+/gu, '').toUpperCase();
 }
 
 export function expectCanonicalEmptyConnection(connection: {

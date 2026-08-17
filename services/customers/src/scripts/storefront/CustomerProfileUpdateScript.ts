@@ -124,10 +124,14 @@ function normalizeProfilePatch(
     if (!hasOwn(input, key)) continue;
     const value = input[key];
     const normalizedString = typeof value === "string" ? value.trim() : value;
+    const normalizedLocale =
+      key === "preferredLocale" && typeof normalizedString === "string"
+        ? canonicalLocale(normalizedString)
+        : undefined;
     Object.assign(patch, {
       [key]:
         key === "preferredLocale" && typeof normalizedString === "string"
-          ? canonicalLocale(normalizedString)
+          ? normalizedLocale ?? normalizedString
           : (key === "firstName" || key === "lastName") &&
               typeof normalizedString === "string"
             ? normalizedString
@@ -205,18 +209,20 @@ function validateProfilePatch(
   return errors;
 }
 
-function canonicalLocale(value: string): string {
+function canonicalLocale(value: string): string | null {
   try {
-    return Intl.getCanonicalLocales(value)[0] ?? value;
+    return Intl.getCanonicalLocales(value)[0] ?? null;
   } catch {
-    return value;
+    return null;
   }
 }
 
 function isEnabledLocale(value: string, locales: readonly string[]): boolean {
-  const language = canonicalLocale(value).split("-")[0];
+  const canonical = canonicalLocale(value);
+  if (!canonical) return false;
+  const language = canonical.split("-")[0];
   return locales.some(
-    (locale) => canonicalLocale(locale).split("-")[0] === language,
+    (locale) => canonicalLocale(locale)?.split("-")[0] === language,
   );
 }
 
