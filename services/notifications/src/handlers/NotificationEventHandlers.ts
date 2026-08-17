@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type {
   DomainEvent,
   EventHandlerDelivery,
@@ -24,6 +24,7 @@ interface CatchAllEventHandlerParams {
 export class NotificationEventHandlers extends EventHandlers {
   constructor(
     @InjectBroker("notifications") broker: ServiceBroker,
+    @Inject(NotificationIngressService)
     private readonly ingress: NotificationIngressService
   ) {
     super(broker);

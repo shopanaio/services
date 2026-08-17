@@ -58,9 +58,13 @@ async function dispatchDomainEvent(
     },
   });
   expect(response.ok(), await response.text()).toBe(true);
-  expect(await response.json()).toMatchObject({
+  const body = await response.json();
+  expect(body).toMatchObject({
     ok: true,
-    result: { status: 'completed' },
+    result: {
+      status: 'completed',
+      result: { claimed: 1, dispatched: 1, failed: 0 },
+    },
   });
 }
 
@@ -127,7 +131,12 @@ test.describe('Customers Admin API - statistics and comparison', () => {
       api,
       request,
       'orderCreated',
-      { ...baseOrder, orderRevision: 1, occurredAt: createdAt, notification: {} },
+      {
+        ...baseOrder,
+        orderRevision: 1,
+        occurredAt: createdAt,
+        notification: { storeId, data: {} },
+      },
       { subjectId: orderId },
     );
     await dispatchDomainEvent(
@@ -166,7 +175,7 @@ test.describe('Customers Admin API - statistics and comparison', () => {
         currencyCode: 'USD',
         refundedAmountMinor: '250',
         refundedAt: new Date().toISOString(),
-        notification: {},
+        notification: { storeId, data: {} },
       },
       { subjectType: 'refund', subjectId: refundId },
     );
@@ -224,7 +233,12 @@ test.describe('Customers Admin API - statistics and comparison', () => {
         api,
         request,
         'orderCreated',
-        { ...baseOrder, orderRevision: 1, occurredAt, notification: {} },
+        {
+          ...baseOrder,
+          orderRevision: 1,
+          occurredAt,
+          notification: { storeId, data: {} },
+        },
         { subjectId: orderId },
       );
     }

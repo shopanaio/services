@@ -24,7 +24,7 @@ type EventDispatchActionResult =
     }
   | {
       workflowId: string;
-      status: "completed";
+      status: "completed" | "failed";
       result: EventDispatchResult;
     };
 
@@ -64,7 +64,7 @@ export class EventsBrokerActions extends BrokerActions {
 
     return {
       workflowId: started.workflowId,
-      status: "completed",
+      status: result.failed > 0 ? "failed" : "completed",
       result,
     };
   }
