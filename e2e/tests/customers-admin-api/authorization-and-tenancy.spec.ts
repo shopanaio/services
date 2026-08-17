@@ -48,7 +48,7 @@ test.describe('Customers Admin API - authorization and tenancy', () => {
   });
 
   test('user without customer read permission cannot query customers', async ({ api }) => {
-    await inviteWithPermissions(api, []);
+    await inviteWithPermissions(api, [{ resource: 'store.profile', action: 'read' }]);
     const result = await api.admin.query<any>('customers-admin-api/Customers', {
       throwOnError: false,
       variables: { first: 1 },

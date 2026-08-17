@@ -85,6 +85,7 @@ CREATE TABLE "orders"."order_addresses" (
   "id" uuid NOT NULL DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
+  "type" "orders"."order_address_type" NOT NULL,
   "address1" text,
   "address2" text,
   "city" text,

@@ -290,9 +290,6 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
     );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
   private stepStartProcess(
     input: StorefrontCustomerDataRequestCreateWorkflowInput,
     dataRequestId: string,

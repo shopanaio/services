@@ -110,7 +110,11 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[], quiet?: b
 
     mkdirSync(outDir, { recursive: true });
 
-    const includeBase = asset.include.split("*")[0].replace(/\/$/, "");
+    const firstGlobIndex = asset.include.search(/[\*?\[\]{}]/);
+    const includeBase =
+      firstGlobIndex === -1
+        ? dirname(asset.include)
+        : asset.include.slice(0, firstGlobIndex).replace(/[^/]*$/, "");
     const baseDir = join(servicePath, includeBase);
 
     for (const file of files) {

@@ -70,9 +70,15 @@ export async function startServer(broker: ServiceBroker) {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const schemaPath = join(currentDir, "schema");
 
-  const schemaFiles = [
+  const adminSchemaFiles = [
     "base.graphql",
     "country.graphql",
+    "order.graphql",
+    "parent.graphql",
+    "purchasable.graphql",
+  ];
+  const storefrontSchemaFiles = [
+    "foundation.graphql",
     "order.graphql",
     "parent.graphql",
   ];
@@ -105,7 +111,7 @@ export async function startServer(broker: ServiceBroker) {
       ),
       resolvers: adminResolvers,
     },
-    ...schemaFiles.map((file) => ({
+    ...adminSchemaFiles.map((file) => ({
       typeDefs: gql(readFileSync(join(schemaPath, "admin", file), "utf-8")),
       resolvers: adminResolvers,
     })),
@@ -171,7 +177,7 @@ export async function startServer(broker: ServiceBroker) {
       ),
       resolvers: storefrontResolvers,
     },
-    ...schemaFiles.map((file) => ({
+    ...storefrontSchemaFiles.map((file) => ({
       typeDefs: gql(
         readFileSync(join(schemaPath, "storefront", file), "utf-8"),
       ),

@@ -144,7 +144,6 @@ export class CustomerSegmentCreateWorkflow extends CustomerEntityCreateWorkflow 
     );
   }
 
-  @WorkflowStep()
   private startMaterialization(
     input: CustomerSegmentCreateWorkflowInput,
     segmentId: string,
@@ -171,7 +170,7 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
   @Workflow("customerMergeCreate")
   @Policy<CustomerMergeCreateWorkflowInput>({
     resource: "store.data",
-    action: "write",
+    action: "admin",
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
@@ -194,9 +193,6 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
     );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
   private stepStartProcess(
     input: CustomerMergeCreateWorkflowInput,
     mergeId: string,
@@ -224,7 +220,7 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
   @Workflow("customerDataRequestCreate")
   @Policy<CustomerDataRequestCreateWorkflowInput>({
     resource: "store.data",
-    action: "write",
+    action: "admin",
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
@@ -247,9 +243,6 @@ export class CustomerDataRequestCreateWorkflow extends CustomerEntityCreateWorkf
     );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 5, intervalSeconds: 1, backoffRate: 2 },
-  })
   private stepStartProcess(
     input: CustomerDataRequestCreateWorkflowInput,
     dataRequestId: string,

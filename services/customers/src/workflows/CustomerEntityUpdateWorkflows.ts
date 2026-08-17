@@ -218,7 +218,6 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
     );
   }
 
-  @WorkflowStep()
   private startMaterialization(
     input: CustomerSegmentUpdateWorkflowInput,
     segmentId: string,
@@ -245,7 +244,7 @@ export class CustomerMergeUpdateWorkflow extends CustomerEntityUpdateWorkflow {
   @Workflow("customerMergeUpdate")
   @Policy<CustomerMergeUpdateWorkflowInput>({
     resource: "store.data",
-    action: "write",
+    action: "admin",
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
@@ -278,7 +277,7 @@ export class CustomerDataRequestUpdateWorkflow extends CustomerEntityUpdateWorkf
   @Workflow("customerDataRequestUpdate")
   @Policy<CustomerDataRequestUpdateWorkflowInput>({
     resource: "store.data",
-    action: "write",
+    action: "admin",
     organizationId: (_self, input) => input.context.organizationId,
     domain: (_self, input) => `store:${input.context.storeId}`,
   })

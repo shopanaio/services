@@ -89,6 +89,7 @@ export async function startStorefrontServer(
     "media.graphql",
     "navigation/category.graphql",
     "product/catalog-entities.graphql",
+    "product/comparison.graphql",
     "product/feature.graphql",
     "product/product-component.graphql",
     "product/product.graphql",

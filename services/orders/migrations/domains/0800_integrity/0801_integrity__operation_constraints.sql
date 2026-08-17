@@ -460,20 +460,20 @@ BEGIN
 
   IF EXISTS (
     SELECT 1
-      FROM "orders"."order_payment_transactions" AS authorization
-     WHERE authorization."store_id" = p_store_id
-       AND authorization."order_id" = p_order_id
-       AND authorization."kind" = 'AUTHORIZATION'
-       AND authorization."status" = 'SUCCESS'
+      FROM "orders"."order_payment_transactions" AS auth_tx
+     WHERE auth_tx."store_id" = p_store_id
+       AND auth_tx."order_id" = p_order_id
+       AND auth_tx."kind" = 'AUTHORIZATION'
+       AND auth_tx."status" = 'SUCCESS'
        AND (
          SELECT COALESCE(sum(child."amount"), 0)
            FROM "orders"."order_payment_transactions" AS child
-          WHERE child."store_id" = authorization."store_id"
-            AND child."order_id" = authorization."order_id"
-            AND child."parent_transaction_id" = authorization."id"
+          WHERE child."store_id" = auth_tx."store_id"
+            AND child."order_id" = auth_tx."order_id"
+            AND child."parent_transaction_id" = auth_tx."id"
             AND child."kind" IN ('CAPTURE', 'VOID')
             AND child."status" = 'SUCCESS'
-       ) > authorization."amount"
+       ) > auth_tx."amount"
   ) THEN
     RAISE EXCEPTION 'Order % captures or voids more than an authorization amount', p_order_id
       USING ERRCODE = '23514';
@@ -531,10 +531,10 @@ BEGIN
   IF EXISTS (
     SELECT 1
       FROM "orders"."order_payment_voids" AS payment_void
-      JOIN "orders"."order_payment_transactions" AS authorization
-        ON authorization."store_id" = payment_void."store_id"
-       AND authorization."order_id" = payment_void."order_id"
-       AND authorization."id" = payment_void."authorization_transaction_id"
+      JOIN "orders"."order_payment_transactions" AS auth_tx
+        ON auth_tx."store_id" = payment_void."store_id"
+       AND auth_tx."order_id" = payment_void."order_id"
+       AND auth_tx."id" = payment_void."authorization_transaction_id"
       LEFT JOIN "orders"."order_payment_transactions" AS void_transaction
         ON void_transaction."store_id" = payment_void."store_id"
        AND void_transaction."order_id" = payment_void."order_id"
@@ -542,7 +542,7 @@ BEGIN
      WHERE payment_void."store_id" = p_store_id
        AND payment_void."order_id" = p_order_id
        AND (
-         authorization."kind" <> 'AUTHORIZATION'
+         auth_tx."kind" <> 'AUTHORIZATION'
          OR (
            payment_void."void_transaction_id" IS NOT NULL
            AND void_transaction."kind" <> 'VOID'

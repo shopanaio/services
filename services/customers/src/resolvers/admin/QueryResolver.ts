@@ -3,7 +3,7 @@ import {
   GlobalIdEntity,
   type GlobalIdType,
 } from "@shopana/shared-graphql-guid";
-import { ApolloQuery } from "@shopana/type-resolver";
+import { ApolloQuery, TypePolicy } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import {
   decodeCustomerIdCursor,
@@ -59,6 +59,12 @@ export class QueryResolver extends CustomersType<Record<string, never>> {
   }
 }
 
+@TypePolicy<CustomersQueryResolver>({
+  resource: "store.data",
+  action: "read",
+  organizationId: (resolver) => resolver.$ctx.store.organizationId,
+  domain: (resolver) => `store:${resolver.$ctx.store.id}`,
+})
 export class CustomersQueryResolver extends CustomersType<
   Record<string, never>
 > {

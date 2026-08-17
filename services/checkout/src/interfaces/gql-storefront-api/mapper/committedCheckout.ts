@@ -323,7 +323,7 @@ export function mapCommittedCheckoutToApi(
       discount: pipelineMoney(loyalty.discount),
       payableAfterLoyalty: pipelineMoney(loyalty.payableAfterLoyalty),
       expiresAt: loyalty.expiresAt,
-    } as any,
+    } as any : null,
     loyaltyRewardEntitlementId: loyaltyReward
       ? encodeGlobalIdByType(loyaltyReward.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
       : null,

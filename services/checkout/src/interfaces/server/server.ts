@@ -49,18 +49,17 @@ export async function startServer(broker: ServiceBroker) {
   // Use import.meta.url to get the current file's directory, works when run from orchestrator
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const schemaFiles = [
+    "foundation.graphql",
     // Shared types first (copied from packages/shared-references during build)
     "shared-currency.graphql",
     "shared-locale.graphql",
     "shared-units.graphql",
     // Service-specific schemas
     "parent.graphql",
-    "base.graphql",
     "checkout.graphql",
     "checkoutLine.graphql",
     "checkoutDelivery.graphql",
     "checkoutPayment.graphql",
-    "country.graphql",
   ];
 
   const modules = schemaFiles.map((file) => ({

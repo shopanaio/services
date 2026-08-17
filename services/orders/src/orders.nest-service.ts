@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import {
   InjectBroker,
   ServiceBroker,
@@ -34,6 +34,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     @InjectBroker('order') private readonly broker: ServiceBroker,
+    @Inject(Repository)
     private readonly repository: Repository,
   ) {}
 

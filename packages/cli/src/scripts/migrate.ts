@@ -216,7 +216,12 @@ async function migrateService(
   config: ServiceMigrationConfig,
   databaseUrl: string
 ): Promise<MigrationResult> {
-  const fullMigrationsPath = join(config.unitPath, config.path);
+  const configuredMigrationsPath = join(config.unitPath, config.path);
+  const sourceMigrationsPath = join(config.unitPath, "migrations");
+  const fullMigrationsPath =
+    config.path === "dist/migrations" && !existsSync(configuredMigrationsPath)
+      ? sourceMigrationsPath
+      : configuredMigrationsPath;
 
   if (!existsSync(fullMigrationsPath)) {
     return {
@@ -351,7 +356,7 @@ export async function runAllMigrations(): Promise<boolean> {
     if (result.success) {
       console.log(`   ✅ Done`);
     } else {
-      console.error(`   ❌ ${result.error}`);
+      console.error(`   ❌ ${service.name}: ${result.error}`);
     }
   }
 

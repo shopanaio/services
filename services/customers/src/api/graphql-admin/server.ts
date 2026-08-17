@@ -15,7 +15,10 @@ import {
   getServiceConfig,
   isDevelopment,
 } from "@shopana/shared-service-config";
-import { ResolverError } from "@shopana/type-resolver";
+import {
+  ResolverError,
+  TypeAuthorizationError,
+} from "@shopana/type-resolver";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
@@ -210,9 +213,43 @@ function requiredEnvironment(name: string): string {
 function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {
   let current = unwrapResolverError(error);
 
-  while (current instanceof ResolverError) {
+  while (isResolverError(current)) {
     current = current.originalError;
   }
 
+  if (isAuthorizationError(current)) {
+    const extensions: Record<string, string> = { code: "FORBIDDEN" };
+    if (typeof current.resource === "string") {
+      extensions.resource = current.resource;
+    }
+    if (typeof current.action === "string") {
+      extensions.action = current.action;
+    }
+
+    return new GraphQLError("Access denied", {
+      extensions,
+    });
+  }
+
   return current instanceof GraphQLError ? current : null;
+}
+
+function isResolverError(
+  error: unknown,
+): error is ResolverError & { originalError: unknown } {
+  return (
+    error instanceof ResolverError ||
+    (error instanceof Error && error.name === "ResolverError")
+  ) && "originalError" in error;
+}
+
+function isAuthorizationError(
+  error: unknown,
+): error is Error & { resource?: unknown; action?: unknown } {
+  return (
+    error instanceof TypeAuthorizationError ||
+    (error instanceof Error &&
+      (error.name === "TypeAuthorizationError" ||
+        error.name === "AuthorizationError"))
+  );
 }
