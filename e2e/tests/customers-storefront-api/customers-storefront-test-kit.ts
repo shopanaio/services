@@ -109,6 +109,7 @@ export class CustomersStorefrontTestKit {
     const withChannel = options.channel ?? true;
     await this.api.session.setupUserAndStore({
       email: `storefront-${crypto.randomUUID()}@playwright.dev`,
+      locales: ['en', 'uk'],
     });
     this.realm = await this.waitForRealm();
 
@@ -423,14 +424,15 @@ export class CustomersStorefrontTestKit {
   ): Promise<{ id: string; globalId: string; updatedAt: string }> {
     const id = crypto.randomUUID();
     const name = values.name ?? `Wishlist ${crypto.randomUUID().slice(0, 8)}`;
+    const createdAt = values.createdAt ?? new Date();
     const [row] = await this.sql<{ updatedAt: string }[]>`
       insert into customers.customer_wishlist (
-        id, store_id, customer_id, name, normalized_name, is_default, created_at
+        id, store_id, customer_id, name, normalized_name, is_default, created_at, updated_at
       ) values (
         ${id}, ${values.storeId ?? this.realm.storeId},
         ${values.customerId ?? this.customer.rawId}, ${name},
         ${name.normalize('NFKC').toLocaleLowerCase('en-US')},
-        ${values.isDefault ?? false}, ${values.createdAt ?? new Date()}
+        ${values.isDefault ?? false}, ${createdAt}, ${createdAt}
       ) returning updated_at as "updatedAt"
     `;
     return { id, globalId: this.id('CustomerWishlist', id), updatedAt: row!.updatedAt };

@@ -178,7 +178,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       storeId: this.storeId,
       identifierType: data.identifierType.trim(),
       countryCode: data.countryCode?.trim().toUpperCase() ?? null,
-      value: normalizeTaxIdentifier(data.value),
+      value: data.value.trim(),
       normalizedValue:
         data.normalizedValue ?? normalizeTaxIdentifier(data.value),
       status: data.status ?? "UNVERIFIED",
@@ -214,9 +214,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
     const current = await this.findOwnedById(customerId, id);
     if (!current) return null;
     if (patch.isPrimary === true) await this.clearPrimary(current.customerId, id);
-    const value = patch.value === undefined
-      ? undefined
-      : normalizeTaxIdentifier(patch.value);
+    const value = patch.value === undefined ? undefined : patch.value.trim();
     const rows = await this.connection
       .update(customerTaxIdentifier)
       .set({

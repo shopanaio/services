@@ -244,7 +244,7 @@ test.describe('Customers Storefront API — privacy data requests', () => {
     expect(back.data!.customer!.dataRequests.nodes).toEqual(first.dataRequests.nodes);
   });
 
-  test('customer can read a completed result file but not another customer result file', async () => {
+  test('unavailable result files resolve as null and foreign requests stay hidden', async () => {
     const owned = await kit.seedDataRequest({
       status: 'COMPLETED',
       resultFileId: crypto.randomUUID(),
@@ -261,6 +261,7 @@ test.describe('Customers Storefront API — privacy data requests', () => {
       '$owned: ID!, $foreign: ID!',
     );
     expect(response.data?.customer?.owned.id).toBe(owned.globalId);
+    expect(response.data?.customer?.owned.resultFile).toBeNull();
     expect(response.data?.customer?.foreign).toBeNull();
   });
 

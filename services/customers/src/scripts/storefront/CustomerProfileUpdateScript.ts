@@ -123,8 +123,17 @@ function normalizeProfilePatch(
   for (const key of Object.keys(input) as Array<keyof StorefrontCustomerProfilePatch>) {
     if (!hasOwn(input, key)) continue;
     const value = input[key];
+    const normalizedString = typeof value === "string" ? value.trim() : value;
     Object.assign(patch, {
-      [key]: typeof value === "string" ? value.trim() || null : value,
+      [key]:
+        key === "preferredLocale" && typeof normalizedString === "string"
+          ? canonicalLocale(normalizedString)
+          : (key === "firstName" || key === "lastName") &&
+              typeof normalizedString === "string"
+            ? normalizedString
+            : typeof normalizedString === "string"
+              ? normalizedString || null
+              : normalizedString,
     });
   }
   return patch;
@@ -135,6 +144,17 @@ function validateProfilePatch(
   locales: readonly string[]
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
+  for (const field of ["firstName", "lastName"] as const) {
+    if (patch[field] === "") {
+      errors.push(
+        storefrontError(
+          "INVALID_VALUE",
+          "Value must not be empty",
+          [field],
+        ),
+      );
+    }
+  }
   for (const [field, limit] of Object.entries(STRING_LIMITS) as Array<
     [keyof typeof STRING_LIMITS, number]
   >) {
@@ -152,7 +172,7 @@ function validateProfilePatch(
 
   if (
     patch.preferredLocale &&
-    !locales.includes(patch.preferredLocale)
+    !isEnabledLocale(patch.preferredLocale, locales)
   ) {
     errors.push(
       storefrontError(
@@ -170,16 +190,34 @@ function validateProfilePatch(
         ["dateOfBirth"]
       )
     );
-  } else if (patch.dateOfBirth && patch.dateOfBirth > today()) {
+  } else if (
+    patch.dateOfBirth &&
+    (patch.dateOfBirth < "1900-01-01" || patch.dateOfBirth > today())
+  ) {
     errors.push(
       storefrontError(
         "INVALID_DATE_OF_BIRTH",
-        "Date of birth cannot be in the future",
+        "Date of birth must be between 1900-01-01 and today",
         ["dateOfBirth"]
       )
     );
   }
   return errors;
+}
+
+function canonicalLocale(value: string): string {
+  try {
+    return Intl.getCanonicalLocales(value)[0] ?? value;
+  } catch {
+    return value;
+  }
+}
+
+function isEnabledLocale(value: string, locales: readonly string[]): boolean {
+  const language = canonicalLocale(value).split("-")[0];
+  return locales.some(
+    (locale) => canonicalLocale(locale).split("-")[0] === language,
+  );
 }
 
 function changedProfilePatch(

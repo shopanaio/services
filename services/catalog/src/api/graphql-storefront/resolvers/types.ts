@@ -3,7 +3,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
-import type { GraphQLResolveInfo } from "graphql";
+import { GraphQLError, type GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
 import { CategoryResolver } from "../../../resolvers/storefront/CategoryResolver.js";
 import {
@@ -22,6 +22,10 @@ import { MediaConnectionResolver } from "../../../resolvers/storefront/MediaConn
 import { ProductResolver } from "../../../resolvers/storefront/ProductResolver.js";
 import { ProductVariantConnectionResolver } from "../../../resolvers/storefront/ProductVariantConnectionResolver.js";
 import { ProductVariantResolver } from "../../../resolvers/storefront/ProductVariantResolver.js";
+import {
+  CustomerProductComparisonsResolver,
+  ProductComparisonColumnConnectionResolver,
+} from "../../../resolvers/storefront/ProductComparisonResolvers.js";
 import type { Resolvers } from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
@@ -63,6 +67,9 @@ export const typeResolvers: Partial<Resolvers> = {
             return "CategoryMediaConnection";
         }
       }
+      if (value instanceof ProductComparisonColumnConnectionResolver) {
+        return "ProductComparisonColumnConnection";
+      }
       return null;
     },
   },
@@ -81,6 +88,18 @@ export const typeResolvers: Partial<Resolvers> = {
 
   DisplayableError: {
     __resolveType: () => "UserError",
+  },
+
+  Customer: {
+    productComparisons: (reference, _args, ctx) => {
+      const customerId = decodeCustomerReference(reference.id);
+      if (!customerId || customerId !== ctx.customer?.id) {
+        throw new GraphQLError("Customer comparison selection is unavailable", {
+          extensions: { code: "FORBIDDEN" },
+        });
+      }
+      return new CustomerProductComparisonsResolver(customerId, ctx);
+    },
   },
 
   Product: {
@@ -130,6 +149,14 @@ export const typeResolvers: Partial<Resolvers> = {
     GlobalIdEntity.InventoryItem,
   ),
 };
+
+function decodeCustomerReference(id: string): string | null {
+  try {
+    return decodeGlobalIdByType(id, GlobalIdEntity.Customer);
+  } catch {
+    return null;
+  }
+}
 
 function referenceResolver(
   ResolverClass: {

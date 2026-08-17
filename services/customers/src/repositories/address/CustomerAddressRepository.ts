@@ -387,6 +387,7 @@ export class CustomerAddressRepository extends BaseRepository {
     };
     const effectiveOrder = orderBy ?? [
       { field: "createdAt", direction: "asc" },
+      { field: "id", direction: "desc" },
     ];
     const query: CustomerAddressRelayInput = {
       ...pagination,

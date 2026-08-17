@@ -1,3 +1,4 @@
+import type { Media } from "@shopana/broker-types";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type {
@@ -16,6 +17,17 @@ abstract class OwnedCustomerType<TData extends { customerId: string }>
       throw new PreloadNotFoundError("Customer-owned resource was not found");
     }
     return data;
+  }
+
+  protected async isAvailableStoreFile(fileId: string): Promise<boolean> {
+    const result = await this.$ctx.kernel.getServices().broker.call<
+      Media.ValidateOwnedFileResult,
+      Media.ValidateOwnedFileParams
+    >("media.validateOwnedFile", {
+      fileId,
+      owner: { type: "store", id: this.$ctx.store.id },
+    });
+    return result.valid;
   }
 }
 
@@ -119,13 +131,14 @@ export class StorefrontCustomerDataRequestResolver extends OwnedCustomerType<Cus
 
   async resultFile() {
     const fileId = await this.$get("resultFileId");
-    return fileId
+    return fileId && (await this.isAvailableStoreFile(fileId))
       ? {
-          __typename: "File" as const,
+          __typename: "GenericFile" as const,
           id: this.encodeId(fileId, GlobalIdEntity.File),
         }
       : null;
   }
+
 }
 
 export class StorefrontCustomerTaxIdentifierResolver extends OwnedCustomerType<CustomerTaxIdentifier> {
@@ -178,13 +191,14 @@ export class StorefrontCustomerTaxExemptionResolver extends OwnedCustomerType<Cu
 
   async certificateFile() {
     const fileId = await this.$get("certificateFileId");
-    return fileId
+    return fileId && (await this.isAvailableStoreFile(fileId))
       ? {
-          __typename: "File" as const,
+          __typename: "GenericFile" as const,
           id: this.encodeId(fileId, GlobalIdEntity.File),
         }
       : null;
   }
+
 }
 
 function recipientName(address: CustomerAddress): string {

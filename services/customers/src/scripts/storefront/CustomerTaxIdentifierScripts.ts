@@ -1,4 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
+import { normalizeTaxIdentifier } from "../../repositories/tax/CustomerTaxIdentifierRepository.js";
 import {
   failedCustomerMutation,
   internalStorefrontError,
@@ -164,7 +165,7 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
     const identityChanged =
       identifierType.trim() !== current.identifierType ||
       (countryCode?.trim().toUpperCase() ?? null) !== current.countryCode ||
-      value.trim() !== current.value;
+      normalizeTaxIdentifier(value) !== current.normalizedValue;
     const updated = await this.repository.taxIdentifier.updateOwned(
       params.customerId,
       params.taxIdentifierId,

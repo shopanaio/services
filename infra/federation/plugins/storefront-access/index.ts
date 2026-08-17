@@ -69,16 +69,17 @@ export function createStorefrontAccessPlugin() {
         );
       } catch (error) {
         const known = error as {
-          status?: number;
           code?: string;
         };
-        const status = known.status ?? 503;
         const code = known.code ?? "STOREFRONT_ACCESS_UNAVAILABLE";
         endResponse(new fetchAPI.Response(JSON.stringify({
           data: null,
           errors: [{ message: code, extensions: { code } }],
         }), {
-          status,
+          // Authentication and resolver failures are represented by the
+          // GraphQL error envelope. Keep the HTTP transport successful so
+          // GraphQL clients can inspect the stable error code.
+          status: 200,
           headers: { "content-type": "application/json" },
         }));
       }

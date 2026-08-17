@@ -162,6 +162,8 @@ export interface WorkflowStartOptions {
    * Existing callers should keep relying on IdempotencyContext.
    */
   workflowId?: string;
+  /** Durable metadata stored with the workflow status. */
+  attributes?: Record<string, unknown>;
   /**
    * DBOS queue name. When present, workflow is durably enqueued instead of
    * started as a normal immediate workflow.

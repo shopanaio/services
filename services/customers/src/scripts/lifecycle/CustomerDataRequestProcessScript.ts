@@ -414,6 +414,20 @@ const CORRECTION_FIELDS = [
 
 function parseCorrection(value: unknown): CustomerPrivacyCorrection {
   const source = record(value);
+  if (Array.isArray(source.fields)) {
+    const structured: Record<string, unknown> = {};
+    for (const item of source.fields) {
+      const field = record(item);
+      if (typeof field.path !== "string" || !("value" in field)) {
+        throw new CustomerDataRequestProcessError(
+          "Correction details contain an invalid field entry",
+          "CUSTOMER_DATA_REQUEST_CORRECTION_INVALID",
+        );
+      }
+      structured[field.path] = field.value;
+    }
+    return parseCorrection(structured);
+  }
   const correction: CustomerPrivacyCorrection = {};
   for (const field of CORRECTION_FIELDS) {
     if (!(field in source)) continue;

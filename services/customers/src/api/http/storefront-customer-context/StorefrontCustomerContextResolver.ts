@@ -3,6 +3,7 @@ import type { ContextCustomer } from "@shopana/shared-context";
 import { hashContent } from "@shopana/shared-kernel";
 import type { Kernel } from "../../../kernel/Kernel.js";
 import type { Customer } from "../../../repositories/models/index.js";
+import { CustomerProvisioningError } from "../../../scripts/customer/CustomerProvisionFromIamScript.js";
 import type {
   CustomerProvisionFromIamWorkflowInput,
 } from "../../../workflows/CustomerProvisionFromIamWorkflow.js";
@@ -53,24 +54,14 @@ export class StorefrontCustomerContextResolver {
         input.storeId,
         validation.userId,
       );
-    if (
-      !customer ||
-      !customer.emailVerified ||
-      customer.accountStatus !== "REGISTERED"
-    ) {
+    if (!customer) {
       customer = await this.provisionFromValidatedIdentity({
         input,
         configuration,
         applicationUserId: validation.userId,
       });
     }
-    if (
-      !customer ||
-      customer.lifecycleStatus !== "ACTIVE" ||
-      customer.accountStatus !== "REGISTERED"
-    ) {
-      return null;
-    }
+    if (!customer) return null;
 
     return Object.freeze({
       customer: Object.freeze({
@@ -81,7 +72,9 @@ export class StorefrontCustomerContextResolver {
         phone: customer.phoneE164,
         language: customer.preferredLocale,
         isVerified: customer.emailVerified,
-        isBlocked: false,
+        isBlocked:
+          customer.lifecycleStatus !== "ACTIVE" ||
+          customer.accountStatus !== "REGISTERED",
         createdAt: customer.createdAt,
         updatedAt: customer.updatedAt,
       }),
@@ -127,20 +120,38 @@ export class StorefrontCustomerContextResolver {
         requestId: params.input.requestId,
       },
     };
-    await this.kernel.getServices().broker.runWorkflow(
-      "customers.customerProvisionFromIam",
-      workflowInput,
-      {
-        source: "content",
-        resourceId: `${params.input.storeId}:${identity.user.id}`,
-        operation: "customerProvisionFromIamReadRepair",
-        contentHash: hashContent(workflowInput.params),
-      },
-    );
+    try {
+      await this.kernel.getServices().broker.runWorkflow(
+        "customers.customerProvisionFromIam",
+        workflowInput,
+        {
+          source: "content",
+          resourceId: `${params.input.storeId}:${identity.user.id}`,
+          operation: "customerProvisionFromIamReadRepair",
+          contentHash: hashContent(workflowInput.params),
+        },
+      );
+    } catch (error) {
+      if (isNonRetryableProvisioningConflict(error)) return null;
+      throw error;
+    }
 
     return this.kernel.repository.customer.findByStoreAndIamPrincipalId(
       params.input.storeId,
       identity.user.id,
     );
   }
+}
+
+function isNonRetryableProvisioningConflict(error: unknown): boolean {
+  if (error instanceof CustomerProvisioningError) return !error.retryable;
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      typeof error.code === "string" &&
+      error.code.startsWith("CUSTOMER_") &&
+      "retryable" in error &&
+      error.retryable === false,
+  );
 }

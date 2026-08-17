@@ -148,11 +148,10 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
     } catch {
       return null;
     }
-    const address = await this.$ctx.kernel.repository.address.findOwnedById(
-      this.$props,
-      addressId
-    );
-    return address ? this.resolvers.address(address.id) : null;
+    const address = await this.$ctx.loaders.address.load(addressId);
+    return address?.customerId === this.$props
+      ? this.resolvers.address(address.id)
+      : null;
   }
 
   addresses(args: CustomerAddressesArgs) {
@@ -188,12 +187,10 @@ export class StorefrontCustomerResolver extends StorefrontCustomersType<
     } catch {
       return null;
     }
-    const request =
-      await this.$ctx.kernel.repository.lifecycle.findOwnedDataRequestById(
-        this.$props,
-        requestId
-      );
-    return request ? this.resolvers.dataRequest(request.id) : null;
+    const request = await this.$ctx.loaders.customerDataRequest.load(requestId);
+    return request?.customerId === this.$props
+      ? this.resolvers.dataRequest(request.id)
+      : null;
   }
 
   dataRequests(args: CustomerDataRequestsArgs) {

@@ -182,6 +182,7 @@ export type GraphQLFileName =
   | 'inventory-api/ProductDelete'
   | 'inventory-api/ProductFindMany'
   | 'inventory-api/ProductFindOne'
+  | 'inventory-api/ProductOptionCategoryCreate'
   | 'inventory-api/ProductOptionsSync'
   | 'inventory-api/ProductUpdate'
   | 'inventory-api/ProductVariants'

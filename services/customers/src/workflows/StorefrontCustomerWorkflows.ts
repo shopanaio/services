@@ -312,6 +312,10 @@ export class StorefrontCustomerDataRequestCreateWorkflow extends StorefrontCusto
         stepId: "startCustomerDataRequestProcess",
         callId: dataRequestId,
       },
+      {
+        queueName: "customer_data_request_processing",
+        enqueueOptions: { delaySeconds: 2 },
+      },
     );
   }
 }

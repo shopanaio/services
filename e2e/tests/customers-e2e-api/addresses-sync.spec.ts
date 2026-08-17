@@ -1,33 +1,184 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-non-null-assertion */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import {
+  ADDRESS_FIELDS,
+  USER_ERROR_FIELDS,
+  uniqueKey,
+  type CustomerUserError,
+} from '../customers-storefront-api/customers-storefront-test-kit';
+import { CustomersE2ETestKit } from './customers-e2e-test-kit';
+
+type AddressPayload = {
+  customerAddress: Record<string, unknown> | null;
+  deletedAddressId?: string | null;
+  customer: { revision: number } | null;
+  userErrors: CustomerUserError[];
+};
+const address = { address1: '1 Cross API Street', city: 'Kyiv', countryCode: 'UA' };
 
 test.describe('Customers E2E API — address synchronization', () => {
-  test('admin-created addresses and defaults are visible through storefront', () => {
-    // Create shipping and billing addresses through Admin API, assign independent defaults, and
-    // verify their normalized public representation and default flags through Storefront API.
+  let kit: CustomersE2ETestKit;
+  test.beforeEach(async ({ api, request }) => {
+    kit = new CustomersE2ETestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  const create = async (value = address, overrides: Record<string, unknown> = {}) =>
+    kit.mutation<AddressPayload>(
+      'customerAddressCreate',
+      'CustomerAddressCreateInput',
+      {
+        address: value,
+        expectedRevision: await kit.revision(),
+        idempotencyKey: uniqueKey(),
+        ...overrides,
+      },
+      `customerAddress { ${ADDRESS_FIELDS} } customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+  const update = async (
+    addressId: string,
+    value: Record<string, unknown>,
+    overrides: Record<string, unknown> = {},
+  ) =>
+    kit.mutation<AddressPayload>(
+      'customerAddressUpdate',
+      'CustomerAddressUpdateInput',
+      {
+        addressId,
+        address: value,
+        expectedRevision: await kit.revision(),
+        idempotencyKey: uniqueKey(),
+        ...overrides,
+      },
+      `customerAddress { ${ADDRESS_FIELDS} } customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+  const remove = async (addressId: string, overrides: Record<string, unknown> = {}) =>
+    kit.mutation<AddressPayload>(
+      'customerAddressDelete',
+      'CustomerAddressDeleteInput',
+      {
+        addressId,
+        expectedRevision: await kit.revision(),
+        idempotencyKey: uniqueKey(),
+        ...overrides,
+      },
+      `deletedAddressId customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+
+  test('admin-created addresses and defaults are visible through storefront', async () => {
+    const payload = await kit.adminUpdate({
+      addresses: {
+        create: [
+          { ...address, address1: 'Shipping', isDefaultShipping: true },
+          { ...address, address1: 'Billing', isDefaultBilling: true },
+        ],
+      },
+    });
+    expect(payload.userErrors).toEqual([]);
+    const customer = await kit.currentCustomer<any>(
+      `defaultShippingAddress { id address1 } defaultBillingAddress { id address1 } addresses(first: 10) { nodes { ${ADDRESS_FIELDS} } totalCount }`,
+    );
+    expect(customer.addresses.totalCount).toBe(2);
+    expect(customer.defaultShippingAddress.address1).toBe('Shipping');
+    expect(customer.defaultBillingAddress.address1).toBe('Billing');
   });
 
-  test('storefront-created address is visible through admin', () => {
-    // Create a complete address through Storefront API and verify through Admin API that the same
-    // global ID, normalized fields, validation metadata, owner, and revision were persisted.
+  test('storefront-created address is visible through admin', async () => {
+    const response = await create({ ...address, firstName: 'Ada', lastName: 'Lovelace' });
+    expect(response.data?.payload.userErrors).toEqual([]);
+    const created = response.data!.payload.customerAddress!;
+    const admin = await kit.adminCustomer();
+    expect(admin.addresses.edges[0].node).toEqual(
+      expect.objectContaining({
+        id: created.id,
+        address1: address.address1,
+        city: address.city,
+        countryCode: 'UA',
+      }),
+    );
+    expect(admin.revision).toBe(response.data?.payload.customer?.revision);
   });
 
-  test('admin address update is reflected in storefront without leaking admin-only data', () => {
-    // Update an enrolled customer's address through Admin API and verify that Storefront API sees
-    // the new public fields while retaining the storefront-safe address contract.
+  test('admin address update is reflected in storefront without leaking admin-only data', async () => {
+    const created = await create();
+    const id = created.data!.payload.customerAddress!.id as string;
+    const admin = await kit.adminCustomer();
+    const payload = await kit.adminUpdate(
+      {
+        addresses: {
+          update: [{ addressId: id, operations: { city: 'Lviv', address2: 'Suite 4' } }],
+        },
+      },
+      admin,
+    );
+    expect(payload.userErrors).toEqual([]);
+    const storefront = await kit.currentCustomer<any>(
+      'addresses(first: 10) { nodes { id city address2 formatted validationStatus } }',
+    );
+    expect(storefront.addresses.nodes).toEqual([
+      expect.objectContaining({ id, city: 'Lviv', address2: 'Suite 4' }),
+    ]);
+    expect(JSON.stringify(storefront)).not.toMatch(/latitude|longitude|internal|assignedBy/iu);
   });
 
-  test('storefront default change is reflected in admin aggregate', () => {
-    // Change shipping and billing defaults through Storefront API and verify through Admin API that
-    // the previous defaults were cleared atomically and the customer revision advanced once.
+  test('storefront default change is reflected in admin aggregate', async () => {
+    const first = await create({ ...address, address1: 'First' });
+    const second = await create({ ...address, address1: 'Second' });
+    const response = await kit.mutation<any>(
+      'customerAddressDefaultSet',
+      'CustomerAddressDefaultSetInput',
+      {
+        addressId: second.data!.payload.customerAddress!.id,
+        defaults: ['SHIPPING', 'BILLING'],
+        expectedRevision: await kit.revision(),
+        idempotencyKey: uniqueKey(),
+      },
+      `customer { revision defaultShippingAddress { id } defaultBillingAddress { id } } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+    expect(response.data?.payload.userErrors).toEqual([]);
+    const admin = await kit.adminCustomer();
+    expect(admin.defaultShippingAddress.id).toBe(second.data!.payload.customerAddress!.id);
+    expect(admin.defaultBillingAddress.id).toBe(second.data!.payload.customerAddress!.id);
+    expect(
+      admin.addresses.edges.find(
+        ({ node }: any) => node.id === first.data!.payload.customerAddress!.id,
+      ).node,
+    ).toEqual(expect.objectContaining({ isDefaultShipping: false, isDefaultBilling: false }));
   });
 
-  test('deleting an address through either API clears shared defaults consistently', () => {
-    // Delete a default address through one API, read the customer through the other API, and verify
-    // that the address disappeared and every affected default reference was cleared.
+  test('deleting an address through either API clears shared defaults consistently', async () => {
+    const created = await create({ ...address, isDefaultShipping: true, isDefaultBilling: true });
+    const id = created.data!.payload.customerAddress!.id as string;
+    const deleted = await remove(id);
+    expect(deleted.data?.payload).toEqual(
+      expect.objectContaining({ deletedAddressId: id, userErrors: [] }),
+    );
+    const admin = await kit.adminCustomer();
+    expect(admin.addresses.totalCount).toBe(0);
+    expect(admin.defaultShippingAddress).toBeNull();
+    expect(admin.defaultBillingAddress).toBeNull();
   });
 
-  test('admin and storefront cannot mutate each other with stale address revisions', () => {
-    // Update the address aggregate through one API, retry a write through the other with the old
-    // customer revision, and verify a conflict with no partial address or default changes.
+  test('admin and storefront cannot mutate each other with stale address revisions', async () => {
+    const created = await create();
+    const id = created.data!.payload.customerAddress!.id as string;
+    const stale = await kit.revision();
+    const admin = await kit.adminUpdate({
+      addresses: { update: [{ addressId: id, operations: { city: 'Admin city' } }] },
+    });
+    expect(admin.userErrors).toEqual([]);
+    const rejected = await update(
+      id,
+      { ...address, city: 'Stale city' },
+      { expectedRevision: stale },
+    );
+    kit.expectUserError(rejected.data!.payload.userErrors, 'REVISION_CONFLICT', {
+      retryable: true,
+    });
+    expect(
+      (await kit.currentCustomer<any>('addresses(first: 10) { nodes { city } }')).addresses.nodes,
+    ).toEqual([{ city: 'Admin city' }]);
   });
 });

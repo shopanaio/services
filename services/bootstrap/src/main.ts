@@ -62,6 +62,11 @@ async function bootstrap() {
           concurrency: 4,
           workerConcurrency: 4,
         },
+        {
+          name: 'customer_data_request_processing',
+          concurrency: 2,
+          workerConcurrency: 2,
+        },
       ],
     };
   }

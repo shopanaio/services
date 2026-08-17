@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect } from '@playwright/test';
 import {
   createCustomer,
@@ -13,6 +13,60 @@ import {
 } from '../customers-storefront-api/customers-storefront-test-kit';
 
 export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
+  async enrollAdminCustomer(customer: Json, email = customer.email): Promise<void> {
+    const signup = await this.signUpWithPassword(email);
+    expect(signup.ok(), await signup.text()).toBe(true);
+    this.accessToken = await this.issueCustomerAccessToken(email.trim().toLowerCase());
+    await expect
+      .poll(async () => {
+        const [row] = await this.sql<
+          { id: string; iamPrincipalId: string; revision: number; email: string }[]
+        >`
+          select id, iam_principal_id as "iamPrincipalId", revision, email
+          from customers.customer
+          where store_id = ${this.realm.storeId} and id = ${this.headless.rawId(customer.id)}
+        `;
+        if (!row?.iamPrincipalId) return null;
+        this.customer = {
+          id: customer.id,
+          rawId: row.id,
+          iamPrincipalId: row.iamPrincipalId,
+          email: row.email,
+          revision: row.revision,
+        };
+        return row.iamPrincipalId;
+      })
+      .not.toBeNull();
+  }
+
+  async adminAccountSettings(): Promise<Json> {
+    let settings: Json | null = null;
+    await expect
+      .poll(async () => {
+        const { data } = await this.api.admin.query<Json>(
+          'customers-admin-api/CustomerAccountsSettings',
+          { throwOnError: false, variables: {} },
+        );
+        settings = data?.customersQuery?.customerAccountsSettings ?? null;
+        return settings;
+      })
+      .not.toBeNull();
+    return settings!;
+  }
+
+  async adminAccountSettingsUpdate(
+    enabledMethods: string[],
+    expectedRevision?: number,
+  ): Promise<Json> {
+    const revision = expectedRevision ?? (await this.adminAccountSettings()).revision;
+    const { data, errors } = await this.api.admin.mutation<Json>(
+      'customers-admin-api/CustomerAccountsSettingsUpdate',
+      { throwOnError: false, variables: { input: { enabledMethods, expectedRevision: revision } } },
+    );
+    expect(errors ?? []).toHaveLength(0);
+    return data.customersMutation.customerAccountsSettingsUpdate;
+  }
+
   async adminCustomer(id = this.customer.id): Promise<Json> {
     const customer = await getCustomer(this.api, id);
     expect(customer).not.toBeNull();
@@ -34,7 +88,9 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
 
   async storefrontUpdate(
     input: Json,
-  ): Promise<GraphQLResponse<{ payload: { customer: Json | null; userErrors: CustomerUserError[] } }>> {
+  ): Promise<
+    GraphQLResponse<{ payload: { customer: Json | null; userErrors: CustomerUserError[] } }>
+  > {
     return this.mutation(
       'customerUpdate',
       'CustomerUpdateInput',
@@ -43,7 +99,10 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
     );
   }
 
-  async lifecycle(status: 'ACTIVE' | 'BLOCKED' | 'DISABLED', blockedReason?: string): Promise<Json> {
+  async lifecycle(
+    status: 'ACTIVE' | 'BLOCKED' | 'DISABLED',
+    blockedReason?: string,
+  ): Promise<Json> {
     const customer = await this.adminCustomer();
     const payload = await this.adminUpdate(
       { status: { status, ...(blockedReason ? { blockedReason } : {}) } },
@@ -53,7 +112,9 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
     return payload.customer;
   }
 
-  async storefrontCustomerOrNull(options: Parameters<CustomersStorefrontTestKit['graphql']>[2] = {}) {
+  async storefrontCustomerOrNull(
+    options: Parameters<CustomersStorefrontTestKit['graphql']>[2] = {},
+  ) {
     const response = await this.graphql<{ customer: { id: string; revision: number } | null }>(
       'query CurrentCustomer { customer { id revision } }',
       undefined,

@@ -13,7 +13,11 @@ import type {
   WorkflowStartOptions,
 } from "../core/types.js";
 import type { WorkflowDescriptor, WorkflowRegistrar } from "../workflow/BaseWorkflow.js";
-import { buildIdempotencyKey, type IdempotencyContext } from "../idempotency/index.js";
+import {
+  buildIdempotencyKey,
+  IdempotencyConflictError,
+  type IdempotencyContext,
+} from "../idempotency/index.js";
 
 interface DBOSStartWorkflowParams {
   workflowID: string;
@@ -21,6 +25,7 @@ interface DBOSStartWorkflowParams {
   timeoutMS?: number;
   enqueueOptions?: WorkflowQueueEnqueueOptions;
   duplicationPolicy?: WorkflowDuplicationPolicy;
+  workflowAttributes?: Record<string, unknown>;
 }
 
 const isWorkflowDescriptor = (value: unknown): value is WorkflowDescriptor => {
@@ -127,7 +132,26 @@ export class WorkflowRegistry implements WorkflowRegistrar {
 
     const workflowID =
       options?.workflowId ?? buildIdempotencyKey(qualifiedName, idempotencyCtx);
-    const startParams = mapWorkflowStartOptions(workflowID, options);
+    const requestHash = idempotencyCtx.source === "client"
+      ? idempotencyCtx.requestHash
+      : undefined;
+    if (requestHash) {
+      const existing = await DBOS.getWorkflowStatus(workflowID);
+      if (existing) {
+        assertMatchingRequestHash(existing.attributes, requestHash);
+      }
+    }
+    const startParams = mapWorkflowStartOptions(workflowID, {
+      ...options,
+      ...(requestHash
+        ? {
+            attributes: {
+              ...options?.attributes,
+              shopanaRequestHash: requestHash,
+            },
+          }
+        : {}),
+    });
 
     // Cast to ConfiguredInstance with run method for DBOS.startWorkflow().
     // All BaseWorkflow/BaseSaga extend ConfiguredInstance and have a `run` method.
@@ -142,6 +166,11 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     const handle = context
       ? await configuredWorkflow.run(params, context)
       : await configuredWorkflow.run(params);
+
+    if (requestHash) {
+      const status = await DBOS.getWorkflowStatus(workflowID);
+      assertMatchingRequestHash(status?.attributes, requestHash);
+    }
 
     return {
       workflowId: handle.workflowID ?? workflowID,
@@ -185,6 +214,15 @@ export class WorkflowRegistry implements WorkflowRegistrar {
   }
 }
 
+function assertMatchingRequestHash(
+  attributes: Record<string, unknown> | undefined,
+  requestHash: string,
+): void {
+  if (attributes?.shopanaRequestHash !== requestHash) {
+    throw new IdempotencyConflictError();
+  }
+}
+
 function mapWorkflowStartOptions(
   workflowID: string,
   options?: WorkflowStartOptions,
@@ -219,6 +257,9 @@ function mapWorkflowStartOptions(
       enqueueOptions !== undefined && { enqueueOptions }),
     ...(options?.duplicationPolicy !== undefined && {
       duplicationPolicy: options.duplicationPolicy,
+    }),
+    ...(options?.attributes !== undefined && {
+      workflowAttributes: options.attributes,
     }),
   };
 }

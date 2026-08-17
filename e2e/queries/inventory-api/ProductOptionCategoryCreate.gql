@@ -1,0 +1,16 @@
+mutation ProductOptionCategoryCreate($input: ProductOptionCategoryCreateInput!) {
+  catalogMutation {
+    productOptionCategoryCreate(input: $input) {
+      category {
+        id
+        name
+        slug
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}

@@ -307,8 +307,14 @@ export class CustomerWishlistRepository extends BaseRepository {
     }
     const current = await this.findById(input.customerId, input.wishlistId);
     if (!current) return { status: "not_found" };
-    if (current.updatedAt !== input.expectedUpdatedAt) {
+    if (!sameInstant(current.updatedAt, input.expectedUpdatedAt)) {
       return { status: "conflict", value: current };
+    }
+    if (
+      current.name === input.name &&
+      current.normalizedName === input.normalizedName
+    ) {
+      return { status: "applied", value: current };
     }
     const duplicateName = await this.connection
       .select({ id: customerWishlist.id })
@@ -336,7 +342,6 @@ export class CustomerWishlistRepository extends BaseRepository {
           eq(customerWishlist.storeId, this.storeId),
           eq(customerWishlist.customerId, input.customerId),
           eq(customerWishlist.id, input.wishlistId),
-          eq(customerWishlist.updatedAt, input.expectedUpdatedAt),
         ),
       )
       .returning();
@@ -374,7 +379,7 @@ export class CustomerWishlistRepository extends BaseRepository {
     if (current.isDefault) {
       return { status: "default_protected", value: current };
     }
-    if (current.updatedAt !== input.expectedUpdatedAt) {
+    if (!sameInstant(current.updatedAt, input.expectedUpdatedAt)) {
       return { status: "conflict", value: current };
     }
 
@@ -470,7 +475,7 @@ export class CustomerWishlistRepository extends BaseRepository {
       where,
       orderBy: [
         { field: "createdAt", direction: "asc" },
-        { field: "id", direction: "asc" },
+        { field: "id", direction: "desc" },
       ],
       filters: { storeId: this.storeId, customerId },
     };
@@ -617,4 +622,10 @@ function emptyConnection(): RepositoryConnectionResult {
     pageInfo: EMPTY_PAGE_INFO,
     totalCount: 0,
   };
+}
+
+function sameInstant(left: string, right: string): boolean {
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  return Number.isFinite(leftTime) && leftTime === rightTime;
 }

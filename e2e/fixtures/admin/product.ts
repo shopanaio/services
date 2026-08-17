@@ -17,7 +17,13 @@ export interface ProductCreateWithOptionsInput {
   status?: ProductStatus;
   price?: number;
   mediaFileIds?: string[];
-  options: { title?: string; name?: string; slug?: string; values: string[] }[];
+  options: {
+    title?: string;
+    name?: string;
+    slug?: string;
+    categoryId?: string;
+    values: string[];
+  }[];
   description?: ApiProductCreateInput['description'];
   excerpt?: ApiProductCreateInput['excerpt'];
 }
@@ -111,21 +117,26 @@ export class ProductFixture {
     excerpt,
   }: ProductCreateWithOptionsInput): Promise<ApiProduct> => {
     const productHandle = handle ?? slug ?? slugify(title);
-    const normalizedOptions: ApiProductCreateOptionInput[] = options.map((option, optionIndex) => {
-      const name = option.name ?? option.title ?? option.slug ?? `Option ${optionIndex + 1}`;
-      const optionSlug = option.slug ?? slugify(name);
+    const normalizedOptions: Array<ApiProductCreateOptionInput & { categoryId: string }> =
+      await Promise.all(
+        options.map(async (option, optionIndex) => {
+          const name =
+            option.name ?? option.title ?? option.slug ?? `Option ${optionIndex + 1}`;
+          const optionSlug = option.slug ?? slugify(name);
 
-      return {
-        name,
-        slug: optionSlug,
-        sortIndex: optionIndex,
-        values: option.values.map((value, valueIndex) => ({
-          name: value,
-          slug: slugify(value),
-          sortIndex: valueIndex,
-        })),
-      };
-    });
+          return {
+            name,
+            slug: optionSlug,
+            categoryId: option.categoryId ?? (await this.createOptionCategory(name)),
+            sortIndex: optionIndex,
+            values: option.values.map((value, valueIndex) => ({
+              name: value,
+              slug: slugify(value),
+              sortIndex: valueIndex,
+            })),
+          };
+        }),
+      );
 
     const combinations = cartesianProduct(
       normalizedOptions.map((option) => option.values.map((value) => value.slug)),
@@ -168,6 +179,34 @@ export class ProductFixture {
 
     return product;
   };
+
+  private async createOptionCategory(name: string): Promise<string> {
+    const suffix = crypto.randomUUID().slice(0, 8);
+    const { data } = await this.gql.mutation('inventory-api/ProductOptionCategoryCreate', {
+      variables: {
+        input: {
+          name,
+          slug: `${slugify(name)}-${suffix}`,
+        },
+      },
+    });
+    const result = (
+      data as {
+        catalogMutation: {
+          productOptionCategoryCreate: {
+            category: { id: string } | null;
+            userErrors: UserError[];
+          };
+        };
+      }
+    ).catalogMutation.productOptionCategoryCreate;
+    if (result.userErrors.length > 0 || !result.category) {
+      throw new Error(
+        `Failed to create product option category: ${JSON.stringify(result.userErrors)}`,
+      );
+    }
+    return result.category.id;
+  }
 }
 
 function cartesianProduct<T>(matrix: T[][]): T[][] {

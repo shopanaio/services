@@ -25,6 +25,17 @@ export interface ClientIdempotencyContext {
   organizationId: string;
   /** API key ID used for the request */
   apiKeyId: string;
+  /** Hash of the semantic request payload, excluding volatile request metadata. */
+  requestHash?: string;
+}
+
+export class IdempotencyConflictError extends Error {
+  readonly code = "IDEMPOTENCY_CONFLICT";
+
+  constructor() {
+    super("Idempotency key was already used with a different request payload");
+    this.name = "IdempotencyConflictError";
+  }
 }
 
 /**

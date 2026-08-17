@@ -140,11 +140,16 @@ function validateCreate(
     );
   }
   if (params.type === "CORRECTION") {
-    if (!isRecord(params.correctionDetails)) {
+    const correctionError = validateCorrectionDetails(params.correctionDetails);
+    if (correctionError) {
       errors.push(
         storefrontError(
-          "CORRECTION_DETAILS_REQUIRED",
-          "Correction details are required for a correction request",
+          correctionError === "missing"
+            ? "CORRECTION_DETAILS_REQUIRED"
+            : "INVALID_CORRECTION_DETAILS",
+          correctionError === "missing"
+            ? "Correction details are required for a correction request"
+            : "Correction details are malformed or too large",
           ["correctionDetails"]
         )
       );
@@ -159,6 +164,61 @@ function validateCreate(
     );
   }
   return errors;
+}
+
+const CORRECTION_FIELDS = new Set([
+  "email",
+  "phoneE164",
+  "prefix",
+  "firstName",
+  "middleName",
+  "lastName",
+  "suffix",
+  "preferredLocale",
+  "dateOfBirth",
+  "gender",
+  "companyName",
+  "jobTitle",
+]);
+
+function validateCorrectionDetails(value: unknown): "missing" | "invalid" | null {
+  if (value == null || !isRecord(value) || Object.keys(value).length === 0) {
+    return "missing";
+  }
+  const fields = value.fields;
+  if (!Array.isArray(fields) || fields.length === 0 || fields.length > 32) {
+    return "invalid";
+  }
+  if (Object.keys(value).some((key) => key !== "fields" && key !== "reason")) {
+    return "invalid";
+  }
+  if (
+    value.reason !== undefined &&
+    (typeof value.reason !== "string" || value.reason.trim().length > 2_000)
+  ) {
+    return "invalid";
+  }
+  const paths = new Set<string>();
+  for (const field of fields) {
+    if (!isRecord(field) || Object.keys(field).some((key) => !["path", "value"].includes(key))) {
+      return "invalid";
+    }
+    if (
+      typeof field.path !== "string" ||
+      !CORRECTION_FIELDS.has(field.path) ||
+      paths.has(field.path) ||
+      (field.value !== null && typeof field.value !== "string") ||
+      (typeof field.value === "string" && field.value.length > 4_000)
+    ) {
+      return "invalid";
+    }
+    paths.add(field.path);
+  }
+  try {
+    return JSON.stringify(value).length <= 64_000 ? null : "invalid";
+  } catch {
+    return "invalid";
+  }
 }
 
 function isValidTimestamp(value: string): boolean {

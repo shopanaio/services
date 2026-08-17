@@ -39,11 +39,11 @@ export function internalStorefrontError(): StorefrontCustomerUserError {
 export function validateExpectedRevision(
   value: number
 ): StorefrontCustomerUserError | null {
-  return Number.isSafeInteger(value) && value >= 0
+  return Number.isSafeInteger(value) && value >= 1
     ? null
     : storefrontError(
         "INVALID_REVISION",
-        "Expected revision must be a non-negative safe integer",
+        "Expected revision must be a positive safe integer",
         ["expectedRevision"]
       );
 }
@@ -56,7 +56,8 @@ export function revisionAcquireError(
       return storefrontError(
         "REVISION_CONFLICT",
         "Customer was modified by another request",
-        ["expectedRevision"]
+        ["expectedRevision"],
+        true
       );
     case "inactive":
     case "not_found":

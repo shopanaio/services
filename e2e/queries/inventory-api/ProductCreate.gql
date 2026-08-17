@@ -27,7 +27,6 @@ mutation ProductCreate($input: ProductCreateInput!) {
           id
           name
           slug
-          displayType
           sortIndex
           values {
             id

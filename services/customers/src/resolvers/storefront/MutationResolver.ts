@@ -2,6 +2,7 @@ import {
   decodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
+import { hashContent } from "@shopana/shared-kernel";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import type {
   CustomerComparisonCategoryClearWorkflowInput,
@@ -898,12 +899,16 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       };
     }
     const normalizedKey = idempotencyKey.trim();
-    if (!normalizedKey) {
+    if (
+      !normalizedKey ||
+      normalizedKey.length > 256 ||
+      !/^[\x21-\x7e]+$/.test(normalizedKey)
+    ) {
       return {
         userErrors: [
           userError(
             "INVALID_IDEMPOTENCY_KEY",
-            "Idempotency key is required",
+            "Idempotency key must contain 1 to 256 visible ASCII characters",
             ["idempotencyKey"],
           ),
         ],
@@ -980,9 +985,22 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         clientKey: `${customerId}:${idempotencyKey}`,
         organizationId: this.$ctx.store.organizationId,
         apiKeyId: this.$ctx.storefrontAccess!.credentialId,
+        requestHash: semanticRequestHash(input),
       });
       return { ok: true, value };
-    } catch {
+    } catch (error) {
+      if (isIdempotencyConflict(error)) {
+        return {
+          ok: false,
+          userErrors: [
+            userError(
+              "IDEMPOTENCY_CONFLICT",
+              "Idempotency key was already used with a different request",
+              ["idempotencyKey"],
+            ),
+          ],
+        };
+      }
       return {
         ok: false,
         userErrors: [
@@ -996,6 +1014,22 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       };
     }
   }
+}
+
+function semanticRequestHash<TInput>(input: TInput): string {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return hashContent(input);
+  }
+  const record = input as Record<string, unknown>;
+  return hashContent("params" in record ? record.params : input);
+}
+
+function isIdempotencyConflict(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    error.code === "IDEMPOTENCY_CONFLICT"
+  );
 }
 
 function mapAddressInput(input: CustomerAddressInput) {

@@ -5,6 +5,7 @@ import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, {
   fastifyApolloDrainPlugin,
 } from "@as-integrations/fastify";
+import { InvalidCursorError } from "@shopana/drizzle-query";
 import {
   getServiceConfig,
   isDevelopment,
@@ -85,16 +86,31 @@ export async function startStorefrontServer(
     ],
     formatError: (formattedError, error) => {
       const graphQLError = unwrapTypeResolverGraphQLError(error);
-      return graphQLError
-        ? {
-            ...formattedError,
-            message: graphQLError.message,
-            extensions: {
-              ...formattedError.extensions,
-              ...graphQLError.extensions,
-            },
-          }
-        : formattedError;
+      if (graphQLError) {
+        return {
+          ...formattedError,
+          message: graphQLError.message,
+          extensions: withoutStacktrace({
+            ...formattedError.extensions,
+            ...graphQLError.extensions,
+          }),
+        };
+      }
+      const original = unwrapTypeResolverError(error);
+      if (original instanceof InvalidCursorError) {
+        return {
+          message: original.message,
+          locations: formattedError.locations,
+          path: formattedError.path,
+          extensions: { code: "BAD_USER_INPUT" },
+        };
+      }
+      return {
+        message: "Internal server error",
+        locations: formattedError.locations,
+        path: formattedError.path,
+        extensions: { code: "INTERNAL_SERVER_ERROR" },
+      };
     },
   });
   await apollo.start();
@@ -152,7 +168,19 @@ export async function startStorefrontServer(
 }
 
 function unwrapTypeResolverGraphQLError(error: unknown): GraphQLError | null {
+  const current = unwrapTypeResolverError(error);
+  return current instanceof GraphQLError ? current : null;
+}
+
+function unwrapTypeResolverError(error: unknown): unknown {
   let current = unwrapResolverError(error);
   while (current instanceof ResolverError) current = current.originalError;
-  return current instanceof GraphQLError ? current : null;
+  return current;
+}
+
+function withoutStacktrace(
+  extensions: Readonly<Record<string, unknown>>,
+): Record<string, unknown> {
+  const { stacktrace: _stacktrace, ...safeExtensions } = extensions;
+  return safeExtensions;
 }
