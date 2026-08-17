@@ -276,14 +276,45 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     }
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
-  })
   private async emitStatusChanged(
     input: CustomerDataRequestProcessWorkflowInput,
     result: CustomerDataRequestProcessResult,
   ): Promise<void> {
     if (!isEmittedStatus(result.status)) return;
+
+    const payload = await this.prepareStatusChangedEvent(input, result);
+    await this.broker.runWorkflow(
+      "events.emit",
+      {
+        eventType: "customerDataRequestStatusChanged",
+        payload,
+        context: {
+          organizationId: input.context.organizationId,
+          userId: input.context.userId,
+        },
+        subject: { type: "customerDataRequest", id: input.dataRequestId },
+        actor: input.context.userId
+          ? { type: "user" as const, id: input.context.userId }
+          : { type: "service" as const, id: "customers" },
+        emitKey: `customer-data-request:${input.dataRequestId}:${result.status}`,
+      },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId: DBOS.workflowID!,
+        stepId: `emitStatus:${result.status}`,
+        callId: input.dataRequestId,
+      },
+    );
+  }
+
+  @WorkflowStep({
+    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
+  })
+  private async prepareStatusChangedEvent(
+    input: CustomerDataRequestProcessWorkflowInput,
+    result: CustomerDataRequestProcessResult,
+  ): Promise<CustomerDataRequestStatusChangedEvent["payload"]> {
     const delivery = await this.kernel.runScript(
       CustomerDataRequestNotificationSnapshotScript,
       { dataRequestId: input.dataRequestId },
@@ -291,7 +322,7 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     );
     const includeRecipient = delivery.type !== "ERASURE";
     const occurredAt = result.completedAt ?? new Date().toISOString();
-    const payload: CustomerDataRequestStatusChangedEvent["payload"] = {
+    return {
       dataRequestId: input.dataRequestId,
       customerId: result.customerId,
       storeId: input.context.storeId,
@@ -324,34 +355,8 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
         },
       },
     };
-    await this.broker.runWorkflow(
-      "events.emit",
-      {
-        eventType: "customerDataRequestStatusChanged",
-        payload,
-        context: {
-          organizationId: input.context.organizationId,
-          userId: input.context.userId,
-        },
-        subject: { type: "customerDataRequest", id: input.dataRequestId },
-        actor: input.context.userId
-          ? { type: "user" as const, id: input.context.userId }
-          : { type: "service" as const, id: "customers" },
-        emitKey: `customer-data-request:${input.dataRequestId}:${result.status}`,
-      },
-      {
-        source: "workflow",
-        organizationId: input.context.organizationId,
-        workflowId: DBOS.workflowID!,
-        stepId: `emitStatus:${result.status}`,
-        callId: input.dataRequestId,
-      },
-    );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
-  })
   private async emitCustomerRedacted(
     input: CustomerDataRequestProcessWorkflowInput,
     result: CustomerDataRequestProcessResult,
@@ -391,9 +396,6 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
-  })
   private async emitCustomerCorrected(
     input: CustomerDataRequestProcessWorkflowInput,
     result: CustomerDataRequestProcessResult,
