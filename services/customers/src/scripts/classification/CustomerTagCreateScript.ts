@@ -1,6 +1,7 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
+import { normalizeTagDisplayName } from "../../repositories/classification/CustomerTagRepository.js";
 
 export interface CustomerTagCreateParams {
   name: string;
@@ -19,7 +20,7 @@ export class CustomerTagCreateScript extends BaseScript<
   protected async execute(
     params: CustomerTagCreateParams
   ): Promise<CustomerTagCreateResult> {
-    const name = params.name.trim();
+    const name = normalizeTagDisplayName(params.name);
     if (name.length === 0) {
       return {
         tag: undefined,
@@ -30,6 +31,16 @@ export class CustomerTagCreateScript extends BaseScript<
             field: ["name"],
           },
         ],
+      };
+    }
+    if ([...name].length > 255) {
+      return {
+        tag: undefined,
+        userErrors: [{
+          message: "Tag name cannot exceed 255 characters",
+          code: "INVALID_NAME",
+          field: ["name"],
+        }],
       };
     }
     if (await this.repository.tag.findByName(name)) {

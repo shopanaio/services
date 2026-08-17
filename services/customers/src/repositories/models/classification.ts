@@ -32,7 +32,7 @@ export const customerGroup = customersSchema.table(
     description: text("description"),
     isDefault: boolean("is_default").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
-    revision: integer("revision").notNull().default(0),
+    revision: integer("revision").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -52,7 +52,7 @@ export const customerGroup = customersSchema.table(
     ),
     check(
       "customer_group_revision_nonnegative_check",
-      sql`${table.revision} >= 0`
+      sql`${table.revision} >= 1`
     ),
     uniqueIndex("customer_group_store_code_unique")
       .on(table.storeId, table.code)
@@ -97,10 +97,6 @@ export const customerGroupMembership = customersSchema.table(
     unique("customer_group_membership_customer_group_unique").on(
       table.customerId,
       table.groupId
-    ),
-    check(
-      "customer_group_membership_expiry_check",
-      sql`${table.expiresAt} IS NULL OR ${table.expiresAt} > ${table.assignedAt}`
     ),
     uniqueIndex("customer_group_membership_primary_unique")
       .on(table.customerId)
@@ -206,8 +202,8 @@ export const customerSegment = customersSchema.table(
     query: text("query"),
     definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
     createdById: text("created_by_id"),
-    revision: integer("revision").notNull().default(0),
-    definitionRevision: integer("definition_revision").notNull().default(0),
+    revision: integer("revision").notNull().default(1),
+    definitionRevision: integer("definition_revision").notNull().default(1),
     evaluationGeneration: integer("evaluation_generation").notNull().default(0),
     materializationStatus: customerSegmentMaterializationStatusEnum(
       "materialization_status"
@@ -241,11 +237,11 @@ export const customerSegment = customersSchema.table(
     ),
     check(
       "customer_segment_revision_nonnegative_check",
-      sql`${table.revision} >= 0`
+      sql`${table.revision} >= 1`
     ),
     check(
       "customer_segment_definition_revision_nonnegative_check",
-      sql`${table.definitionRevision} >= 0`
+      sql`${table.definitionRevision} >= 1`
     ),
     check(
       "customer_segment_evaluation_generation_nonnegative_check",
@@ -305,10 +301,6 @@ export const customerSegmentMembership = customersSchema.table(
     unique("customer_segment_membership_customer_segment_unique").on(
       table.customerId,
       table.segmentId
-    ),
-    check(
-      "customer_segment_membership_expiry_check",
-      sql`${table.expiresAt} IS NULL OR ${table.expiresAt} > ${table.evaluatedAt}`
     ),
     check(
       "customer_segment_membership_definition_revision_check",

@@ -33,6 +33,16 @@ export const typeResolvers: Partial<Resolvers> = {
 
   Node: {
     __resolveType: (obj: unknown) => {
+      const explicitTypeName =
+        typeof obj === "object" && obj !== null
+          ? (obj as { __typename?: unknown }).__typename
+          : undefined;
+      if (
+        typeof explicitTypeName === "string" &&
+        NODE_TYPE_NAMES.has(explicitTypeName)
+      ) {
+        return explicitTypeName;
+      }
       if (obj instanceof CustomerResolver) return "Customer";
       if (obj instanceof CustomerAddressResolver) return "CustomerAddress";
       if (obj instanceof CustomerTaxIdentifierResolver) {
@@ -73,7 +83,17 @@ export const typeResolvers: Partial<Resolvers> = {
       if (obj instanceof CustomerExternalReferenceResolver) {
         return "CustomerExternalReference";
       }
-      return null;
+      // The type-resolver executor may proxy or copy resolver instances before
+      // Apollo asks for the concrete Node type. In that case `instanceof` is
+      // not stable across the execution boundary, while the resolver class
+      // name remains an explicit, closed discriminator.
+      const constructorName =
+        typeof obj === "object" && obj !== null
+          ? (obj as { constructor?: { name?: unknown } }).constructor?.name
+          : undefined;
+      return typeof constructorName === "string"
+        ? NODE_RESOLVER_TYPES[constructorName] ?? null
+        : null;
     },
   },
 
@@ -142,3 +162,26 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
 };
+
+const NODE_RESOLVER_TYPES: Readonly<Record<string, string>> = Object.freeze({
+  CustomerResolver: "Customer",
+  CustomerAddressResolver: "CustomerAddress",
+  CustomerTaxIdentifierResolver: "CustomerTaxIdentifier",
+  CustomerTaxExemptionResolver: "CustomerTaxExemption",
+  CustomerConsentResolver: "CustomerConsent",
+  CustomerComparisonResolver: "CustomerComparison",
+  CustomerComparisonItemResolver: "CustomerComparisonItem",
+  CustomerConsentEventResolver: "CustomerConsentEvent",
+  CustomerGroupResolver: "CustomerGroup",
+  CustomerGroupMembershipResolver: "CustomerGroupMembership",
+  CustomerTagResolver: "CustomerTag",
+  CustomerTagAssignmentResolver: "CustomerTagAssignment",
+  CustomerSegmentResolver: "CustomerSegment",
+  CustomerSegmentMembershipResolver: "CustomerSegmentMembership",
+  CustomerMonetaryStatisticsResolver: "CustomerMonetaryStatistics",
+  CustomerMergeResolver: "CustomerMerge",
+  CustomerDataRequestResolver: "CustomerDataRequest",
+  CustomerExternalReferenceResolver: "CustomerExternalReference",
+});
+
+const NODE_TYPE_NAMES = new Set(Object.values(NODE_RESOLVER_TYPES));

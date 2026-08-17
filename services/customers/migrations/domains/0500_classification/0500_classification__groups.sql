@@ -48,9 +48,7 @@ CREATE TABLE "customers"."customer_group_membership" (
     REFERENCES "customers"."customer_group" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "customer_group_membership_customer_group_unique"
-    UNIQUE ("customer_id", "group_id"),
-  CONSTRAINT "customer_group_membership_expiry_check"
-    CHECK ("expires_at" IS NULL OR "expires_at" > "assigned_at")
+    UNIQUE ("customer_id", "group_id")
 );
 
 CREATE UNIQUE INDEX "customer_group_membership_primary_unique"

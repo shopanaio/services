@@ -74,6 +74,15 @@ export interface FileLinkResult {
   fileActive: boolean;
 }
 
+export interface ValidateOwnedFileParams {
+  fileId: string;
+  owner: FileOwnerRef;
+}
+
+export interface ValidateOwnedFileResult {
+  valid: boolean;
+}
+
 export interface FileUnlinkParams {
   fileId: string;
   entityRef: EntityRef;

@@ -457,6 +457,17 @@ function serializeError(error: unknown): { code: string; message: string } {
   if (error instanceof CustomerDataRequestProcessError) {
     return { code: error.code, message: error.message };
   }
+  // DBOS may reconstruct an error thrown by a durable step, so its prototype
+  // is not guaranteed to survive replay. Preserve only known, safe domain
+  // failures by their closed code namespace.
+  const value = error as { code?: unknown; message?: unknown };
+  if (
+    typeof value?.code === "string" &&
+    value.code.startsWith("CUSTOMER_DATA_REQUEST_") &&
+    typeof value.message === "string"
+  ) {
+    return { code: value.code, message: value.message };
+  }
   return {
     code: "CUSTOMER_DATA_REQUEST_PROCESSING_FAILED",
     message: "Customer data request processing failed",

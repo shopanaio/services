@@ -63,7 +63,7 @@ export class CustomerSegmentCreateScript extends BaseScript<
               })),
           };
         }
-        query = validation.canonicalQuery;
+        query = params.query!.trim();
         definition = validation.definition as unknown as Record<string, unknown>;
       }
       const segment = await this.repository.segment.create({

@@ -35,7 +35,7 @@ abstract class CustomerStatisticsEventHandlers extends EventHandlers {
       | CheckoutCustomerActivityRecordedEvent
       | OrderRefundedEvent,
     params: CustomerStatisticsProjectionWorkflowInput["params"],
-  ): Promise<EventHandlerResponse<{ customerId: string; changed: boolean }>> {
+  ): Promise<EventHandlerResponse<{ customerId: string }>> {
     try {
       const input: CustomerStatisticsProjectionWorkflowInput = {
         params,
@@ -45,18 +45,25 @@ abstract class CustomerStatisticsEventHandlers extends EventHandlers {
           requestId: `event-${event.eventId}`,
         },
       };
-      const result = await this.broker.runWorkflow<
-        { customerId: string; changed: boolean; updatedAt: string },
-        CustomerStatisticsProjectionWorkflowInput
-      >("customers.customerStatisticsProject", input, {
-        source: "content",
-        resourceId: `${event.payload.storeId}:${params.customerId}`,
-        operation: "customerStatisticsProject",
-        contentHash: hashContent(event),
-      });
+      await this.broker.startWorkflow(
+        "customers.customerStatisticsProject",
+        input,
+        {
+          source: "content",
+          resourceId: `${event.payload.storeId}:${params.customerId}`,
+          operation: "customerStatisticsProject",
+          contentHash: hashContent(event),
+        },
+        {
+          queueName: "customer_statistics_projection",
+          enqueueOptions: {
+            queuePartitionKey: `${event.payload.storeId}:${params.customerId}`,
+          },
+        },
+      );
       return {
         success: true,
-        data: { customerId: result.customerId, changed: result.changed },
+        data: { customerId: params.customerId },
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

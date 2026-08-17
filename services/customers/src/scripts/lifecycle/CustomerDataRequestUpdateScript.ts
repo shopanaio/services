@@ -39,6 +39,18 @@ export class CustomerDataRequestUpdateScript extends BaseScript<
     }
 
     const errors: UserError[] = [];
+    if (
+      cancel &&
+      Object.keys(params.operations).some(
+        (field) => field !== "cancel" && hasOwn(params.operations, field),
+      )
+    ) {
+      errors.push({
+        message: "Cancel cannot be combined with request updates",
+        code: "CONFLICTING_OPERATION",
+        field: ["operations"],
+      });
+    }
     const customerId = hasOwn(params.operations, "customerId")
       ? params.operations.customerId
       : current.customerId;

@@ -39,6 +39,12 @@ export class CustomerConsentsUpdateScript extends BaseScript<
           code: "INVALID_CONTACT_POINT",
           field: ["set", String(index), "contactPoint"],
         });
+      } else if (!isValidContactPoint(input.channel, input.contactPoint)) {
+        errors.push({
+          message: "Contact point does not match the selected channel",
+          code: "INVALID_CONTACT_POINT",
+          field: ["set", String(index), "contactPoint"],
+        });
       }
     }
     if (errors.length > 0) return sectionErrors(errors);
@@ -69,5 +75,21 @@ export class CustomerConsentsUpdateScript extends BaseScript<
 
   protected handleError(_error: unknown): CustomerSectionResult {
     return internalSectionError();
+  }
+}
+
+function isValidContactPoint(
+  channel: CustomerConsentsUpdateOperation["params"]["set"][number]["channel"],
+  value: string,
+): boolean {
+  const contactPoint = value.trim();
+  switch (channel) {
+    case "EMAIL":
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(contactPoint);
+    case "SMS":
+    case "WHATSAPP":
+      return /^\+[1-9][0-9]{6,14}$/u.test(contactPoint);
+    case "PUSH":
+      return contactPoint.length > 0;
   }
 }

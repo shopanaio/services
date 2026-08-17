@@ -23,6 +23,18 @@ export class CustomerGroupDeleteScript extends BaseScript<
       return notFound();
     }
     const customerIds = await this.repository.group.customerIdsByGroupId(params.id);
+    if (group.isDefault || customerIds.length > 0) {
+      return {
+        deletedGroupId: undefined,
+        userErrors: [{
+          message: group.isDefault
+            ? "The default customer group cannot be deleted"
+            : "A customer group with active memberships cannot be deleted",
+          code: "DEPENDENCY_EXISTS",
+          field: ["id"],
+        }],
+      };
+    }
 
     const deleted = await this.repository.group.softDelete(params.id);
     if (!deleted) {

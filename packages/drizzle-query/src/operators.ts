@@ -91,15 +91,13 @@ const OPERATOR_HANDLERS: Record<string, OperatorHandler> = {
     return notInArray(column, value);
   },
   is: (column, value) => {
-    if (value === null) return isNull(column);
-    if (value === true) return eq(column, true);
-    if (value === false) return eq(column, false);
+    if (value === null || value === true) return isNull(column);
+    if (value === false) return isNotNull(column);
     return null;
   },
   isnot: (column, value) => {
-    if (value === null) return isNotNull(column);
-    if (value === true) return eq(column, false);
-    if (value === false) return eq(column, true);
+    if (value === null || value === true) return isNotNull(column);
+    if (value === false) return isNull(column);
     return null;
   },
   // String convenience operators
@@ -240,8 +238,8 @@ export function validateFilterValue(
       return { valid: true };
     case "is":
     case "isnot":
-      if (value !== null) {
-        return { valid: false, reason: "Only null is supported" };
+      if (value !== null && typeof value !== "boolean") {
+        return { valid: false, reason: "Expected a boolean null-check flag" };
       }
       return { valid: true };
     default:

@@ -66,11 +66,11 @@ SELECT
 
   -- Admin "Orders" means completed orders. Preserve the total counter under
   -- a separate name for consumers that need all created orders.
-  COALESCE(statistics.completed_orders_count, 0) AS orders_count,
-  COALESCE(statistics.orders_count, 0) AS total_orders_count,
-  COALESCE(statistics.completed_orders_count, 0) AS completed_orders_count,
-  COALESCE(statistics.cancelled_orders_count, 0) AS cancelled_orders_count,
-  COALESCE(statistics.returns_count, 0) AS returns_count,
+  statistics.completed_orders_count AS orders_count,
+  statistics.orders_count AS total_orders_count,
+  statistics.completed_orders_count,
+  statistics.cancelled_orders_count,
+  statistics.returns_count,
   statistics.first_order_id,
   statistics.first_order_at,
   statistics.last_order_id,
@@ -79,11 +79,11 @@ SELECT
   statistics.updated_at AS statistics_updated_at,
 
   monetary_statistics.currency_code,
-  COALESCE(monetary_statistics.orders_count, 0) AS monetary_orders_count,
-  COALESCE(monetary_statistics.total_spent_minor, 0) AS total_spent_minor,
-  COALESCE(monetary_statistics.total_refunded_minor, 0) AS total_refunded_minor,
-  COALESCE(monetary_statistics.net_spent_minor, 0) AS net_spent_minor,
-  COALESCE(monetary_statistics.average_order_value_minor, 0) AS average_order_value_minor,
+  monetary_statistics.orders_count AS monetary_orders_count,
+  monetary_statistics.total_spent_minor,
+  monetary_statistics.total_refunded_minor,
+  monetary_statistics.net_spent_minor,
+  monetary_statistics.average_order_value_minor,
   monetary_statistics.updated_at AS monetary_statistics_updated_at
 FROM "customers"."customer" customer
 LEFT JOIN "customers"."customer_address" default_shipping_address

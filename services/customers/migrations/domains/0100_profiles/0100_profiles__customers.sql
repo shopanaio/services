@@ -30,7 +30,7 @@ CREATE TABLE "customers"."customer" (
   "moderation_note" text,
   "source" varchar(64) NOT NULL DEFAULT 'unknown',
   "created_by_user_id" text,
-  "revision" integer NOT NULL DEFAULT 0,
+  "revision" integer NOT NULL DEFAULT 1,
   "last_activity_at" timestamptz,
   "merged_into_customer_id" uuid,
   "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -74,7 +74,7 @@ CREATE TABLE "customers"."customer" (
   CONSTRAINT "customer_phone_e164_check"
     CHECK ("phone_e164" IS NULL OR "phone_e164" ~ '^\+[1-9][0-9]{6,14}$'),
   CONSTRAINT "customer_revision_nonnegative_check"
-    CHECK ("revision" >= 0),
+    CHECK ("revision" >= 1),
   CONSTRAINT "customer_blocked_reason_check"
     CHECK (
       ("lifecycle_status" <> 'BLOCKED' AND "blocked_reason" IS NULL)

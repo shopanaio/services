@@ -33,6 +33,7 @@ import { EntityDeletedScript } from "../scripts/backRef/EntityDeletedScript.js";
 import { SyncEntityFilesScript } from "../scripts/backRef/SyncEntityFilesScript.js";
 import {
   fileLinkSchema,
+  validateOwnedFileSchema,
   fileUnlinkSchema,
   fileLinkManySchema,
   fileUnlinkManySchema,
@@ -40,6 +41,8 @@ import {
   syncEntityFilesSchema,
   type FileLinkParams,
   type FileLinkResult,
+  type ValidateOwnedFileParams,
+  type ValidateOwnedFileResult,
   type FileUnlinkParams,
   type FileUnlinkResult,
   type FileLinkManyParams,
@@ -119,6 +122,20 @@ export class MediaBrokerActions extends BrokerActions {
   @ZodSchema(fileLinkSchema)
   async fileLink(params: FileLinkParams): Promise<FileLinkResult> {
     return this.kernel.runScript(FileLinkScript, params);
+  }
+
+  /** Read-only tenant ownership validation for cross-service references. */
+  @Action("validateOwnedFile")
+  @ZodSchema(validateOwnedFileSchema)
+  async validateOwnedFile(
+    params: ValidateOwnedFileParams,
+  ): Promise<ValidateOwnedFileResult> {
+    const file = await this.kernel.repository.file.findByOwner(
+      params.fileId,
+      params.owner.type,
+      params.owner.id,
+    );
+    return { valid: file !== null };
   }
 
   /**

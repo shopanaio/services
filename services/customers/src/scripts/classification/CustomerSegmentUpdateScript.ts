@@ -250,7 +250,7 @@ export class CustomerSegmentUpdateScript extends BaseScript<
               })),
           };
         }
-        patch.query = validation.canonicalQuery;
+        patch.query = params.operations.definition.query.trim();
         patch.definition = validation.definition as unknown as Record<string, unknown>;
       } catch (error) {
         if (error instanceof SegmentStoreContextNotReadyError) {

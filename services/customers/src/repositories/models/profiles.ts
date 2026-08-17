@@ -60,7 +60,7 @@ export const customer = customersSchema.table(
     moderationNote: text("moderation_note"),
     source: varchar("source", { length: 64 }).notNull().default("unknown"),
     createdByUserId: text("created_by_user_id"),
-    revision: integer("revision").notNull().default(0),
+    revision: integer("revision").notNull().default(1),
     lastActivityAt: timestamp("last_activity_at", {
       withTimezone: true,
       mode: "string",
@@ -119,7 +119,7 @@ export const customer = customersSchema.table(
     ),
     check(
       "customer_revision_nonnegative_check",
-      sql`${table.revision} >= 0`
+      sql`${table.revision} >= 1`
     ),
     check(
       "customer_blocked_reason_check",

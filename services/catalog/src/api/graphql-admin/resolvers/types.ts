@@ -160,6 +160,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.Product,
       );
+      if (!(await ctx.loaders.productReference.load(productId))) return null;
       return ProductReferenceResolver.load(productId, fieldInfo, ctx);
     },
   },
@@ -175,6 +176,7 @@ export const typeResolvers: Partial<Resolvers> = {
         reference.id,
         GlobalIdEntity.Variant,
       );
+      if (!(await ctx.loaders.variant.load(variantId))) return null;
       return VariantResolver.load(variantId, fieldInfo, ctx);
     },
   },

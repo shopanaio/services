@@ -7,6 +7,7 @@ import {
   ServiceBroker,
   Workflow,
   WorkflowStep,
+  type WorkflowExecutionContext,
 } from "@shopana/shared-kernel";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
@@ -175,11 +176,15 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(
-    input: CustomerMergeCreateWorkflowInput
+    input: CustomerMergeCreateWorkflowInput,
+    workflowContext?: WorkflowExecutionContext,
   ): Promise<CustomerMergeCreateWorkflowResult> {
+    if (!workflowContext) {
+      throw new Error("Workflow authorization context is required");
+    }
     const result = await this.stepCreate(input);
     if (result.merge && result.userErrors.length === 0) {
-      await this.stepStartProcess(input, result.merge.id);
+      await this.stepStartProcess(input, result.merge.id, workflowContext);
     }
     return result;
   }
@@ -196,6 +201,7 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
   private stepStartProcess(
     input: CustomerMergeCreateWorkflowInput,
     mergeId: string,
+    workflowContext: WorkflowExecutionContext,
   ) {
     return this.broker.startWorkflow(
       "customers.customerMergeProcess",
@@ -207,6 +213,7 @@ export class CustomerMergeCreateWorkflow extends CustomerEntityCreateWorkflow {
         stepId: "startCustomerMergeProcess",
         callId: mergeId,
       },
+      { workflowContext },
     );
   }
 }

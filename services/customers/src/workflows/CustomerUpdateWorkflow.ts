@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { Media } from "@shopana/broker-types";
 import type { CustomerUpdatedReason } from "@shopana/events";
 import {
   BrokerWorkflows,
@@ -17,6 +18,7 @@ import {
   CustomerConsentsUpdateScript,
   CustomerGroupsUpdateScript,
   CustomerPatchScript,
+  validateCustomerPatch,
   CustomerSegmentsUpdateScript,
   CustomerTagsUpdateScript,
   CustomerTaxExemptionsUpdateScript,
@@ -51,6 +53,18 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   async run(
     input: CustomerUpdateWorkflowInput
   ): Promise<CustomerUpdateWorkflowResult> {
+    const validationResults = await this.stepValidateOperations(input);
+    if (validationResults.some((result) => result.errors.length > 0)) {
+      const rejectedResults = validationResults.map((result) => ({
+        ...result,
+        applied: false,
+      }));
+      return {
+        customer: null,
+        operationResults: rejectedResults,
+        userErrors: rejectedResults.flatMap((result) => result.errors),
+      };
+    }
     const acquired = await this.stepAcquireRevision(
       input.customerId,
       input.expectedRevision
@@ -88,11 +102,83 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
       await this.workflowEmitEvent(input, updatedReasons);
     }
 
+    const userErrors = operationResults.flatMap((result) => result.errors);
+    if (userErrors.length > 0 && reasons.size === 0) {
+      await this.stepReleaseRevision(input.customerId, acquired.revision);
+    }
     return {
-      customer: { id: input.customerId, revision: acquired.revision },
+      customer: userErrors.length === 0
+        ? { id: input.customerId, revision: acquired.revision }
+        : null,
       operationResults,
-      userErrors: operationResults.flatMap((result) => result.errors),
+      userErrors,
     };
+  }
+
+  @WorkflowStep()
+  private async stepValidateOperations(
+    input: CustomerUpdateWorkflowInput,
+  ): Promise<CustomerUpdateOperationResult[]> {
+    const results: CustomerUpdateOperationResult[] = [];
+    for (const operation of input.operations) {
+      let errors: CustomerSectionResult["userErrors"] = [];
+      if (
+        operation.type === "profileUpdate" ||
+        operation.type === "contactUpdate" ||
+        operation.type === "companyUpdate" ||
+        operation.type === "noteUpdate" ||
+        operation.type === "moderationUpdate"
+      ) {
+        errors = validateCustomerPatch(operation.params);
+        if (operation.type === "contactUpdate" && operation.params.email) {
+          const owner = await this.kernel.repository.customer.findByEmail(
+            operation.params.email,
+          );
+          if (owner && owner.id !== input.customerId) {
+            errors.push({
+              message: "A customer with this email already exists",
+              code: "DUPLICATE_EMAIL",
+              field: ["email"],
+            });
+          }
+        }
+      } else if (operation.type === "statusUpdate") {
+        errors = validateCustomerPatch(statusPatch(operation.params));
+      } else if (operation.type === "taxExemptionUpdate") {
+        errors = await this.validateCertificateFiles(operation, input.context.storeId);
+      }
+      const prefixed = prefixErrors(errors, operation);
+      results.push({
+        type: operation.type,
+        applied: prefixed.length === 0,
+        errors: prefixed,
+      });
+    }
+    return results;
+  }
+
+  private async validateCertificateFiles(
+    operation: Extract<CustomerUpdateOperation, { type: "taxExemptionUpdate" }>,
+    storeId: string,
+  ): Promise<CustomerSectionResult["userErrors"]> {
+    const errors: CustomerSectionResult["userErrors"] = [];
+    for (const reference of certificateReferences(operation.params)) {
+      const result = await this.broker.call<
+        Media.ValidateOwnedFileResult,
+        Media.ValidateOwnedFileParams
+      >("media.validateOwnedFile", {
+        fileId: reference.fileId,
+        owner: { type: "store", id: storeId },
+      });
+      if (!result.valid) {
+        errors.push({
+          message: "Certificate file was not found",
+          code: "FILE_NOT_FOUND",
+          field: reference.field,
+        });
+      }
+    }
+    return errors;
   }
 
   @WorkflowStep()
@@ -124,6 +210,11 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
             field: ["customerId"],
           },
     };
+  }
+
+  @WorkflowStep()
+  private stepReleaseRevision(customerId: string, revision: number) {
+    return this.kernel.repository.customer.releaseRevision(customerId, revision);
   }
 
   private runOperation(
@@ -365,6 +456,37 @@ function statusPatch(
     blockedReason:
       params.status === "BLOCKED" ? params.blockedReason?.trim() || null : null,
   };
+}
+
+function certificateReferences(
+  operations: Extract<
+    CustomerUpdateOperation,
+    { type: "taxExemptionUpdate" }
+  >["params"],
+): Array<{ fileId: string; field: string[] }> {
+  return [
+    ...operations.create.flatMap((input, index) =>
+      input.certificateFileId
+        ? [{
+            fileId: input.certificateFileId,
+            field: ["create", String(index), "certificateFileId"],
+          }]
+        : [],
+    ),
+    ...operations.update.flatMap((input, index) =>
+      input.operations.certificateFileId
+        ? [{
+            fileId: input.operations.certificateFileId,
+            field: [
+              "update",
+              String(index),
+              "operations",
+              "certificateFileId",
+            ],
+          }]
+        : [],
+    ),
+  ];
 }
 
 function prefixErrors(

@@ -37,6 +37,7 @@ export class CustomerSegmentDeleteScript extends BaseScript<
     if (!deleted) {
       return revisionConflict();
     }
+    await this.repository.segment.deleteMembershipsBySegmentId(params.id);
 
     this.logger.info(
       { segmentId: params.id, revision: segment.revision },

@@ -178,7 +178,7 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
       storeId: this.storeId,
       identifierType: data.identifierType.trim(),
       countryCode: data.countryCode?.trim().toUpperCase() ?? null,
-      value: data.value.trim(),
+      value: normalizeTaxIdentifier(data.value),
       normalizedValue:
         data.normalizedValue ?? normalizeTaxIdentifier(data.value),
       status: data.status ?? "UNVERIFIED",
@@ -214,7 +214,9 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
     const current = await this.findOwnedById(customerId, id);
     if (!current) return null;
     if (patch.isPrimary === true) await this.clearPrimary(current.customerId, id);
-    const value = patch.value?.trim();
+    const value = patch.value === undefined
+      ? undefined
+      : normalizeTaxIdentifier(patch.value);
     const rows = await this.connection
       .update(customerTaxIdentifier)
       .set({
@@ -373,5 +375,9 @@ export class CustomerTaxIdentifierRepository extends BaseRepository {
 }
 
 export function normalizeTaxIdentifier(value: string): string {
-  return value.trim().replace(/\s+/g, "").toUpperCase();
+  return value
+    .normalize("NFKC")
+    .trim()
+    .replace(/[\s._\-/]+/gu, "")
+    .toUpperCase();
 }

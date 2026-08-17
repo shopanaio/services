@@ -569,26 +569,28 @@ export class CustomersStorefrontTestKit {
     const capture = await this.request.get(authorize.toString(), { maxRedirects: 0 });
     expect(capture.status()).toBe(302);
     const captureLocation = requiredLocation(capture);
-    const loginRedirect = await this.request.get(
-      new URL(captureLocation, endpoint(this.realm, '')).toString(),
-      { maxRedirects: 0 },
-    );
-    expect(loginRedirect.status()).toBe(303);
-    const loginPage = await this.request.get(
-      new URL(requiredLocation(loginRedirect), endpoint(this.realm, '')).toString(),
-    );
-    expect(loginPage.ok(), await loginPage.text()).toBe(true);
-    const csrf = hiddenValue(await loginPage.text(), 'csrf');
-    const login = await this.request.post(endpoint(this.realm, '/login/password'), {
-      headers: {
-        origin: this.realm.origin,
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      form: { csrf, email, password: defaultPassword },
-      maxRedirects: 0,
-    });
-    expect([302, 303], await login.text()).toContain(login.status());
-    const callback = new URL(requiredLocation(login), this.realm.origin);
+    let callback = new URL(captureLocation, endpoint(this.realm, ''));
+
+    if (!callback.searchParams.has('code')) {
+      const loginRedirect = await this.request.get(callback.toString(), { maxRedirects: 0 });
+      expect(loginRedirect.status()).toBe(303);
+      const loginPage = await this.request.get(
+        new URL(requiredLocation(loginRedirect), endpoint(this.realm, '')).toString(),
+      );
+      expect(loginPage.ok(), await loginPage.text()).toBe(true);
+      const csrf = hiddenValue(await loginPage.text(), 'csrf');
+      const login = await this.request.post(endpoint(this.realm, '/login/password'), {
+        headers: {
+          origin: this.realm.origin,
+          'content-type': 'application/x-www-form-urlencoded',
+        },
+        form: { csrf, email, password: defaultPassword },
+        maxRedirects: 0,
+      });
+      expect([302, 303], await login.text()).toContain(login.status());
+      callback = new URL(requiredLocation(login), this.realm.origin);
+    }
+
     const code = callback.searchParams.get('code');
     expect(code).toBeTruthy();
 

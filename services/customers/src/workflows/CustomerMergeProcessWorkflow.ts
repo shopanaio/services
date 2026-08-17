@@ -103,9 +103,6 @@ export class CustomerMergeProcessWorkflow extends BrokerWorkflows<
     );
   }
 
-  @WorkflowStep({
-    retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 },
-  })
   private async emitCustomerMerged(
     input: CustomerMergeProcessWorkflowInput,
     result: CustomerMergeProcessResult,

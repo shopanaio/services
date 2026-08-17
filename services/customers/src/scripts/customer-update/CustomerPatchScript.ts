@@ -29,7 +29,7 @@ export class CustomerPatchScript extends BaseScript<
       ]);
     }
 
-    const errors = validatePatch(params.patch);
+    const errors = validateCustomerPatch(params.patch);
     if (params.patch.email) {
       const owner = await this.repository.customer.findByEmail(params.patch.email);
       if (owner && owner.id !== params.customerId) {
@@ -106,7 +106,7 @@ function patchDependencies(patch: CustomerPatch): SegmentDependency[] {
   return [...dependencies];
 }
 
-function validatePatch(patch: CustomerPatch) {
+export function validateCustomerPatch(patch: CustomerPatch) {
   const errors: Array<{ message: string; code: string; field: string[] }> = [];
 
   if (

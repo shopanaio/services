@@ -1,6 +1,7 @@
 import {
   createQuery,
   createRelayQuery,
+  InvalidCursorError,
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import { ReadOnly } from "@shopana/shared-kernel";
@@ -325,7 +326,7 @@ export class CustomerRepository extends BaseRepository {
       emailVerified: data.emailVerified ?? false,
       phoneVerified: data.phoneVerified ?? false,
       source: normalizeCustomerSource(data.source),
-      revision: 0,
+      revision: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -349,7 +350,7 @@ export class CustomerRepository extends BaseRepository {
       emailVerified: data.emailVerified ?? false,
       phoneVerified: data.phoneVerified ?? false,
       source: normalizeCustomerSource(data.source),
-      revision: 0,
+      revision: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -630,6 +631,21 @@ export class CustomerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  /** Release a revision reservation only when no later command acquired it. */
+  async releaseRevision(id: string, acquiredRevision: number): Promise<boolean> {
+    const rows = await this.connection
+      .update(customer)
+      .set({ revision: sql`${customer.revision} - 1` })
+      .where(and(
+        eq(customer.storeId, this.storeId),
+        eq(customer.id, id),
+        eq(customer.revision, acquiredRevision),
+        isNull(customer.deletedAt),
+      ))
+      .returning({ id: customer.id });
+    return rows.length === 1;
+  }
+
   async softDelete(
     id: string,
     expectedRevision?: number
@@ -689,6 +705,10 @@ export class CustomerRepository extends BaseRepository {
         orderBy: effectiveOrder,
       },
     };
+    const cursorMeta = customerRelayQuery.getSql(executeInput).meta;
+    if (cursorMeta.filtersChanged) {
+      throw new InvalidCursorError("Cursor does not match the current filters");
+    }
     const [result, totalCount] = await Promise.all([
       customerRelayQuery.execute(this.connection, executeInput),
       customerRelayQuery.count(this.connection, { where: mergedWhere }),
@@ -781,7 +801,6 @@ export class CustomerRepository extends BaseRepository {
         and(
           eq(customerSegment.storeId, customerSegmentMembership.storeId),
           eq(customerSegment.id, customerSegmentMembership.segmentId),
-          eq(customerSegment.status, "ACTIVE"),
           isNull(customerSegment.deletedAt),
           or(
             and(
@@ -790,6 +809,7 @@ export class CustomerRepository extends BaseRepository {
             ),
             and(
               eq(customerSegment.type, "DYNAMIC"),
+              eq(customerSegment.status, "ACTIVE"),
               eq(customerSegment.materializationStatus, "READY"),
               eq(customerSegmentMembership.source, "RULE"),
               eq(

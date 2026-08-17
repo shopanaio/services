@@ -23,6 +23,9 @@ export class CustomerTagDeleteScript extends BaseScript<
       return notFound();
     }
     const customerIds = await this.repository.tag.customerIdsByTagId(params.id);
+    for (const customerId of customerIds) {
+      await this.repository.tag.unassign(customerId, params.id);
+    }
 
     const deleted = await this.repository.tag.softDelete(params.id);
     if (!deleted) {

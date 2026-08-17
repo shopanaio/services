@@ -25,6 +25,11 @@ export const fileLinkSchema = z.object({
   role: z.string().min(1).max(32),
 });
 
+export const validateOwnedFileSchema = z.object({
+  fileId: z.string().uuid(),
+  owner: fileOwnerRefSchema,
+});
+
 export const fileUnlinkSchema = z.object({
   fileId: z.string().uuid(),
   entityRef: entityRefSchema,
@@ -84,6 +89,15 @@ export interface FileLinkResult {
   activeRefCount: number;
   fileExists: boolean;
   fileActive: boolean;
+}
+
+export interface ValidateOwnedFileParams {
+  fileId: string;
+  owner: FileOwnerRef;
+}
+
+export interface ValidateOwnedFileResult {
+  valid: boolean;
 }
 
 export interface FileUnlinkParams {

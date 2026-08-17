@@ -30,6 +30,7 @@ export type { Connection, Edge, PageInfo } from "./cursor/connection.js";
 
 // Cursor types
 export type { SeekTransform, SeekTransforms } from "./cursor/types.js";
+export { InvalidCursorError } from "./cursor/cursor.js";
 
 // Types
 export type { DrizzleExecutor, Selectable } from "./types.js";

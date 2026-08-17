@@ -496,7 +496,7 @@ export class CustomerConsentRepository extends BaseRepository {
       ],
     };
     const effectiveOrder = orderBy ?? [
-      { field: "occurredAt", direction: "desc" },
+      { field: "occurredAt", direction: "asc" },
     ];
     const query: CustomerConsentEventRelayInput = {
       ...pagination,

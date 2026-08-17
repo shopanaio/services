@@ -1,6 +1,7 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
+import { normalizeTagDisplayName } from "../../repositories/classification/CustomerTagRepository.js";
 
 export interface CustomerTagUpdateParams {
   id: string;
@@ -31,15 +32,17 @@ export class CustomerTagUpdateScript extends BaseScript<
     if (!current) return notFound();
 
     const errors: UserError[] = [];
-    if (
-      hasOwn(params.operations, "name") &&
-      (!params.operations.name || params.operations.name.trim().length === 0)
-    ) {
-      errors.push({
-        message: "Tag name cannot be empty",
-        code: "INVALID_NAME",
-        field: ["name"],
-      });
+    if (hasOwn(params.operations, "name")) {
+      const name = normalizeTagDisplayName(params.operations.name ?? "");
+      if (name.length === 0 || [...name].length > 255) {
+        errors.push({
+          message: name.length === 0
+            ? "Tag name cannot be empty"
+            : "Tag name cannot exceed 255 characters",
+          code: "INVALID_NAME",
+          field: ["name"],
+        });
+      }
     }
     if (params.operations.name?.trim()) {
       const owner = await this.repository.tag.findByName(params.operations.name);

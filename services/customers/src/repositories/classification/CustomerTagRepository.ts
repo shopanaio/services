@@ -22,6 +22,8 @@ import {
   type CustomerTag,
   type CustomerTagAssignment,
 } from "../models/index.js";
+import { fullUnicodeNfkc } from "@shopana/customer-segment-dsl";
+import { normalizeUnicodeSearchValue } from "../../segments/normalization.js";
 
 export const customerTagRelayQuery = createRelayQuery(
   createQuery(customerTag)
@@ -151,7 +153,7 @@ export class CustomerTagRepository extends BaseRepository {
       .values({
         id: await this.generateUuidV7(),
         storeId: this.storeId,
-        name: name.trim(),
+        name: normalizeTagDisplayName(name),
         normalizedName: normalizeTagName(name),
         createdAt: now,
         updatedAt: now,
@@ -165,7 +167,7 @@ export class CustomerTagRepository extends BaseRepository {
     const rows = await this.connection
       .update(customerTag)
       .set({
-        name: name.trim(),
+        name: normalizeTagDisplayName(name),
         normalizedName: normalizeTagName(name),
         updatedAt: new Date().toISOString(),
       })
@@ -400,5 +402,11 @@ export class CustomerTagRepository extends BaseRepository {
 }
 
 function normalizeTagName(name: string): string {
-  return name.trim().toLowerCase();
+  return normalizeUnicodeSearchValue(name);
+}
+
+export function normalizeTagDisplayName(name: string): string {
+  return fullUnicodeNfkc(name)
+    .replace(/[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu, " ")
+    .trim();
 }

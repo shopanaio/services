@@ -9,8 +9,8 @@ CREATE TABLE "customers"."customer_segment" (
   "query" text,
   "definition" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_by_id" text,
-  "revision" integer NOT NULL DEFAULT 0,
-  "definition_revision" integer NOT NULL DEFAULT 0,
+  "revision" integer NOT NULL DEFAULT 1,
+  "definition_revision" integer NOT NULL DEFAULT 1,
   "evaluation_generation" integer NOT NULL DEFAULT 0,
   "materialization_status" "customers"."customer_segment_materialization_status",
   "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -31,9 +31,9 @@ CREATE TABLE "customers"."customer_segment" (
   CONSTRAINT "customer_segment_color_check"
     CHECK ("color" IS NULL OR "color" ~ '^#[0-9A-Fa-f]{6}$'),
   CONSTRAINT "customer_segment_revision_nonnegative_check"
-    CHECK ("revision" >= 0),
+    CHECK ("revision" >= 1),
   CONSTRAINT "customer_segment_definition_revision_nonnegative_check"
-    CHECK ("definition_revision" >= 0),
+    CHECK ("definition_revision" >= 1),
   CONSTRAINT "customer_segment_evaluation_generation_nonnegative_check"
     CHECK ("evaluation_generation" >= 0),
   CONSTRAINT "customer_segment_materialization_type_check"
@@ -84,8 +84,6 @@ CREATE TABLE "customers"."customer_segment_membership" (
     ON DELETE CASCADE,
   CONSTRAINT "customer_segment_membership_customer_segment_unique"
     UNIQUE ("customer_id", "segment_id"),
-  CONSTRAINT "customer_segment_membership_expiry_check"
-    CHECK ("expires_at" IS NULL OR "expires_at" > "evaluated_at"),
   CONSTRAINT "customer_segment_membership_definition_revision_check"
     CHECK (
       ("source" = 'RULE'

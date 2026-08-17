@@ -72,6 +72,8 @@ export class CustomerTaxExemptionsUpdateScript extends BaseScript<
       if (input.code.trim().length === 0) {
         errors.push(invalidValue(["create", String(index), "code"]));
       }
+      validateCountry(input.countryCode, ["create", String(index), "countryCode"], errors);
+      validateDateRange(input.validFrom, input.validTo, ["create", String(index)], errors);
     }
     for (const [index, input] of operations.update.entries()) {
       validateOwned(
@@ -92,6 +94,13 @@ export class CustomerTaxExemptionsUpdateScript extends BaseScript<
           );
         }
       }
+      validateCountry(input.operations.countryCode, ["update", String(index), "operations", "countryCode"], errors);
+      validateDateRange(
+        input.operations.validFrom === undefined ? byId.get(input.taxExemptionId)?.validFrom : input.operations.validFrom,
+        input.operations.validTo === undefined ? byId.get(input.taxExemptionId)?.validTo : input.operations.validTo,
+        ["update", String(index), "operations"],
+        errors,
+      );
     }
     for (const [index, id] of operations.deleteIds.entries()) {
       validateOwned(
@@ -109,6 +118,8 @@ export class CustomerTaxExemptionsUpdateScript extends BaseScript<
         });
       }
     }
+    addDuplicateIds(updateIds, ["update"], "taxExemptionId", errors);
+    addDuplicateIds(operations.deleteIds, ["deleteIds"], undefined, errors);
     return errors;
   }
 }
@@ -132,6 +143,44 @@ function validateOwned(
 
 function invalidValue(field: string[]) {
   return { message: "Value cannot be empty", code: "INVALID_VALUE", field };
+}
+
+function validateCountry(
+  value: string | null | undefined,
+  field: string[],
+  errors: Array<{ message: string; code: string; field?: string[] }>,
+) {
+  if (value != null && !/^[A-Za-z]{2}$/u.test(value.trim())) {
+    errors.push({ message: "Country code must use ISO alpha-2 format", code: "INVALID_COUNTRY_CODE", field });
+  }
+}
+
+function validateDateRange(
+  validFrom: string | null | undefined,
+  validTo: string | null | undefined,
+  field: string[],
+  errors: Array<{ message: string; code: string; field?: string[] }>,
+) {
+  if (validFrom && validTo && validTo < validFrom) {
+    errors.push({ message: "validTo must not precede validFrom", code: "INVALID_DATE_RANGE", field });
+  }
+}
+
+function addDuplicateIds(
+  values: readonly string[],
+  field: string[],
+  childField: string | undefined,
+  errors: Array<{ message: string; code: string; field?: string[] }>,
+) {
+  const seen = new Set<string>();
+  values.forEach((value, index) => {
+    if (seen.has(value)) errors.push({
+      message: "Tax exemption ID cannot appear more than once",
+      code: "DUPLICATE_ID",
+      field: [...field, String(index), ...(childField ? [childField] : [])],
+    });
+    seen.add(value);
+  });
 }
 
 function hasChanges(

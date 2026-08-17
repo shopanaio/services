@@ -108,6 +108,9 @@ export class CustomerAddressesUpdateScript extends BaseScript<
         errors
       );
       validatePhone(input.phoneE164, ["create", String(index), "phoneE164"], errors);
+      validateCountryCode(input.countryCode, ["create", String(index), "countryCode"], errors);
+      validateCoordinate(input.latitude, -90, 90, ["create", String(index), "latitude"], errors);
+      validateCoordinate(input.longitude, -180, 180, ["create", String(index), "longitude"], errors);
     }
 
     for (const [index, input] of operations.update.entries()) {
@@ -138,6 +141,13 @@ export class CustomerAddressesUpdateScript extends BaseScript<
         ["update", String(index), "operations", "phoneE164"],
         errors
       );
+      validateCountryCode(
+        input.operations.countryCode,
+        ["update", String(index), "operations", "countryCode"],
+        errors,
+      );
+      validateCoordinate(input.operations.latitude, -90, 90, ["update", String(index), "operations", "latitude"], errors);
+      validateCoordinate(input.operations.longitude, -180, 180, ["update", String(index), "operations", "longitude"], errors);
     }
 
     for (const [index, addressId] of operations.deleteIds.entries()) {
@@ -238,6 +248,30 @@ function validatePhone(
       code: "INVALID_PHONE",
       field,
     });
+  }
+}
+
+function validateCountryCode(
+  value: string | null | undefined,
+  field: string[],
+  errors: Array<{ message: string; code: string; field?: string[] }>,
+) {
+  if (value !== undefined && (value === null || !/^[A-Za-z]{2}$/u.test(value.trim()))) {
+    errors.push({ message: "Country code must use ISO alpha-2 format", code: "INVALID_COUNTRY_CODE", field });
+  }
+}
+
+function validateCoordinate(
+  value: number | string | null | undefined,
+  minimum: number,
+  maximum: number,
+  field: string[],
+  errors: Array<{ message: string; code: string; field?: string[] }>,
+) {
+  if (value == null) return;
+  const coordinate = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(coordinate) || coordinate < minimum || coordinate > maximum) {
+    errors.push({ message: "Coordinate is outside the allowed range", code: "INVALID_COORDINATE", field });
   }
 }
 

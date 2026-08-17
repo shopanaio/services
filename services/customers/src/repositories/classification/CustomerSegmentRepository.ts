@@ -324,8 +324,8 @@ export class CustomerSegmentRepository extends BaseRepository {
         definition: data.definition ?? {},
         materializationStatus: data.type === "DYNAMIC" ? "PENDING" : null,
         createdById: data.createdById ?? null,
-        revision: 0,
-        definitionRevision: 0,
+        revision: 1,
+        definitionRevision: 1,
         evaluationGeneration:
           data.type === "DYNAMIC" && data.status === "ACTIVE" ? 1 : 0,
         createdAt: now,
@@ -522,6 +522,19 @@ export class CustomerSegmentRepository extends BaseRepository {
       .where(and(...conditions))
       .returning({ id: customerSegment.id });
     return rows.length > 0;
+  }
+
+  async deleteMembershipsBySegmentId(segmentId: string): Promise<string[]> {
+    const rows = await this.connection
+      .delete(customerSegmentMembership)
+      .where(
+        and(
+          eq(customerSegmentMembership.storeId, this.storeId),
+          eq(customerSegmentMembership.segmentId, segmentId),
+        ),
+      )
+      .returning({ customerId: customerSegmentMembership.customerId });
+    return [...new Set(rows.map((row) => row.customerId))];
   }
 
   @Transactional()

@@ -56,6 +56,12 @@ async function bootstrap() {
           ),
           onConflict: 'update_if_latest_version',
         },
+        {
+          name: 'customer_statistics_projection',
+          partitionQueue: true,
+          concurrency: 1,
+          workerConcurrency: 1,
+        },
       ],
     };
   }

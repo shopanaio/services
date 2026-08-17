@@ -176,7 +176,7 @@ export class CustomerGroupRepository extends BaseRepository {
       description: data.description ?? null,
       isDefault: data.isDefault ?? false,
       isActive: data.isActive ?? true,
-      revision: 0,
+      revision: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
