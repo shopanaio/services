@@ -522,7 +522,7 @@ export class CustomersStorefrontTestKit {
     return realm!;
   }
 
-  private async enablePasswordAuthentication(): Promise<void> {
+  async enablePasswordAuthentication(): Promise<void> {
     await this.sql`
       update iam.application_auth_configuration
       set realm_enabled = true,
@@ -536,7 +536,21 @@ export class CustomersStorefrontTestKit {
     `;
   }
 
-  private async issueAccessToken(email: string): Promise<string> {
+  async signUpWithPassword(
+    email: string,
+    options: { name?: string; password?: string } = {},
+  ): Promise<APIResponse> {
+    return this.request.post(endpoint(this.realm, '/sign-up/email'), {
+      headers: jsonHeaders(this.realm.origin),
+      data: {
+        name: options.name ?? 'Storefront Customer',
+        email,
+        password: options.password ?? defaultPassword,
+      },
+    });
+  }
+
+  async issueAccessToken(email: string): Promise<string> {
     const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
     const challenge = createHash('sha256').update(verifier).digest('base64url');
     const authorize = new URL(endpoint(this.realm, '/oauth2/authorize'));
@@ -595,7 +609,7 @@ export class CustomersStorefrontTestKit {
     return body.access_token!;
   }
 
-  private async waitForCustomer(email: string): Promise<StorefrontCustomer> {
+  async waitForCustomer(email: string): Promise<StorefrontCustomer> {
     let customer: StorefrontCustomer | null = null;
     await expect
       .poll(
@@ -621,6 +635,17 @@ export class CustomersStorefrontTestKit {
       )
       .not.toBeNull();
     return customer!;
+  }
+
+  async customerCount(email: string, storeId = this.realm.storeId): Promise<number> {
+    const [row] = await this.sql<{ count: number }[]>`
+      select count(*)::int as count
+      from customers.customer
+      where store_id = ${storeId}
+        and normalized_email = ${email.trim().toLocaleLowerCase('en-US')}
+        and deleted_at is null
+    `;
+    return row!.count;
   }
 }
 

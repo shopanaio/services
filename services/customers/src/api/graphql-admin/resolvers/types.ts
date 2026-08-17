@@ -4,6 +4,7 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
+import { createIsoDateTimeScalar } from "../../graphql/scalars.js";
 import type { ServiceContext } from "../../../context/types.js";
 import { CustomerAddressResolver } from "../../../resolvers/admin/CustomerAddressResolver.js";
 import { CustomerConsentEventResolver } from "../../../resolvers/admin/CustomerConsentEventResolver.js";
@@ -28,6 +29,8 @@ import { CustomerTaxIdentifierResolver } from "../../../resolvers/admin/Customer
 import type { Resolvers } from "../../../resolvers/admin/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
+  DateTime: createIsoDateTimeScalar("DateTime"),
+
   Node: {
     __resolveType: (obj: unknown) => {
       if (obj instanceof CustomerResolver) return "Customer";

@@ -24,7 +24,7 @@ test.describe('Customers Admin API - customer create', () => {
       lifecycleStatus: 'ACTIVE',
       accountStatus: 'GUEST',
       source: 'admin',
-      revision: 1,
+      revision: 0,
     });
     expect(customer.id).toEqual(expect.any(String));
     expect(customer.displayName).toEqual(expect.any(String));

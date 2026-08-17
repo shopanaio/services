@@ -52,8 +52,8 @@ import { CustomerResolver } from "./CustomerResolver.js";
 import { CustomerSegmentResolver } from "./CustomerSegmentResolver.js";
 import { CustomerTagResolver } from "./CustomerTagResolver.js";
 import { CustomersType } from "./CustomersType.js";
+import { customerCreateInputSchema } from "./customerCreateInputSchema.js";
 import {
-  CustomerCreateInputSchema,
   CustomerDataRequestCreateInputSchema,
   CustomerDataRequestDeleteInputSchema,
   CustomerDeleteInputSchema,
@@ -210,7 +210,7 @@ export class CustomersMutationResolver extends CustomersType<
     };
   }
 
-  @ZodResolver(CustomerCreateInputSchema())
+  @ZodResolver(customerCreateInputSchema())
   async customerCreate(args: CustomersMutationCustomerCreateArgs) {
     const workflowInput: CustomerCreateWorkflowInput = {
       params: {
