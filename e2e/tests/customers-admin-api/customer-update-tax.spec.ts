@@ -38,7 +38,7 @@ test.describe('Customers Admin API - customer tax updates', () => {
     expect(payload.customer.taxIdentifiers.edges[0].node).toMatchObject({
       identifierType: 'VAT',
       countryCode: 'UA',
-      value: 'UA12345',
+      value: 'ua 123-45',
       normalizedValue: 'UA12345',
       status: 'UNVERIFIED',
       isPrimary: false,
