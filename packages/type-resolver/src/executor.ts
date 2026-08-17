@@ -201,12 +201,18 @@ export class Executor<TContext = unknown> {
           // Check if resolved value is a BaseType instance (relation field)
           if (
             Array.isArray(resolved) &&
-            resolved[0] instanceof BaseType &&
+            resolved.some((item) => item instanceof BaseType) &&
+            resolved.every(
+              (item) => item === null || item === undefined || item instanceof BaseType,
+            ) &&
             fieldQuery
           ) {
-            // Array of BaseType instances - recursively resolve each
+            // Nullable arrays of BaseType instances preserve Relay null
+            // placeholders while recursively resolving concrete nodes.
             result[key] = await Promise.all(
-              resolved.map((item) => this.load(item, fieldQuery)),
+              resolved.map((item) =>
+                item instanceof BaseType ? this.load(item, fieldQuery) : null,
+              ),
             );
           } else if (resolved instanceof BaseType && fieldQuery) {
             // Single BaseType instance - recursively resolve

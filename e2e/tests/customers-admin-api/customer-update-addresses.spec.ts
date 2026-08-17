@@ -262,6 +262,6 @@ test.describe('Customers Admin API - customer address updates', () => {
       variables: { id: nested.id },
     });
     expect(data.customersQuery.customerAddress).toMatchObject(nested);
-    expect((await getCustomer(api, customer.id)).addresses.edges[0].node).toMatchObject(nested);
+    expect(nested).toMatchObject((await getCustomer(api, customer.id)).addresses.edges[0].node);
   });
 });

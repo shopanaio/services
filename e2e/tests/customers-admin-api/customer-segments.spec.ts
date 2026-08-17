@@ -11,6 +11,7 @@ import {
   future,
   missingId,
   openCustomersSql,
+  past,
   setupStore,
   updateSegment,
   wrongTypeId,
@@ -327,7 +328,7 @@ test.describe('Customers Admin API - customer segments', () => {
     for (const memberships of [
       { setCustomerIds: [customer.id, customer.id] },
       { setCustomerIds: [missingId()] },
-      { create: [{ customerId: customer.id, expiresAt: 'invalid' }] },
+      { create: [{ customerId: customer.id, expiresAt: past() }] },
     ])
       expect(
         (await updateSegment(api, segment, { memberships })).userErrors.length,

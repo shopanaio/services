@@ -114,12 +114,10 @@ test.describe('Customers Admin API - unified classification updates', () => {
     const customer = await createCustomer(api);
     const tag = await createTag(api);
     const assigned = await updateCustomer(api, customer, { tags: { tagIds: [tag.id] } });
-    expect(
-      (await updateCustomer(api, assigned.customer, { tags: { tagIds: [] } })).customer
-        .tagAssignments.totalCount,
-    ).toBe(0);
+    const cleared = await updateCustomer(api, assigned.customer, { tags: { tagIds: [] } });
+    expect(cleared.customer.tagAssignments.totalCount).toBe(0);
     expectUserError(
-      await updateCustomer(api, assigned.customer, { tags: { tagIds: [tag.id, tag.id] } }),
+      await updateCustomer(api, cleared.customer, { tags: { tagIds: [tag.id, tag.id] } }),
       'DUPLICATE_ID',
     );
   });
@@ -138,7 +136,10 @@ test.describe('Customers Admin API - unified classification updates', () => {
 
   test('dynamic segment cannot be assigned manually', async ({ api }) => {
     const customer = await createCustomer(api);
-    const dynamic = await createSegment(api, { type: 'DYNAMIC', query: 'customer.email != null' });
+    const dynamic = await createSegment(api, {
+      type: 'DYNAMIC',
+      query: "company_name = 'Engine'",
+    });
     expectUserError(
       await updateCustomer(api, customer, { segments: { segmentIds: [dynamic.id] } }),
       'SEGMENT_NOT_MANUAL',

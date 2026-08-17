@@ -8,6 +8,7 @@ import {
   expectRelayConnection,
   expectUserError,
   future,
+  past,
   missingId,
   setupStore,
   updateGroup,
@@ -136,7 +137,7 @@ test.describe('Customers Admin API - customer groups', () => {
     for (const memberships of [
       { create: [{ customerId: customer.id }, { customerId: customer.id }] },
       { create: [{ customerId: missingId() }] },
-      { create: [{ customerId: customer.id, expiresAt: 'invalid' }] },
+      { create: [{ customerId: customer.id, expiresAt: past() }] },
     ]) {
       const result = await updateGroup(api, group, { memberships });
       expect(result.userErrors.length || result.group === null).toBeTruthy();

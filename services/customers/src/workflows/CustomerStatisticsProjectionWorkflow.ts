@@ -67,7 +67,7 @@ export class CustomerStatisticsProjectionWorkflow extends BrokerWorkflows<
       reasons: [reason],
       updatedAt: result.updatedAt,
     };
-    await this.broker.runWorkflow(
+    await this.broker.startWorkflow(
       "events.emit",
       {
         eventType: "customerStatisticsUpdated",

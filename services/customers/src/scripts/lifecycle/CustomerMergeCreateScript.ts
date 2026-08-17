@@ -35,6 +35,18 @@ export class CustomerMergeCreateScript extends BaseScript<
         requestedById: this.context.hasUser ? this.currentUser.id : null,
         idempotencyKey: `${this.context.requestId}:customerMergeCreate`,
       });
+      if (!merge) {
+        return {
+          merge: undefined,
+          userErrors: [
+            {
+              message: "An active merge already exists for the source customer",
+              code: "MERGE_ALREADY_PENDING",
+              field: ["sourceCustomerId"],
+            },
+          ],
+        };
+      }
       this.logger.info(
         {
           mergeId: merge.id,

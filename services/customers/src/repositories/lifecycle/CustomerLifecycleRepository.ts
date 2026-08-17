@@ -209,7 +209,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
       );
   }
 
-  async createMerge(data: CustomerMergeCreateData): Promise<CustomerMerge> {
+  async createMerge(data: CustomerMergeCreateData): Promise<CustomerMerge | null> {
     const existing = await this.findMergeByIdempotencyKey(data.idempotencyKey);
     if (existing) return existing;
     const now = new Date().toISOString();
@@ -228,8 +228,10 @@ export class CustomerLifecycleRepository extends BaseRepository {
         finishedAt: null,
         updatedAt: now,
       })
+      .onConflictDoNothing()
       .returning();
-    return rows[0];
+    if (rows[0]) return rows[0];
+    return this.findMergeByIdempotencyKey(data.idempotencyKey);
   }
 
   async updateMergeStatus(

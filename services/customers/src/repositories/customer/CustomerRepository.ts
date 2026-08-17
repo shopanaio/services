@@ -26,9 +26,23 @@ import {
 } from "../global-id-where-mappers.js";
 import {
   customer,
+  customerAddress,
+  customerComparison,
+  customerConsent,
+  customerExternalReference,
+  customerGroupMembership,
   customerListView,
+  customerMonetaryStatistics,
+  customerOrderProjection,
+  customerCheckoutProjection,
+  customerRefundProjection,
   customerSegmentMembership,
   customerSegment,
+  customerStatistics,
+  customerTagAssignment,
+  customerTaxExemption,
+  customerTaxIdentifier,
+  customerWishlist,
   type Customer,
   type NewCustomer,
 } from "../models/index.js";
@@ -669,6 +683,36 @@ export class CustomerRepository extends BaseRepository {
       .where(and(...conditions))
       .returning();
     return rows[0] ?? null;
+  }
+
+  /**
+   * Mirror the database's ON DELETE CASCADE policy for a soft-deleted customer.
+   * Lifecycle records with restrictive foreign keys are intentionally retained.
+   */
+  async deleteCascadeOwnedEntities(customerId: string): Promise<void> {
+    const ownedTables = [
+      customerAddress,
+      customerTaxIdentifier,
+      customerTaxExemption,
+      customerConsent,
+      customerGroupMembership,
+      customerTagAssignment,
+      customerSegmentMembership,
+      customerComparison,
+      customerWishlist,
+      customerExternalReference,
+      customerStatistics,
+      customerOrderProjection,
+      customerCheckoutProjection,
+      customerRefundProjection,
+      customerMonetaryStatistics,
+    ] as const;
+
+    for (const table of ownedTables) {
+      await this.connection
+        .delete(table)
+        .where(and(eq(table.storeId, this.storeId), eq(table.customerId, customerId)));
+    }
   }
 
   @ReadOnly()

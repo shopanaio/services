@@ -59,8 +59,8 @@ async function bootstrap() {
         {
           name: 'customer_statistics_projection',
           partitionQueue: true,
-          concurrency: 1,
-          workerConcurrency: 1,
+          concurrency: 4,
+          workerConcurrency: 4,
         },
       ],
     };

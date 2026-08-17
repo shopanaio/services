@@ -30,6 +30,7 @@ export class CustomerDeleteScript extends BaseScript<
     }
 
     await this.repository.segmentMaterialization.cleanupCustomer(params.id);
+    await this.repository.customer.deleteCascadeOwnedEntities(params.id);
     const deleted = await this.repository.customer.softDelete(
       params.id,
       params.expectedRevision
