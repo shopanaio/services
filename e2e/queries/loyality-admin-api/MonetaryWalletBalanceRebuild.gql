@@ -1,0 +1,8 @@
+mutation LoyaltyMonetaryWalletBalanceRebuild($input: LoyaltyMonetaryWalletBalanceRebuildInput!) {
+  loyaltyMutation {
+    monetaryWalletBalanceRebuild(input: $input) {
+      monetaryWallet { id status revision balance { pending { amountMinor currencyCode } available { amountMinor currencyCode } reserved { amountMinor currencyCode } debt { amountMinor currencyCode } revision } }
+      userErrors { code field message retryable }
+    }
+  }
+}

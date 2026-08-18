@@ -1,0 +1,5 @@
+query LoyaltyEarningRuleUsages($where: LoyaltyEarningRuleUsageWhereInput!, $first: Int) {
+  loyaltyQuery {
+    earningRuleUsages(where: $where, first: $first) { id scopeKey windowStartedAt windowEndedAt occurrenceCount pointsAwarded monetaryAmounts revision earningRule { id code } }
+  }
+}

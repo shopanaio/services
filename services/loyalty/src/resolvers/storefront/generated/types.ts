@@ -1080,7 +1080,7 @@ export type LoyaltyFreeShippingRewardPresentation = LoyaltyRewardPresentation & 
 
 export type LoyaltyMemberBenefitRewardPresentation = LoyaltyRewardPresentation & {
   __typename?: 'LoyaltyMemberBenefitRewardPresentation';
-  code: Scalars['String']['output'];
+  code?: Maybe<Scalars['String']['output']>;
   copy: LoyaltyOpportunityCopy;
   kind: LoyaltyRewardKind;
 };
@@ -1982,4 +1982,3 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   Weight?: WeightResolvers<ContextType>;
 }>;
-

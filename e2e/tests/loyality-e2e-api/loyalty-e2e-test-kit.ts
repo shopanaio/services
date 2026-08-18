@@ -33,6 +33,32 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     await this.setupLoyalty();
   }
 
+  async setupAdmin(): Promise<void> {
+    await this.api.session.setupUserAndStore({ currencyCode: 'USD' });
+    const organizationId = this.api.session.organizationId;
+    if (!organizationId) throw new Error('Missing organization after loyalty test setup');
+    const storeGlobalId = this.api.session.project.id;
+    const customerId = crypto.randomUUID();
+    this.realm = {
+      applicationId: '',
+      clientId: '',
+      organizationId: decodeGlobalId(organizationId).id,
+      resource: '',
+      storeId: decodeGlobalId(storeGlobalId).id,
+      storeGlobalId,
+      storeName: this.api.session.project.name,
+      redirectUri: '',
+      origin: '',
+    };
+    this.customer = {
+      id: composeGlobalId('Customer', customerId),
+      rawId: customerId,
+      iamPrincipalId: crypto.randomUUID(),
+      email: `loyalty-${customerId}@playwright.dev`,
+      revision: 1,
+    };
+  }
+
   async callAction<T extends Json>(action: string, params: Json): Promise<T> {
     const response = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/call`, {
       data: { action, params },
@@ -134,14 +160,21 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
 
   async quotedReservation(
     points = '100',
-    fixture = await this.fundedAccount(),
-    context = this.checkoutContext(),
+    fixture?: LoyaltyFixture,
+    context?: Json,
   ) {
-    const quoted = await this.quote(fixture, points, context);
+    const resolvedFixture = fixture ?? await this.fundedAccount();
+    const resolvedContext = context ?? this.checkoutContext();
+    const quoted = await this.quote(resolvedFixture, points, resolvedContext);
     expect(quoted.status).toBe('QUOTED');
-    const reserved = await this.reserve(context, quoted.quote);
+    const reserved = await this.reserve(resolvedContext, quoted.quote);
     expect(reserved.status).toBe('RESERVED');
-    return { fixture, context, quote: quoted.quote, reservation: reserved };
+    return {
+      fixture: resolvedFixture,
+      context: resolvedContext,
+      quote: quoted.quote,
+      reservation: reserved,
+    };
   }
 
   orderRewardEvent(overrides: Json = {}): Json {

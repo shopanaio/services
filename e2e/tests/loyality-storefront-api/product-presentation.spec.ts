@@ -121,10 +121,20 @@ test.describe('Loyalty Storefront API product and variant presentation', () => {
     const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
     const before = await presentation('ProductVariant', product.variantId);
-    const priced = await kit.api.admin.mutation<any>('inventory-api/VariantSetPricing', {
-      variables: { input: { variantId: product.variantId, currency: 'USD', amountMinor: '2000' } },
+    const priced = await kit.api.admin.mutation<any>('inventory-api/ProductUpdate', {
+      variables: {
+        productId: product.productId,
+        expectedRevision: product.revision,
+        operations: {
+          variants: [{
+            action: 'UPDATE',
+            variantId: product.variantId,
+            pricing: { currency: 'USD', amountMinor: '2000' },
+          }],
+        },
+      },
     });
-    expect(priced.data.catalogMutation.variantUpdatePricing.userErrors).toEqual([]);
+    expect(priced.data.catalogMutation.productUpdate.userErrors).toEqual([]);
     const afterPrice = await presentation('ProductVariant', product.variantId);
     expect(afterPrice.revision).not.toBe(before.revision);
     await kit.setAccountStatus(fixture.account, 'SUSPENDED');

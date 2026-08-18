@@ -51,7 +51,8 @@ export type RelayResult<T> = Connection<T> & {
 // ============ Internal Helpers ============
 
 function convertRelayToBase<F extends FieldsDef>(
-  input: RelayInput<F>
+  input: RelayInput<F>,
+  maxLimit?: number,
 ): { baseInput: BaseCursorInput<F>; isForward: boolean } {
   const hasFirst = typeof input.first === "number";
   const hasLast = typeof input.last === "number";
@@ -69,6 +70,11 @@ function convertRelayToBase<F extends FieldsDef>(
   if (limit <= 0) {
     throw new InvalidCursorError(
       `${isForward ? "first" : "last"} must be greater than 0`
+    );
+  }
+  if (maxLimit !== undefined && limit > maxLimit) {
+    throw new InvalidCursorError(
+      `Requested limit ${limit} exceeds maximum allowed limit ${maxLimit}`
     );
   }
 
@@ -145,7 +151,10 @@ export function createRelayBuilder<
      * Get SQL without executing - useful for testing and debugging.
      */
     getSql(input: RelayInput<Fields>) {
-      const { baseInput, isForward } = convertRelayToBase(input);
+      const { baseInput, isForward } = convertRelayToBase(
+        input,
+        config.queryConfig?.maxLimit,
+      );
       const { sql, meta } = baseBuilder.getSql(baseInput);
 
       return {
@@ -169,7 +178,10 @@ export function createRelayBuilder<
       db: DrizzleExecutor,
       input: RelayInput<Fields>
     ): Promise<RelayResult<Result>> {
-      const { baseInput } = convertRelayToBase(input);
+      const { baseInput } = convertRelayToBase(
+        input,
+        config.queryConfig?.maxLimit,
+      );
       const baseResult = await baseBuilder.query(db, baseInput);
 
       const connection = buildRelayConnection(

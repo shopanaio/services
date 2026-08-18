@@ -34,6 +34,21 @@ import type {
 export const typeResolvers: Partial<Resolvers> = {
   Node: {
     __resolveType: (value) => {
+      const typeName = (value as { __typename?: unknown }).__typename;
+      if (typeName === "Product"
+        || typeName === "ProductVariant"
+        || typeName === "Category"
+        || typeName === "ProductOption"
+        || typeName === "ProductOptionCategory"
+        || typeName === "ProductOptionValue"
+        || typeName === "ProductFeature"
+        || typeName === "ProductFeatureGroup"
+        || typeName === "ProductFeatureValue"
+        || typeName === "Vendor"
+        || typeName === "Tag"
+        || typeName === "InventoryItem") {
+        return typeName;
+      }
       if (value instanceof ProductResolver) return "Product";
       if (value instanceof ProductVariantResolver) return "ProductVariant";
       if (value instanceof CategoryResolver) return "Category";

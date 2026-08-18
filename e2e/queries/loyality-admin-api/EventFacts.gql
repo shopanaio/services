@@ -1,0 +1,5 @@
+query LoyaltyEventFacts($where: LoyaltyEventFactWhereInput, $first: Int) {
+  loyaltyQuery {
+    eventFacts(where: $where, first: $first) { id externalEventId eventType subjectType subjectId customerId occurredAt payloadHash payload evaluations { id decision reasonCode pointsAwarded result } }
+  }
+}

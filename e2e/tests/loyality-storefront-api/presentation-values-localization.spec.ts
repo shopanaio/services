@@ -1,6 +1,5 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { decodeGlobalId } from '@utils/globalid';
 import { LoyaltyStorefrontTestKit, OPPORTUNITY_FIELDS } from './loyalty-storefront-test-kit';
 
 const rule = (actionType: string, action: Record<string, unknown>) => ({
@@ -28,15 +27,13 @@ test.describe('Loyalty Storefront API presentation values and localization', () 
     return response.data?.entities[0]?.loyalty;
   }
 
-  test('calculates standard purchase points with DOWN NEAREST and UP rounding', async () => {
-    const fixture = await kit.createActiveAccount();
-    const product = await kit.createProduct('150');
-    const versionId = decodeGlobalId(fixture.version.id).id;
-    for (const [roundingMode, expected] of [['DOWN', '1'], ['NEAREST', '2'], ['UP', '2']] as const) {
-      await kit.sql`update loyalty.program_version set rounding_mode = ${roundingMode}, revision = revision + 1 where id = ${versionId}`;
+  for (const [roundingMode, expected] of [['DOWN', '1'], ['NEAREST', '2'], ['UP', '2']] as const) {
+    test(`calculates standard purchase points with ${roundingMode} rounding`, async () => {
+      await kit.createActiveAccount({ roundingMode });
+      const product = await kit.createProduct('150');
       expect((await loyalty(product.productId)).purchaseOpportunities.at(-1).reward.points).toEqual({ minimum: expected, maximum: expected });
-    }
-  });
+    });
+  }
 
   test('presents fixed points and spend-ratio rule actions', async () => {
     await kit.createActiveAccount({ earningRules: [

@@ -1,0 +1,8 @@
+mutation LoyaltyTierEvaluate($input: LoyaltyTierEvaluateInput!) {
+  loyaltyMutation {
+    tierEvaluate(input: $input) {
+      tierMembership { id status revision effectiveFrom effectiveTo tier { id code name rank } events { eventType previousTier { id code } tier { id code } reasonCode occurredAt } }
+      userErrors { code field message retryable }
+    }
+  }
+}

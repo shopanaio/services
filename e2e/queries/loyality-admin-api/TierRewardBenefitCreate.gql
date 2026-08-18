@@ -1,0 +1,8 @@
+mutation LoyaltyTierRewardBenefitCreate($input: LoyaltyTierRewardBenefitCreateInput!) {
+  loyaltyMutation {
+    tierRewardBenefitCreate(input: $input) {
+      tierRewardBenefit { id grantPolicySchemaVersion grantPolicy tier { id code } rewardDefinition { id code } }
+      userErrors { code field message retryable }
+    }
+  }
+}

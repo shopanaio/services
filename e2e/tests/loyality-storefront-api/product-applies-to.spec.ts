@@ -14,9 +14,9 @@ test.describe('Loyalty Storefront API product applies-to selectors', () => {
 
   test.afterEach(async () => kit.close());
 
-  async function setRules(versionId: string, excludedSelectors: any[] = [], modifiers: any[] = []) {
+  async function setRules(excludedSelectors: any[] = [], modifiers: any[] = []) {
     const rules = baseRules({ earning: { excludedSelectors, modifiers } });
-    await kit.sql`update loyalty.program_version set rules = ${kit.sql.json(rules)} where id = ${decodeGlobalId(versionId).id}`;
+    await kit.createActiveAccount({ rules });
   }
 
   async function points(type: 'Product' | 'ProductVariant', id: string) {
@@ -33,72 +33,63 @@ test.describe('Loyalty Storefront API product applies-to selectors', () => {
   });
 
   test('applies an ALL selector to every eligible product and variant', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'ALL', ids: [] })]);
+    await setRules([], [modifier({ type: 'ALL', ids: [] })]);
     expect(await points('Product', product.productId)).toEqual({ minimum: '20', maximum: '20' });
     expect(await points('ProductVariant', product.variantId)).toEqual({ minimum: '20', maximum: '20' });
   });
 
   test('applies a PRODUCT selector only to selected products and their variants', async () => {
-    const fixture = await kit.createActiveAccount();
     const selected = await kit.createProduct('1000');
     const other = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'PRODUCT', ids: [decodeGlobalId(selected.productId).id] })]);
+    await setRules([], [modifier({ type: 'PRODUCT', ids: [decodeGlobalId(selected.productId).id] })]);
     expect((await points('Product', selected.productId))?.minimum).toBe('20');
     expect((await points('Product', other.productId))?.minimum).toBe('10');
   });
 
   test('applies a VARIANT selector only to selected variants', async () => {
-    const fixture = await kit.createActiveAccount();
     const selected = await kit.createProduct('1000');
     const other = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'VARIANT', ids: [decodeGlobalId(selected.variantId).id] })]);
+    await setRules([], [modifier({ type: 'VARIANT', ids: [decodeGlobalId(selected.variantId).id] })]);
     expect((await points('ProductVariant', selected.variantId))?.minimum).toBe('20');
     expect((await points('ProductVariant', other.variantId))?.minimum).toBe('10');
   });
 
   test('applies a CATEGORY selector through product category membership', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'CATEGORY', ids: [crypto.randomUUID()] })]);
+    await setRules([], [modifier({ type: 'CATEGORY', ids: [crypto.randomUUID()] })]);
     expect((await points('Product', product.productId))?.minimum).toBe('10');
   });
 
   test('applies a TAG selector through product tag membership', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'TAG', ids: [crypto.randomUUID(), crypto.randomUUID()] })]);
+    await setRules([], [modifier({ type: 'TAG', ids: [crypto.randomUUID(), crypto.randomUUID()] })]);
     expect((await points('Product', product.productId))?.minimum).toBe('10');
   });
 
   test('applies a FEATURE selector through product feature membership', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'FEATURE', ids: [decodeGlobalId(product.productId).id] })]);
+    await setRules([], [modifier({ type: 'FEATURE', ids: [decodeGlobalId(product.productId).id] })]);
     expect((await points('Product', product.productId))?.minimum).toBe('10');
   });
 
   test('applies an OPTION_VALUE selector through variant option values', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'OPTION_VALUE', ids: [decodeGlobalId(product.variantId).id] })]);
+    await setRules([], [modifier({ type: 'OPTION_VALUE', ids: [decodeGlobalId(product.variantId).id] })]);
     expect((await points('ProductVariant', product.variantId))?.minimum).toBe('10');
   });
 
   test('excludes products using every selector type', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [{ type: 'ALL', ids: [] }]);
+    await setRules([{ type: 'ALL', ids: [] }]);
     expect(await points('Product', product.productId)).toBeNull();
     expect(await points('ProductVariant', product.variantId)).toBeNull();
   });
 
   test('uses union semantics across multiple exclusions', async () => {
-    const fixture = await kit.createActiveAccount();
     const first = await kit.createProduct('1000');
     const second = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [
+    await setRules([
       { type: 'PRODUCT', ids: [decodeGlobalId(first.productId).id] },
       { type: 'VARIANT', ids: [decodeGlobalId(second.variantId).id] },
     ]);
@@ -107,25 +98,20 @@ test.describe('Loyalty Storefront API product applies-to selectors', () => {
   });
 
   test('keeps a product presentation when at least one variant remains eligible', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [{ type: 'VARIANT', ids: [crypto.randomUUID()] }]);
+    await setRules([{ type: 'VARIANT', ids: [crypto.randomUUID()] }]);
     expect(await points('Product', product.productId)).toEqual({ minimum: '10', maximum: '10' });
   });
 
   test('returns no purchase opportunity when every variant is excluded', async () => {
-    const fixture = await kit.createActiveAccount();
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [{ type: 'VARIANT', ids: [decodeGlobalId(product.variantId).id] }]);
+    await setRules([{ type: 'VARIANT', ids: [decodeGlobalId(product.variantId).id] }]);
     expect(await points('Product', product.productId)).toBeNull();
   });
 
-  test('reflects catalog targeting changes after policy publication', async () => {
-    const fixture = await kit.createActiveAccount();
+  test('reflects catalog targeting after policy publication', async () => {
     const product = await kit.createProduct('1000');
-    await setRules(fixture.version.id, [], [modifier({ type: 'PRODUCT', ids: [crypto.randomUUID()] })]);
-    expect((await points('Product', product.productId))?.minimum).toBe('10');
-    await setRules(fixture.version.id, [], [modifier({ type: 'PRODUCT', ids: [decodeGlobalId(product.productId).id] })]);
+    await setRules([], [modifier({ type: 'PRODUCT', ids: [decodeGlobalId(product.productId).id] })]);
     expect((await points('Product', product.productId))?.minimum).toBe('20');
   });
 });

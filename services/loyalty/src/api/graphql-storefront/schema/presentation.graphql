@@ -244,7 +244,7 @@ type LoyaltyFreeProductRewardPresentation implements LoyaltyRewardPresentation {
 type LoyaltyMemberBenefitRewardPresentation implements LoyaltyRewardPresentation {
   kind: LoyaltyRewardKind!
   copy: LoyaltyOpportunityCopy!
-  code: String!
+  code: String
 }
 
 """

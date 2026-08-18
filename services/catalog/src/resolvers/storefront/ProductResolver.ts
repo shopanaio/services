@@ -21,6 +21,8 @@ import { emptySeo } from "./SeoResolver.js";
 
 @SubgraphReference()
 export class ProductResolver extends CatalogType<string, Product> {
+  readonly __typename = "Product";
+
   async $preload() {
     const value = await this.$ctx.loaders.product.load(this.$props);
     if (!isPublishedProduct(value)) {

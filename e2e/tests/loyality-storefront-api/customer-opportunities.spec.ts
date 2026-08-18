@@ -106,7 +106,7 @@ test.describe('Loyalty Storefront API account opportunities', () => {
 
   test('evaluates segment ANY ALL exclusion and nested boolean conditions', async () => {
     await kit.createActiveAccount({ earningRules: [
-      rule('LOGIN', { conditions: { type: 'ALL', conditions: [{ type: 'NOT', condition: { type: 'ANY', conditions: [] } }] } }),
+      rule('LOGIN', { conditions: { type: 'ALL', conditions: [{ type: 'NOT', condition: all }] } }),
       rule('SIGNUP', { conditions: { type: 'ANY', conditions: [all] } }),
     ] });
     expect((await opportunities())?.opportunities.opportunities.map(({ type }: any) => type)).toEqual(['SIGNUP']);

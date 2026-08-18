@@ -1,0 +1,8 @@
+mutation LoyaltyTierMembershipRevoke($input: LoyaltyTierMembershipRevokeInput!) {
+  loyaltyMutation {
+    tierMembershipRevoke(input: $input) {
+      tierMembership { id status revision effectiveFrom effectiveTo tier { id code name rank } events { eventType reasonCode occurredAt } }
+      userErrors { code field message retryable }
+    }
+  }
+}

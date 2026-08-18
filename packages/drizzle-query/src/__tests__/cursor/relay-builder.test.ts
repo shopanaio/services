@@ -84,6 +84,20 @@ describe("createRelayQuery (fluent API)", () => {
       expect(() => qb.getSql({ last: 0 })).toThrow("last must be greater than 0");
     });
 
+    it("throws when the requested page exceeds maxLimit", () => {
+      const qb = createRelayQuery(productsQuery.maxLimit(100), {
+        name: "product",
+        tieBreaker: "id",
+      });
+
+      expect(() => qb.getSql({ first: 101 })).toThrow(
+        "Requested limit 101 exceeds maximum allowed limit 100"
+      );
+      expect(() => qb.getSql({ last: 101 })).toThrow(
+        "Requested limit 101 exceeds maximum allowed limit 100"
+      );
+    });
+
     it("throws on invalid cursor type", () => {
       const qb = createProductsPagination();
       const wrongTypeCursor = encode({

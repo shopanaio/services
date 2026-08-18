@@ -84,7 +84,7 @@ test.describe('Loyalty Storefront API customer account', () => {
     expect(await kit.loyaltyAccount('status')).toEqual({ status: 'CLOSED' });
     await kit.sql`
       update customers.customer set lifecycle_status = 'BLOCKED',
-        blocked_reason = 'loyalty storefront e2e', blocked_at = now()
+        blocked_reason = 'loyalty storefront e2e'
       where id = ${kit.customer.rawId}
     `;
     expect(await kit.loyaltyAccount('status')).toBeNull();
@@ -93,7 +93,7 @@ test.describe('Loyalty Storefront API customer account', () => {
   test('requires storefront loyalty read permission', async ({ api, request }) => {
     await kit.close();
     kit = new LoyaltyStorefrontTestKit(api, request);
-    await kit.setupLoyalty({ permission: false });
+    await kit.setupLoyalty({ permission: false, reuseSession: true });
     const response = await kit.loyaltyAccountResponse('id');
     expect(response.data?.customer?.loyaltyAccount ?? null).toBeNull();
     expect(response.errors?.[0]?.extensions?.code).toMatch(/FORBIDDEN|UNAUTHORIZED/);

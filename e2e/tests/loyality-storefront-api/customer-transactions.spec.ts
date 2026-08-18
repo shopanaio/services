@@ -18,7 +18,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
 
   async function transactions(first = 20, after?: string) {
     return kit.loyaltyAccount(`transactions(first: ${first}${after ? ', after: "' + after + '"' : ''}) {
-      nodes: edges { cursor node { ${TRANSACTION_FIELDS} } }
+      edges { cursor node { ${TRANSACTION_FIELDS} } }
       totalCount pageInfo { ${PAGE_INFO_FIELDS} }
     }`);
   }
@@ -36,7 +36,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     for (const [kind, points] of cases) await kit.seedTransaction(fixture, kind, points);
     const result = await transactions();
     expect(result?.transactions.totalCount).toBe(cases.length);
-    expect(result?.transactions.nodes.map(({ node }: any) => [node.type, node.direction]))
+    expect(result?.transactions.edges.map(({ node }: any) => [node.type, node.direction]))
       .toEqual(expect.arrayContaining(cases.map(([, , type, direction]) => [type, direction])));
   });
 
@@ -45,7 +45,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     for (const kind of ['ACTIVATE', 'RESERVE', 'RELEASE', 'MERGE_TRANSFER', 'DEBT_RECOVERY']) {
       await kit.seedTransaction(fixture, kind, 1n);
     }
-    expect((await transactions())?.transactions).toMatchObject({ totalCount: 0, nodes: [] });
+    expect((await transactions())?.transactions).toMatchObject({ totalCount: 0, edges: [] });
   });
 
   test('orders transactions newest first with a stable tie-breaker', async () => {
@@ -58,8 +58,8 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     ]);
     const first = await transactions();
     const repeated = await transactions();
-    expect(first?.transactions.nodes.map(({ node }: any) => node.id))
-      .toEqual(repeated?.transactions.nodes.map(({ node }: any) => node.id));
+    expect(first?.transactions.edges.map(({ node }: any) => node.id))
+      .toEqual(repeated?.transactions.edges.map(({ node }: any) => node.id));
   });
 
   test('paginates transaction history without gaps or duplicates', async () => {
@@ -72,7 +72,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     const first = await transactions(2);
     const second = await transactions(2, first?.transactions.pageInfo.endCursor);
     const third = await transactions(2, second?.transactions.pageInfo.endCursor);
-    const ids = [first, second, third].flatMap((page) => page?.transactions.nodes.map(({ node }: any) => node.id) ?? []);
+    const ids = [first, second, third].flatMap((page) => page?.transactions.edges.map(({ node }: any) => node.id) ?? []);
     expect(new Set(ids).size).toBe(5);
     expect(first?.transactions).toMatchObject({ totalCount: 5, pageInfo: { hasNextPage: true } });
     expect(third?.transactions.pageInfo.hasNextPage).toBe(false);
@@ -84,7 +84,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     await kit.seedTransaction(fixture, 'ADJUST_CREDIT', 9007199254740993n, {
       metadata: { points: '9007199254740993' },
     });
-    const nodes = (await transactions())?.transactions.nodes.map(({ node }: any) => node);
+    const nodes = (await transactions())?.transactions.edges.map(({ node }: any) => node);
     expect(nodes).toEqual(expect.arrayContaining([
       expect.objectContaining({ points: '42', direction: 'DEBIT' }),
       expect.objectContaining({ points: '9007199254740993', direction: 'CREDIT' }),
@@ -97,7 +97,7 @@ test.describe('Loyalty Storefront API customer transaction history', () => {
     await kit.seedTransaction(fixture, 'EARN_PENDING', 3n, {
       description: 'Welcome points', metadata: { points: '3', expiresAt, secret: 'hidden' },
     });
-    const node = (await transactions())?.transactions.nodes[0].node;
+    const node = (await transactions())?.transactions.edges[0].node;
     expect(node).toMatchObject({ description: 'Welcome points', expiresAt });
     expect(JSON.stringify(node)).not.toMatch(/reasonCode|actorId|secret/);
   });

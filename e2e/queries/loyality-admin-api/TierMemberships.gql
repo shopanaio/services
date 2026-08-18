@@ -1,0 +1,8 @@
+query LoyaltyTierMemberships($accountId: ID!, $first: Int) {
+  loyaltyQuery {
+    tierMemberships(accountId: $accountId, first: $first) {
+      id status revision effectiveFrom effectiveTo tier { id code name rank }
+      events { eventType previousTier { id code } tier { id code } reasonCode occurredAt }
+    }
+  }
+}

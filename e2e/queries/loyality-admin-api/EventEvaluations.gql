@@ -1,0 +1,5 @@
+query LoyaltyEventEvaluations($where: LoyaltyEventEvaluationWhereInput!, $first: Int) {
+  loyaltyQuery {
+    eventEvaluations(where: $where, first: $first) { id decision reasonCode pointsAwarded monetaryAmount { amountMinor currencyCode } result eventFact { id externalEventId } earningRule { id code } account { id } transaction { id kind } }
+  }
+}

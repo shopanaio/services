@@ -1,0 +1,8 @@
+mutation LoyaltyTierRewardBenefitDelete($input: LoyaltyTierRewardBenefitDeleteInput!) {
+  loyaltyMutation {
+    tierRewardBenefitDelete(input: $input) {
+      deletedId
+      userErrors { code field message retryable }
+    }
+  }
+}

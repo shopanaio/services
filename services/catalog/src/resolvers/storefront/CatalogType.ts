@@ -5,6 +5,7 @@ import {
   createExecutor,
   type Authorizable,
   type CacheStore,
+  type Middleware,
 } from "@shopana/type-resolver";
 import {
   decodeGlobalIdByType,
@@ -18,6 +19,29 @@ import {
   type ResolverRegistry,
 } from "./ResolverRegistry.js";
 
+const graphqlNodeTypeByResolver = new Map<string, string>([
+  ["ProductResolver", "Product"],
+  ["ProductVariantResolver", "ProductVariant"],
+  ["CategoryResolver", "Category"],
+  ["ProductOptionResolver", "ProductOption"],
+  ["ProductOptionCategoryResolver", "ProductOptionCategory"],
+  ["ProductOptionValueResolver", "ProductOptionValue"],
+  ["ProductFeatureResolver", "ProductFeature"],
+  ["ProductFeatureGroupResolver", "ProductFeatureGroup"],
+  ["ProductFeatureValueResolver", "ProductFeatureValue"],
+  ["VendorResolver", "Vendor"],
+  ["TagResolver", "Tag"],
+  ["InventoryItemResolver", "InventoryItem"],
+]);
+
+const graphqlNodeTypeMiddleware: Middleware<ServiceContext> = {
+  name: "catalog-storefront-graphql-node-type",
+  async afterLoad({ Type, result }) {
+    const typeName = graphqlNodeTypeByResolver.get(Type.name);
+    if (typeName) result.__typename = typeName;
+  },
+};
+
 export { Cache };
 
 export abstract class CatalogType<TValue, TData = unknown>
@@ -27,7 +51,7 @@ export abstract class CatalogType<TValue, TData = unknown>
   readonly authProvider = new AuthProvider();
 
   static executor = createExecutor<ServiceContext>({
-    middleware: [createAuthorizationMiddleware()],
+    middleware: [createAuthorizationMiddleware(), graphqlNodeTypeMiddleware],
   });
 
   protected get resolvers(): ResolverRegistry {

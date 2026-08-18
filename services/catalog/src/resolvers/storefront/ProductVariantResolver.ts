@@ -12,6 +12,8 @@ import { minorUnitsToMoney } from "./money.js";
 
 @SubgraphReference()
 export class ProductVariantResolver extends CatalogType<string, Variant> {
+  readonly __typename = "ProductVariant";
+
   async $preload() {
     const value = await loadPublishedVariant(this.$ctx, this.$props);
     if (!value) {

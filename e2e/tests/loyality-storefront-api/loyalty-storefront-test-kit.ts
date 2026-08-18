@@ -59,20 +59,20 @@ export interface LoyaltyFixture {
   account: Json;
 }
 
-const STOREFRONT_REWARD_DEFINITIONS = [
+const storefrontRewardDefinitions = (discountId: string) => [
   { code: 'storefront-points', name: 'Points reward', rewardType: 'POINTS', configuration: { points: '1' } },
   { code: 'storefront-money', name: 'Money reward', rewardType: 'MONETARY_CREDIT', configuration: { amountMinor: '1', currencyCode: 'USD', walletType: 'STORE_CREDIT' } },
-  { code: 'storefront-voucher', name: 'Voucher reward', rewardType: 'VOUCHER', configuration: { externalDiscountId: 'voucher' } },
-  { code: 'storefront-fixed', name: 'Fixed discount', rewardType: 'FIXED_DISCOUNT', configuration: { externalDiscountId: 'fixed' } },
-  { code: 'storefront-percentage', name: 'Percentage discount', rewardType: 'PERCENTAGE_DISCOUNT', configuration: { externalDiscountId: 'percentage' } },
-  { code: 'storefront-shipping', name: 'Free shipping', rewardType: 'FREE_SHIPPING', configuration: { externalDiscountId: 'shipping' } },
-  { code: 'storefront-product', name: 'Free product', rewardType: 'FREE_PRODUCT', configuration: { externalDiscountId: 'product' } },
+  { code: 'storefront-voucher', name: 'Voucher reward', rewardType: 'VOUCHER', configuration: { externalDiscountId: discountId } },
+  { code: 'storefront-fixed', name: 'Fixed discount', rewardType: 'FIXED_DISCOUNT', configuration: { externalDiscountId: discountId } },
+  { code: 'storefront-percentage', name: 'Percentage discount', rewardType: 'PERCENTAGE_DISCOUNT', configuration: { externalDiscountId: discountId } },
+  { code: 'storefront-shipping', name: 'Free shipping', rewardType: 'FREE_SHIPPING', configuration: { externalDiscountId: discountId } },
+  { code: 'storefront-product', name: 'Free product', rewardType: 'FREE_PRODUCT', configuration: { externalDiscountId: discountId } },
   { code: 'storefront-benefit', name: 'Member benefit', rewardType: 'MEMBER_BENEFIT', configuration: { benefitCode: 'member-benefit' } },
 ];
 
 export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
-  async setupLoyalty(options: { permission?: boolean } = {}): Promise<void> {
-    await this.setup({ channel: false });
+  async setupLoyalty(options: { permission?: boolean; reuseSession?: boolean } = {}): Promise<void> {
+    await super.setup({ channel: false, reuseSession: options.reuseSession });
     await this.headless.install();
     const permissions = [
       'storefront.customer.read',
@@ -91,16 +91,32 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
 
   async createActiveAccount(versionOverrides: Json = {}): Promise<LoyaltyFixture> {
     const program = await createProgram(this.api, { isDefault: true });
+    const discountId = await this.seedReferencedDiscount();
     const version = await createVersion(this.api, program, {
       ...versionOverrides,
       rewardDefinitions: [
-        ...STOREFRONT_REWARD_DEFINITIONS,
+        ...storefrontRewardDefinitions(discountId),
         ...(versionOverrides.rewardDefinitions ?? []),
       ],
     });
     await publishVersion(this.api, version);
     const account = await seedAccount(this.api, program, { customerId: this.customer.rawId });
     return { program, version, account };
+  }
+
+  private async seedReferencedDiscount(): Promise<string> {
+    const discountId = crypto.randomUUID();
+    await this.sql`
+      insert into pricing.discount (
+        id, store_id, method, calculation_strategy, kind, discount_class,
+        state, title, currency
+      ) values (
+        ${discountId}, ${this.realm.storeId}, 'AUTOMATIC', 'NATIVE',
+        'AMOUNT_OFF_ORDER', 'ORDER', 'DRAFT',
+        'Loyalty storefront reference', 'USD'
+      )
+    `;
+    return discountId;
   }
 
   async loyaltyAccount<T = any>(selection = ACCOUNT_FIELDS): Promise<T | null> {
@@ -353,10 +369,22 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
     const product = payload.product;
     const variant = product.variants.edges[0]?.node;
     expect(variant).toBeTruthy();
-    const priced = await this.api.admin.mutation<Json>('inventory-api/VariantSetPricing', {
-      variables: { input: { variantId: variant.id, currency: 'USD', amountMinor: priceMinor } },
+    const priced = await this.api.admin.mutation<Json>('inventory-api/ProductUpdate', {
+      variables: {
+        productId: product.id,
+        expectedRevision: product.revision,
+        operations: {
+          variants: [{
+            action: 'UPDATE',
+            variantId: variant.id,
+            pricing: { currency: 'USD', amountMinor: priceMinor },
+          }],
+        },
+      },
     });
-    expect(priced.data.catalogMutation.variantUpdatePricing.userErrors).toEqual([]);
+    const pricedPayload = priced.data.catalogMutation.productUpdate;
+    expect(pricedPayload.userErrors).toEqual([]);
+    let revision = pricedPayload.product.revision as number;
     await this.sql`
       update catalog.inventory_item set continue_selling_when_out_of_stock = true,
         updated_at = now() where variant_id = ${decodeGlobalId(variant.id).id}
@@ -365,13 +393,14 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
       const updated = await this.api.admin.mutation<Json>('inventory-api/ProductUpdate', {
         variables: {
           productId: product.id,
-          expectedRevision: product.revision,
+          expectedRevision: pricedPayload.product.revision,
           operations: { status: 'PUBLISHED' },
         },
       });
       expect(updated.data.catalogMutation.productUpdate.userErrors).toEqual([]);
+      revision = updated.data.catalogMutation.productUpdate.product.revision as number;
     }
-    return { productId: product.id as string, variantId: variant.id as string };
+    return { productId: product.id as string, variantId: variant.id as string, revision };
   }
 
   entityQuery<T>(

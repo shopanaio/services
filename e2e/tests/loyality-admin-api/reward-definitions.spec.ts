@@ -6,10 +6,15 @@ import { createDraft, expectNoUserErrors, expectUserError, future, idempotencyKe
 test.describe('Loyalty Admin API reward definitions', () => {
   test.beforeEach(async ({ api }) => setupStore(api));
 
-  test('creates points member-benefit and monetary-credit definitions', async ({ api }) => {
+  test('creates every supported reward definition with exact configuration snapshots', async ({ api }) => {
     const { version } = await createDraft(api);
     const definitions = [
       ['POINTS', { points: '9007199254740993' }],
+      ['VOUCHER', { externalDiscountId: 'voucher-e2e' }],
+      ['FIXED_DISCOUNT', { externalDiscountId: 'fixed-e2e' }],
+      ['PERCENTAGE_DISCOUNT', { externalDiscountId: 'percentage-e2e' }],
+      ['FREE_SHIPPING', { externalDiscountId: 'shipping-e2e' }],
+      ['FREE_PRODUCT', { externalDiscountId: 'product-e2e' }],
       ['MEMBER_BENEFIT', { benefitCode: 'priority-support' }],
       ['MONETARY_CREDIT', { amountMinor: '500', currencyCode: 'USD', walletType: 'STORE_CREDIT' }],
     ] as const;
