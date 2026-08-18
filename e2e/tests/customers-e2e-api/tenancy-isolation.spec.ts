@@ -27,7 +27,7 @@ test.describe('Customers E2E API — tenancy isolation', () => {
     await storeA.enrollAdminCustomer(customerA, email);
 
     storeB = new CustomersE2ETestKit(api, request);
-    await storeB.setup({ customer: false });
+    await storeB.setup({ customer: false, reuseSession: true });
     expect((await storeB.adminAccountSettingsUpdate(['PASSWORD'])).userErrors).toEqual([]);
     projectB = api.session.project;
     customerB = await storeB.adminCreate({ email, firstName: 'Store B' });

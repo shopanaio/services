@@ -118,6 +118,7 @@ test.describe('Customers E2E API — account enrollment', () => {
       kit.signUpWithPassword(email),
     ]);
     expect(results.filter((response) => response.ok())).toHaveLength(1);
+    await kit.verifyEmail(email);
     await expect
       .poll(async () => (await kit.adminCustomer(guest.id)).iamPrincipalId)
       .not.toBeNull();

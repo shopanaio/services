@@ -58,11 +58,13 @@ test.describe('Customers E2E API — comparison synchronization', () => {
       status: 'PUBLISHED',
       options: [{ name: 'Size', values: ['S', 'M'] }],
     });
+  const storefrontVariantId = (variantId: string, target = kit) =>
+    target.id('ProductVariant', target.headless.rawId(variantId));
 
   test('storefront comparison selection is visible in the admin customer aggregate', async () => {
     const variants = (await product()).variants.edges.map(({ node }) => node);
     for (const variant of variants)
-      expect((await add(variant.id)).data?.payload.userErrors).toEqual([]);
+      expect((await add(storefrontVariantId(variant.id))).data?.payload.userErrors).toEqual([]);
     const comparison = (await kit.adminCustomer()).comparison;
     expect(comparison.revision).toBe(2);
     expect(
@@ -72,8 +74,10 @@ test.describe('Customers E2E API — comparison synchronization', () => {
 
   test('storefront comparison removal is visible through admin', async () => {
     const variants = (await product()).variants.edges.map(({ node }) => node);
-    for (const variant of variants) await add(variant.id);
-    expect((await remove(variants[0]!.id)).data?.payload.userErrors).toEqual([]);
+    for (const variant of variants) await add(storefrontVariantId(variant.id));
+    expect((await remove(storefrontVariantId(variants[0]!.id))).data?.payload.userErrors).toEqual(
+      [],
+    );
     expect((await kit.adminCustomer()).comparison.items).toEqual([
       expect.objectContaining({ variantId: variants[1]!.id, position: 1 }),
     ]);
@@ -81,7 +85,7 @@ test.describe('Customers E2E API — comparison synchronization', () => {
 
   test('admin comparison reads never mutate storefront selection', async () => {
     const variant = (await product()).variants.edges[0]!.node;
-    await add(variant.id);
+    await add(storefrontVariantId(variant.id));
     const first = (await kit.adminCustomer()).comparison;
     const second = (await kit.adminCustomer()).comparison;
     expect(second).toEqual(first);
@@ -116,12 +120,14 @@ test.describe('Customers E2E API — comparison synchronization', () => {
     const projectA = api.session.project;
     const storeB = new CustomersE2ETestKit(api, request);
     try {
-      await storeB.setup({ customer: false });
+      await storeB.setup({ customer: false, reuseSession: true });
       expect((await storeB.adminAccountSettingsUpdate(['PASSWORD'])).userErrors).toEqual([]);
       const guestB = await storeB.adminCreate({ email: kit.customer.email });
       await storeB.enrollAdminCustomer(guestB, kit.customer.email);
       const variantB = (await product(storeB)).variants.edges[0]!.node;
-      expect((await add(variantB.id, storeB)).data?.payload.userErrors).toEqual([]);
+      expect(
+        (await add(storefrontVariantId(variantB.id, storeB), storeB)).data?.payload.userErrors,
+      ).toEqual([]);
       expect((await storeB.adminCustomer()).comparison.items).toEqual([
         expect.objectContaining({ variantId: variantB.id }),
       ]);

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { expect } from '@playwright/test';
+import { latestEmailVerificationLink } from '@utils/mailpit';
 import {
   createCustomer,
   getCustomer,
@@ -14,8 +15,12 @@ import {
 
 export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
   async enrollAdminCustomer(customer: Json, email = customer.email): Promise<void> {
+    const previousVerificationLink = await latestEmailVerificationLink(
+      email.trim().toLowerCase(),
+    );
     const signup = await this.signUpWithPassword(email);
     expect(signup.ok(), await signup.text()).toBe(true);
+    await this.verifyEmail(email, previousVerificationLink);
     this.accessToken = await this.issueCustomerAccessToken(email.trim().toLowerCase());
     await expect
       .poll(async () => {
@@ -120,7 +125,15 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
       undefined,
       options,
     );
-    expect(response.errors).toBeUndefined();
+    if (response.errors?.length) {
+      expect(response.data ?? null).toBeNull();
+      expect(response.errors).toEqual([
+        expect.objectContaining({
+          extensions: expect.objectContaining({ code: 'STOREFRONT_CUSTOMER_INVALID' }),
+        }),
+      ]);
+      return null;
+    }
     return response.data?.customer ?? null;
   }
 }

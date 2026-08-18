@@ -7,7 +7,7 @@ import type {
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
-import { waitForEmailOtp } from '@utils/mailpit';
+import { installMailpitSmtp, waitForEmailOtp } from '@utils/mailpit';
 import {
   defaultPassword,
   endpoint,
@@ -687,39 +687,6 @@ async function findStorefrontRealm(
     `;
     return row ?? null;
   });
-}
-
-async function installMailpitSmtp(api: Api): Promise<void> {
-  const install = await api.admin.mutation('apps-admin-api/AppInstall', {
-    variables: {
-      input: {
-        appCode: 'shopana-smtp',
-        configuration: {
-          host: '127.0.0.1',
-          port: 11025,
-          security: 'NONE',
-        },
-        clientMutationId: crypto.randomUUID(),
-      },
-    },
-  });
-  const payload = install.data.appsMutation.appInstall;
-  expect(payload.userErrors).toEqual([]);
-  expect(payload.installation).not.toBeNull();
-  await expect
-    .poll(
-      async () => {
-        const response = await api.admin.query('apps-admin-api/AppInstallation', {
-          variables: { id: payload.installation!.id },
-        });
-        return response.data.appsQuery.appInstallation?.status;
-      },
-      {
-        message: 'Mailpit SMTP application did not become active',
-        timeout: 20_000,
-      },
-    )
-    .toBe('ACTIVE');
 }
 
 function adminHeaders(api: Api): Record<string, string> {

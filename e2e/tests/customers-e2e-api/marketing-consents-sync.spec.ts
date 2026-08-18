@@ -52,7 +52,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
             {
               channel: 'EMAIL',
               state: 'SUBSCRIBED',
-              optInLevel: 'DOUBLE_OPT_IN',
+              optInLevel: 'CONFIRMED_OPT_IN',
               contactPoint: admin.email,
             },
             { channel: 'SMS', state: 'SUBSCRIBED', contactPoint: phone },
@@ -78,7 +78,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
       'WHATSAPP',
     ]);
     expect(storefront.marketingConsents.find(({ channel }) => channel === 'EMAIL')).toEqual(
-      expect.objectContaining({ state: 'SUBSCRIBED', optInLevel: 'DOUBLE_OPT_IN' }),
+      expect.objectContaining({ state: 'SUBSCRIBED', optInLevel: 'CONFIRMED_OPT_IN' }),
     );
   });
 
@@ -140,7 +140,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
     const email = kit.customer.email;
     const storeB = new CustomersE2ETestKit(api, request);
     try {
-      await storeB.setup({ customer: false });
+      await storeB.setup({ customer: false, reuseSession: true });
       expect((await storeB.adminAccountSettingsUpdate(['PASSWORD'])).userErrors).toEqual([]);
       const guestB = await storeB.adminCreate({ email });
       await storeB.enrollAdminCustomer(guestB, email);

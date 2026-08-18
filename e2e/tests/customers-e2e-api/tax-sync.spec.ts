@@ -59,7 +59,6 @@ test.describe('Customers E2E API — tax synchronization', () => {
             identifierType: 'VAT',
             countryCode: 'ua',
             value: '  UA 123  ',
-            status: 'VERIFIED',
             isPrimary: true,
           },
         ],
@@ -76,7 +75,7 @@ test.describe('Customers E2E API — tax synchronization', () => {
           expect.objectContaining({
             countryCode: 'UA',
             value: 'UA 123',
-            status: 'VERIFIED',
+            status: 'UNVERIFIED',
             isPrimary: true,
           }),
         ],
@@ -100,18 +99,18 @@ test.describe('Customers E2E API — tax synchronization', () => {
     expect(admin.revision).toBe(response.data?.payload.customer?.revision);
   });
 
-  test('admin verification of a tax identifier is reflected in storefront', async () => {
+  test('admin rejection of a tax identifier is reflected in storefront', async () => {
     const created = await create({ value: 'VERIFY-ME' });
     const id = created.data!.payload.taxIdentifier!.id;
     const payload = await kit.adminUpdate({
-      taxIdentifiers: { update: [{ taxIdentifierId: id, operations: { status: 'VERIFIED' } }] },
+      taxIdentifiers: { update: [{ taxIdentifierId: id, operations: { status: 'REJECTED' } }] },
     });
     expect(payload.userErrors).toEqual([]);
     const customer = await kit.currentCustomer<any>(
       'taxIdentifiers(first: 10) { nodes { id status verifiedAt } }',
     );
     expect(customer.taxIdentifiers.nodes).toEqual([
-      expect.objectContaining({ id, status: 'VERIFIED', verifiedAt: expect.any(String) }),
+      expect.objectContaining({ id, status: 'REJECTED', verifiedAt: null }),
     ]);
   });
 

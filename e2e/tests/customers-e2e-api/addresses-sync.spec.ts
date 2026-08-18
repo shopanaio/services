@@ -149,8 +149,20 @@ test.describe('Customers E2E API — address synchronization', () => {
   });
 
   test('deleting an address through either API clears shared defaults consistently', async () => {
-    const created = await create({ ...address, isDefaultShipping: true, isDefaultBilling: true });
+    const created = await create();
     const id = created.data!.payload.customerAddress!.id as string;
+    const defaults = await kit.mutation<any>(
+      'customerAddressDefaultSet',
+      'CustomerAddressDefaultSetInput',
+      {
+        addressId: id,
+        defaults: ['SHIPPING', 'BILLING'],
+        expectedRevision: await kit.revision(),
+        idempotencyKey: uniqueKey(),
+      },
+      `customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,
+    );
+    expect(defaults.data?.payload.userErrors).toEqual([]);
     const deleted = await remove(id);
     expect(deleted.data?.payload).toEqual(
       expect.objectContaining({ deletedAddressId: id, userErrors: [] }),

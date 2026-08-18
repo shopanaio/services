@@ -4,6 +4,10 @@ import type { APIRequestContext, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { ApiFixtures } from '@fixtures/api/api';
 import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
+import {
+  installMailpitSmtp,
+  waitForEmailVerificationLink,
+} from '@utils/mailpit';
 import postgres from 'postgres';
 import { HeadlessTestKit, type UserError } from '../headless-admin-api/headless-test-kit';
 import {
@@ -115,6 +119,7 @@ export class CustomersStorefrontTestKit {
       await this.api.session.setupUserAndStore({ locales: ['en', 'uk'] });
     }
     this.realm = await this.waitForRealm();
+    await installMailpitSmtp(this.api);
 
     if (withChannel) {
       await this.headless.install();
@@ -140,6 +145,7 @@ export class CustomersStorefrontTestKit {
         },
       });
       expect(signup.ok(), await signup.text()).toBe(true);
+      await this.verifyEmail(email);
       this.accessToken = await this.issueAccessToken(email);
       this.customer = await this.waitForCustomer(email);
     }
@@ -396,6 +402,7 @@ export class CustomersStorefrontTestKit {
     const id = crypto.randomUUID();
     const status = values.status ?? 'PENDING';
     const requestedAt = values.requestedAt ?? new Date();
+    const updatedAt = new Date().toISOString();
     const finishedAt = ['COMPLETED', 'REJECTED', 'CANCELLED'].includes(status)
       ? new Date(Math.max(Date.now(), requestedAt.getTime()))
       : null;
@@ -403,14 +410,15 @@ export class CustomersStorefrontTestKit {
       insert into customers.customer_data_request (
         id, store_id, customer_id, type, status, requested_by_type,
         requested_by_id, idempotency_key, request_metadata, result_file_id,
-        rejection_reason, requested_at, started_at, finished_at
+        rejection_reason, requested_at, started_at, finished_at, updated_at
       ) values (
         ${id}, ${values.storeId ?? this.realm.storeId},
         ${values.customerId ?? this.customer.rawId}, ${values.type ?? 'ACCESS'},
         ${status}, 'customer', ${values.customerId ?? this.customer.rawId},
         ${crypto.randomUUID()}, '{}'::jsonb, ${values.resultFileId ?? null},
         ${status === 'REJECTED' ? 'Rejected by test fixture' : null},
-        ${requestedAt}, ${status === 'PROCESSING' ? requestedAt : null}, ${finishedAt}
+        ${requestedAt}, ${status === 'PROCESSING' ? requestedAt : null}, ${finishedAt},
+        ${updatedAt}
       ) returning updated_at as "updatedAt"
     `;
     return { id, globalId: this.id('CustomerDataRequest', id), updatedAt: row!.updatedAt };
@@ -538,7 +546,7 @@ export class CustomersStorefrontTestKit {
           registration_mode = 'open',
           password_sign_up_enabled = true,
           password_sign_in_enabled = true,
-          email_verification_required = false,
+          email_verification_required = true,
           revision = revision + 1,
           updated_at = now()
       where application_id = ${this.realm.applicationId}
@@ -557,6 +565,23 @@ export class CustomersStorefrontTestKit {
         password: options.password ?? defaultPassword,
       },
     });
+  }
+
+  async verifyEmail(email: string, previousLink?: string | null): Promise<void> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const verificationUrl = await waitForEmailVerificationLink(
+      normalizedEmail,
+      30_000,
+      previousLink,
+    );
+    const token = new URL(verificationUrl).searchParams.get('token');
+    expect(token).toBeTruthy();
+    const response = await this.request.get(
+      `${endpoint(this.realm, '/verify-email')}?token=${encodeURIComponent(token!)}&callbackURL=${encodeURIComponent(endpoint(this.realm, '/verified'))}`,
+      { headers: formHeaders(this.realm.origin), maxRedirects: 0 },
+    );
+    expect(response.status()).toBeGreaterThanOrEqual(300);
+    expect(response.status()).toBeLessThan(400);
   }
 
   async issueAccessToken(email: string): Promise<string> {

@@ -60,7 +60,7 @@ test.describe('Customers E2E API — lifecycle synchronization', () => {
     );
   });
 
-  test('IAM block and unblock are projected to admin lifecycle and storefront access', async () => {
+  test('generic IAM mutations cannot change a service-linked storefront principal', async () => {
     const input = {
       organizationId: kit.id('Organization', kit.realm.organizationId),
       applicationId: kit.id('Application', kit.realm.applicationId),
@@ -70,15 +70,12 @@ test.describe('Customers E2E API — lifecycle synchronization', () => {
       'application-admin-api/ApplicationUserBlock',
       { variables: { input } },
     );
-    expect(blocked.data.applicationMutation.applicationUserBlock.userErrors).toEqual([]);
-    await expect.poll(async () => (await kit.adminCustomer()).lifecycleStatus).toBe('BLOCKED');
-    expect(await kit.storefrontCustomerOrNull()).toBeNull();
-    const unblocked = await kit.api.admin.mutation<any>(
-      'application-admin-api/ApplicationUserUnblock',
-      { variables: { input } },
+    expect(blocked.data.applicationMutation.applicationUserBlock.userErrors).toEqual([
+      expect.objectContaining({ code: 'RESOURCE_SERVICE_LINKED' }),
+    ]);
+    expect(await kit.adminCustomer()).toEqual(
+      expect.objectContaining({ lifecycleStatus: 'ACTIVE' }),
     );
-    expect(unblocked.data.applicationMutation.applicationUserUnblock.userErrors).toEqual([]);
-    await expect.poll(async () => (await kit.adminCustomer()).lifecycleStatus).toBe('ACTIVE');
     expect(await kit.storefrontCustomerOrNull()).toEqual(
       expect.objectContaining({ id: kit.customer.id }),
     );

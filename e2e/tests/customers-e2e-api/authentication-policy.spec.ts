@@ -100,7 +100,7 @@ test.describe('Customers E2E API — authentication policy', () => {
     expect((await kit.adminAccountSettingsUpdate(['PASSWORD'])).userErrors).toEqual([]);
     const storeB = new CustomersE2ETestKit(api, request);
     try {
-      await storeB.setup({ customer: false });
+      await storeB.setup({ customer: false, reuseSession: true });
       expect((await storeB.adminAccountSettingsUpdate([])).userErrors).toEqual([]);
       const email = `policy-store-${crypto.randomUUID()}@playwright.dev`;
       const guestB = await storeB.adminCreate({ email });
