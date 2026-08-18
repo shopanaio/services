@@ -1,4 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type {
+  ApiCustomer,
+  ApiCustomerSegmentAttributeDescriptor,
+  ApiCustomerSegmentFunctionParameterDescriptor,
+  ApiCustomerSegmentQueryValidationResult,
+} from '@codegen/admin-gql';
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import {
@@ -8,12 +14,14 @@ import {
   expectNoUserErrors,
   openCustomersSql,
   rawId,
+  selectStore,
   setupStore,
   updateCustomer,
+  wrongTypeId,
 } from './helpers';
 
 type CustomerKey = 'alpha' | 'beta' | 'gamma';
-const FIXTURE_CUSTOMER_COUNT = 100;
+const FIXTURE_CUSTOMER_COUNT = 53;
 
 interface QueryCase {
   name: string;
@@ -25,17 +33,28 @@ interface QueryCase {
 }
 
 interface QueryFixtures {
-  customers: Record<CustomerKey, any>;
-  allCustomers: any[];
+  customers: Record<CustomerKey, ApiCustomer>;
+  allCustomers: ApiCustomer[];
   generatedCustomers: GeneratedCustomer[];
   tagId: string;
   groupId: string;
 }
 
 interface GeneratedCustomer {
-  customer: any;
+  customer: ApiCustomer;
   dateOfBirth: string;
   locale: string;
+}
+
+interface DefinitionCoverage {
+  attributes: Set<string>;
+  operators: Set<string>;
+  parameters: Set<string>;
+}
+
+interface CatalogIds {
+  customer_tags: string;
+  customer_groups: string;
 }
 
 async function createNoiseCustomers(
@@ -87,22 +106,245 @@ async function preview(
 }
 
 async function previewAllCustomers(api: Parameters<typeof setupStore>[0], query: string) {
-  const customers: any[] = [];
+  const customers: ApiCustomer[] = [];
   let after: string | null = null;
   let totalCount: number | null = null;
+  let validation: ApiCustomerSegmentQueryValidationResult | null = null;
 
   do {
     const result = await preview(api, query, { first: 25, after });
     expect(result.validation, query).toMatchObject({ valid: true, diagnostics: [] });
     expect(result.timedOut, query).toBe(false);
+    validation ??= result.validation;
+    expect(result.validation.canonicalQuery, query).toBe(validation.canonicalQuery);
+    expect(result.validation.definition, query).toEqual(validation.definition);
     totalCount ??= result.totalCount;
     expect(result.totalCount, query).toBe(totalCount);
-    customers.push(...result.customers.edges.map(({ node }: any) => node));
+    customers.push(...result.customers.edges.map(({ node }: { node: ApiCustomer }) => node));
     after = result.customers.pageInfo.hasNextPage ? result.customers.pageInfo.endCursor : null;
   } while (after);
 
   expect(customers, query).toHaveLength(totalCount ?? 0);
-  return customers;
+  expect(validation, query).not.toBeNull();
+  if (!validation) throw new Error(`Preview returned no validation for ${query}`);
+  return { customers, validation };
+}
+
+async function validateQuery(api: Parameters<typeof setupStore>[0], query: string) {
+  const { data, errors } = await api.admin.query<any>(
+    'customers-admin-api/CustomerSegmentQueryValidate',
+    {
+      throwOnError: false,
+      variables: { query },
+    },
+  );
+  expect(errors ?? [], query).toHaveLength(0);
+  return data.customersQuery
+    .customerSegmentQueryValidate as ApiCustomerSegmentQueryValidationResult;
+}
+
+async function attributeCatalog(api: Parameters<typeof setupStore>[0]) {
+  const { data, errors } = await api.admin.query<any>(
+    'customers-admin-api/CustomerSegmentAttributeCatalog',
+    { throwOnError: false, variables: {} },
+  );
+  expect(errors ?? []).toHaveLength(0);
+  return data.customersQuery
+    .customerSegmentAttributeCatalog as ApiCustomerSegmentAttributeDescriptor[];
+}
+
+function collectDefinitionCoverage(definition: unknown): DefinitionCoverage {
+  const coverage: DefinitionCoverage = {
+    attributes: new Set(),
+    operators: new Set(),
+    parameters: new Set(),
+  };
+  const root = (definition as { root?: unknown } | null)?.root;
+
+  const visit = (expression: unknown): void => {
+    if (!expression || typeof expression !== 'object') return;
+    const node = expression as Record<string, unknown>;
+    if (node.kind === 'logical' && Array.isArray(node.children)) {
+      node.children.forEach(visit);
+      return;
+    }
+    if (node.kind === 'not') {
+      visit(node.child);
+      return;
+    }
+    if (node.kind === 'predicate') {
+      coverage.attributes.add(String(node.attribute));
+      coverage.operators.add(String(node.operator));
+      return;
+    }
+    if (node.kind === 'function') {
+      coverage.attributes.add(String(node.name));
+      coverage.operators.add(String(node.operator));
+      if (Array.isArray(node.parameters)) {
+        for (const parameter of node.parameters as Record<string, unknown>[]) {
+          coverage.parameters.add(`${String(node.name)}.${String(parameter.name)}`);
+          coverage.operators.add(String(parameter.operator));
+        }
+      }
+    }
+  };
+
+  visit(root);
+  return coverage;
+}
+
+function sorted(values: Iterable<string>): string[] {
+  return [...values].sort();
+}
+
+function valueLiteral(
+  descriptor: Pick<ApiCustomerSegmentAttributeDescriptor, 'name' | 'valueType' | 'enumValues'>,
+  ids: CatalogIds,
+  alternate = false,
+): string {
+  const specialStrings: Record<string, [string, string]> = {
+    customer_language: ['en-US', 'uk-UA'],
+    customer_source: ['import', 'api'],
+    customer_email_domain: ['example.com', 'sample.org'],
+    customer_countries: ['US', 'UA'],
+    tax_exemption_countries: ['US', 'UA'],
+    customer_regions: ['US-NY', 'UA-30'],
+    customer_cities: ['US-NY::NEW YORK', 'UA-30::KYIV'],
+    customer_postal_codes: ['10001', '01001'],
+  };
+  const index = alternate ? 1 : 0;
+  switch (descriptor.valueType) {
+    case 'String':
+      return `'${specialStrings[descriptor.name]?.[index] ?? (alternate ? 'beta' : 'alpha')}'`;
+    case 'Enum': {
+      const value = descriptor.enumValues[index] ?? descriptor.enumValues[0];
+      if (!value) throw new Error(`No enum fixture for ${descriptor.name}`);
+      return `'${value}'`;
+    }
+    case 'Boolean':
+      return alternate ? 'false' : 'true';
+    case 'Integer':
+    case 'Decimal':
+      return alternate ? '2' : '1';
+    case 'Money':
+      return alternate ? '2.00' : '1.00';
+    case 'Date':
+      return alternate ? '2025-01-02' : '2025-01-01';
+    case 'DateTime':
+      return alternate ? '2025-01-02T00:00:00Z' : '2025-01-01T00:00:00Z';
+    case 'ID': {
+      const id = ids[descriptor.name as keyof CatalogIds];
+      if (!id) throw new Error(`No valid ID fixture for ${descriptor.name}`);
+      return `'${id}'`;
+    }
+    default:
+      throw new Error(`No literal fixture for ${descriptor.name}:${descriptor.valueType}`);
+  }
+}
+
+function comparisonClause(name: string, operator: string, first: string, second: string) {
+  const symbols: Record<string, string> = {
+    eq: '=',
+    neq: '!=',
+    gt: '>',
+    gte: '>=',
+    lt: '<',
+    lte: '<=',
+  };
+  if (symbols[operator]) return `${name} ${symbols[operator]} ${first}`;
+  if (operator === 'between') return `${name} BETWEEN ${first} AND ${second}`;
+  if (operator === 'in') return `${name} IN (${first}, ${second})`;
+  if (operator === 'not_in') return `${name} NOT IN (${first}, ${second})`;
+  if (operator === 'contains') return `${name} CONTAINS ${first}`;
+  if (operator === 'not_contains') return `${name} NOT CONTAINS ${first}`;
+  if (operator === 'is_null') return `${name} IS NULL`;
+  if (operator === 'is_not_null') return `${name} IS NOT NULL`;
+  throw new Error(`No query fixture for operator ${operator}`);
+}
+
+function attributeOperatorQuery(
+  descriptor: ApiCustomerSegmentAttributeDescriptor,
+  operator: string,
+  ids: CatalogIds,
+) {
+  if (descriptor.kind === 'FUNCTION') {
+    if (operator === 'matches') return `${descriptor.name} MATCHES ()`;
+    if (operator === 'not_matches') return `${descriptor.name} NOT MATCHES ()`;
+    return comparisonClause(descriptor.name, operator, '', '');
+  }
+  return comparisonClause(
+    descriptor.name,
+    operator,
+    valueLiteral(descriptor, ids),
+    valueLiteral(descriptor, ids, true),
+  );
+}
+
+function parameterOperatorQuery(
+  fn: ApiCustomerSegmentAttributeDescriptor,
+  parameter: ApiCustomerSegmentFunctionParameterDescriptor,
+  operator: string,
+  ids: CatalogIds,
+) {
+  const descriptor = { ...parameter, name: parameter.name };
+  const clause = comparisonClause(
+    parameter.name,
+    operator,
+    valueLiteral(descriptor, ids),
+    valueLiteral(descriptor, ids, true),
+  );
+  return `${fn.name} MATCHES (${clause})`;
+}
+
+async function expectValidCatalogQuery(
+  api: Parameters<typeof setupStore>[0],
+  query: string,
+  expected: { attribute: string; operator: string; parameter?: string },
+) {
+  const validation = await validateQuery(api, query);
+  expect(validation, query).toMatchObject({ valid: true, diagnostics: [] });
+  expect(validation.canonicalQuery, query).toEqual(expect.any(String));
+  expect(validation.complexity, query).toEqual(expect.any(Number));
+  const coverage = collectDefinitionCoverage(validation.definition);
+  expect(sorted(coverage.attributes), query).toEqual([expected.attribute]);
+  expect(sorted(coverage.operators), query).toEqual(
+    sorted(new Set(expected.parameter ? ['matches', expected.operator] : [expected.operator])),
+  );
+  expect(sorted(coverage.parameters), query).toEqual(
+    expected.parameter ? [expected.parameter] : [],
+  );
+}
+
+async function expectCatalogValidationContract(
+  api: Parameters<typeof setupStore>[0],
+  catalog: ApiCustomerSegmentAttributeDescriptor[],
+  ids: CatalogIds,
+) {
+  for (const descriptor of catalog.filter(({ availability }) => availability === 'AVAILABLE')) {
+    for (const operator of descriptor.operators) {
+      await test.step(`${descriptor.name} supports ${operator}`, async () => {
+        await expectValidCatalogQuery(api, attributeOperatorQuery(descriptor, operator, ids), {
+          attribute: descriptor.name,
+          operator,
+        });
+      });
+    }
+    for (const parameter of descriptor.parameters) {
+      for (const operator of parameter.operators) {
+        await test.step(`${descriptor.name}.${parameter.name} supports ${operator}`, async () => {
+          await expectValidCatalogQuery(
+            api,
+            parameterOperatorQuery(descriptor, parameter, operator, ids),
+            {
+              attribute: descriptor.name,
+              operator,
+              parameter: `${descriptor.name}.${parameter.name}`,
+            },
+          );
+        });
+      }
+    }
+  }
 }
 
 async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promise<QueryFixtures> {
@@ -121,6 +363,10 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
     companyName: 'Beta Works',
   });
   const gamma = await createCustomer(api);
+  const deleted = await createCustomer(api, {
+    email: `deleted-${crypto.randomUUID()}@example.com`,
+    companyName: 'Alpha Labs',
+  });
   const generatedCustomers = await createNoiseCustomers(api);
   const tag = await createTag(api, { name: `Query engine ${crypto.randomUUID()}` });
   const group = await createGroup(api, { name: `Query engine ${crypto.randomUUID()}` });
@@ -134,6 +380,13 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
           regionCode: 'NY',
           postalCode: '10001',
           countryCode: 'US',
+        },
+        {
+          address1: '20 Queen Street West',
+          city: 'Toronto',
+          regionCode: 'ON',
+          postalCode: 'M5H 3R3',
+          countryCode: 'CA',
         },
       ],
     },
@@ -183,13 +436,31 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
       ],
     },
     groups: { memberships: [{ groupId: group.id }] },
+    taxExemptions: {
+      create: [
+        {
+          code: 'EXPIRED-RESALE',
+          countryCode: 'US',
+          validFrom: '2019-01-01',
+          validTo: '2020-01-01',
+        },
+      ],
+    },
   });
   expectNoUserErrors(betaUpdate);
+
+  const gammaUpdate = await updateCustomer(api, gamma, {
+    groups: {
+      memberships: [{ groupId: group.id, expiresAt: new Date(Date.now() - 60_000).toISOString() }],
+    },
+  });
+  expectNoUserErrors(gammaUpdate);
 
   const storeId = rawId(api.session.project.id);
   const alphaId = rawId(alpha.id);
   const betaId = rawId(beta.id);
   const gammaId = rawId(gamma.id);
+  const deletedId = rawId(deleted.id);
   const sql = openCustomersSql();
   try {
     await sql`
@@ -215,6 +486,11 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
           created_at = '2024-03-10T10:00:00Z', updated_at = '2024-03-20T10:00:00Z'
       where id = ${gammaId}::uuid
     `;
+    await sql`
+      update customers.customer
+      set deleted_at = now(), company_name = 'Alpha Labs'
+      where id = ${deletedId}::uuid
+    `;
 
     await sql`
       insert into customers.customer_statistics (
@@ -239,7 +515,8 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
         total_refunded_minor, net_spent_minor, average_order_value_minor
       ) values
         (${storeId}::uuid, ${alphaId}::uuid, 'USD', 3, 15000, 3000, 12000, 5000),
-        (${storeId}::uuid, ${betaId}::uuid, 'USD', 1, 2000, 0, 2000, 2000)
+        (${storeId}::uuid, ${betaId}::uuid, 'USD', 1, 2000, 0, 2000, 2000),
+        (${storeId}::uuid, ${alphaId}::uuid, 'EUR', 1, 99900, 0, 99900, 99900)
     `;
 
     await sql`
@@ -258,7 +535,10 @@ async function createQueryFixtures(api: Parameters<typeof setupStore>[0]): Promi
          null, '2025-03-02T10:00:00Z', '2025-03-02T10:00:00Z'),
         (${crypto.randomUUID()}::uuid, ${storeId}::uuid, ${betaId}::uuid, 1,
          'OPEN', 'USD', 2000, '2025-07-01T10:00:00Z',
-         null, null, '2025-07-01T10:00:00Z')
+         null, null, '2025-07-01T10:00:00Z'),
+        (${crypto.randomUUID()}::uuid, ${storeId}::uuid, ${alphaId}::uuid, 1,
+         'COMPLETED', 'EUR', 99900, '2025-08-01T10:00:00Z',
+         '2025-08-02T10:00:00Z', null, '2025-08-02T10:00:00Z')
     `;
   } finally {
     await sql.end();
@@ -280,6 +560,21 @@ function queryCases(fixtures: QueryFixtures): QueryCase[] {
       name: 'created date comparison',
       query: 'customer_added_date < 2024-02-01',
       expected: ['alpha'],
+      attributes: ['customer_added_date'],
+      operators: ['lt'],
+    },
+    {
+      name: 'named date resolves in the Store calendar',
+      query: 'customer_added_date = TODAY',
+      expected: [],
+      generated: 'all',
+      attributes: ['customer_added_date'],
+      operators: ['eq'],
+    },
+    {
+      name: 'relative date excludes customers created today',
+      query: 'customer_added_date < -1d',
+      expected: ['alpha', 'beta', 'gamma'],
       attributes: ['customer_added_date'],
       operators: ['lt'],
     },
@@ -372,6 +667,14 @@ function queryCases(fixtures: QueryFixtures): QueryCase[] {
       expected: ['alpha'],
       attributes: ['customer_countries'],
       operators: ['contains'],
+    },
+    {
+      name: 'list complement is based on absence of a matching item',
+      query: "customer_countries NOT CONTAINS 'US'",
+      expected: ['beta', 'gamma'],
+      generated: 'all',
+      attributes: ['customer_countries'],
+      operators: ['not_contains'],
     },
     {
       name: 'region list',
@@ -476,6 +779,13 @@ function queryCases(fixtures: QueryFixtures): QueryCase[] {
       operators: ['contains'],
     },
     {
+      name: 'expired tax exemption effective status',
+      query: "tax_exemption_statuses CONTAINS 'EXPIRED'",
+      expected: ['beta'],
+      attributes: ['tax_exemption_statuses'],
+      operators: ['contains'],
+    },
+    {
       name: 'tax exemption country',
       query: "tax_exemption_countries CONTAINS 'US'",
       expected: ['alpha'],
@@ -533,6 +843,13 @@ function queryCases(fixtures: QueryFixtures): QueryCase[] {
       expected: ['alpha'],
       attributes: ['amount_spent'],
       operators: ['gte'],
+    },
+    {
+      name: 'money statistics ignore rows in a non-Store currency',
+      query: 'amount_spent = 999.00',
+      expected: [],
+      attributes: ['amount_spent'],
+      operators: ['eq'],
     },
     {
       name: 'gross spend money',
@@ -639,11 +956,25 @@ function queryCases(fixtures: QueryFixtures): QueryCase[] {
       operators: ['matches', 'between'],
     },
     {
+      name: 'order money ignores orders in a non-Store currency',
+      query: 'orders_placed MATCHES (amount = 999.00)',
+      expected: [],
+      attributes: ['orders_placed'],
+      operators: ['matches', 'eq'],
+    },
+    {
       name: 'order count aggregate',
       query: "orders_placed MATCHES (status = 'COMPLETED', count >= 2)",
       expected: ['alpha'],
       attributes: ['orders_placed'],
       operators: ['matches', 'eq', 'gte'],
+    },
+    {
+      name: 'order count without a money predicate spans currencies',
+      query: "orders_placed MATCHES (status = 'COMPLETED', count = 3)",
+      expected: ['alpha'],
+      attributes: ['orders_placed'],
+      operators: ['matches', 'eq'],
     },
     {
       name: 'order sum aggregate',
@@ -807,8 +1138,15 @@ async function expectQueryCases(
         ...queryCase.expected.map((key) => fixtures.customers[key]),
         ...expectedGenerated.map(({ customer }) => customer),
       ];
-      const actual = await previewAllCustomers(api, queryCase.query);
-      const comparable = (customers: any[]) =>
+      const { customers: actual, validation } = await previewAllCustomers(api, queryCase.query);
+      const coverage = collectDefinitionCoverage(validation.definition);
+      expect(sorted(coverage.attributes), `${queryCase.query} (attributes)`).toEqual(
+        sorted(new Set(queryCase.attributes)),
+      );
+      expect(sorted(coverage.operators), `${queryCase.query} (operators)`).toEqual(
+        sorted(new Set(queryCase.operators)),
+      );
+      const comparable = (customers: ApiCustomer[]) =>
         customers
           .map(({ id, email }) => ({ id, email }))
           .sort((left, right) => left.id.localeCompare(right.id));
@@ -817,45 +1155,32 @@ async function expectQueryCases(
   }
 }
 
-test.describe('Customers Admin API - complete segment query engine', () => {
+test.describe('Customers Admin API - segment query engine contracts', () => {
   test.beforeEach(async ({ api }) => {
-    await setupStore(api);
+    await api.session.setupUserAndStore({ timezone: 'Europe/Kyiv' });
   });
 
-  test('every available query attribute and operator returns the exact customers', async ({
+  test('runtime catalog and semantic validator agree for every attribute, parameter and operator', async ({
+    api,
+  }) => {
+    const tag = await createTag(api);
+    const group = await createGroup(api);
+    const catalog = await attributeCatalog(api);
+
+    expect(catalog.length).toBeGreaterThan(0);
+    expect(new Set(catalog.map(({ name }) => name)).size).toBe(catalog.length);
+    await expectCatalogValidationContract(api, catalog, {
+      customer_tags: tag.id,
+      customer_groups: group.id,
+    });
+  });
+
+  test('compiler branches and nested expressions return exact paginated customer sets', async ({
     api,
   }) => {
     const fixtures = await createQueryFixtures(api);
     expect(fixtures.allCustomers).toHaveLength(FIXTURE_CUSTOMER_COUNT);
-    const cases = queryCases(fixtures);
-
-    const catalog = (
-      await api.admin.query<any>('customers-admin-api/CustomerSegmentAttributeCatalog', {
-        variables: {},
-      })
-    ).data.customersQuery.customerSegmentAttributeCatalog;
-    const available = catalog.filter(({ availability }: any) => availability === 'AVAILABLE');
-    const advertisedAttributes = available.map(({ name }: any) => name).sort();
-    const coveredAttributes = [...new Set(cases.flatMap(({ attributes }) => attributes))].sort();
-    expect(coveredAttributes).toEqual(advertisedAttributes);
-
-    const advertisedOperators = [
-      ...new Set(
-        available.flatMap(({ operators, parameters }: any) => [
-          ...operators,
-          ...parameters.flatMap((parameter: any) => parameter.operators),
-        ]),
-      ),
-    ].sort();
-    const coveredOperators = [...new Set(cases.flatMap(({ operators }) => operators))].sort();
-    expect(coveredOperators).toEqual(advertisedOperators);
-
-    await expectQueryCases(api, cases, fixtures);
-  });
-
-  test('complex nested queries return exact customers across data domains', async ({ api }) => {
-    const fixtures = await createQueryFixtures(api);
-    expect(fixtures.allCustomers).toHaveLength(FIXTURE_CUSTOMER_COUNT);
+    await expectQueryCases(api, queryCases(fixtures), fixtures);
     await expectQueryCases(api, complexQueryCases(fixtures), fixtures);
   });
 
@@ -876,5 +1201,146 @@ test.describe('Customers Admin API - complete segment query engine', () => {
       totalCount: null,
       timedOut: false,
     });
+  });
+
+  test('invalid syntax and semantics return stable diagnostic codes and never execute preview', async ({
+    api,
+  }) => {
+    const cases = [
+      { query: 'company_name =', code: 'SEGMENT_QUERY_SYNTAX_ERROR' },
+      { query: "unknown_attribute = 'x'", code: 'SEGMENT_UNKNOWN_ATTRIBUTE' },
+      { query: 'email_verified > true', code: 'SEGMENT_OPERATOR_NOT_SUPPORTED' },
+      {
+        query: "customer_account_status = 'UNKNOWN'",
+        code: 'SEGMENT_INVALID_ENUM_VALUE',
+      },
+      {
+        query: `customer_tags CONTAINS '${wrongTypeId('Product')}'`,
+        code: 'SEGMENT_INVALID_ENTITY_ID',
+      },
+      { query: 'date_of_birth = 2025-02-30', code: 'SEGMENT_INVALID_DATE' },
+      {
+        query: 'date_of_birth BETWEEN 2025-02-02 AND 2025-01-01',
+        code: 'SEGMENT_INVALID_DATE_RANGE',
+      },
+      { query: 'amount_spent = 1.001', code: 'SEGMENT_INVALID_MONEY' },
+      {
+        query: 'orders_placed MATCHES (count >= 1, count <= 2)',
+        code: 'SEGMENT_DUPLICATE_PARAMETER',
+      },
+      {
+        query: 'products_purchased MATCHES ()',
+        code: 'SEGMENT_ATTRIBUTE_UNAVAILABLE',
+      },
+      {
+        query: Array.from({ length: 21 }, (_, index) => `number_of_orders >= ${index}`).join(
+          ' OR ',
+        ),
+        code: 'SEGMENT_COMPLEXITY_LIMIT',
+      },
+    ];
+
+    for (const invalid of cases) {
+      await test.step(invalid.code, async () => {
+        const result = await preview(api, invalid.query);
+        expect(result.validation.valid, invalid.query).toBe(false);
+        expect(
+          result.validation.diagnostics.map(({ code }: { code: string }) => code),
+          invalid.query,
+        ).toContain(invalid.code);
+        expect(result, invalid.query).toMatchObject({
+          customers: null,
+          totalCount: null,
+          timedOut: false,
+        });
+      });
+    }
+  });
+
+  test('preview is explicitly isolated by Store even for identical customer data', async ({
+    api,
+  }) => {
+    const localStore = api.session.project;
+    const local = await createCustomer(api, { companyName: 'Tenant Sentinel' });
+    await api.session.setupProject();
+    await createCustomer(api, { companyName: 'Tenant Sentinel' });
+    const foreignGroup = await createGroup(api);
+    selectStore(api, localStore);
+
+    const result = await previewAllCustomers(api, "company_name = 'tenant sentinel'");
+    expect(result.customers.map(({ id }) => id)).toEqual([local.id]);
+
+    const foreignReference = await preview(api, `customer_groups CONTAINS '${foreignGroup.id}'`);
+    expect(foreignReference).toMatchObject({
+      validation: {
+        valid: false,
+        diagnostics: [
+          expect.objectContaining({ code: 'SEGMENT_INVALID_ENTITY_ID', severity: 'ERROR' }),
+        ],
+      },
+      customers: null,
+      totalCount: null,
+      timedOut: false,
+    });
+  });
+
+  test('date boundaries use the Store timezone rather than UTC', async ({ api }) => {
+    const beforeLocalMidnight = await createCustomer(api);
+    const atLocalMidnight = await createCustomer(api);
+    const sql = openCustomersSql();
+    try {
+      await sql`
+        update customers.customer
+        set created_at = '2025-01-01T21:59:59Z'
+        where id = ${rawId(beforeLocalMidnight.id)}::uuid
+      `;
+      await sql`
+        update customers.customer
+        set created_at = '2025-01-01T22:00:00Z'
+        where id = ${rawId(atLocalMidnight.id)}::uuid
+      `;
+    } finally {
+      await sql.end();
+    }
+
+    const result = await previewAllCustomers(api, 'customer_added_date = 2025-01-02');
+    expect(result.customers.map(({ id }) => id)).toEqual([atLocalMidnight.id]);
+    expect(result.validation.definition).toMatchObject({
+      evaluationContext: { timeZone: 'Europe/Kyiv' },
+    });
+  });
+
+  test('birthday handles February 29 consistently in leap and non-leap years', async ({ api }) => {
+    const february28 = await createCustomer(api, { dateOfBirth: '1999-02-28' });
+    const february29 = await createCustomer(api, { dateOfBirth: '2000-02-29' });
+
+    const nonLeap = await previewAllCustomers(api, 'birthday = 2030-02-28');
+    expect(sorted(nonLeap.customers.map(({ id }) => id))).toEqual(
+      sorted([february28.id, february29.id]),
+    );
+
+    const leapFebruary28 = await previewAllCustomers(api, 'birthday = 2032-02-28');
+    expect(leapFebruary28.customers.map(({ id }) => id)).toEqual([february28.id]);
+
+    const leapFebruary29 = await previewAllCustomers(api, 'birthday = 2032-02-29');
+    expect(leapFebruary29.customers.map(({ id }) => id)).toEqual([february29.id]);
+  });
+
+  test('preview rejects invalid limits and cursors as BAD_USER_INPUT', async ({ api }) => {
+    for (const variables of [
+      { query: 'company_name IS NULL', first: 0 },
+      { query: 'company_name IS NULL', first: 101 },
+      { query: 'company_name IS NULL', first: 10, after: 'not-a-preview-cursor' },
+    ]) {
+      const { errors } = await api.admin.query<any>('customers-admin-api/CustomerSegmentPreview', {
+        throwOnError: false,
+        variables,
+      });
+      expect(errors, JSON.stringify(variables)).toEqual([
+        expect.objectContaining({
+          extensions: expect.objectContaining({ code: 'BAD_USER_INPUT' }),
+        }),
+      ]);
+    }
   });
 });
