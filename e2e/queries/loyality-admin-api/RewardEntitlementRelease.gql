@@ -1,0 +1,3 @@
+mutation LoyaltyRewardEntitlementRelease($input: LoyaltyRewardEntitlementTransitionInput!) {
+  loyaltyMutation { rewardEntitlementRelease(input: $input) { rewardEntitlement { id status revision reservedForCheckoutId events { eventType previousStatus status reasonCode } } userErrors { code field message retryable } } }
+}

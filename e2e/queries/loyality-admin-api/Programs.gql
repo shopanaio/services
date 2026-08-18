@@ -1,0 +1,8 @@
+query LoyaltyPrograms($first: Int, $after: String, $last: Int, $before: String, $where: LoyaltyProgramWhereInput) {
+  loyaltyQuery {
+    programs(first: $first, after: $after, last: $last, before: $before, where: $where) {
+      totalCount pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
+      edges { cursor node { id code name status isDefault defaultCurrencyCode revision } }
+    }
+  }
+}

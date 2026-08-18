@@ -1,0 +1,8 @@
+mutation LoyaltyProgramUpdate($input: LoyaltyProgramUpdateInput!) {
+  loyaltyMutation {
+    programUpdate(input: $input) {
+      program { id code name status isDefault defaultCurrencyCode revision metadata createdAt updatedAt archivedAt activeVersion { id version status revision } }
+      userErrors { code field message retryable }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+mutation LoyaltyProgramVersionPublish($input: LoyaltyProgramVersionPublishInput!) {
+  loyaltyMutation {
+    programVersionPublish(input: $input) {
+      programVersion { id version status revision effectiveFrom effectiveTo publishedAt publishedById program { id status revision activeVersion { id } } }
+      userErrors { code field message retryable }
+    }
+  }
+}

@@ -1,67 +1,57 @@
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { baseRules, createProgram, createVersion, expectUserError, requestVersionCreate, setupStore, versionInput } from './helpers';
 
 test.describe('Loyalty Admin API product applies-to targeting', () => {
-  test('accepts an ALL selector with an empty ID list', () => {
-    // Configure ALL for exclusions and modifiers and verify its canonical empty IDs representation.
+  test.beforeEach(async ({ api }) => setupStore(api));
+
+  test('stores canonical ALL exclusions and modifiers', async ({ api }) => {
+    const program = await createProgram(api);
+    const rules = baseRules({ earning: { excludedSelectors: [{ type: 'ALL', ids: [] }], modifiers: [{ id: 'all-products', title: 'Double points', priority: 10, multiplierBps: 20_000, selector: { type: 'ALL', ids: [] }, segmentIds: [] }] } });
+    const version = await createVersion(api, program, { rules });
+    expect(version.rules.earning).toMatchObject({ excludedSelectors: [{ type: 'ALL', ids: [] }], modifiers: [{ id: 'all-products', multiplierBps: 20_000, selector: { type: 'ALL', ids: [] } }] });
   });
 
-  test('accepts a PRODUCT selector with valid product IDs', () => {
-    // Configure product-specific applies-to targeting and verify decoded product global IDs on read.
+  test('supports HIGHEST ADD and MULTIPLY modifier stacking modes', async ({ api }) => {
+    for (const modifierStackingMode of ['HIGHEST', 'ADD', 'MULTIPLY'] as const) {
+      const program = await createProgram(api);
+      const version = await createVersion(api, program, { rules: baseRules({ earning: { modifierStackingMode } }) });
+      expect(version.rules.earning.modifierStackingMode).toBe(modifierStackingMode);
+    }
   });
 
-  test('accepts a VARIANT selector with valid variant IDs', () => {
-    // Configure variant-specific applies-to targeting and verify variant references remain distinct from products.
+  test('rejects IDs on ALL and requires IDs for specific selectors', async ({ api }) => {
+    for (const selector of [
+      { type: 'ALL', ids: [crypto.randomUUID()] },
+      ...['PRODUCT', 'VARIANT', 'CATEGORY', 'TAG', 'FEATURE', 'OPTION_VALUE'].map((type) => ({ type, ids: [] })),
+    ]) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ earning: { excludedSelectors: [selector] } }) }));
+      expectUserError(result.payload);
+      expect(result.payload.programVersion).toBeNull();
+    }
   });
 
-  test('accepts a CATEGORY selector with valid category IDs', () => {
-    // Configure category targeting and verify all referenced categories are retained.
+  test('rejects malformed, wrong-entity and missing catalog references', async ({ api }) => {
+    for (const id of ['', Buffer.from(`gid://shopana/Customer/${crypto.randomUUID()}`).toString('base64'), Buffer.from(`gid://shopana/Product/${crypto.randomUUID()}`).toString('base64')]) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ earning: { excludedSelectors: [{ type: 'PRODUCT', ids: [id] }] } }) }));
+      expectUserError(result.payload);
+    }
   });
 
-  test('accepts a TAG selector with valid tag IDs', () => {
-    // Configure tag targeting and verify the policy resolves the expected catalog references.
-  });
-
-  test('accepts a FEATURE selector with valid feature IDs', () => {
-    // Configure feature targeting and verify feature references are validated in the current store.
-  });
-
-  test('accepts an OPTION_VALUE selector with valid option value IDs', () => {
-    // Configure option-value targeting and verify values from multiple options remain addressable.
-  });
-
-  test('combines multiple excluded selectors with union semantics', () => {
-    // Configure different selector types and verify the immutable policy stores every exclusion independently.
-  });
-
-  test('rejects IDs on an ALL selector', () => {
-    // Submit non-empty IDs for ALL and verify INVALID_SELECTOR without persisting a partial draft.
-  });
-
-  test('requires IDs for every specific selector type', () => {
-    // Submit empty PRODUCT, VARIANT, CATEGORY, TAG, FEATURE, and OPTION_VALUE selectors and verify rejection.
-  });
-
-  test('rejects blank duplicate malformed and wrong-entity selector IDs', () => {
-    // Cover semantic IDs, global ID type mismatches, and duplicate references with precise user errors.
-  });
-
-  test('rejects missing and cross-store catalog references', () => {
-    // Reference absent and foreign-store entities for every specific selector type and verify tenant safety.
-  });
-
-  test('supports segment-scoped scheduled modifiers for every selector type', () => {
-    // Persist selector, segmentIds, multiplier, priority, startsAt, and endsAt for all applies-to options.
-  });
-
-  test('supports HIGHEST ADD and MULTIPLY modifier stacking modes', () => {
-    // Create equivalent modifier sets under each stacking mode and verify policy round-tripping.
-  });
-
-  test('rejects duplicate modifier IDs and invalid multiplier values', () => {
-    // Cover blank IDs/titles, duplicate IDs, zero multipliers, unsafe integers, and invalid priorities.
-  });
-
-  test('rejects invalid modifier schedules', () => {
-    // Cover malformed timestamps and end boundaries equal to or earlier than start boundaries.
+  test('validates modifier identity, multiplier and schedule atomically', async ({ api }) => {
+    const validBase = { id: 'campaign', title: 'Campaign', priority: 1, multiplierBps: 15_000, selector: { type: 'ALL', ids: [] }, segmentIds: [] };
+    for (const modifiers of [
+      [{ ...validBase, id: '' }],
+      [{ ...validBase, multiplierBps: 0 }],
+      [validBase, { ...validBase }],
+      [{ ...validBase, startsAt: '2030-01-02T00:00:00.000Z', endsAt: '2030-01-01T00:00:00.000Z' }],
+    ]) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ earning: { modifiers } }) }));
+      expectUserError(result.payload);
+      expect(result.payload.programVersion).toBeNull();
+    }
   });
 });

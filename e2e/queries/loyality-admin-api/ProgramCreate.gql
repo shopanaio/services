@@ -1,0 +1,8 @@
+mutation LoyaltyProgramCreate($input: LoyaltyProgramCreateInput!) {
+  loyaltyMutation {
+    programCreate(input: $input) {
+      program { id code name status isDefault defaultCurrencyCode revision metadata createdAt updatedAt archivedAt }
+      userErrors { code field message retryable }
+    }
+  }
+}

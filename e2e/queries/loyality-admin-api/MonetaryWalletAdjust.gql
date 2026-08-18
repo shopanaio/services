@@ -1,0 +1,3 @@
+mutation LoyaltyMonetaryWalletAdjust($input: LoyaltyMonetaryWalletAdjustInput!) {
+  loyaltyMutation { monetaryWalletAdjust(input: $input) { monetaryWallet { id walletType currencyCode status revision balance { pending { amountMinor } available { amountMinor } reserved { amountMinor } debt { amountMinor } revision } } transaction { id kind sourceType idempotencyKey reasonCode entries { id bucket amount { amountMinor currencyCode } sequence } } userErrors { code field message retryable } } }
+}

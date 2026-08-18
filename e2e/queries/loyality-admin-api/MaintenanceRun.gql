@@ -1,0 +1,3 @@
+mutation LoyaltyMaintenanceRun($input: LoyaltyMaintenanceRunInput!) {
+  loyaltyMutation { maintenanceRun(input: $input) { result { activatedProgramVersions expiredReservations activatedPointLots expiredPointLots activatedMonetaryLots expiredMonetaryLots evaluatedTiers expiredRewards rebuiltBalances } userErrors { code field message retryable } } }
+}

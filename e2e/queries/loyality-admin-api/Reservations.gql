@@ -1,0 +1,3 @@
+query LoyaltyReservations($first: Int, $after: String, $last: Int, $before: String, $where: LoyaltyReservationWhereInput) {
+  loyaltyQuery { reservations(first: $first, after: $after, last: $last, before: $before, where: $where) { totalCount pageInfo { hasNextPage hasPreviousPage startCursor endCursor } edges { cursor node { id status checkoutId orderId points expiresAt revision account { id } program { id } } } } }
+}

@@ -1,0 +1,3 @@
+mutation LoyaltyTierUpdate($input: LoyaltyTierUpdateInput!) {
+  loyaltyMutation { tierUpdate(input: $input) { tier { id code name rank qualification maintenance } userErrors { code field message retryable } } }
+}

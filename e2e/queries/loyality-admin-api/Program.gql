@@ -1,0 +1,9 @@
+query LoyaltyProgram($id: ID!) {
+  loyaltyQuery {
+    program(id: $id) {
+      id code name status isDefault defaultCurrencyCode revision metadata createdAt updatedAt archivedAt
+      activeVersion { id version status revision }
+      versions { id version status revision effectiveFrom effectiveTo publishedAt }
+    }
+  }
+}

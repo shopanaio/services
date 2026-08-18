@@ -1,0 +1,3 @@
+mutation LoyaltyPointsConvertToMonetary($input: LoyaltyPointsConvertToMonetaryInput!) {
+  loyaltyMutation { pointsConvertToMonetary(input: $input) { account { id balance { availablePoints revision } } monetaryWallet { id walletType currencyCode status revision balance { pending { amountMinor currencyCode } available { amountMinor currencyCode } reserved { amountMinor currencyCode } debt { amountMinor currencyCode } revision } } pointsTransaction { id kind entries { bucket pointsDelta } } monetaryTransaction { id kind sourceType reasonCode entries { bucket amount { amountMinor currencyCode } sequence } } amount { amountMinor currencyCode } userErrors { code field message retryable } } }
+}

@@ -1,0 +1,3 @@
+query LoyaltyMonetaryWallets($where: LoyaltyMonetaryWalletWhereInput!, $first: Int) {
+  loyaltyQuery { monetaryWallets(where: $where, first: $first) { id walletType currencyCode status revision account { id } balance { pending { amountMinor } available { amountMinor } reserved { amountMinor } debt { amountMinor } revision } transactions { id kind sourceType reasonCode entries { bucket amount { amountMinor currencyCode } sequence } } } }
+}

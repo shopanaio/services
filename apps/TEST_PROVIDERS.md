@@ -8,6 +8,11 @@ not be used as production integrations.
 only the `SMS` notification channel, records delivered messages in its runtime
 outbox, and never generates or verifies OTP codes itself.
 
+E2E tests inspect that outbox through the test action proxy by invoking the
+installed App's `notifications.getCapabilities` route with
+`{ includeMessages: true, to }`. Production code calls the same capability
+without inspection parameters and receives only the supported channel list.
+
 ## Delivery scenarios
 
 `test-fedex` implements `delivery.carrier-service` protocol version 2.

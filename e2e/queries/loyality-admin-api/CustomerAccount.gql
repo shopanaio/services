@@ -1,0 +1,12 @@
+query LoyaltyCustomerAccount($customerId: ID!, $programId: ID) {
+  loyaltyQuery {
+    customerAccount(customerId: $customerId, programId: $programId) {
+      id customerId status revision suspendedReason openedAt suspendedAt closedAt updatedAt
+      program { id code status activeVersion { id } }
+      balance { pendingPoints availablePoints reservedPoints debtPoints lifetimeEarnedPoints lifetimeRedeemedPoints lifetimeExpiredPoints lifetimeAdjustedPoints revision updatedAt }
+      transactions(first: 50) { totalCount edges { node { id kind source reasonCode description occurredAt effectiveAt entries { id bucket pointsDelta sequence } } } }
+      rewardEntitlements { id status quantity revision }
+      monetaryWallets { id walletType currencyCode status revision balance { pending { amountMinor currencyCode } available { amountMinor currencyCode } reserved { amountMinor currencyCode } debt { amountMinor currencyCode } revision } }
+    }
+  }
+}

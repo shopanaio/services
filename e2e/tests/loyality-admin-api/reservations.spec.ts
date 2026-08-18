@@ -1,31 +1,35 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { composeGlobalId } from '@utils/globalid';
+import { expectUserError, idempotencyKey, setupStore } from './helpers';
 
 test.describe('Loyalty Admin API reservations', () => {
-  test('queries a reservation with immutable quote and version snapshots', () => {
-    // Verify checkout, quote, program version, points, discount, expiry, request hash, and event audit fields.
+  test.beforeEach(async ({ api }) => setupStore(api));
+
+  test('returns null for a missing reservation without leaking storage IDs', async ({ api }) => {
+    const id = composeGlobalId('LoyaltyReservation', crypto.randomUUID());
+    const result = await api.admin.query<any>('loyality-admin-api/Reservation', { variables: { id } });
+    expect(result.data.loyaltyQuery.reservation).toBeNull();
   });
 
-  test('filters reservations by every supported criterion', () => {
-    // Cover IDs, accounts, programs, checkout, order, statuses, expiry, and created date ranges.
+  test('returns a stable empty filtered Relay connection', async ({ api }) => {
+    const result = await api.admin.query<any>('loyality-admin-api/Reservations', { variables: { first: 20, where: { statuses: ['ACTIVE'], expiresBefore: new Date().toISOString() } } });
+    expect(result.data.loyaltyQuery.reservations).toEqual({ totalCount: 0, edges: [], pageInfo: { hasNextPage: false, hasPreviousPage: false, startCursor: null, endCursor: null } });
   });
 
-  test('paginates reservations forward and backward deterministically', () => {
-    // Verify cursors, totalCount, no duplicates, and stable boundaries while new rows are added.
-  });
-
-  test('releases an active reservation and restores its original lots', () => {
-    // Verify RELEASED state, revision, audit event, transaction, allocations, and available balance restoration.
-  });
-
-  test('rejects release of committed expired released and reversed reservations', () => {
-    // Exercise every terminal status and verify no duplicate restoration or audit event is created.
-  });
-
-  test('rejects release with a stale expected revision', () => {
-    // Race a state transition and verify optimistic concurrency preserves the winning state.
-  });
-
-  test('replays reservation release idempotently', () => {
-    // Retry the same release and verify the original reservation and transaction are returned once.
+  test('rejects release of missing malformed and wrong-entity IDs safely', async ({ api }) => {
+    for (const reservationId of [
+      composeGlobalId('LoyaltyReservation', crypto.randomUUID()),
+      composeGlobalId('LoyaltyProgram', crypto.randomUUID()),
+    ]) {
+      const result = await api.admin.mutation<any>('loyality-admin-api/ReservationRelease', { throwOnError: false, variables: { input: { reservationId, expectedRevision: 1, reasonCode: 'ADMIN_RELEASE', idempotencyKey: idempotencyKey('reservation-release') } } });
+      if (result.errors?.length) {
+        expect(result.data?.loyaltyMutation?.reservationRelease?.reservation ?? null).toBeNull();
+      } else {
+        expectUserError(result.data.loyaltyMutation.reservationRelease);
+        expect(result.data.loyaltyMutation.reservationRelease).toMatchObject({ reservation: null, transaction: null });
+      }
+    }
   });
 });

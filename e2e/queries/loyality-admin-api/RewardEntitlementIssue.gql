@@ -1,0 +1,3 @@
+mutation LoyaltyRewardEntitlementIssue($input: LoyaltyRewardEntitlementIssueInput!) {
+  loyaltyMutation { rewardEntitlementIssue(input: $input) { rewardEntitlement { id status quantity configurationSchemaVersion configurationSnapshot validFrom validTo externalReference issuedAt revision definition { id code } account { id } events { id eventType previousStatus status reasonCode occurredAt } } userErrors { code field message retryable } } }
+}

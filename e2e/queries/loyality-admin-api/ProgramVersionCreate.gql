@@ -1,0 +1,22 @@
+mutation LoyaltyProgramVersionCreate($input: LoyaltyProgramVersionCreateInput!) {
+  loyaltyMutation {
+    programVersionCreate(input: $input) {
+      programVersion {
+        id version status revision effectiveFrom effectiveTo earningEnabled redemptionEnabled activationDelaySeconds pointsExpiryDays
+        earnPoints earnAmountMinor minimumEligibleAmountMinor redeemPoints redeemAmountMinor minimumRedeemPoints
+        maximumRedeemPointsPerOrder maximumOrderPercentageBps roundingMode refundPolicy debtPolicy restoredPointsExpiryPolicy
+        rulesSchemaVersion rules {
+          schemaVersion
+          eligibility { type channelCodes segmentMatchMode segmentIds excludedSegmentIds }
+          earning { eligibleSpendBasis modifierStackingMode excludedSelectors { type ids } modifiers { id title priority multiplierBps selector { type ids } segmentIds startsAt endsAt } }
+        }
+        earningRules { id code name priority triggerType triggerConfig conditions actionType action limits stopProcessing }
+        rewardDefinitions { id code name rewardType configuration validityDays startsAt endsAt issuanceLimit perAccountLimit issuedQuantity }
+        tiers { id code name rank qualification maintenance }
+        tierPolicy { id windowType rollingWindowDays calendarPeriod programYearStartsMonth membershipDurationDays gracePeriodDays downgradePolicy requalificationPolicy metricSchemaVersion }
+        createdAt publishedAt createdById publishedById
+      }
+      userErrors { code field message retryable }
+    }
+  }
+}

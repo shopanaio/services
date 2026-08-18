@@ -1,0 +1,3 @@
+mutation LoyaltyEarningRuleUpdate($input: LoyaltyEarningRuleUpdateInput!) {
+  loyaltyMutation { earningRuleUpdate(input: $input) { earningRule { id code name priority triggerType triggerConfig conditions actionType action limits stopProcessing } userErrors { code field message retryable } } }
+}

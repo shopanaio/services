@@ -1,51 +1,96 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { createProgram, expectNoUserErrors, expectUserError, getCustomerAccount, idempotencyKey, seedAccount, setupStore } from './helpers';
+
+async function adjust(api: any, account: any, direction: 'CREDIT' | 'DEBIT', points: string, overrides: any = {}) {
+  return api.admin.mutation('loyality-admin-api/PointsAdjust', { variables: { input: { accountId: account.id, expectedBalanceRevision: overrides.expectedBalanceRevision ?? account.balanceRevision, direction, points, reasonCode: 'ADMIN_CORRECTION', description: `${direction} from e2e`, metadata: { suite: 'accounts-ledger' }, idempotencyKey: overrides.idempotencyKey ?? idempotencyKey('points-adjust'), ...overrides } } });
+}
 
 test.describe('Loyalty Admin API accounts and points ledger', () => {
-  test('queries an account by ID and by customer plus program', () => {
-    // Verify program, customer, status, balances, revisions, timestamps, and federated customer relation.
+  test.beforeEach(async ({ api }) => setupStore(api));
+
+  test('queries an account by customer plus program with balances and timestamps', async ({ api }) => {
+    const program = await createProgram(api, { isDefault: true });
+    const seeded = await seedAccount(api, program);
+    const account = await getCustomerAccount(api, seeded.customerId, program.id);
+    expect(account).toMatchObject({ id: seeded.id, customerId: seeded.customerId, status: 'ACTIVE', revision: 1, program: { id: program.id }, balance: { pendingPoints: '0', availablePoints: '0', reservedPoints: '0', debtPoints: '0', revision: 1 } });
+    expect(new Date(account.openedAt).toISOString()).toBe(account.openedAt);
   });
 
-  test('filters accounts by IDs programs customers statuses balance debt and tiers', () => {
-    // Seed matching and non-matching accounts and verify each where option and combined filtering.
+  test('filters and paginates accounts without gaps or duplicates', async ({ api }) => {
+    const program = await createProgram(api);
+    const accounts = await Promise.all([seedAccount(api, program), seedAccount(api, program), seedAccount(api, program)]);
+    const filtered = await api.admin.query<any>('loyality-admin-api/Accounts', { variables: { first: 10, where: { programIds: [program.id], customerIds: [accounts[1].customerId], statuses: ['ACTIVE'], minimumAvailablePoints: '0', hasDebt: false } } });
+    expect(filtered.data.loyaltyQuery.accounts).toMatchObject({ totalCount: 1, edges: [{ node: { id: accounts[1].id } }] });
+    const first = await api.admin.query<any>('loyality-admin-api/Accounts', { variables: { first: 2 } });
+    const next = await api.admin.query<any>('loyality-admin-api/Accounts', { variables: { first: 2, after: first.data.loyaltyQuery.accounts.pageInfo.endCursor } });
+    const ids = [...first.data.loyaltyQuery.accounts.edges, ...next.data.loyaltyQuery.accounts.edges].map(({ node }: any) => node.id);
+    expect(new Set(ids).size).toBe(3);
   });
 
-  test('paginates accounts forward and backward without gaps or duplicates', () => {
-    // Exercise first/after and last/before with deterministic cursors and totalCount.
+  test('credits and debits points with balanced append-only entries', async ({ api }) => {
+    const program = await createProgram(api);
+    const account = await seedAccount(api, program);
+    const credit = await adjust(api, account, 'CREDIT', '100');
+    const creditPayload = credit.data.loyaltyMutation.pointsAdjust;
+    expectNoUserErrors(creditPayload);
+    expect(creditPayload.account.balance).toMatchObject({ availablePoints: '100', lifetimeAdjustedPoints: '100', revision: 2 });
+    expect(creditPayload.transaction).toMatchObject({ kind: 'ADJUST_CREDIT', source: 'ADMIN', reasonCode: 'ADMIN_CORRECTION', actorType: 'ADMIN_USER' });
+    expect(creditPayload.transaction.entries.reduce((sum: bigint, entry: any) => sum + BigInt(entry.pointsDelta), 0n)).toBe(100n);
+
+    const debit = await adjust(api, { ...account, balanceRevision: 2 }, 'DEBIT', '40');
+    const debitPayload = debit.data.loyaltyMutation.pointsAdjust;
+    expectNoUserErrors(debitPayload);
+    expect(debitPayload.account.balance).toMatchObject({ availablePoints: '60', lifetimeAdjustedPoints: '60', revision: 3 });
+    expect(debitPayload.transaction.entries.reduce((sum: bigint, entry: any) => sum + BigInt(entry.pointsDelta), 0n)).toBe(-40n);
+    expect(debitPayload.transaction.lotAllocations.reduce((sum: bigint, item: any) => sum + BigInt(item.points), 0n)).toBe(40n);
   });
 
-  test('suspends reactivates and closes an account with an audit reason', () => {
-    // Verify valid transitions, optimistic revision, timestamps, reason, and economic-operation restrictions.
+  test('rejects zero malformed excessive and stale adjustments atomically', async ({ api }) => {
+    const program = await createProgram(api);
+    const account = await seedAccount(api, program);
+    for (const input of [
+      { direction: 'CREDIT', points: '0' },
+      { direction: 'CREDIT', points: '-1' },
+      { direction: 'DEBIT', points: '1' },
+      { direction: 'CREDIT', points: '10', expectedBalanceRevision: 99 },
+    ]) {
+      const result = await adjust(api, account, input.direction as 'CREDIT' | 'DEBIT', input.points, input);
+      expectUserError(result.data.loyaltyMutation.pointsAdjust);
+      expect(result.data.loyaltyMutation.pointsAdjust.transaction).toBeNull();
+    }
+    const current = await getCustomerAccount(api, account.customerId, program.id);
+    expect(current.balance).toMatchObject({ availablePoints: '0', revision: 1 });
+    expect(current.transactions.totalCount).toBe(0);
   });
 
-  test('credits points with an optional future activation and expiry', () => {
-    // Create an audited adjustment and verify transaction, entries, lot, and pending/available buckets.
+  test('suspends reactivates and closes an account with revision checks', async ({ api }) => {
+    const program = await createProgram(api);
+    const account = await seedAccount(api, program);
+    let revision = 1;
+    for (const status of ['SUSPENDED', 'ACTIVE', 'CLOSED'] as const) {
+      const result = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id, expectedRevision: revision, status, reason: `e2e ${status}`, idempotencyKey: idempotencyKey(`account-${status}`) } } });
+      expectNoUserErrors(result.data.loyaltyMutation.accountStatusUpdate);
+      expect(result.data.loyaltyMutation.accountStatusUpdate.account.status).toBe(status);
+      revision = result.data.loyaltyMutation.accountStatusUpdate.account.revision;
+    }
+    const stale = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id, expectedRevision: 1, status: 'ACTIVE', reason: 'stale', idempotencyKey: idempotencyKey('stale-status') } } });
+    expectUserError(stale.data.loyaltyMutation.accountStatusUpdate);
   });
 
-  test('debits available points using earliest-expiry-first lots', () => {
-    // Seed multiple lots and verify deterministic allocation order, balances, and lifetime counters.
-  });
-
-  test('rejects an adjustment with zero negative malformed or excessive points', () => {
-    // Validate BigInt input and insufficient-balance behavior without creating audit rows.
-  });
-
-  test('requires a reason code description and current balance revision', () => {
-    // Omit audit fields or use a stale revision and verify atomic user errors.
-  });
-
-  test('keeps transactions entries lots and allocations append-only', () => {
-    // Correct a prior operation and verify new rows are appended while historical rows remain unchanged.
-  });
-
-  test('preserves double-entry bucket sums and non-negative economic buckets', () => {
-    // For every transaction verify ledger deltas balance to zero and AVAILABLE/PENDING/RESERVED never underflow.
-  });
-
-  test('filters and paginates transaction history across all query dimensions', () => {
-    // Cover IDs, accounts, programs, kinds, sources, source/order/checkout IDs, dates, and Relay boundaries.
-  });
-
-  test('replays adjustments idempotently and rejects conflicting retries', () => {
-    // Repeat equal and changed requests under one key and verify one economic transaction only.
+  test('replays equal adjustments idempotently and rejects conflicting retries', async ({ api }) => {
+    const program = await createProgram(api);
+    const account = await seedAccount(api, program);
+    const key = idempotencyKey('replay-adjustment');
+    const first = await adjust(api, account, 'CREDIT', '25', { idempotencyKey: key });
+    const replay = await adjust(api, account, 'CREDIT', '25', { idempotencyKey: key });
+    expectNoUserErrors(first.data.loyaltyMutation.pointsAdjust);
+    expectNoUserErrors(replay.data.loyaltyMutation.pointsAdjust);
+    expect(replay.data.loyaltyMutation.pointsAdjust.transaction.id).toBe(first.data.loyaltyMutation.pointsAdjust.transaction.id);
+    const conflict = await adjust(api, { ...account, balanceRevision: 2 }, 'CREDIT', '26', { idempotencyKey: key });
+    expectUserError(conflict.data.loyaltyMutation.pointsAdjust);
+    const transactions = await api.admin.query<any>('loyality-admin-api/Transactions', { variables: { first: 20, where: { accountIds: [account.id], kinds: ['ADJUST_CREDIT'], sources: ['ADMIN'] } } });
+    expect(transactions.data.loyaltyQuery.transactions.totalCount).toBe(1);
   });
 });

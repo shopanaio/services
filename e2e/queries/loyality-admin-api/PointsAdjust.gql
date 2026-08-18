@@ -1,0 +1,3 @@
+mutation LoyaltyPointsAdjust($input: LoyaltyPointsAdjustInput!) {
+  loyaltyMutation { pointsAdjust(input: $input) { account { id status revision balance { pendingPoints availablePoints reservedPoints debtPoints lifetimeAdjustedPoints revision } } transaction { id kind source idempotencyKey actorType actorId reasonCode description metadata entries { id bucket pointsDelta sequence } lotAllocations { id points allocationType } } userErrors { code field message retryable } } }
+}

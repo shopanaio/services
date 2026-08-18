@@ -1,0 +1,3 @@
+query LoyaltyTransactions($first: Int, $after: String, $last: Int, $before: String, $where: LoyaltyTransactionWhereInput) {
+  loyaltyQuery { transactions(first: $first, after: $after, last: $last, before: $before, where: $where) { totalCount pageInfo { hasNextPage hasPreviousPage startCursor endCursor } edges { cursor node { id kind source sourceId reasonCode occurredAt account { id } program { id } entries { id bucket pointsDelta sequence } } } } }
+}

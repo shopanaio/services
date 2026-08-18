@@ -1,0 +1,3 @@
+mutation LoyaltyTierPolicyDelete($input: LoyaltyTierPolicyDeleteInput!) {
+  loyaltyMutation { tierPolicyDelete(input: $input) { deletedId userErrors { code field message retryable } } }
+}

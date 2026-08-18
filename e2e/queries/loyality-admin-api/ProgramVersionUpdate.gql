@@ -1,0 +1,8 @@
+mutation LoyaltyProgramVersionUpdate($input: LoyaltyProgramVersionUpdateInput!) {
+  loyaltyMutation {
+    programVersionUpdate(input: $input) {
+      programVersion { id version status revision effectiveFrom effectiveTo earningEnabled redemptionEnabled activationDelaySeconds pointsExpiryDays earnPoints earnAmountMinor minimumEligibleAmountMinor redeemPoints redeemAmountMinor minimumRedeemPoints maximumRedeemPointsPerOrder maximumOrderPercentageBps roundingMode refundPolicy debtPolicy restoredPointsExpiryPolicy rulesSchemaVersion }
+      userErrors { code field message retryable }
+    }
+  }
+}

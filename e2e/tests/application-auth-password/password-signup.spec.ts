@@ -119,6 +119,35 @@ test.describe('Application password auth — signup', () => {
     await expectRealmState(realm, before);
   });
 
+  test('email signup cannot pre-register a phone identity', async ({
+    api,
+    request,
+  }) => {
+    const realm = await createRealm(api, request);
+    const before = await realmState(realm);
+    for (const phoneFields of [
+      { phoneNumber: '+380501234567' },
+      { phoneNumber: '+380501234567', phoneNumberVerified: true },
+    ]) {
+      const response = await request.post(endpoint(realm, '/sign-up/email'), {
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          origin: new URL(endpoint(realm, '')).origin,
+        },
+        data: {
+          name: 'Phone pre-registration attempt',
+          email: uniqueEmail(),
+          password: defaultPassword,
+          ...phoneFields,
+        },
+      });
+      expect(response.status()).toBeGreaterThanOrEqual(400);
+      expectSecretFree(await response.text(), [defaultPassword]);
+    }
+    await expectRealmState(realm, before);
+  });
+
   test('equivalent normalized emails cannot create duplicates in one realm', async ({
     api,
     request,

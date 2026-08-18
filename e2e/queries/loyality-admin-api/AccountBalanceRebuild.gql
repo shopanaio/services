@@ -1,0 +1,3 @@
+mutation LoyaltyAccountBalanceRebuild($input: LoyaltyAccountBalanceRebuildInput!) {
+  loyaltyMutation { accountBalanceRebuild(input: $input) { account { id balance { pendingPoints availablePoints reservedPoints debtPoints lifetimeAdjustedPoints revision } } balance { pendingPoints availablePoints reservedPoints debtPoints lifetimeAdjustedPoints revision } userErrors { code field message retryable } } }
+}

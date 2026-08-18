@@ -1,0 +1,3 @@
+mutation LoyaltyReservationRelease($input: LoyaltyReservationReleaseInput!) {
+  loyaltyMutation { reservationRelease(input: $input) { reservation { id status revision releasedAt events { eventType previousStatus status reasonCode } } transaction { id kind source reasonCode entries { bucket pointsDelta } lotAllocations { points allocationType } } userErrors { code field message retryable } } }
+}

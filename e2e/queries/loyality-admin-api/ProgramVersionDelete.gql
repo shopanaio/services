@@ -1,0 +1,3 @@
+mutation LoyaltyProgramVersionDelete($input: LoyaltyProgramVersionDeleteInput!) {
+  loyaltyMutation { programVersionDelete(input: $input) { deletedProgramVersionId userErrors { code field message retryable } } }
+}

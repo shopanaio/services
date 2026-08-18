@@ -1,0 +1,3 @@
+mutation LoyaltyTierCreate($input: LoyaltyTierCreateInput!) {
+  loyaltyMutation { tierCreate(input: $input) { tier { id code name rank qualificationSchemaVersion qualification maintenance createdAt programVersion { id } } userErrors { code field message retryable } } }
+}

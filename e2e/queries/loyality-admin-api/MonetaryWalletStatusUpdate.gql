@@ -1,0 +1,3 @@
+mutation LoyaltyMonetaryWalletStatusUpdate($input: LoyaltyMonetaryWalletStatusUpdateInput!) {
+  loyaltyMutation { monetaryWalletStatusUpdate(input: $input) { monetaryWallet { id status revision closedAt balance { available { amountMinor } revision } } userErrors { code field message retryable } } }
+}

@@ -1,0 +1,3 @@
+query LoyaltyRewardEntitlements($where: LoyaltyRewardEntitlementWhereInput!, $first: Int) {
+  loyaltyQuery { rewardEntitlements(where: $where, first: $first) { id status quantity validFrom validTo revision definition { id code } account { id } } }
+}

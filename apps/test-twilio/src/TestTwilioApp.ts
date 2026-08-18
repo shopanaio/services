@@ -14,10 +14,21 @@ import type {
 } from "@shopana/broker-types";
 
 export interface TestTwilioMessage {
+  readonly storeId: string;
   readonly to: string;
   readonly text: string;
   readonly deliveryId: string;
   readonly receivedAt: string;
+}
+
+export interface TestTwilioCapabilitiesRequest {
+  readonly includeMessages?: boolean;
+  readonly to?: string;
+}
+
+export interface TestTwilioCapabilities {
+  readonly channels: readonly ["SMS"];
+  readonly messages?: readonly TestTwilioMessage[];
 }
 
 export class TestTwilioApp implements ShopanaApp {
@@ -41,7 +52,24 @@ export class TestTwilioApp implements ShopanaApp {
     this.host.broker.register("suspend", () => ({ status: "suspended" }));
     this.host.broker.register("resume", () => ({ status: "active" }));
     this.host.broker.register("health", () => this.health());
-    this.host.broker.register("getCapabilities", () => ({ channels: ["SMS"] }));
+    this.host.broker.register<
+      TestTwilioCapabilitiesRequest | undefined,
+      TestTwilioCapabilities
+    >("getCapabilities", (input) => {
+      const storeId = this.host.executionContext.current().storeId;
+      return {
+        channels: ["SMS"] as const,
+        ...(input?.includeMessages
+          ? {
+              messages: this.messages().filter(
+                (message) =>
+                  message.storeId === storeId &&
+                  (!input.to || message.to === input.to)
+              ),
+            }
+          : {}),
+      };
+    });
     this.host.broker.register<NotificationDeliveryInput, NotificationDeliveryReceipt>(
       "deliver",
       (input) => this.deliver(input)
@@ -94,6 +122,7 @@ export class TestTwilioApp implements ShopanaApp {
 
   private capture(input: SmsDeliveryInput): void {
     this.outbox.push({
+      storeId: input.storeId,
       to: input.to,
       text: input.text,
       deliveryId: input.deliveryId,

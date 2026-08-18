@@ -1,0 +1,3 @@
+mutation LoyaltyAccountStatusUpdate($input: LoyaltyAccountStatusUpdateInput!) {
+  loyaltyMutation { accountStatusUpdate(input: $input) { account { id status revision suspendedReason suspendedAt closedAt updatedAt balance { availablePoints revision } } userErrors { code field message retryable } } }
+}

@@ -1,0 +1,3 @@
+query LoyaltyAccounts($first: Int, $after: String, $last: Int, $before: String, $where: LoyaltyAccountWhereInput) {
+  loyaltyQuery { accounts(first: $first, after: $after, last: $last, before: $before, where: $where) { totalCount pageInfo { hasNextPage hasPreviousPage startCursor endCursor } edges { cursor node { id customerId status revision program { id } balance { availablePoints debtPoints revision } } } } }
+}

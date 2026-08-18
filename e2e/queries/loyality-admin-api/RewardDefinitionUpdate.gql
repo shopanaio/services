@@ -1,0 +1,3 @@
+mutation LoyaltyRewardDefinitionUpdate($input: LoyaltyRewardDefinitionUpdateInput!) {
+  loyaltyMutation { rewardDefinitionUpdate(input: $input) { rewardDefinition { id code name rewardType configuration validityDays startsAt endsAt issuanceLimit perAccountLimit issuedQuantity } userErrors { code field message retryable } } }
+}

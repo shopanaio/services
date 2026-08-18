@@ -1,51 +1,61 @@
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { createSegment } from '../customers-admin-api/helpers';
+import { baseRules, createProgram, createVersion, expectUserError, idempotencyKey, requestVersionCreate, setupStore, versionInput } from './helpers';
 
 test.describe('Loyalty Admin API program eligibility', () => {
-  test('accepts ALL eligibility for configured channels', () => {
-    // Create canonical ALL eligibility with no included segments and verify excluded segments are retained.
+  test.beforeEach(async ({ api }) => setupStore(api));
+
+  test('canonicalizes ALL eligibility and retains explicit exclusions', async ({ api }) => {
+    const excluded = await createSegment(api);
+    const program = await createProgram(api);
+    const version = await createVersion(api, program, { rules: baseRules({ eligibility: { type: 'ALL', channelCodes: ['WEB', 'POS'], segmentIds: [], excludedSegmentIds: [excluded.id] } }) });
+    expect(version.rules.eligibility).toEqual({ type: 'ALL', channelCodes: ['WEB', 'POS'], segmentMatchMode: null, segmentIds: [], excludedSegmentIds: [excluded.id] });
   });
 
-  test('accepts SEGMENTS eligibility with ANY matching mode', () => {
-    // Configure multiple included segments with ANY and verify canonical global IDs in the returned rules.
+  test('supports SEGMENTS eligibility with ANY and ALL matching', async ({ api }) => {
+    const included = [await createSegment(api), await createSegment(api)];
+    for (const segmentMatchMode of ['ANY', 'ALL'] as const) {
+      const program = await createProgram(api);
+      const version = await createVersion(api, program, { rules: baseRules({ eligibility: { type: 'SEGMENTS', channelCodes: ['WEB'], segmentMatchMode, segmentIds: included.map(({ id }) => id), excludedSegmentIds: [] } }) });
+      expect(version.rules.eligibility).toMatchObject({ type: 'SEGMENTS', segmentMatchMode, segmentIds: included.map(({ id }) => id) });
+    }
   });
 
-  test('accepts SEGMENTS eligibility with ALL matching mode', () => {
-    // Configure multiple included segments with ALL and verify the exact immutable policy snapshot.
+  test('requires non-empty unique channel codes', async ({ api }) => {
+    for (const channelCodes of [[], [''], ['WEB', 'WEB']]) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ eligibility: { channelCodes } }), idempotencyKey: idempotencyKey('invalid-channel') }));
+      expectUserError(result.payload);
+      expect(result.payload.programVersion).toBeNull();
+    }
   });
 
-  test('allows explicit excluded segments for both eligibility types', () => {
-    // Persist exclusions for ALL and SEGMENTS policies and verify they remain separate from included segments.
+  test('forbids segment fields for ALL and requires them for SEGMENTS', async ({ api }) => {
+    const segment = await createSegment(api);
+    const cases = [
+      { type: 'ALL', channelCodes: ['WEB'], segmentMatchMode: 'ANY', segmentIds: [segment.id], excludedSegmentIds: [] },
+      { type: 'SEGMENTS', channelCodes: ['WEB'], segmentIds: [], excludedSegmentIds: [] },
+      { type: 'SEGMENTS', channelCodes: ['WEB'], segmentMatchMode: 'ANY', segmentIds: [], excludedSegmentIds: [] },
+    ];
+    for (const eligibility of cases) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ eligibility }) }));
+      expectUserError(result.payload);
+    }
   });
 
-  test('requires at least one eligible channel', () => {
-    // Submit an empty channelCodes list and verify CHANNEL_REQUIRED at the precise input field.
-  });
-
-  test('rejects blank or duplicate channel codes', () => {
-    // Cover blank and duplicate values and verify canonical validation does not silently normalize them.
-  });
-
-  test('forbids segments and match mode for ALL eligibility', () => {
-    // Submit included segments or a segmentMatchMode with ALL and verify INVALID_ALL_ELIGIBILITY.
-  });
-
-  test('requires included segments and match mode for SEGMENTS eligibility', () => {
-    // Omit each required component independently and verify the corresponding semantic validation error.
-  });
-
-  test('rejects blank and duplicate included or excluded segments', () => {
-    // Cover both lists and verify duplicate/blank IDs are rejected before persistence.
-  });
-
-  test('rejects a segment included and excluded by the same policy', () => {
-    // Place one segment in both lists and verify SEGMENT_INCLUDE_EXCLUDE_CONFLICT.
-  });
-
-  test('rejects missing segment references while editing a draft', () => {
-    // Reference a non-existent or foreign-store customer segment and verify a field-specific user error.
-  });
-
-  test('preserves published eligibility snapshots when references later become stale', () => {
-    // Delete or change a referenced segment and verify historical published rules are not rewritten.
+  test('rejects duplicate, overlapping, missing, and foreign segments', async ({ api }) => {
+    const segment = await createSegment(api);
+    for (const eligibility of [
+      { type: 'SEGMENTS', channelCodes: ['WEB'], segmentMatchMode: 'ANY', segmentIds: [segment.id, segment.id], excludedSegmentIds: [] },
+      { type: 'SEGMENTS', channelCodes: ['WEB'], segmentMatchMode: 'ANY', segmentIds: [segment.id], excludedSegmentIds: [segment.id] },
+      { type: 'SEGMENTS', channelCodes: ['WEB'], segmentMatchMode: 'ANY', segmentIds: [Buffer.from(`gid://shopana/CustomerSegment/${crypto.randomUUID()}`).toString('base64')], excludedSegmentIds: [] },
+    ]) {
+      const program = await createProgram(api);
+      const result = await requestVersionCreate(api, versionInput(program, { rules: baseRules({ eligibility }) }));
+      expectUserError(result.payload);
+      expect(result.payload.programVersion).toBeNull();
+    }
   });
 });

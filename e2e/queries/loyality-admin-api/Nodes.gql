@@ -1,0 +1,3 @@
+query LoyaltyNodes($ids: [ID!]!) {
+  loyaltyQuery { nodes(ids: $ids) { id __typename } }
+}

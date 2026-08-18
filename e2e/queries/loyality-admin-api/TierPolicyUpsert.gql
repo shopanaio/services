@@ -1,0 +1,3 @@
+mutation LoyaltyTierPolicyUpsert($input: LoyaltyTierPolicyUpsertInput!) {
+  loyaltyMutation { tierPolicyUpsert(input: $input) { tierPolicy { id windowType rollingWindowDays calendarPeriod programYearStartsMonth membershipDurationDays gracePeriodDays downgradePolicy requalificationPolicy metricSchemaVersion createdAt programVersion { id } } userErrors { code field message retryable } } }
+}

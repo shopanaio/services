@@ -1,0 +1,3 @@
+query LoyaltyReservation($id: ID!) {
+  loyaltyQuery { reservation(id: $id) { id checkoutId checkoutVersion quoteId quoteRevision points discount { amountMinor currencyCode } status idempotencyKey requestHash expiresAt orderId orderRevision committedAt releasedAt expiredAt reversedAt revision createdAt updatedAt account { id } program { id } programVersion { id } events { id eventType previousStatus status idempotencyKey reasonCode actorType occurredAt metadata } } }
+}
