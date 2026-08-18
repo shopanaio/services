@@ -40,4 +40,16 @@ test.describe('Storefront checkout customer and context', () => {
   test('does not leak customer PII through issues, provider data, or logs', () => {
     // TODO: Assert only storefront-safe error fields are returned.
   });
+
+  test('does not change authenticated checkout ownership when caller identity fields change', () => {
+    // TODO: Verify an arbitrary customer ID or email cannot transfer ownership.
+  });
+
+  test('recalculates customer eligibility after sign-in, sign-out, or a customer switch', () => {
+    // TODO: Verify stale segments, loyalty quotes, and customer-targeted discounts are not retained.
+  });
+
+  test('treats unchanged customer context and billing address mutations as no-ops', () => {
+    // TODO: Verify no result revision or pipeline execution is created for identical data.
+  });
 });

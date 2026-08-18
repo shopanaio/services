@@ -77,6 +77,18 @@ test.describe('Storefront checkout validation and concurrency', () => {
     // TODO: Verify tenant scope on every operation.
   });
 
+  test('does not allow a different visitor or storefront connection to mutate any checkout resource', () => {
+    // TODO: Cover every mutation family, not only checkout reads.
+  });
+
+  test('preserves the prior snapshot for malformed global IDs, handles, codes, and JSON input', () => {
+    // TODO: Verify transport failures do not create a version or result-revision change.
+  });
+
+  test('does not advance checkout or result revision for a true no-op mutation', () => {
+    // TODO: Cover duplicate promo, unchanged context, unchanged selections, and absent optional state removal.
+  });
+
   test('returns only customer-safe public errors for invalid mutations', () => {
     // TODO: Verify internal causes are not disclosed.
   });

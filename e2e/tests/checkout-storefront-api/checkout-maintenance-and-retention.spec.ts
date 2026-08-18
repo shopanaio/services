@@ -28,4 +28,16 @@ test.describe('Checkout maintenance, recovery, and retention', () => {
   test('processes maintenance batches idempotently when the same minute bucket is replayed', () => {
     // TODO: Verify counts and side effects remain stable across durable workflow replay.
   });
+
+  test('does not expire, anonymize, or purge a checkout while its placement or payment monitor is active', () => {
+    // TODO: Verify retention cleanup waits for all non-terminal placement states.
+  });
+
+  test('handles exact active-TTL and retention-deadline boundaries without early cleanup', () => {
+    // TODO: Verify the checkout remains available immediately before each deadline.
+  });
+
+  test('continues a partially processed maintenance batch without repeating completed checkout side effects', () => {
+    // TODO: Verify independent per-checkout recovery under batch interruption.
+  });
 });

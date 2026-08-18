@@ -45,6 +45,14 @@ test.describe('Storefront checkout creation and reads', () => {
     // TODO: Verify connection isolation.
   });
 
+  test('does not replay a create idempotency key across storefront connections', () => {
+    // TODO: Verify connectionId is part of the create idempotency identity.
+  });
+
+  test('rejects malformed or wrong-type global IDs without disclosing checkout existence', () => {
+    // TODO: Cover checkout query and every checkoutId transport boundary.
+  });
+
   test('returns ordered issues, notifications, lines, groups, and methods from the committed snapshot', () => {
     // TODO: Verify canonical projection ordering.
   });

@@ -68,4 +68,20 @@ test.describe('Storefront checkout delivery', () => {
   test('recalculates delivery options when lines, quantity, currency, or destination change', () => {
     // TODO: Verify one committed revision per mutation.
   });
+
+  test('partitions a mixed digital and physical multi-shipping cart into complete delivery groups', () => {
+    // TODO: Verify every physical root line is assigned once and digital lines create no destination.
+  });
+
+  test('resets a selected delivery option with its previous handle and reason when it becomes ineligible', () => {
+    // TODO: Cover address, quantity, currency, catalog, and destination changes.
+  });
+
+  test('rejects invalid delivery customer input without changing an existing selection', () => {
+    // TODO: Verify App input-contract failure preserves the previous committed snapshot.
+  });
+
+  test('rejects malformed, wrong-type, and foreign address or delivery-group IDs atomically', () => {
+    // TODO: Cover all address, recipient, and option-selection mutations.
+  });
 });

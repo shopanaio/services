@@ -60,4 +60,20 @@ test.describe('Storefront checkout pricing and promotions', () => {
   test('rejects stale pricing provenance and leaves the prior snapshot intact', () => {
     // TODO: Verify stale quotes cannot be committed.
   });
+
+  test('normalizes promo codes and treats repeated add or absent remove as idempotent no-ops', () => {
+    // TODO: Cover whitespace, case, duplicate input, revision, and pipeline semantics.
+  });
+
+  test('applies discount combination and exclusion rules across product, order, shipping, and loyalty reductions', () => {
+    // TODO: Verify deterministic allocation and no double-discounting.
+  });
+
+  test('re-evaluates customer and segment-targeted discounts after buyer eligibility changes', () => {
+    // TODO: Verify a prior customer quote cannot survive sign-in, sign-out, or customer replacement.
+  });
+
+  test('reserves discount usage competitively across concurrent ready checkouts', () => {
+    // TODO: Verify the losing placement cannot oversubscribe a usage limit.
+  });
 });

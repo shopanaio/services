@@ -72,4 +72,20 @@ test.describe('Storefront checkout payments through Apps', () => {
   test('never exposes provider bindings, credentials, or customer input in storefront responses', () => {
     // TODO: Verify payment projection is sanitized.
   });
+
+  test('returns redirect and confirmation customer actions for their respective provider flows', () => {
+    // TODO: Cover REQUIRES_ACTION and REQUIRES_CONFIRMATION without leaking provider internals.
+  });
+
+  test('returns safe offline and on-delivery payment instructions without a redirect URL', () => {
+    // TODO: Verify the selected payment flow is faithfully projected.
+  });
+
+  test('rejects invalid payment customer input and preserves the previous selection', () => {
+    // TODO: Verify provider input validation is atomic and storefront-safe.
+  });
+
+  test('resets a selected method with its previous handle and reason when eligibility changes', () => {
+    // TODO: Cover amount, currency, customer, and App configuration changes.
+  });
 });

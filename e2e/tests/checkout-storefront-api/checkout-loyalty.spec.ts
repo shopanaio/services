@@ -52,4 +52,20 @@ test.describe('Storefront checkout loyalty', () => {
   test('keeps point and reward-entitlement compensation independent when only one reservation exists', () => {
     // TODO: Verify point-only, reward-only, and combined redemptions use the correct release and commit operations.
   });
+
+  test('rejects anonymous, malformed, contradictory, and empty loyalty redemption selections without committing', () => {
+    // TODO: Cover non-numeric, zero, negative, disabled-points-with-request, and no-selection inputs.
+  });
+
+  test('rejects loyalty redemption when the authenticated customer differs from checkout ownership', () => {
+    // TODO: Verify neither points nor entitlement reservations are created.
+  });
+
+  test('removes or requotes loyalty selections when buyer identity changes or signs out', () => {
+    // TODO: Verify reserved value cannot be carried to another customer context.
+  });
+
+  test('treats removal of an absent loyalty selection as an idempotent no-op', () => {
+    // TODO: Verify no unnecessary pipeline revision or reservation release.
+  });
 });

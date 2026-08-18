@@ -80,4 +80,20 @@ test.describe('Storefront checkout order placement and payment', () => {
   test('marks a successfully placed checkout as PLACED and prevents a second placement', () => {
     // TODO: Verify terminal checkout lifecycle.
   });
+
+  test('does not allow another visitor or storefront connection to place or inspect a checkout placement', () => {
+    // TODO: Cover placeOrder and checkoutPlacement authorization independently of checkout reads.
+  });
+
+  test('blocks checkout mutations once placement is claimed and orders the claimed immutable snapshot', () => {
+    // TODO: Race a line, address, payment, and promo mutation against an in-flight placement.
+  });
+
+  test('commits every selected multi-shipping delivery group into the created order', () => {
+    // TODO: Verify distinct recipients, selections, and provider customer input remain correctly scoped.
+  });
+
+  test('does not duplicate payment collection or session after a create-session timeout with durable provider state', () => {
+    // TODO: Verify recovery reads the persisted provider session before retrying.
+  });
 });

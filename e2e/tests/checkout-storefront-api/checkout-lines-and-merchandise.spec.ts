@@ -9,6 +9,14 @@ test.describe('Storefront checkout lines and merchandise', () => {
     // TODO: Verify batch mutation semantics.
   });
 
+  test('merges an equivalent line intent without creating a duplicate root line', () => {
+    // TODO: Verify quantity merge preserves the existing line ID, ordering, and tag assignment.
+  });
+
+  test('rejects non-positive quantities when adding root or component lines', () => {
+    // TODO: Verify neither invalid command commits a partial checkout.
+  });
+
   test('updates line quantities and recalculates pricing once', () => {
     // TODO: Verify the new quantity and totals.
   });
@@ -31,6 +39,10 @@ test.describe('Storefront checkout lines and merchandise', () => {
 
   test('replaces a line by merging quantity into an equivalent target line', () => {
     // TODO: Verify source removal and target quantity.
+  });
+
+  test('keeps replacement semantics aligned with the public source-removal and target-merge contract', () => {
+    // TODO: Lock the agreed behavior before implementation changes can silently diverge.
   });
 
   test('rejects replacement with an unknown line or non-positive quantity', () => {
@@ -67,5 +79,9 @@ test.describe('Storefront checkout lines and merchandise', () => {
 
   test('does not allow client attributes to replace derived merchandise facts', () => {
     // TODO: Verify catalog remains the source of truth.
+  });
+
+  test('rejects wrong-type, nested-child, duplicate, and foreign line IDs on every line mutation', () => {
+    // TODO: Verify transport and domain failures leave the snapshot unchanged.
   });
 });
