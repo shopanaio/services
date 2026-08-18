@@ -66,6 +66,7 @@ const applicationAuthBootstrapInputSchema = z
     redirectUri: z.string().url().max(2048),
     postLogoutRedirectUri: z.string().url().max(2048),
     defaultLocale: z.literal("en"),
+    emailVerificationRequired: z.boolean(),
   })
   .strict()
   .superRefine((value, ctx) => {

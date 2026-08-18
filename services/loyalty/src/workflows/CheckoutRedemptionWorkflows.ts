@@ -72,7 +72,7 @@ abstract class CheckoutWorkflowBase<TInput, TOutput> extends BrokerWorkflows<TIn
         workflowId: DBOS.workflowID!,
         stepId: `emit:${emission.eventType}`,
         callId: emission.callId,
-        tenantId: store.organizationId,
+        organizationId: store.organizationId,
       },
     );
   }
@@ -104,6 +104,9 @@ export class ReserveRedemptionWorkflow extends CheckoutWorkflowBase<
       new CheckoutRedemptionService(this.kernel.repository).reserve(input));
     const result = executed.result;
     if (result.status !== "RESERVED") return { ...executed, emission: null };
+    if (!input.context.customerId) {
+      throw new Error("A customer is required for a loyalty reservation");
+    }
     const payload: LoyaltyPointsReservedEvent["payload"] = {
       schemaVersion: 1,
       storeId: input.context.storeId,
@@ -297,4 +300,3 @@ export class ReverseRedemptionWorkflow extends CheckoutWorkflowBase<
     }).then(({ result: nested, store }) => ({ ...nested, store }));
   }
 }
-

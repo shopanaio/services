@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { SegmentDefinitionV1, SegmentExpression, SegmentValue } from "./types.js";
+import type {
+  SegmentDefinitionV1,
+  SegmentExpression,
+  SegmentFunctionParameter,
+  SegmentValue,
+} from "./types.js";
 import { parseCalendarDate, validateDateTime } from "./date-time.js";
 
 const strict = <T extends z.ZodRawShape>(shape: T) => z.object(shape).strict();
@@ -41,7 +46,7 @@ export const SegmentValueSchema: z.ZodType<SegmentValue> = z.union([
 const scalarOperator = z.enum(["eq", "neq", "gt", "gte", "lt", "lte"]);
 const nullOperator = z.enum(["is_null", "is_not_null"]);
 
-export const SegmentFunctionParameterSchema = z.union([
+export const SegmentFunctionParameterSchema: z.ZodType<SegmentFunctionParameter> = z.union([
   strict({ name: z.string(), operator: scalarOperator, value: SegmentValueSchema }),
   strict({
     name: z.string(),
@@ -52,7 +57,7 @@ export const SegmentFunctionParameterSchema = z.union([
   strict({
     name: z.string(),
     operator: z.enum(["in", "not_in"]),
-    values: z.array(SegmentValueSchema).min(1),
+    values: z.tuple([SegmentValueSchema]).rest(SegmentValueSchema),
   }),
   strict({ name: z.string(), operator: nullOperator }),
 ]);
@@ -62,7 +67,9 @@ export const SegmentExpressionSchema: z.ZodType<SegmentExpression> = z.lazy(() =
     strict({
       kind: z.literal("logical"),
       operator: z.enum(["and", "or"]),
-      children: z.array(SegmentExpressionSchema).min(2),
+      children: z
+        .tuple([SegmentExpressionSchema, SegmentExpressionSchema])
+        .rest(SegmentExpressionSchema),
     }),
     strict({ kind: z.literal("not"), child: SegmentExpressionSchema }),
     strict({
@@ -82,7 +89,7 @@ export const SegmentExpressionSchema: z.ZodType<SegmentExpression> = z.lazy(() =
       kind: z.literal("predicate"),
       attribute: z.string(),
       operator: z.enum(["in", "not_in"]),
-      values: z.array(SegmentValueSchema).min(1),
+      values: z.tuple([SegmentValueSchema]).rest(SegmentValueSchema),
     }),
     strict({
       kind: z.literal("predicate"),

@@ -122,7 +122,7 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       recipient: source.recipient,
       packages,
     };
-    return { status: "READY", plan: { ...planWithoutHash, lineItems: selected as [Delivery.DeliveryFulfillmentOrderLineItemInput, ...Delivery.DeliveryFulfillmentOrderLineItemInput[]], packages: packages as [Delivery.DeliveryProviderPackage, ...Delivery.DeliveryProviderPackage[]], planHash: digest("osplan_v1", planWithoutHash) } };
+    return { status: "READY", plan: { ...planWithoutHash, lineItems: selected as [Delivery.DeliveryFulfillmentOrderLineItemInput, ...Delivery.DeliveryFulfillmentOrderLineItemInput[]], packages: packages as unknown as [Delivery.DeliveryProviderPackage, ...Delivery.DeliveryProviderPackage[]], planHash: digest("osplan_v1", planWithoutHash) } };
   }
 
   async applyShipmentUpdate(params: Orders.ApplyOrderDeliveryShipmentUpdateParams): Promise<Orders.ApplyOrderDeliveryShipmentUpdateResult> {

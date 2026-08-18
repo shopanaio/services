@@ -67,6 +67,9 @@ export type OrderReadPortRow = {
   customer_email: string | null;
   customer_phone_e164: string | null;
   customer_country_code: string | null;
+  customer_first_name: string | null;
+  customer_last_name: string | null;
+  customer_middle_name: string | null;
   customer_note: string | null;
   locale_code: string | null;
   currency_code: string;
@@ -76,6 +79,15 @@ export type OrderReadPortRow = {
   tax_total: bigint;
   grand_total: bigint;
   status: string;
+  payment_status: string;
+  fulfillment_status: string;
+  delivery_status: string;
+  payment_authorized: bigint;
+  payment_captured: bigint;
+  payment_refunded: bigint;
+  payment_outstanding: bigint;
+  placed_at: Date | null;
+  closed_at: Date | null;
   expires_at: Date | null;
   metadata: Record<string, unknown> | null;
   created_at: Date;
@@ -125,7 +137,7 @@ export type OrderPromoCode = {
   storeId: string;
   code: string;
   discountType: string;
-  value: number; // converted from bigint string
+  value: string;
   provider: string;
   conditions: Record<string, unknown> | null;
   appliedAt: Date;
@@ -213,6 +225,9 @@ export type OrderReadView = {
   customerEmail: string | null;
   customerPhoneE164: string | null;
   customerCountryCode: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
+  customerMiddleName: string | null;
   customerNote: string | null;
   localeCode: string | null;
   currencyCode: string;
@@ -222,6 +237,15 @@ export type OrderReadView = {
   taxTotal: Money;
   grandTotal: Money;
   status: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  deliveryStatus: string;
+  paymentAuthorized: Money;
+  paymentCaptured: Money;
+  paymentRefunded: Money;
+  paymentOutstanding: Money;
+  placedAt: Date | null;
+  closedAt: Date | null;
   expiresAt: Date | null;
   metadata: Record<string, unknown> | null;
   createdAt: Date;
@@ -413,6 +437,9 @@ export class OrderReadRepository {
       customerEmail: row.customer_email,
       customerPhoneE164: row.customer_phone_e164,
       customerCountryCode: row.customer_country_code,
+      customerFirstName: row.customer_first_name,
+      customerLastName: row.customer_last_name,
+      customerMiddleName: row.customer_middle_name,
       customerNote: row.customer_note,
       localeCode: row.locale_code,
       currencyCode: row.currency_code,
@@ -422,6 +449,15 @@ export class OrderReadRepository {
       taxTotal: Money.fromMinor(row.tax_total, row.currency_code),
       grandTotal: Money.fromMinor(row.grand_total, row.currency_code),
       status: row.status,
+      paymentStatus: row.payment_status,
+      fulfillmentStatus: row.fulfillment_status,
+      deliveryStatus: row.delivery_status,
+      paymentAuthorized: Money.fromMinor(row.payment_authorized, row.currency_code),
+      paymentCaptured: Money.fromMinor(row.payment_captured, row.currency_code),
+      paymentRefunded: Money.fromMinor(row.payment_refunded, row.currency_code),
+      paymentOutstanding: Money.fromMinor(row.payment_outstanding, row.currency_code),
+      placedAt: row.placed_at,
+      closedAt: row.closed_at,
       expiresAt: row.expires_at,
       metadata: row.metadata,
       createdAt: row.created_at,

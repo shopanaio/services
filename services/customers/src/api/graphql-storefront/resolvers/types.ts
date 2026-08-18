@@ -32,7 +32,10 @@ import {
   CustomerWishlistItemResolver,
   CustomerWishlistResolver,
 } from "../../../resolvers/storefront/WishlistResolvers.js";
-import type { Resolvers } from "../../../resolvers/storefront/generated/types.js";
+import type {
+  Resolvers,
+  ResolversTypes,
+} from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
   DateTime: createIsoDateTimeScalar("DateTime"),
@@ -40,7 +43,6 @@ export const typeResolvers: Partial<Resolvers> = {
 
   Node: {
     __resolveType: (value) => {
-      if (value instanceof StorefrontCustomerResolver) return "Customer";
       if (value instanceof CustomerWishlistResolver) return "CustomerWishlist";
       if (value instanceof CustomerWishlistItemResolver) {
         return "CustomerWishlistItem";
@@ -106,21 +108,21 @@ export const typeResolvers: Partial<Resolvers> = {
     },
   },
   CustomerWishlist: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerWishlist"]>(
       GlobalIdEntity.CustomerWishlist,
       (id, ctx) => ctx.loaders.wishlist.load(id),
       CustomerWishlistResolver,
     ),
   },
   CustomerWishlistItem: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerWishlistItem"]>(
       GlobalIdEntity.CustomerWishlistItem,
       (id, ctx) => ctx.loaders.wishlistItem.load(id),
       CustomerWishlistItemResolver,
     ),
   },
   CustomerAddress: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerAddress"]>(
       GlobalIdEntity.CustomerAddress,
       (id, ctx) => ctx.loaders.address.load(id),
       StorefrontCustomerAddressResolver,
@@ -128,7 +130,7 @@ export const typeResolvers: Partial<Resolvers> = {
     ),
   },
   CustomerDataRequest: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerDataRequest"]>(
       GlobalIdEntity.CustomerDataRequest,
       (id, ctx) => ctx.loaders.customerDataRequest.load(id),
       StorefrontCustomerDataRequestResolver,
@@ -136,7 +138,7 @@ export const typeResolvers: Partial<Resolvers> = {
     ),
   },
   CustomerTaxIdentifier: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerTaxIdentifier"]>(
       GlobalIdEntity.CustomerTaxIdentifier,
       (id, ctx) => ctx.loaders.taxIdentifier.load(id),
       StorefrontCustomerTaxIdentifierResolver,
@@ -144,7 +146,7 @@ export const typeResolvers: Partial<Resolvers> = {
     ),
   },
   CustomerTaxExemption: {
-    __resolveReference: referenceResolver(
+    __resolveReference: referenceResolver<ResolversTypes["CustomerTaxExemption"]>(
       GlobalIdEntity.CustomerTaxExemption,
       (id, ctx) => ctx.loaders.taxExemption.load(id),
       StorefrontCustomerTaxExemptionResolver,
@@ -153,7 +155,7 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 };
 
-function referenceResolver(
+function referenceResolver<TResult>(
   type: GlobalIdType,
   exists: (id: string, ctx: ServiceContext) => Promise<unknown>,
   Resolver: {
@@ -187,7 +189,7 @@ function referenceResolver(
     ) {
       return null;
     }
-    return Resolver.load(id, parseGraphqlInfo(info), ctx);
+    return Resolver.load(id, parseGraphqlInfo(info), ctx) as Promise<TResult>;
   };
 }
 

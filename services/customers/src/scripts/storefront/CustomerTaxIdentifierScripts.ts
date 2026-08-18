@@ -5,7 +5,7 @@ import {
   internalStorefrontError,
   revisionAcquireError,
   storefrontError,
-  validateExpectedRevision,
+  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
   type StorefrontCustomerUserError,
 } from "./types.js";
@@ -114,7 +114,7 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerTaxIdentifierUpdateParams
   ): Promise<StorefrontCustomerTaxIdentifierUpdateResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedIdentifier(revisionError);
     const current = await this.repository.taxIdentifier.findOwnedById(
       params.customerId,
@@ -207,7 +207,7 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerTaxIdentifierDeleteParams
   ): Promise<StorefrontCustomerTaxIdentifierDeleteResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedDelete(revisionError);
     if (
       !(await this.repository.taxIdentifier.findOwnedById(
@@ -269,7 +269,7 @@ function validateIdentifier(
   value: string
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
-  const revisionError = validateExpectedRevision(expectedRevision);
+  const revisionError = validateStorefrontExpectedRevision(expectedRevision);
   if (revisionError) errors.push(revisionError);
   if (!identifierType.trim() || [...identifierType.trim()].length > 64) {
     errors.push(

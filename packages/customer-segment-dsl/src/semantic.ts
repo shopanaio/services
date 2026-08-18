@@ -597,7 +597,7 @@ function applyDescriptorMetadata(
   if (
     descriptor.temporalContract === "SOURCE" ||
     descriptor.temporalContract === "VALUE_AND_SOURCE" ||
-    ((descriptor.temporalContract === "VALUE" || descriptor.temporalContract === "VALUE_AND_SOURCE") && hasRelativeValue)
+    (descriptor.temporalContract === "VALUE" && hasRelativeValue)
   ) state.temporal = true;
   if (
     descriptor.dependencies.includes("taxIdentifier") ||
@@ -671,7 +671,7 @@ function normalizeDecimal(
   value: string,
   range: SegmentSourceRange,
   state: AnalysisState,
-  diagnosticCode = SEGMENT_DIAGNOSTIC_CODES.type,
+  diagnosticCode: string = SEGMENT_DIAGNOSTIC_CODES.type,
 ): string | null {
   const negative = value.startsWith("-");
   const unsigned = value.replace(/^[+-]/u, "");

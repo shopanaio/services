@@ -26,7 +26,7 @@ export class DeliveryShipmentOutboxWorkflow extends BrokerWorkflows<DeliveryShip
         emitKey: `delivery-shipment:${input.shipmentId}`,
       }, {
         source: "workflow", workflowId: DBOS.workflowID!, stepId: `emit:${row.event.type}`,
-        callId: row.id, tenantId: input.organizationId,
+        callId: row.id, organizationId: input.organizationId,
       });
       await this.mark(row.id, new Date(await DBOS.now()).toISOString());
     }

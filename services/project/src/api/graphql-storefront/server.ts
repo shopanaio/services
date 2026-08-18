@@ -18,6 +18,17 @@ import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { resolvers } from "./resolvers/index.js";
+import type {
+  ContextStore,
+  ContextStorefrontAccess,
+} from "@shopana/shared-context";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    store?: ContextStore;
+    storefrontAccess?: ContextStorefrontAccess;
+  }
+}
 
 const { global } = getServiceConfig("project");
 
@@ -86,7 +97,9 @@ export async function startStorefrontServer(
 
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(modules),
+    schema: buildSubgraphSchema(
+      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
+    ),
     plugins: [
       fastifyApolloDrainPlugin(app),
       timingPlugin,

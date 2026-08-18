@@ -11,14 +11,6 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./graphql/currency": {
-      "import": "./graphql/shared-currency.graphql",
-      "default": "./graphql/shared-currency.graphql"
-    },
-    "./graphql/locale": {
-      "import": "./graphql/shared-locale.graphql",
-      "default": "./graphql/shared-locale.graphql"
     }
   },
   "scripts": {

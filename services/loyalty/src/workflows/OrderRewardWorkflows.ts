@@ -66,7 +66,7 @@ abstract class OrderRewardWorkflowBase<TInput, TOutput> extends BrokerWorkflows<
         workflowId: DBOS.workflowID!,
         stepId: `emit:${emission.eventType}`,
         callId: emission.callId,
-        tenantId: store.organizationId,
+        organizationId: store.organizationId,
       },
     );
   }

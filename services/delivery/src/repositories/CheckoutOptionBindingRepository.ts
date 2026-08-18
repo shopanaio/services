@@ -1,5 +1,5 @@
 import { and, eq, lt, sql } from "drizzle-orm";
-import type { Delivery } from "@shopana/broker-types";
+import type { Delivery, Pricing } from "@shopana/broker-types";
 import type { DeliveryOptionBindingCandidate, DeliveryOptionBindingResolution, DeliveryOptionBindingsPort } from "../contracts/ports.js";
 import { BaseRepository } from "./BaseRepository.js";
 import { checkoutOptionBindings, checkoutSelectionCommitments } from "./models/index.js";
@@ -62,7 +62,7 @@ export class CheckoutOptionBindingRepository extends BaseRepository implements D
     return { status: "FOUND", binding: row.snapshot, option: row.option, deliveryRevision: row.deliveryRevision };
   }
 
-  async commitSelection(input: { organizationId: string; storeId: string; checkoutId: string; checkoutVersion: number; groupId: string; optionHandle: string; deliveryRevision: string; customerInput: Record<string, unknown> | null; recipient: Delivery.DeliveryProviderContact; shipmentProvider: { providerAccountId: string; configurationRevision: string } | null; effectiveAt: string; idempotencyKey: string }) {
+  async commitSelection(input: { organizationId: string; storeId: string; checkoutId: string; checkoutVersion: number; groupId: string; optionHandle: string; deliveryRevision: string; customerInput: Pricing.PricingCheckoutJsonObject | null; recipient: Delivery.DeliveryProviderContact; shipmentProvider: { providerAccountId: string; configurationRevision: string } | null; effectiveAt: string; idempotencyKey: string }) {
     return this.txManager.run(async () => {
       await this.connection.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.storeId}:${input.checkoutId}:${input.checkoutVersion}:${input.groupId}`}, 0))`);
       const resolved = await this.resolve(input);

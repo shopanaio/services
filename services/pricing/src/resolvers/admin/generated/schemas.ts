@@ -244,7 +244,7 @@ export function DiscountCodesUpdateInputSchema(): z.ZodObject<Properties<Discoun
 export function DiscountCreateInputSchema(): z.ZodObject<Properties<DiscountCreateInput>> {
   return z.object({
     buyerContext: z.lazy(() => DiscountBuyerContextInputSchema().nullish()),
-    calculationStrategy: DiscountCalculationStrategySchema.default("NATIVE").nullish(),
+    calculationStrategy: DiscountCalculationStrategySchema.default(DiscountCalculationStrategy.Native).nullish(),
     channels: z.array(z.lazy(() => DiscountChannelInputSchema())).nullish(),
     codes: z.array(z.lazy(() => DiscountCodeCreateOperationInputSchema())).nullish(),
     combinesWith: z.array(DiscountClassSchema).nullish(),
@@ -405,12 +405,12 @@ export function DiscountFunctionBindingInputSchema(): z.ZodObject<Properties<Dis
     activationSequence: z.string(),
     configurationRevision: z.string(),
     configurationSnapshot: z.record(z.unknown()),
-    failureMode: DiscountFunctionFailureModeSchema.default("OPTIONAL").nullish(),
+    failureMode: DiscountFunctionFailureModeSchema.default(DiscountFunctionFailureMode.Optional).nullish(),
     functionKey: z.string(),
     installationId: z.string(),
     precedence: z.number().default(0).nullish(),
     routeRevision: z.string(),
-    status: DiscountFunctionBindingStatusSchema.default("ACTIVE").nullish()
+    status: DiscountFunctionBindingStatusSchema.default(DiscountFunctionBindingStatus.Active).nullish()
   })
 }
 

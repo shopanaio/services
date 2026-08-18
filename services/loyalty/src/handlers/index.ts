@@ -77,7 +77,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
         resourceId: event.eventId,
         operation: "processExternalReward",
         contentHash: hashContent(event),
-        tenantId: storeId,
+        organizationId: event.context.organizationId,
       });
       return { success: true };
     } catch (error) {
@@ -99,7 +99,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
         resourceId: params.event.eventId,
         operation: "processOrderRewardEligible",
         contentHash: hashContent(params.event),
-        tenantId: params.event.payload.storeId,
+        organizationId: params.event.context.organizationId,
       });
       return data ? { success: true, data } : { success: true };
     } catch (error) {
@@ -129,7 +129,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
         resourceId: params.event.eventId,
         operation: "processOrderRewardReversed",
         contentHash: hashContent(params.event),
-        tenantId: params.event.payload.storeId,
+        organizationId: params.event.context.organizationId,
       });
       return { success: true, data };
     } catch (error) {
@@ -193,7 +193,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
         resourceId: params.event.payload.storeId,
         operation: "closeStoreLoyalty",
         contentHash: hashContent({ eventId: params.event.eventId }),
-        tenantId: params.event.payload.storeId,
+        organizationId: params.event.context.organizationId,
       });
       return { success: true, data };
     } catch (error) {

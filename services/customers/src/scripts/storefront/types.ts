@@ -36,7 +36,7 @@ export function internalStorefrontError(): StorefrontCustomerUserError {
   );
 }
 
-export function validateExpectedRevision(
+export function validateStorefrontExpectedRevision(
   value: number
 ): StorefrontCustomerUserError | null {
   return Number.isSafeInteger(value) && value >= 1

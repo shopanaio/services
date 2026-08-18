@@ -63,6 +63,8 @@ describe("checkout broker adapters", () => {
       },
       selection: fixture.cartIntent.selectedPaymentMethod,
       finalQuote: fixture.finalQuote,
+      payableAmount: fixture.finalQuote.totals.payableTotal,
+      loyaltyRedemption: null,
       delivery: toCheckoutPaymentDeliverySnapshot(
         fixture.delivery,
         fixture.preliminary,

@@ -97,6 +97,7 @@ export class StorefrontAuthProvisionWorkflow extends BrokerWorkflows<
       applicationAuth: {
         ...resolveStorefrontAuthUrls(input.name),
         defaultLocale: "en",
+        emailVerificationRequired: true,
       },
       managementMode: "service",
       linkedOwner: {

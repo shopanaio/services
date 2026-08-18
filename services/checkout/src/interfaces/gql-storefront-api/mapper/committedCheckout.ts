@@ -5,9 +5,11 @@ import type {
   ApiCheckoutDeliveryMethodType,
   ApiCheckoutIssueEffect,
   ApiCheckoutIssueSeverity,
+  ApiCheckoutLinePurchaseType,
   ApiCheckoutSelectionStatus,
   ApiCountryCode,
   ApiCurrencyCode,
+  ApiLocaleCode,
   ApiMoney,
   ApiPaymentFlow,
 } from "../types.js";
@@ -56,7 +58,10 @@ export function mapCommittedCheckoutToApi(
         resolution.transformedLineIds.includes(lineId),
     )?.sourceLineId ?? lineId;
   const intentById = new Map(flattenIntent(draft.cartIntent.lines).map((line) => [line.lineId, line]));
-  const lineToApi = (line: (typeof allQuotedLines)[number]): ApiCheckout["lines"][number] => {
+  const lineToApi = (
+    line: (typeof allQuotedLines)[number],
+    parent: ApiCheckout["lines"][number] | null = null,
+  ): ApiCheckout["lines"][number] => {
     const sourceLineId = sourceFor(line.lineId);
     const source = intentById.get(sourceLineId);
     const assignment = draft.lineTagAssignments.find(({ lineId }) => lineId === sourceLineId);
@@ -67,14 +72,16 @@ export function mapCommittedCheckoutToApi(
       (sum, allocation) => sum + BigInt(allocation.amount.amountMinor),
       0n,
     );
-    return {
+    const mapped: ApiCheckout["lines"][number] = {
       __typename: "CheckoutLine",
       id: encodeGlobalIdByType(line.lineId, GlobalIdEntity.CheckoutLine),
       title: line.merchandise.title,
       sku: line.merchandise.sku,
-      imageSrc: line.merchandise.imageUrl,
+      image: null,
+      attributes: source?.attributes ?? {},
+      parent,
       quantity: line.quantity,
-      children: line.children.map(lineToApi),
+      children: [],
       componentItemId: source?.componentSelection
         ? encodeGlobalIdByType(
             source.componentSelection.componentItemId,
@@ -85,6 +92,17 @@ export function mapCommittedCheckoutToApi(
         line.merchandise.variantId,
         GlobalIdEntity.Variant,
       ),
+      purchasable: {
+        __typename: "ProductVariant",
+        id: encodeGlobalIdByType(
+          line.merchandise.variantId,
+          GlobalIdEntity.Variant,
+        ),
+      },
+      purchase: {
+        __typename: "CheckoutLinePurchase",
+        type: "ONE_TIME" as ApiCheckoutLinePurchaseType,
+      },
       originalPrice: pipelineMoney(line.originalUnitPrice),
       priceConfig: null,
       tag: tag
@@ -113,6 +131,8 @@ export function mapCommittedCheckoutToApi(
         totalAmount: pipelineMoney(line.total),
       },
     };
+    mapped.children = line.children.map((child) => lineToApi(child, mapped));
+    return mapped;
   };
   const deliveryGroups = delivery.groups.map((group) => {
     const destination = draft.cartIntent.destinations.find(
@@ -161,9 +181,33 @@ export function mapCommittedCheckoutToApi(
             address1: destination.address.address1,
             address2: destination.address.address2,
             city: destination.address.city,
+            company: destination.address.company,
+            country: destination.address.countryCode,
             countryCode: destination.address.countryCode as ApiCountryCode,
+            firstName: destination.address.firstName,
+            formatted: [
+              destination.address.address1,
+              destination.address.address2,
+              destination.address.city,
+              destination.address.provinceName,
+              destination.address.postalCode,
+              destination.address.countryCode,
+            ].filter((part): part is string => Boolean(part)),
+            formattedArea: [
+              destination.address.city,
+              destination.address.provinceName,
+              destination.address.countryCode,
+            ].filter(Boolean).join(", "),
+            lastName: destination.address.lastName,
+            name: [
+              destination.address.firstName,
+              destination.address.middleName,
+              destination.address.lastName,
+            ].filter(Boolean).join(" ") || destination.address.company || destination.address.address1,
+            phone: destination.address.phone,
+            province: destination.address.provinceName,
             provinceCode: destination.address.provinceCode,
-            postalCode: destination.address.postalCode,
+            zip: destination.address.postalCode,
             data: destination.address.providerData ?? {},
           }
         : null,
@@ -227,6 +271,10 @@ export function mapCommittedCheckoutToApi(
     __typename: "Checkout",
     id: encodeGlobalIdByType(checkout.checkoutId, GlobalIdEntity.Checkout),
     version: checkout.version,
+    billingAddress: null,
+    channelCode: draft.channelCode,
+    currencyCode: draft.currencyCode as ApiCurrencyCode,
+    localeCode: (draft.localeCode ?? "en") as ApiLocaleCode,
     resultRevision: result.resultRevision,
     valid: result.validation.data.valid,
     issues: result.issues.map((issue) => ({

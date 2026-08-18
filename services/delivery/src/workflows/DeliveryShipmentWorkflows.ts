@@ -70,6 +70,6 @@ function publishOutbox(broker: ServiceBroker, shipment: Delivery.DeliveryShipmen
     organizationId: shipment.organizationId, storeId: shipment.storeId, shipmentId: shipment.shipmentId, correlationId,
   }, {
     source: "workflow", workflowId: DBOS.workflowID!, stepId: `publishShipmentOutbox:${phase}`,
-    callId: `${shipment.shipmentId}:${phase}`, tenantId: shipment.organizationId,
+    callId: `${shipment.shipmentId}:${phase}`, organizationId: shipment.organizationId,
   });
 }

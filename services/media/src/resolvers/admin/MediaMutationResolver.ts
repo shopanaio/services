@@ -64,7 +64,7 @@ interface CdnConfigurationMutationInput {
 }
 
 interface CdnRoutingRuleMutationInput {
-  cdnConfigurationId?: string;
+  cdnConfigurationId?: string | null;
   name?: string;
   priority?: number;
   enabled?: boolean;
@@ -268,7 +268,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const { id: _globalId, ...changes } = input;
     const result = await this.$ctx.kernel.runScript(
       CdnRoutingRuleUpdateScript,
-      { ...changes, id, cdnConfigurationId }
+      { ...changes, id, cdnConfigurationId: cdnConfigurationId ?? undefined }
     );
     return {
       routingRule: result.routingRule

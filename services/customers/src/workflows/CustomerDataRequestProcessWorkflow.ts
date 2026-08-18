@@ -280,9 +280,11 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
     input: CustomerDataRequestProcessWorkflowInput,
     result: CustomerDataRequestProcessResult,
   ): Promise<void> {
-    if (!isEmittedStatus(result.status)) return;
+    const status = result.status;
+    if (!isEmittedStatus(status)) return;
+    const emittedResult = { ...result, status };
 
-    const payload = await this.prepareStatusChangedEvent(input, result);
+    const payload = await this.prepareStatusChangedEvent(input, emittedResult);
     await this.broker.runWorkflow(
       "events.emit",
       {
@@ -313,7 +315,9 @@ export class CustomerDataRequestProcessWorkflow extends BrokerWorkflows<
   })
   private async prepareStatusChangedEvent(
     input: CustomerDataRequestProcessWorkflowInput,
-    result: CustomerDataRequestProcessResult,
+    result: CustomerDataRequestProcessResult & {
+      status: "PROCESSING" | "COMPLETED" | "REJECTED";
+    },
   ): Promise<CustomerDataRequestStatusChangedEvent["payload"]> {
     const delivery = await this.kernel.runScript(
       CustomerDataRequestNotificationSnapshotScript,

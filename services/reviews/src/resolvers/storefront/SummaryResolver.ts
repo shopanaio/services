@@ -27,20 +27,20 @@ export class ProductRatingCriterionSummaryResolver extends ReviewsType<ProductRa
 }
 export class ProductQuestionSummaryResolver extends ReviewsType<ProductQuestionSummary | { productId: string }> {
   product() { return productReference(this.$props.productId); }
-  questionCount() { const props = this.$props; return isEmptyQuestionSummary(props) ? 0 : props.questionCount; }
-  answeredQuestionCount() { const props = this.$props; return isEmptyQuestionSummary(props) ? 0 : props.answeredQuestionCount; }
-  unansweredQuestionCount() { const props = this.$props; return isEmptyQuestionSummary(props) ? 0 : props.unansweredQuestionCount; }
-  answerCount() { const props = this.$props; return isEmptyQuestionSummary(props) ? 0 : props.answerCount; }
-  officialAnswerCount() { const props = this.$props; return isEmptyQuestionSummary(props) ? 0 : props.officialAnswerCount; }
-  lastQuestionAt() { const props = this.$props; return isEmptyQuestionSummary(props) ? null : props.lastQuestionAt; }
-  lastAnsweredAt() { const props = this.$props; return isEmptyQuestionSummary(props) ? null : props.lastAnsweredAt; }
-  updatedAt() { const props = this.$props; return isEmptyQuestionSummary(props) ? new Date(0).toISOString() : props.updatedAt; }
+  questionCount() { const props = this.$props; return isQuestionSummary(props) ? props.questionCount : 0; }
+  answeredQuestionCount() { const props = this.$props; return isQuestionSummary(props) ? props.answeredQuestionCount : 0; }
+  unansweredQuestionCount() { const props = this.$props; return isQuestionSummary(props) ? props.unansweredQuestionCount : 0; }
+  answerCount() { const props = this.$props; return isQuestionSummary(props) ? props.answerCount : 0; }
+  officialAnswerCount() { const props = this.$props; return isQuestionSummary(props) ? props.officialAnswerCount : 0; }
+  lastQuestionAt() { const props = this.$props; return isQuestionSummary(props) ? props.lastQuestionAt : null; }
+  lastAnsweredAt() { const props = this.$props; return isQuestionSummary(props) ? props.lastAnsweredAt : null; }
+  updatedAt() { const props = this.$props; return isQuestionSummary(props) ? props.updatedAt : new Date(0).toISOString(); }
 }
 
 function isEmptyReviewSummary(value: ProductReviewSummaryAggregate | { productId: string }): value is { productId: string } {
   return "productId" in value;
 }
 
-function isEmptyQuestionSummary(value: ProductQuestionSummary | { productId: string }): value is { productId: string } {
-  return !("questionCount" in value);
+function isQuestionSummary(value: ProductQuestionSummary | { productId: string }): value is ProductQuestionSummary {
+  return "questionCount" in value;
 }

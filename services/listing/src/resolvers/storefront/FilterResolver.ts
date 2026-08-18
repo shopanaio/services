@@ -68,7 +68,8 @@ export class FilterResolver extends ListingType<FilterResolverInput> {
 
   async selectionMode() {
     if (this.$props.kind !== "facet") return null;
-    const facet = await this.$ctx.loaders.facet.load(this.$props.facet.facetId);
+    const { facet: filterFacet } = this.$props;
+    const facet = await this.$ctx.loaders.facet.load(filterFacet.facetId);
     return facet?.selectionMode?.toUpperCase() === FacetSelectionMode.Single
       ? FacetSelectionMode.Single
       : FacetSelectionMode.Multi;
@@ -88,9 +89,10 @@ export class FilterResolver extends ListingType<FilterResolverInput> {
     switch (this.$props.kind) {
       case "facet": {
         const selected = new Set(this.$props.selectedHandles);
-        values = this.$props.facet.values.map((value) => ({
+        const { facet } = this.$props;
+        values = facet.values.map((value) => ({
           kind: "facet",
-          facetSlug: this.$props.facet.facetSlug,
+          facetSlug: facet.facetSlug,
           value,
           selected: selected.has(value.valueHandle),
         }));

@@ -75,14 +75,15 @@ export type CreateApplicationParams = {
   description?: string;
   /**
    * Generic application-auth bootstrap for trusted service-linked callers.
-   * IAM selects the protocol policy; the owning service supplies only web
-   * client URLs and presentation defaults.
+   * IAM owns protocol validation; the owning service supplies its web client
+   * URLs, presentation defaults, and explicit email-verification policy.
    */
   applicationAuth?: {
     origin: string;
     redirectUri: string;
     postLogoutRedirectUri: string;
     defaultLocale: "en";
+    emailVerificationRequired: boolean;
   };
 } & ResourceManagementInput;
 

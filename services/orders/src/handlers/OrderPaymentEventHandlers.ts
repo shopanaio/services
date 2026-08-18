@@ -233,6 +233,9 @@ export class OrderPaymentEventHandlers extends EventHandlers {
     event: PaymentDomainEvent,
     sourceType: "CANCELLATION" | "ORDER_CORRECTION",
   ): Promise<void> {
+    if (!("operationId" in event.payload)) {
+      throw new Error("PAYMENT_OPERATION_ID_REQUIRED_FOR_LOYALTY_REVERSAL");
+    }
     const order = await this.repository.order.findLoyaltyRewardRecord(event.payload.orderId);
     const reward = order?.snapshot.loyaltyRewardEligibility;
     if (!order || !reward) return;
@@ -485,7 +488,10 @@ async function insertTransaction(
 ): Promise<void> {
   if (BigInt(amount.amountMinor) <= 0n) return;
   const parentTransactionId = kind === "CAPTURE"
-    ? await requireAuthorizationTransaction(repository, event)
+    ? await requireAuthorizationTransaction(
+        repository,
+        event as PaymentEvents.Captured,
+      )
     : null;
   await insertTransactionRow(repository, {
     id: event.operationId,

@@ -219,6 +219,7 @@ function compileScalarPredicate(
       AND ${column} >= ${scalarValue(expression.value, valueMode)}
       AND ${column} <= ${scalarValue(expression.upperValue, valueMode)}`;
   }
+  if (!("value" in expression)) throw new Error(`Unsupported scalar operator ${expression.operator}`);
   const value = scalarValue(expression.value, valueMode);
   switch (expression.operator) {
     case "eq": return sql`${column} IS NOT NULL AND ${column} = ${value}`;
@@ -247,6 +248,7 @@ function compileInstantDatePredicate(
   if (expression.operator === "in" || expression.operator === "not_in") {
     throw new Error("Date IN is not supported by the registry");
   }
+  if (!("value" in expression)) throw new Error(`Unsupported date operator ${expression.operator}`);
   const bounds = dateBounds(expression.value, context);
   const matches = sql`${column} >= ${bounds.start}::timestamptz AND ${column} < ${bounds.end}::timestamptz`;
   switch (expression.operator) {
@@ -256,6 +258,7 @@ function compileInstantDatePredicate(
     case "gte": return sql`${column} IS NOT NULL AND ${column} >= ${bounds.start}::timestamptz`;
     case "lt": return sql`${column} IS NOT NULL AND ${column} < ${bounds.start}::timestamptz`;
     case "lte": return sql`${column} IS NOT NULL AND ${column} < ${bounds.end}::timestamptz`;
+    default: throw new Error(`Unsupported date operator ${expression.operator}`);
   }
 }
 
@@ -286,6 +289,7 @@ function compileListPredicate(
   if (expression.operator !== "contains" && expression.operator !== "not_contains") {
     throw new Error(`Invalid list operator ${expression.operator}`);
   }
+  if (!("value" in expression)) throw new Error("Invalid list predicate value");
   const match = exists(sql`${valueColumn} = ${scalarValue(expression.value)}`);
   return expression.operator === "contains" ? match : sql`NOT (${match})`;
 }
@@ -346,6 +350,7 @@ function compileBirthday(
       expression.operator === "lt" || expression.operator === "lte") {
     throw new Error(`Invalid birthday operator ${expression.operator}`);
   }
+  if (!("value" in expression)) throw new Error(`Invalid birthday operator ${expression.operator}`);
   const dates = expression.operator === "between"
     ? birthdayRange(expression.value, expression.upperValue, context)
     : birthdayKeys(expression.value, context);
@@ -369,6 +374,7 @@ function compileFunction(
   if (expression.operator === "is_null") return sql`NOT (${anyOrder})`;
   if (expression.operator === "is_not_null") return anyOrder;
 
+  if (!("parameters" in expression)) throw new Error(`Invalid function operator ${expression.operator}`);
   const parameters = expression.parameters;
   const ordinary = parameters.filter((parameter) => !isAggregateParameter(parameter));
   const aggregates = parameters.filter(isAggregateParameter);
@@ -443,6 +449,7 @@ function parameterToPredicate(parameter: SegmentFunctionParameter): SegmentPredi
       upperValue: parameter.upperValue,
     };
   }
+  if (!("value" in parameter)) throw new Error(`Invalid function parameter operator ${parameter.operator}`);
   return { kind: "predicate", attribute: parameter.name, operator: parameter.operator, value: parameter.value };
 }
 
@@ -500,7 +507,13 @@ function mapDateValues(
     return { ...expression, values: expression.values.map(map) as [SegmentValue, ...SegmentValue[]] };
   }
   if (expression.operator === "is_null" || expression.operator === "is_not_null") return expression;
-  return { ...expression, value: map(expression.value) };
+  if (!("value" in expression)) throw new Error(`Invalid date operator ${expression.operator}`);
+  return {
+    kind: "predicate",
+    attribute: expression.attribute,
+    operator: expression.operator,
+    value: map(expression.value),
+  };
 }
 
 function birthdayKeys(value: SegmentValue, context: CustomerSegmentCompileContext): string[] {

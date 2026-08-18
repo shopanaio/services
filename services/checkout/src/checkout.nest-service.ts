@@ -34,9 +34,10 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
     this.broker.register(
       CheckoutCompletionActionNames.confirmPaymentSettlement,
       async (
-        params: Checkout.ConfirmPaymentSettlementParams,
+        params: Checkout.ConfirmPaymentSettlementParams | undefined,
         context: BrokerCallContext,
       ): Promise<Checkout.ConfirmPaymentSettlementResult> => {
+        if (!params) throw new Error('PAYMENT_SETTLEMENT_PARAMS_REQUIRED');
         if (context.caller.kind !== 'action' || context.caller.service !== 'payments' || context.app) {
           throw new Error('PAYMENT_SETTLEMENT_CALLER_INVALID');
         }

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import type {
   OrderReadPort,
   OrderReadPortRow,
@@ -32,6 +32,9 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
         customerEmail: ordersPiiRecords.customerEmail,
         customerPhoneE164: ordersPiiRecords.customerPhoneE164,
         customerCountryCode: ordersPiiRecords.countryCode,
+        customerFirstName: ordersPiiRecords.firstName,
+        customerLastName: ordersPiiRecords.lastName,
+        customerMiddleName: ordersPiiRecords.middleName,
         customerNote: ordersPiiRecords.customerNote,
       })
       .from(orders)
@@ -40,6 +43,37 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       .limit(1);
 
     if (!row) return null;
+    const [lifecycle] = await this.connection.execute<{
+      paymentStatus: string;
+      fulfillmentStatus: string;
+      deliveryStatus: string;
+      authorizedAmount: string;
+      capturedAmount: string;
+      refundedAmount: string;
+      outstandingAmount: string;
+    }>(sql`
+      SELECT
+        current_order."payment_status"::text AS "paymentStatus",
+        current_order."fulfillment_status"::text AS "fulfillmentStatus",
+        current_order."delivery_status"::text AS "deliveryStatus",
+        COALESCE(latest_collection.payload->'authorizedAmount'->>'amountMinor', '0') AS "authorizedAmount",
+        COALESCE(latest_collection.payload->'capturedAmount'->>'amountMinor', '0') AS "capturedAmount",
+        COALESCE(latest_collection.payload->'refundedAmount'->>'amountMinor', '0') AS "refundedAmount",
+        COALESCE(latest_collection.payload->'outstandingAmount'->>'amountMinor', current_order."total_amount"::text) AS "outstandingAmount"
+      FROM "orders"."orders" AS current_order
+      LEFT JOIN LATERAL (
+        SELECT inbox.payload
+        FROM "orders"."order_payment_event_inbox" AS inbox
+        WHERE inbox."store_id" = current_order."store_id"
+          AND inbox."order_id" = current_order."id"
+          AND inbox."event_type" = 'payment.collection.state_changed'
+        ORDER BY inbox."event_sequence" DESC
+        LIMIT 1
+      ) AS latest_collection ON TRUE
+      WHERE current_order."id" = ${id}::uuid
+      LIMIT 1
+    `);
+    if (!lifecycle) throw new Error(`Order lifecycle projection is missing for order ${id}`);
     const order = row.order;
     const orderNumber = Number(order.orderNumber);
     if (!Number.isSafeInteger(orderNumber)) {
@@ -59,6 +93,9 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       customer_email: row.customerEmail,
       customer_phone_e164: row.customerPhoneE164,
       customer_country_code: row.customerCountryCode,
+      customer_first_name: row.customerFirstName,
+      customer_last_name: row.customerLastName,
+      customer_middle_name: row.customerMiddleName,
       customer_note: row.customerNote,
       locale_code: order.localeCode,
       currency_code: order.currencyCode,
@@ -68,6 +105,15 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       tax_total: order.taxTotal,
       grand_total: order.grandTotal,
       status: order.status,
+      payment_status: lifecycle.paymentStatus,
+      fulfillment_status: lifecycle.fulfillmentStatus,
+      delivery_status: lifecycle.deliveryStatus,
+      payment_authorized: BigInt(lifecycle.authorizedAmount),
+      payment_captured: BigInt(lifecycle.capturedAmount),
+      payment_refunded: BigInt(lifecycle.refundedAmount),
+      payment_outstanding: BigInt(lifecycle.outstandingAmount),
+      placed_at: order.placedAt == null ? null : coerceToDate(order.placedAt),
+      closed_at: order.closedAt == null ? null : coerceToDate(order.closedAt),
       expires_at: order.expiresAt == null ? null : coerceToDate(order.expiresAt),
       metadata: order.metadata,
       created_at: coerceToDate(order.createdAt),
@@ -127,7 +173,7 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       storeId: row.storeId,
       code: row.code ?? "",
       discountType: row.discountType ?? "",
-      value: Number(row.value),
+      value: row.value.toString(),
       provider: row.provider ?? "",
       conditions: row.conditions,
       appliedAt: coerceToDate(row.appliedAt),

@@ -1,6 +1,16 @@
 import {
   buildStorefrontContextMiddleware as buildMiddleware,
+  type ContextCustomer,
+  type ContextStorefrontAccess,
 } from "@shopana/shared-context";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    storefrontAccess?: ContextStorefrontAccess;
+    customer: ContextCustomer | null;
+    storefrontVisitorId?: string;
+  }
+}
 
 export function buildStorefrontContextMiddleware() {
   const middleware = buildMiddleware(undefined, {

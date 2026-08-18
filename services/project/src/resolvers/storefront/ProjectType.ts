@@ -32,7 +32,7 @@ export abstract class ProjectType<TValue, TData = unknown>
   }
 
   protected getCache(): CacheStore {
-    return this.$ctx.kernel.cache;
+    return this.$ctx.kernel.cache as unknown as CacheStore;
   }
 
   protected encodeId(id: string, type: GlobalIdType): string {

@@ -104,6 +104,7 @@ export type CustomerConnectionInput = Omit<CustomerRelayInput, "where"> & {
 };
 
 export interface CustomerCreateData {
+  lifecycleStatus?: Customer["lifecycleStatus"];
   iamPrincipalId?: string | null;
   iamPrincipalStatus?: Customer["iamPrincipalStatus"];
   iamLifecycleDisabled?: boolean;

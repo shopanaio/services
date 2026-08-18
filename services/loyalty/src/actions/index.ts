@@ -89,6 +89,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async reserveCheckoutLoyaltyRedemption(
     params: ReserveCheckoutLoyaltyRedemptionParams,
   ): Promise<ReserveCheckoutLoyaltyRedemptionResult> {
+    const organizationId = await this.getOrganizationId(params.context.storeId);
     return this.broker.runWorkflow(
       "loyalty.reserveCheckoutLoyaltyRedemption",
       params,
@@ -97,7 +98,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         resourceId: params.context.checkoutId,
         operation: "reserveCheckoutLoyaltyRedemption",
         contentHash: params.requestHash,
-        tenantId: params.context.storeId,
+        organizationId,
       },
     );
   }
@@ -106,6 +107,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async commitCheckoutLoyaltyRedemption(
     params: CommitCheckoutLoyaltyRedemptionParams,
   ): Promise<CommitCheckoutLoyaltyRedemptionResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow(
       "loyalty.commitCheckoutLoyaltyRedemption",
       params,
@@ -114,7 +116,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         resourceId: params.reservationId,
         operation: "commitCheckoutLoyaltyRedemption",
         contentHash: params.requestHash,
-        tenantId: params.storeId,
+        organizationId,
       },
     );
   }
@@ -123,6 +125,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async releaseCheckoutLoyaltyRedemption(
     params: ReleaseCheckoutLoyaltyRedemptionParams,
   ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow(
       "loyalty.releaseCheckoutLoyaltyRedemption",
       params,
@@ -131,7 +134,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         resourceId: params.reservationId,
         operation: "releaseCheckoutLoyaltyRedemption",
         contentHash: params.requestHash,
-        tenantId: params.storeId,
+        organizationId,
       },
     );
   }
@@ -140,6 +143,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async expireCheckoutLoyaltyRedemptions(
     params: ExpireCheckoutLoyaltyRedemptionsParams,
   ): Promise<ExpireCheckoutLoyaltyRedemptionsResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow(
       "loyalty.expireCheckoutLoyaltyRedemptions",
       params,
@@ -148,7 +152,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         resourceId: params.storeId,
         operation: "expireCheckoutLoyaltyRedemptions",
         content: params,
-        tenantId: params.storeId,
+        organizationId,
       },
     );
   }
@@ -157,6 +161,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async reverseCheckoutLoyaltyRedemption(
     params: ReverseCheckoutLoyaltyRedemptionParams,
   ): Promise<ReverseCheckoutLoyaltyRedemptionResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow(
       "loyalty.reverseCheckoutLoyaltyRedemption",
       params,
@@ -165,7 +170,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         resourceId: params.reservationId,
         operation: "reverseCheckoutLoyaltyRedemption",
         contentHash: params.requestHash,
-        tenantId: params.storeId,
+        organizationId,
       },
     );
   }
@@ -265,12 +270,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async runLoyaltyMaintenance(
     params: LoyaltyMaintenanceInput,
   ): Promise<LoyaltyMaintenanceResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow("loyalty.maintenance", params, {
       source: "content",
       resourceId: params.storeId,
       operation: "loyaltyMaintenance",
       content: params,
-      tenantId: params.storeId,
+      organizationId,
     });
   }
 
@@ -278,12 +284,13 @@ export class LoyaltyBrokerActions extends BrokerActions {
   async adjustLoyaltyPoints(
     params: ManualLoyaltyAdjustmentInput,
   ): Promise<ManualLoyaltyAdjustmentResult> {
+    const organizationId = await this.getOrganizationId(params.storeId);
     return this.broker.runWorkflow("loyalty.adjustPoints", params, {
       source: "content",
       resourceId: params.accountId,
       operation: "adjustLoyaltyPoints",
       contentHash: params.requestHash,
-      tenantId: params.storeId,
+      organizationId,
     });
   }
 
@@ -292,6 +299,23 @@ export class LoyaltyBrokerActions extends BrokerActions {
     requestId: string,
     work: () => Promise<T>,
   ): Promise<T> {
+    const store = await this.getStore(storeId);
+    const context = new ServiceContext({
+      requestId,
+      kernel: this.kernel,
+      loaders: new Loader(this.kernel.repository),
+      store,
+      locale: store.defaultLocale,
+      currency: store.currencyCode,
+    });
+    return runWithContext(context, work);
+  }
+
+  private async getOrganizationId(storeId: string): Promise<string> {
+    return (await this.getStore(storeId)).organizationId;
+  }
+
+  private async getStore(storeId: string): Promise<ContextStore> {
     const result = await this.broker.call<GetStoreByIdResult, { id: string }>(
       "project.getStoreById",
       { id: storeId },
@@ -299,15 +323,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
     if (!result.store) {
       throw new Error(result.userErrors[0]?.message ?? `Store ${storeId} was not found`);
     }
-    const context = new ServiceContext({
-      requestId,
-      kernel: this.kernel,
-      loaders: new Loader(this.kernel.repository),
-      store: result.store,
-      locale: result.store.defaultLocale,
-      currency: result.store.currencyCode,
-    });
-    return runWithContext(context, work);
+    return result.store;
   }
 
   private async transitionReward(

@@ -95,7 +95,7 @@ export function ProductQuestionCreateInputSchema(): z.ZodObject<Properties<Produ
 
 export function ProductQuestionSubscriptionSetInputSchema(): z.ZodObject<Properties<ProductQuestionSubscriptionSetInput>> {
   return z.object({
-    channel: ReviewNotificationChannelSchema.default("EMAIL").nullish(),
+    channel: ReviewNotificationChannelSchema.default(ReviewNotificationChannel.Email).nullish(),
     locale: LocaleCodeSchema.nullish(),
     productQuestionId: z.string(),
     subscribed: z.boolean()

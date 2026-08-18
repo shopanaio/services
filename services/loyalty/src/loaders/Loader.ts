@@ -44,7 +44,7 @@ export class Loader {
   readonly rewardEntitlement;
   readonly availableRewardEntitlements;
   readonly customerEligibility;
-  readonly catalogProduct;
+  readonly catalogProduct: StorefrontLoader["catalogProduct"];
   readonly catalogVariant;
   readonly earningRuleUsage;
   readonly rewardDefinitionUsage;

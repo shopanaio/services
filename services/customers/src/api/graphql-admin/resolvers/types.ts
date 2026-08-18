@@ -39,7 +39,7 @@ export const typeResolvers: Partial<Resolvers> = {
           : undefined;
       if (
         typeof explicitTypeName === "string" &&
-        NODE_TYPE_NAMES.has(explicitTypeName)
+        isNodeTypeName(explicitTypeName)
       ) {
         return explicitTypeName;
       }
@@ -91,8 +91,8 @@ export const typeResolvers: Partial<Resolvers> = {
         typeof obj === "object" && obj !== null
           ? (obj as { constructor?: { name?: unknown } }).constructor?.name
           : undefined;
-      return typeof constructorName === "string"
-        ? NODE_RESOLVER_TYPES[constructorName] ?? null
+      return typeof constructorName === "string" && constructorName in NODE_RESOLVER_TYPES
+        ? NODE_RESOLVER_TYPES[constructorName as keyof typeof NODE_RESOLVER_TYPES]
         : null;
     },
   },
@@ -163,7 +163,7 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 };
 
-const NODE_RESOLVER_TYPES: Readonly<Record<string, string>> = Object.freeze({
+const NODE_RESOLVER_TYPES = Object.freeze({
   CustomerResolver: "Customer",
   CustomerAddressResolver: "CustomerAddress",
   CustomerTaxIdentifierResolver: "CustomerTaxIdentifier",
@@ -185,3 +185,9 @@ const NODE_RESOLVER_TYPES: Readonly<Record<string, string>> = Object.freeze({
 });
 
 const NODE_TYPE_NAMES = new Set(Object.values(NODE_RESOLVER_TYPES));
+
+type NodeTypeName = (typeof NODE_RESOLVER_TYPES)[keyof typeof NODE_RESOLVER_TYPES];
+
+function isNodeTypeName(value: unknown): value is NodeTypeName {
+  return typeof value === "string" && NODE_TYPE_NAMES.has(value as NodeTypeName);
+}

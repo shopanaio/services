@@ -36,6 +36,27 @@ export interface LoyaltyReferenceValidator {
   validate(input: LoyaltyReferenceValidationRequest): Promise<readonly { field: readonly (string | number)[]; message: string }[]>;
 }
 
+type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
+type EarningRuleDraftInput = RequiredFields<
+  Omit<NewEarningRule, "id" | "storeId" | "programVersionId" | "createdAt">,
+  | "triggerConfig"
+  | "conditions"
+  | "action"
+  | "limits"
+  | "triggerSchemaVersion"
+  | "conditionSchemaVersion"
+  | "actionSchemaVersion"
+  | "limitSchemaVersion"
+>;
+type RewardDefinitionDraftInput = RequiredFields<
+  Omit<NewRewardDefinition, "id" | "storeId" | "programVersionId" | "createdAt">,
+  "configurationSchemaVersion"
+>;
+type TierPolicyDraftInput = RequiredFields<
+  Omit<NewTierPolicy, "id" | "storeId" | "programVersionId" | "createdAt">,
+  "metricSchemaVersion"
+>;
+
 export type ProgramVersionDraftInput = Omit<
   NewProgramVersion,
   | "id"
@@ -53,9 +74,9 @@ export type ProgramVersionDraftInput = Omit<
 
 export interface ProgramVersionConfigurationInput {
   expectedProgramRevision?: number;
-  earningRules?: readonly Omit<NewEarningRule, "id" | "storeId" | "programVersionId" | "createdAt">[];
-  rewardDefinitions?: readonly Omit<NewRewardDefinition, "id" | "storeId" | "programVersionId" | "createdAt">[];
-  tierPolicy?: Omit<NewTierPolicy, "id" | "storeId" | "programVersionId" | "createdAt"> | null;
+  earningRules?: readonly EarningRuleDraftInput[];
+  rewardDefinitions?: readonly RewardDefinitionDraftInput[];
+  tierPolicy?: TierPolicyDraftInput | null;
   tiers?: readonly Omit<NewTier, "id" | "storeId" | "programVersionId" | "createdAt">[];
 }
 
@@ -240,7 +261,7 @@ export class ProgramLifecycleService {
     });
   }
 
-  async createEarningRule(versionId: string, input: Omit<NewEarningRule, "id" | "storeId" | "programVersionId" | "createdAt">) {
+  async createEarningRule(versionId: string, input: EarningRuleDraftInput) {
     validateEarningRulePolicy(input);
     return this.repository.runInTransaction(async () => {
       const version = await this.requireDraftVersion(versionId);
@@ -282,7 +303,7 @@ export class ProgramLifecycleService {
     });
   }
 
-  async createRewardDefinition(versionId: string, input: Omit<NewRewardDefinition, "id" | "storeId" | "programVersionId" | "createdAt">) {
+  async createRewardDefinition(versionId: string, input: RewardDefinitionDraftInput) {
     validateRewardConfiguration(input.rewardType, input.configuration, input.configurationSchemaVersion);
     return this.repository.runInTransaction(async () => {
       const version = await this.requireDraftVersion(versionId);
@@ -331,7 +352,7 @@ export class ProgramLifecycleService {
     });
   }
 
-  async upsertTierPolicy(versionId: string, input: Omit<NewTierPolicy, "id" | "storeId" | "programVersionId" | "createdAt">) {
+  async upsertTierPolicy(versionId: string, input: TierPolicyDraftInput) {
     validateTierMetricSchemaVersion(input.metricSchemaVersion);
     return this.repository.runInTransaction(async () => {
       await this.requireDraftVersion(versionId);

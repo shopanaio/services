@@ -15,7 +15,9 @@ import { OrderPaymentEventHandlers } from './handlers/OrderPaymentEventHandlers.
     {
       provide: Repository,
       inject: [DATABASE_CLIENT],
-      useFactory: (client: DatabaseClient) => Repository.create({ db: createDatabase(client) }),
+      useFactory: (client: DatabaseClient) => Repository.create({
+        db: createDatabase(client as unknown as Parameters<typeof createDatabase>[0]),
+      }),
     },
     OrdersNestService,
     PublishOrderLoyaltyRewardEligibleWorkflow,

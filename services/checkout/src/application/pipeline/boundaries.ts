@@ -376,10 +376,11 @@ export function parseCheckoutLoyaltyQuoteResult(
     throw new CheckoutPipelineBoundaryError("Loyalty reward quote context is incomplete");
   }
   if (result.rewardQuote && result.rewardContext) {
-    if (request.intent?.rewardEntitlementId !== result.rewardQuote.entitlementId) {
+    const rewardQuote = result.rewardQuote;
+    if (request.intent?.rewardEntitlementId !== rewardQuote.entitlementId) {
       throw new CheckoutPipelineBoundaryError("Loyalty reward entitlement mismatch");
     }
-    if (!request.finalQuote.appliedDiscounts.some(({ discountId }) => discountId === result.rewardQuote.pricingDiscountId)) {
+    if (!request.finalQuote.appliedDiscounts.some(({ discountId }) => discountId === rewardQuote.pricingDiscountId)) {
       throw new CheckoutPipelineBoundaryError("Loyalty reward Pricing discount is not applied");
     }
     assertEqual(result.rewardContext.checkoutId, request.context.checkoutId, "Loyalty reward checkout mismatch");

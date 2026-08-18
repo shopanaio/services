@@ -5,7 +5,7 @@ import {
   internalStorefrontError,
   revisionAcquireError,
   storefrontError,
-  validateExpectedRevision,
+  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
   type StorefrontCustomerReference,
   type StorefrontCustomerUserError,
@@ -213,7 +213,7 @@ export class StorefrontCustomerAddressDeleteScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerAddressDeleteParams
   ): Promise<StorefrontCustomerAddressDeleteResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedAddressDelete(revisionError);
     const current = await this.repository.address.findOwnedById(
       params.customerId,
@@ -267,7 +267,7 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
     params: StorefrontCustomerAddressDefaultSetParams
   ): Promise<StorefrontCustomerAddressDefaultSetResult> {
     const errors: StorefrontCustomerUserError[] = [];
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) errors.push(revisionError);
     const defaults = new Set(params.defaults);
     if (defaults.size === 0) {
@@ -349,7 +349,7 @@ function validateAddressCommand(
   address: StorefrontCustomerAddressInput
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
-  const revisionError = validateExpectedRevision(expectedRevision);
+  const revisionError = validateStorefrontExpectedRevision(expectedRevision);
   if (revisionError) errors.push(revisionError);
   for (const field of ["address1", "city", "countryCode"] as const) {
     if (!address[field]?.trim()) {

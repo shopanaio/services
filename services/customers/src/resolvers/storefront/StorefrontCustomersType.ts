@@ -23,7 +23,7 @@ export abstract class StorefrontCustomersType<TValue, TData = unknown> extends B
   TData,
   ServiceContext
 > {
-  static executor = createExecutor<ServiceContext>();
+  static executor = createExecutor<ServiceContext>({});
 
   protected get resolvers(): StorefrontResolverRegistry {
     return getStorefrontResolverRegistry(this.$ctx);

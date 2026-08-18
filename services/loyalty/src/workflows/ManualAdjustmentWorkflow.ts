@@ -69,7 +69,7 @@ export class ManualAdjustmentWorkflow extends BrokerWorkflows<
         workflowId: DBOS.workflowID!,
         stepId: "emit:loyaltyPointsAdjusted",
         callId: executed.result.transactionId,
-        tenantId: executed.store.organizationId,
+        organizationId: executed.store.organizationId,
       },
     );
     return executed.result;

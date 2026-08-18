@@ -6,13 +6,15 @@ import {
 import { MediaType } from "./MediaType.js";
 import { S3DataResolver } from "./S3DataResolver.js";
 import { ExternalDataResolver } from "./ExternalDataResolver.js";
-import type { File } from "../../repositories/models/index.js";
+import type {
+  File,
+  MediaSource,
+} from "../../repositories/models/index.js";
 import {
   encodeGlobalIdByType,
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { CdnDeliveryService, type ImageTransformOptions } from "../../infrastructure/cdn/index.js";
-import { MediaSourceResolver } from "./MediaSourceResolver.js";
 
 abstract class FileResolverBase extends MediaType<string, File> {
   protected abstract loadFile(fileId: string): Promise<File | null>;
@@ -234,6 +236,28 @@ export class FileResolver extends FileResolverBase {
   protected loadFile(fileId: string): Promise<File | null> {
     return this.$ctx.loaders.file.load(fileId);
   }
+}
+
+@TypePolicy<MediaSourceResolver>({
+  resource: "store.data",
+  action: "read",
+  organizationId: (resolver) => resolver.$ctx.store.organizationId,
+  domain: (resolver) => `store:${resolver.$ctx.store.id}`,
+  onDeny: "null",
+})
+export class MediaSourceResolver extends MediaType<MediaSource, MediaSource> {
+  async $preload() {
+    return this.$props;
+  }
+
+  sourceFile() {
+    return new FileResolver(this.$props.sourceFileId, this.$ctx);
+  }
+
+  async kind() { return this.$get("kind"); }
+  async format() { return this.$get("format"); }
+  async sortOrder() { return this.$get("sortOrder"); }
+  async createdAt() { return this.$get("createdAt"); }
 }
 
 export class FileAnyResolver extends FileResolverBase {

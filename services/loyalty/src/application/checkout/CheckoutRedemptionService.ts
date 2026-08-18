@@ -341,7 +341,11 @@ export class CheckoutRedemptionService {
     const candidates = await this.repository.runInTransaction(() =>
       this.repository.reservation.listExpiredCandidates(params.effectiveAt, params.limit ?? 100),
     );
-    const expired: ExpireCheckoutLoyaltyRedemptionsResult["expired"] = [];
+    const expired: Array<{
+      reservationId: string;
+      releaseTransactionId: string;
+      points: string;
+    }> = [];
     for (const reservation of candidates) {
       const result = await this.releaseOrExpire({
         storeId: params.storeId,

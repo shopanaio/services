@@ -329,7 +329,7 @@ export function LoyaltyProgramEarningRulesInputSchema(): z.ZodObject<Properties<
   return z.object({
     eligibleSpendBasis: LoyaltyEligibleSpendBasisSchema,
     excludedSelectors: z.array(z.lazy(() => LoyaltyCatalogSelectorInputSchema())),
-    modifierStackingMode: LoyaltyModifierStackingModeSchema.default("HIGHEST").nullish(),
+    modifierStackingMode: LoyaltyModifierStackingModeSchema.default(LoyaltyModifierStackingMode.Highest).nullish(),
     modifiers: z.array(z.lazy(() => LoyaltyEarningModifierInputSchema()))
   })
 }
@@ -367,7 +367,7 @@ export function LoyaltyProgramUpdateInputSchema(): z.ZodObject<Properties<Loyalt
 export function LoyaltyProgramVersionCreateInputSchema(): z.ZodObject<Properties<LoyaltyProgramVersionCreateInput>> {
   return z.object({
     activationDelaySeconds: z.number().default(0).nullish(),
-    debtPolicy: LoyaltyDebtPolicySchema.default("TRACK_DEBT").nullish(),
+    debtPolicy: LoyaltyDebtPolicySchema.default(LoyaltyDebtPolicy.TrackDebt).nullish(),
     earnAmountMinor: z.string(),
     earnPoints: z.string(),
     earningEnabled: z.boolean().default(true).nullish(),
@@ -385,10 +385,10 @@ export function LoyaltyProgramVersionCreateInputSchema(): z.ZodObject<Properties
     redeemAmountMinor: z.string(),
     redeemPoints: z.string(),
     redemptionEnabled: z.boolean().default(true).nullish(),
-    refundPolicy: LoyaltyRefundPolicySchema.default("PROPORTIONAL").nullish(),
-    restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicySchema.default("ORIGINAL_EXPIRY").nullish(),
+    refundPolicy: LoyaltyRefundPolicySchema.default(LoyaltyRefundPolicy.Proportional).nullish(),
+    restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicySchema.default(LoyaltyRestoredPointsExpiryPolicy.OriginalExpiry).nullish(),
     rewardDefinitions: z.array(z.lazy(() => LoyaltyRewardDefinitionInputSchema())),
-    roundingMode: LoyaltyRoundingModeSchema.default("DOWN").nullish(),
+    roundingMode: LoyaltyRoundingModeSchema.default(LoyaltyRoundingMode.Down).nullish(),
     rules: z.lazy(() => LoyaltyProgramRulesInputSchema()),
     rulesSchemaVersion: z.number().default(1).nullish(),
     tierPolicy: z.lazy(() => LoyaltyTierPolicyInputSchema().nullish()),
@@ -628,12 +628,12 @@ export function LoyaltyTierPolicyDeleteInputSchema(): z.ZodObject<Properties<Loy
 export function LoyaltyTierPolicyInputSchema(): z.ZodObject<Properties<LoyaltyTierPolicyInput>> {
   return z.object({
     calendarPeriod: LoyaltyTierCalendarPeriodSchema.nullish(),
-    downgradePolicy: LoyaltyTierDowngradePolicySchema.default("IMMEDIATE").nullish(),
+    downgradePolicy: LoyaltyTierDowngradePolicySchema.default(LoyaltyTierDowngradePolicy.Immediate).nullish(),
     gracePeriodDays: z.number().default(0).nullish(),
     membershipDurationDays: z.number().nullish(),
     metricSchemaVersion: z.number().default(1).nullish(),
     programYearStartsMonth: z.number().nullish(),
-    requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default("AUTOMATIC").nullish(),
+    requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default(LoyaltyTierRequalificationPolicy.Automatic).nullish(),
     rollingWindowDays: z.number().nullish(),
     windowType: LoyaltyTierEvaluationWindowTypeSchema
   })
@@ -642,14 +642,14 @@ export function LoyaltyTierPolicyInputSchema(): z.ZodObject<Properties<LoyaltyTi
 export function LoyaltyTierPolicyUpsertInputSchema(): z.ZodObject<Properties<LoyaltyTierPolicyUpsertInput>> {
   return z.object({
     calendarPeriod: LoyaltyTierCalendarPeriodSchema.nullish(),
-    downgradePolicy: LoyaltyTierDowngradePolicySchema.default("IMMEDIATE").nullish(),
+    downgradePolicy: LoyaltyTierDowngradePolicySchema.default(LoyaltyTierDowngradePolicy.Immediate).nullish(),
     gracePeriodDays: z.number().default(0).nullish(),
     idempotencyKey: z.string(),
     membershipDurationDays: z.number().nullish(),
     metricSchemaVersion: z.number().default(1).nullish(),
     programVersionId: z.string(),
     programYearStartsMonth: z.number().nullish(),
-    requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default("AUTOMATIC").nullish(),
+    requalificationPolicy: LoyaltyTierRequalificationPolicySchema.default(LoyaltyTierRequalificationPolicy.Automatic).nullish(),
     rollingWindowDays: z.number().nullish(),
     windowType: LoyaltyTierEvaluationWindowTypeSchema
   })

@@ -40,14 +40,14 @@ const resolveNodeType = (value: unknown) => value && typeof value === "object"
   ? nodeTypes.get((value as object).constructor) ?? (value as { __typename?: string }).__typename ?? null
   : null;
 
-export const typeResolvers: Partial<Resolvers> = {
+export const typeResolvers = {
   Node: { __resolveType: resolveNodeType },
   ReviewContent: { __resolveType: resolveNodeType },
-  ReviewRatingCriterionTarget: { __resolveType: (value) => {
+  ReviewRatingCriterionTarget: { __resolveType: (value: unknown) => {
     const type = (value as { __typename?: string })?.__typename;
     return type === "Product" || type === "Category" ? type : null;
   } },
-  Media: { __resolveType: (value) => {
+  Media: { __resolveType: (value: unknown) => {
     const type = (value as { __typename?: string })?.__typename;
     return type === "MediaImage" || type === "Video" || type === "ExternalVideo" || type === "Model3d" ? type : null;
   } },
@@ -55,7 +55,11 @@ export const typeResolvers: Partial<Resolvers> = {
   Product: { __resolveReference: referenceResolver(GlobalIdEntity.Product, ProductFederationResolver) },
   ProductVariant: { __resolveReference: referenceResolver(GlobalIdEntity.ProductVariant, ProductVariantFederationResolver) },
   Customer: { __resolveReference: referenceResolver(GlobalIdEntity.Customer, CustomerFederationResolver) },
-  ReviewStoreConfiguration: { __resolveReference: async (reference, ctx, info) => {
+  ReviewStoreConfiguration: { __resolveReference: async (
+    reference: { id: string },
+    ctx: ServiceContext,
+    info: GraphQLResolveInfo,
+  ) => {
     requireStorefrontPermission(ctx.storefrontAccess, STOREFRONT_PERMISSIONS.REVIEWS_READ);
     const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.ReviewStoreConfiguration);
     const row = await ctx.kernel.repository.configuration.findStoreConfiguration();
@@ -80,4 +84,4 @@ export const typeResolvers: Partial<Resolvers> = {
   ReviewContentRevision: { __resolveReference: referenceResolver(GlobalIdEntity.ReviewContentRevision, ContentRevisionResolver) },
   ReviewModerationSignal: { __resolveReference: referenceResolver(GlobalIdEntity.ReviewModerationSignal, ModerationSignalResolver) },
   ReviewContentExternalReference: { __resolveReference: referenceResolver(GlobalIdEntity.ReviewContentExternalReference, ContentExternalReferenceResolver) },
-};
+} as unknown as Partial<Resolvers>;

@@ -38,9 +38,11 @@ function printExpression(expression: SegmentExpression, parentPrecedence: number
   } else if (expression.kind === "function") {
     if (expression.operator === "is_null" || expression.operator === "is_not_null") {
       output = `${expression.name} ${OPERATOR_TEXT[expression.operator]}`;
-    } else {
+    } else if ("parameters" in expression) {
       const parameters = expression.parameters.map(printParameter).join(", ");
       output = `${expression.name} ${expression.operator === "matches" ? "MATCHES" : "NOT_MATCHES"} (${parameters})`;
+    } else {
+      return unsupportedExpression(expression);
     }
   } else if (expression.operator === "is_null" || expression.operator === "is_not_null") {
     output = `${expression.attribute} ${OPERATOR_TEXT[expression.operator]}`;
@@ -48,8 +50,10 @@ function printExpression(expression: SegmentExpression, parentPrecedence: number
     output = `${expression.attribute} BETWEEN ${printValue(expression.value)} AND ${printValue(expression.upperValue)}`;
   } else if (expression.operator === "in" || expression.operator === "not_in") {
     output = `${expression.attribute} ${OPERATOR_TEXT[expression.operator]} (${expression.values.map(printValue).join(", ")})`;
-  } else {
+  } else if ("value" in expression) {
     output = `${expression.attribute} ${OPERATOR_TEXT[expression.operator]} ${printValue(expression.value)}`;
+  } else {
+    return unsupportedExpression(expression);
   }
   return precedence < parentPrecedence ? `(${output})` : output;
 }
@@ -64,7 +68,14 @@ function printParameter(parameter: SegmentFunctionParameter): string {
   if (parameter.operator === "in" || parameter.operator === "not_in") {
     return `${parameter.name} ${OPERATOR_TEXT[parameter.operator]} (${parameter.values.map(printValue).join(", ")})`;
   }
-  return `${parameter.name} ${OPERATOR_TEXT[parameter.operator]} ${printValue(parameter.value)}`;
+  if ("value" in parameter) {
+    return `${parameter.name} ${OPERATOR_TEXT[parameter.operator]} ${printValue(parameter.value)}`;
+  }
+  return unsupportedExpression(parameter);
+}
+
+function unsupportedExpression(value: unknown): never {
+  throw new Error(`Unsupported segment expression: ${JSON.stringify(value)}`);
 }
 
 function printValue(value: SegmentValue): string {

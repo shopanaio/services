@@ -39,7 +39,10 @@ export class StorefrontLoader {
   readonly rewardEntitlement;
   readonly availableRewardEntitlements;
   readonly customerEligibility;
-  readonly catalogProduct;
+  readonly catalogProduct: DataLoader<
+    string,
+    Catalog.CatalogProductSnapshot | null
+  >;
   readonly catalogVariant;
   readonly earningRuleUsage;
   readonly rewardDefinitionUsage;
@@ -147,7 +150,9 @@ export class StorefrontLoader {
         },
       });
       if (!result.ok) throw new Error(`Catalog loyalty presentation failed: ${result.code}`);
-      const rows = result.data.products?.edges.map(({ node }) => node) ?? [];
+      const rows = (result.data.products?.edges ?? []).flatMap((edge) =>
+        edge?.node ? [edge.node] : [],
+      );
       const byId = new Map(rows.map((row) => [row.id, row]));
       return productIds.map((id) => byId.get(id) ?? null);
     }, { maxBatchSize: 100 });

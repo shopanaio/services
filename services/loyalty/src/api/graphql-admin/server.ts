@@ -73,7 +73,9 @@ export async function startServer(config: ServerConfig) {
 
   const apollo = new ApolloServer<ServiceContext>({
     introspection: true,
-    schema: buildSubgraphSchema(modules),
+    schema: buildSubgraphSchema(
+      modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
+    ),
     plugins: [
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),

@@ -13,7 +13,7 @@ export class DeliveryProviderAccountActions extends BrokerActions {
     const providerAccountId = deterministicDeliveryProviderAccountId(params.storeId, params.installationId);
     const duplicate = await this.accounts.isConfigured(params);
     const started = await this.broker.startWorkflow("delivery.configureProviderAccount", { params, providerAccountId }, {
-      source: "content", tenantId: params.organizationId, resourceId: params.installationId,
+      source: "content", organizationId: params.organizationId, resourceId: params.installationId,
       operation: "delivery.configureProviderAccount", content: { storeId: params.storeId, installationId: params.installationId, enabledCapabilities: params.enabledCapabilities, mode: params.mode, idempotencyKey: params.idempotencyKey },
     });
     return { providerAccountId, workflowId: started.workflowId, duplicate };

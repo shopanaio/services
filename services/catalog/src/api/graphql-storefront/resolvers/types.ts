@@ -26,7 +26,10 @@ import {
   CustomerProductComparisonsResolver,
   ProductComparisonColumnConnectionResolver,
 } from "../../../resolvers/storefront/ProductComparisonResolvers.js";
-import type { Resolvers } from "../../../resolvers/storefront/generated/types.js";
+import type {
+  Resolvers,
+  ResolversTypes,
+} from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
   Node: {
@@ -98,7 +101,10 @@ export const typeResolvers: Partial<Resolvers> = {
           extensions: { code: "FORBIDDEN" },
         });
       }
-      return new CustomerProductComparisonsResolver(customerId, ctx);
+      return new CustomerProductComparisonsResolver(
+        customerId,
+        ctx,
+      ) as unknown as ResolversTypes["CustomerProductComparisons"];
     },
   },
 

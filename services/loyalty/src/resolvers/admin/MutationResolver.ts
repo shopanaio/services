@@ -271,7 +271,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
           resourceId: accountId,
           operation: "adjustLoyaltyPoints",
           contentHash: requestHash,
-          tenantId: this.$ctx.store.id,
+          organizationId: this.$ctx.store.organizationId,
         },
         { adminContext: this.$ctx.adminContext },
       ) as ManualLoyaltyAdjustmentResult;
@@ -780,7 +780,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         resourceId: this.$ctx.store.id,
         operation: "loyaltyMaintenance",
         content: input,
-        tenantId: this.$ctx.store.id,
+        organizationId: this.$ctx.store.organizationId,
       }, { adminContext: this.$ctx.adminContext });
       return { result, userErrors: [] };
     } catch (error) {

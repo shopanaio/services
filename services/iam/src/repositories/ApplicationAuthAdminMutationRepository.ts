@@ -62,6 +62,7 @@ export interface CreateAdminApplicationInput {
     redirectUri: string;
     postLogoutRedirectUri: string;
     defaultLocale: "en";
+    emailVerificationRequired: boolean;
     clientId: string;
     actorId: string;
   };
@@ -242,7 +243,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       ...(input.applicationAuth
         ? {
             registrationMode: "open",
-            emailVerificationRequired: false,
+            emailVerificationRequired:
+              input.applicationAuth.emailVerificationRequired,
             brandingJson: {
               displayName: truncateUtf16(input.displayName, 80),
             },

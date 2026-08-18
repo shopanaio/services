@@ -19,6 +19,9 @@ export function mapOrderLineReadToApi(
   return {
     __typename: "OrderLine" as const,
     id: encodeGlobalIdByType(read.id, GlobalIdEntity.OrderLine),
+    title: read.unit.title,
+    sku: read.unit.sku,
+    imageUrl: read.unit.imageUrl,
     quantity: read.quantity,
     createdAt: read.createdAt.toISOString(),
     updatedAt: read.updatedAt.toISOString(),
@@ -35,6 +38,14 @@ export function mapOrderLineReadToApi(
       subtotalAmount: moneyToApi(read.subtotalAmount),
       taxAmount: moneyToApi(read.taxAmount),
       totalAmount: moneyToApi(read.totalAmount),
+    },
+    returnEligibility: {
+      __typename: "OrderLineReturnEligibility" as const,
+      eligible: false,
+      maxQuantity: 0,
+      unavailableReasonCode: "RETURN_ELIGIBILITY_NOT_MATERIALIZED",
+      unavailableReason: "Return eligibility is not available for this order line.",
+      expiresAt: null,
     },
   };
 }

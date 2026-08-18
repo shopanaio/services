@@ -202,7 +202,7 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
         workflowId: DBOS.workflowID!,
         stepId: `emit:${emission.eventType}`,
         callId: emission.transactionId,
-        tenantId: store.organizationId,
+        organizationId: store.organizationId,
       },
     );
   }

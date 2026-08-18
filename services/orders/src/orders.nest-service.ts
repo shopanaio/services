@@ -49,20 +49,20 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
 
     this.broker.register(
       OrderFulfillmentActionNames.listForOrder,
-      (params: ListOrderDeliveryFulfillmentOrdersParams): Promise<ListOrderDeliveryFulfillmentOrdersResult> =>
-        this.repository.fulfillment.listForOrder(params),
+      (params: ListOrderDeliveryFulfillmentOrdersParams | undefined): Promise<ListOrderDeliveryFulfillmentOrdersResult> =>
+        this.repository.fulfillment.listForOrder(requireParams(params)),
     );
 
     this.broker.register(
       OrderFulfillmentActionNames.getShipmentPlan,
-      (params: GetOrderDeliveryShipmentPlanParams): Promise<GetOrderDeliveryShipmentPlanResult> =>
-        this.repository.fulfillment.getShipmentPlan(params),
+      (params: GetOrderDeliveryShipmentPlanParams | undefined): Promise<GetOrderDeliveryShipmentPlanResult> =>
+        this.repository.fulfillment.getShipmentPlan(requireParams(params)),
     );
 
     this.broker.register(
       OrderFulfillmentActionNames.applyShipmentUpdate,
-      (params: ApplyOrderDeliveryShipmentUpdateParams): Promise<ApplyOrderDeliveryShipmentUpdateResult> =>
-        this.repository.fulfillment.applyShipmentUpdate(params),
+      (params: ApplyOrderDeliveryShipmentUpdateParams | undefined): Promise<ApplyOrderDeliveryShipmentUpdateResult> =>
+        this.repository.fulfillment.applyShipmentUpdate(requireParams(params)),
     );
 
     this.broker.register('getOrderById', async (params: any) => {
@@ -72,42 +72,47 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     this.broker.register(
       OrderLoyaltyActionNames.publishEligible,
       async (
-        params: PublishOrderLoyaltyRewardEligibleParams,
-      ): Promise<PublishOrderLoyaltyRewardEligibleResult> =>
-        this.broker.runWorkflow(
+        params: PublishOrderLoyaltyRewardEligibleParams | undefined,
+      ): Promise<PublishOrderLoyaltyRewardEligibleResult> => {
+        const input = requireParams(params);
+        return this.broker.runWorkflow(
           "order.publishLoyaltyRewardEligible",
-          params,
+          input,
           {
             source: "content",
-            resourceId: params.orderId,
-            operation: `publishLoyaltyRewardEligible:${params.orderRevision}`,
-            content: { orderId: params.orderId, orderRevision: params.orderRevision },
-            tenantId: params.organizationId,
+            resourceId: input.orderId,
+            operation: `publishLoyaltyRewardEligible:${input.orderRevision}`,
+            content: { orderId: input.orderId, orderRevision: input.orderRevision },
+            organizationId: input.organizationId,
           },
-        ),
+        );
+      },
     );
 
     this.broker.register(
       OrderLoyaltyActionNames.publishReversed,
       async (
-        params: PublishOrderLoyaltyRewardReversedParams,
-      ): Promise<PublishOrderLoyaltyRewardReversedResult> =>
-        this.broker.runWorkflow(
+        params: PublishOrderLoyaltyRewardReversedParams | undefined,
+      ): Promise<PublishOrderLoyaltyRewardReversedResult> => {
+        const input = requireParams(params);
+        return this.broker.runWorkflow(
           "order.publishLoyaltyRewardReversed",
-          params,
+          input,
           {
             source: "content",
-            resourceId: `${params.orderId}:${params.sourceId}`,
-            operation: `publishLoyaltyRewardReversed:${params.sourceRevision}`,
-            content: params,
-            tenantId: params.organizationId,
+            resourceId: `${input.orderId}:${input.sourceId}`,
+            operation: `publishLoyaltyRewardReversed:${input.sourceRevision}`,
+            content: input,
+            organizationId: input.organizationId,
           },
-        ),
+        );
+      },
     );
 
     this.broker.register(
       OrderReviewActionNames.verifyPurchase,
-      async (params: VerifyReviewPurchaseParams): Promise<VerifyReviewPurchaseResult> => {
+      async (params: VerifyReviewPurchaseParams | undefined): Promise<VerifyReviewPurchaseResult> => {
+        params = requireParams(params);
         const order = await this.app.orderReadRepository.findById(params.orderId);
         if (!order || order.storeId !== params.storeId || order.deletedAt) {
           return { eligible: false, code: 'ORDER_NOT_FOUND' };
@@ -149,6 +154,11 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     }
     this.logger.log('Orders service stopped');
   }
+}
+
+function requireParams<T>(params: T | undefined): T {
+  if (params === undefined) throw new Error("Broker action parameters are required");
+  return params;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

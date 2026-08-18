@@ -10,7 +10,10 @@ import { FacetResolver } from "../../../resolvers/storefront/FacetResolver.js";
 import { FacetSwatchResolver } from "../../../resolvers/storefront/FacetSwatchResolver.js";
 import { FacetValueResolver } from "../../../resolvers/storefront/FacetValueResolver.js";
 import { ProductConnectionResolver } from "../../../resolvers/storefront/ProductConnectionResolver.js";
-import type { Resolvers } from "../../../resolvers/storefront/generated/types.js";
+import type {
+  Resolvers,
+  ResolversTypes,
+} from "../../../resolvers/storefront/generated/types.js";
 
 export const typeResolvers: Partial<Resolvers> = {
   Node: {
@@ -28,7 +31,8 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 
   Product: {
-    __resolveReference: (reference) => reference,
+    __resolveReference: (reference) =>
+      reference as unknown as ResolversTypes["Product"],
   },
 
   Category: {

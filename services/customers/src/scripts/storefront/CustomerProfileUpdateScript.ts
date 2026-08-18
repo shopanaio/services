@@ -8,7 +8,7 @@ import {
   internalStorefrontError,
   revisionAcquireError,
   storefrontError,
-  validateExpectedRevision,
+  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
   type StorefrontCustomerUserError,
 } from "./types.js";
@@ -57,7 +57,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerUpdateParams
   ): Promise<StorefrontCustomerUpdateResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failedCustomerMutation(revisionError);
 
     const current = await this.repository.customer.findById(params.customerId);

@@ -50,12 +50,12 @@ export class DeliveryShipmentActions extends BrokerActions {
 
   private startOutbox(organizationId: string, storeId: string, shipmentId: string, correlationId: string, callId: string) {
     return this.broker.startWorkflow("delivery.publishShipmentOutbox", { organizationId, storeId, shipmentId, correlationId }, {
-      source: "content", tenantId: organizationId, resourceId: shipmentId,
+      source: "content", organizationId, resourceId: shipmentId,
       operation: "delivery.publishShipmentOutbox", content: { shipmentId, callId },
     });
   }
 }
 
 function workflowOptions(operation: string, storeId: string, resourceId: string, params: { idempotencyKey: string }) {
-  return { source: "content" as const, resourceId, operation: `delivery.${operation}`, tenantId: storeId, content: { ...params } };
+  return { source: "content" as const, resourceId, operation: `delivery.${operation}`, content: { storeId, ...params } };
 }

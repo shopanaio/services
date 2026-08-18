@@ -407,6 +407,7 @@ export class ApplicationAuthAdminManagementService {
         redirectUri: string;
         postLogoutRedirectUri: string;
         defaultLocale: "en";
+        emailVerificationRequired: boolean;
       };
     } = {}
   ): Promise<ApplicationMutationResult> {

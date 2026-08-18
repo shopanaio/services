@@ -8,7 +8,7 @@ import {
   internalStorefrontError,
   revisionAcquireError,
   storefrontError,
-  validateExpectedRevision,
+  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
 } from "./types.js";
 
@@ -43,7 +43,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerMarketingConsentUpdateParams
   ): Promise<StorefrontCustomerMarketingConsentUpdateResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
     if (revisionError) return failed(revisionError);
     if (!isChannel(params.channel)) {
       return failed(

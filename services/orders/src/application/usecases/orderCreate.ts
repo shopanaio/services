@@ -105,6 +105,7 @@ export class CreateOrderUseCase extends UseCase<
     const checkoutSnapshot: CheckoutSnapshot = this.toSnapshotFromCheckout(
       checkoutAggregate,
       input.storeId,
+      input.loyaltyRewardEligibility,
     );
 
     // Build order business data (independent from audit snapshot)
@@ -336,6 +337,7 @@ export class CreateOrderUseCase extends UseCase<
   private toSnapshotFromCheckout(
     aggregate: Checkout,
     storeId: string,
+    loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null,
   ): CheckoutSnapshot {
     const snapshot: CheckoutSnapshot = {
       checkoutId: aggregate.id,
@@ -389,7 +391,7 @@ export class CreateOrderUseCase extends UseCase<
         value: toMoneyOrNumber(p.value),
         provider: p.provider,
       })),
-      loyaltyRewardEligibility: input.loyaltyRewardEligibility ?? null,
+      loyaltyRewardEligibility,
     };
     return snapshot;
   }

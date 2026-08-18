@@ -667,7 +667,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       return { wishlistItem: null, userErrors: idErrors };
     }
     const input: WishlistProductAddWorkflowInput = {
-      params: { productId, wishlistId },
+      params: { productId, wishlistId: wishlistId ?? undefined },
       context: preflight.context,
     };
     const result = await this.runWishlistWorkflow<

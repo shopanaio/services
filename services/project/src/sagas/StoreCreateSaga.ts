@@ -296,5 +296,5 @@ function currencyExponent(currencyCode: string): number {
   return new Intl.NumberFormat("en", {
     style: "currency",
     currency: currencyCode,
-  }).resolvedOptions().maximumFractionDigits;
+  }).resolvedOptions().maximumFractionDigits ?? 2;
 }

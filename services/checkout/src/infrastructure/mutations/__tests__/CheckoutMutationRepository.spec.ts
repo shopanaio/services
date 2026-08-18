@@ -58,6 +58,7 @@ describe("CheckoutMutationRepository", () => {
         customerNote: null,
         tags: [],
         lineTagAssignments: [],
+        loyaltyRedemption: null,
       },
       result: result as any,
     })).resolves.toEqual({ status: "VERSION_CONFLICT" });
@@ -110,6 +111,7 @@ describe("CheckoutMutationRepository", () => {
         customerNote: null,
         tags: [],
         lineTagAssignments: [],
+        loyaltyRedemption: null,
       },
       result: completeResult() as any,
     })).resolves.toEqual({ status: "VERSION_CONFLICT" });

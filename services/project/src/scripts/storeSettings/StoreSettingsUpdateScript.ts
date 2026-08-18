@@ -23,7 +23,12 @@ export abstract class StoreSettingsUpdateScript<
 
   protected async success(storeId: string): Promise<StoreSettingsUpdateResult> {
     const store = await this.repository.store.findById(storeId);
-    return { store, userErrors: [] };
+    return {
+      store: store
+        ? { ...store, currencyExponent: currencyExponent(store.currencyCode) }
+        : null,
+      userErrors: [],
+    };
   }
 
   protected notFound(): StoreSettingsUpdateResult {
@@ -61,4 +66,11 @@ export abstract class StoreSettingsUpdateScript<
       ],
     };
   }
+}
+
+function currencyExponent(currencyCode: string): number {
+  return new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: currencyCode,
+  }).resolvedOptions().maximumFractionDigits ?? 2;
 }

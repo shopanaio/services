@@ -193,13 +193,14 @@ export class DeliveryShipmentService {
   }
 
   async reportProviderEvent(params: Delivery.ReportDeliveryProviderEventParams, context: DeliveryProviderCompletionContext): Promise<Delivery.ReportDeliveryProviderEventResult> {
+    const event = params.event;
     const account = await this.deps.repository.providerAccounts.getByInstallation(context.storeId, context.installationId);
     if (!account || account.organizationId !== context.organizationId || account.appCode !== context.appCode) throw new Error("DELIVERY_PROVIDER_CONTEXT_MISMATCH");
     const capabilities = account.capabilityStates.shipmentProvider?.capabilities;
     if (!capabilities) throw new Error("DELIVERY_SHIPMENT_PROVIDER_CAPABILITIES_MISSING");
-    if (params.event.type === "SHIPMENT_STATUS_CHANGED" && !capabilities.supportsTracking) throw new Error("DELIVERY_PROVIDER_TRACKING_UNSUPPORTED");
-    if (params.event.type === "SHIPMENT_LABEL_AVAILABLE" && !capabilities.supportsLabels) throw new Error("DELIVERY_PROVIDER_LABELS_UNSUPPORTED");
-    const shipment = await this.deps.repository.shipments.findByProviderReference(context.storeId, account.providerAccountId, params.event.providerShipmentReference);
+    if (event.type === "SHIPMENT_STATUS_CHANGED" && !capabilities.supportsTracking) throw new Error("DELIVERY_PROVIDER_TRACKING_UNSUPPORTED");
+    if (event.type === "SHIPMENT_LABEL_AVAILABLE" && !capabilities.supportsLabels) throw new Error("DELIVERY_PROVIDER_LABELS_UNSUPPORTED");
+    const shipment = await this.deps.repository.shipments.findByProviderReference(context.storeId, account.providerAccountId, event.providerShipmentReference);
     if (!shipment) throw new Error("DELIVERY_PROVIDER_SHIPMENT_NOT_FOUND");
     const operations = await this.deps.repository.shipments.listOperations(context.storeId, shipment.shipmentId);
     const operation = operations.at(-1);
@@ -208,23 +209,23 @@ export class DeliveryShipmentService {
     const idempotency = idem(`delivery.shipment.provider-event:${account.providerAccountId}`, params.providerEventId, params);
     let providerParcels: readonly Delivery.DeliveryProviderParcelObservation[] = [];
     let providerEvents: readonly Delivery.DeliveryProviderTrackingEvent[] = [];
-    if (params.event.type === "SHIPMENT_STATUS_CHANGED") {
-      providerParcels = params.event.parcel ? [params.event.parcel] : [];
-      providerEvents = [params.event.event];
+    if (event.type === "SHIPMENT_STATUS_CHANGED") {
+      providerParcels = event.parcel ? [event.parcel] : [];
+      providerEvents = [event.event];
     } else {
-      const parcel = shipment.parcels.find(({ providerParcelReference }) => providerParcelReference === params.event.providerParcelReference);
+      const parcel = shipment.parcels.find(({ providerParcelReference }) => providerParcelReference === event.providerParcelReference);
       if (!parcel) throw new Error("DELIVERY_PROVIDER_PARCEL_NOT_FOUND");
       const parcelState = isProviderState(parcel.state) ? parcel.state : "PENDING";
       providerParcels = [{
-        providerParcelReference: params.event.providerParcelReference,
+        providerParcelReference: event.providerParcelReference,
         packageIds: parcel.packageIds as [string, ...string[]], state: parcelState,
-        tracking: parcel.tracking, labels: [params.event.label], estimatedDeliveryAt: parcel.estimatedDeliveryAt, deliveredAt: parcel.deliveredAt,
+        tracking: parcel.tracking, labels: [event.label], estimatedDeliveryAt: parcel.estimatedDeliveryAt, deliveredAt: parcel.deliveredAt,
       }];
     }
     const normalized = await this.deps.normalizer.normalize({ current: shipment, route: operation.route, parcels: providerParcels, events: providerEvents, observedAt: params.occurredAt });
     if (normalized.status === "REJECTED") throw new Error(normalized.code);
-    const transition = params.event.type === "SHIPMENT_STATUS_CHANGED"
-      ? this.deps.transitions.evaluate({ current: shipment, observedState: params.event.shipmentState, occurredAt: params.occurredAt, providerEventId: params.providerEventId, providerShipmentSequence: params.providerShipmentSequence })
+    const transition = event.type === "SHIPMENT_STATUS_CHANGED"
+      ? this.deps.transitions.evaluate({ current: shipment, observedState: event.shipmentState, occurredAt: params.occurredAt, providerEventId: params.providerEventId, providerShipmentSequence: params.providerShipmentSequence })
       : { status: "APPLY" as const, nextState: shipment.state };
     if (transition.status === "REJECT_INVALID") throw new Error(transition.code);
     if (transition.status === "IGNORE_STALE") {
@@ -235,8 +236,8 @@ export class DeliveryShipmentService {
     const tracking = normalized.events;
     const next = {
       ...shipment, state: transition.nextState,
-      parcels: params.event.type === "SHIPMENT_LABEL_AVAILABLE"
-        ? normalized.parcels.map((parcel) => parcel.providerParcelReference === params.event.providerParcelReference ? { ...parcel, state: shipment.parcels.find((prior) => prior.providerParcelReference === parcel.providerParcelReference)?.state ?? parcel.state } : parcel)
+      parcels: event.type === "SHIPMENT_LABEL_AVAILABLE"
+        ? normalized.parcels.map((parcel) => parcel.providerParcelReference === event.providerParcelReference ? { ...parcel, state: shipment.parcels.find((prior) => prior.providerParcelReference === parcel.providerParcelReference)?.state ?? parcel.state } : parcel)
         : normalized.parcels,
       lastTrackingEvent: tracking.at(-1) ?? shipment.lastTrackingEvent,
       lastProviderShipmentSequence: params.providerShipmentSequence ?? shipment.lastProviderShipmentSequence,
@@ -278,8 +279,10 @@ export class DeliveryShipmentService {
       ? "cancelShipment" as const
       : account.supportedOperations.includes("reconcileShipment") ? "reconcileShipment" as const : "getShipment" as const;
     const route = await this.requiredRoute(account, providerOperation);
+    const configurationRevision = account.capabilityStates.shipmentProvider?.configurationRevision;
+    if (!configurationRevision) throw new Error("DELIVERY_SHIPMENT_PROVIDER_CAPABILITIES_MISSING");
     const operationType: Delivery.DeliveryShipmentOperationType = type === "CANCEL" ? "CANCEL" : providerOperation === "getShipment" ? "GET" : "RECONCILE";
-    const operation = operationSnapshot(await this.deps.repository.generateUuidV7(), shipment.shipmentId, operationType, "PROCESSING", idempotency, route, account.capabilityStates.shipmentProvider!.configurationRevision, now);
+    const operation = operationSnapshot(await this.deps.repository.generateUuidV7(), shipment.shipmentId, operationType, "PROCESSING", idempotency, route, configurationRevision, now);
     const next = { ...shipment, state: type === "CANCEL" ? "CANCELLING" as const : shipment.state, revision: shipment.revision + 1, updatedAt: now };
     const result = await this.deps.repository.shipments.commit(mutation(await this.deps.repository.generateUuidV7(), "COMMAND", shipment.revision, next, operation, [], null, idempotency, []));
     if (result.status !== "APPLIED") throw new Error(`DELIVERY_${result.status}`);
@@ -368,12 +371,10 @@ export class DeliveryShipmentService {
       lineItems: fulfillmentLines(current), state: "CANCELLED", occurredAt,
     }});
     if (released.status === "REVISION_CONFLICT") throw new Error("FULFILLMENT_ORDER_REVISION_CONFLICT");
-    if (released.fulfillmentOrderRevision !== current.fulfillmentOrderRevision || current.lastFulfillmentState !== "CANCELLED") {
-      const next = { ...current, fulfillmentOrderRevision: released.fulfillmentOrderRevision, lastFulfillmentState: "CANCELLED" as const, revision: current.revision + 1, updatedAt: occurredAt };
-      const sync = idem(`delivery.shipment.fulfillment-release:${current.shipmentId}`, `${current.revision}:${released.fulfillmentOrderRevision}`, released);
-      const committed = await this.deps.repository.shipments.commit(mutation(await this.deps.repository.generateUuidV7(), "COMMAND", current.revision, next, null, [], null, sync, []));
-      if (!["APPLIED", "DUPLICATE"].includes(committed.status)) throw new Error(`DELIVERY_FULFILLMENT_RELEASE_${committed.status}`);
-    }
+    const next = { ...current, fulfillmentOrderRevision: released.fulfillmentOrderRevision, lastFulfillmentState: "CANCELLED" as const, revision: current.revision + 1, updatedAt: occurredAt };
+    const sync = idem(`delivery.shipment.fulfillment-release:${current.shipmentId}`, `${current.revision}:${released.fulfillmentOrderRevision}`, released);
+    const committed = await this.deps.repository.shipments.commit(mutation(await this.deps.repository.generateUuidV7(), "COMMAND", current.revision, next, null, [], null, sync, []));
+    if (!["APPLIED", "DUPLICATE"].includes(committed.status)) throw new Error(`DELIVERY_FULFILLMENT_RELEASE_${committed.status}`);
   }
 
   private async propagateState(shipment: Delivery.DeliveryShipmentSnapshot, occurredAt: string) {
