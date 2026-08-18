@@ -109,13 +109,13 @@ test.describe('Loyalty checkout redemption end to end', () => {
     const context = kit.checkoutContext();
     const quoted = await kit.quote(fixture, '150', context);
     expect(quoted.status).toBe('QUOTED');
+    expect(await kit.reserve({ ...context, pricingQuoteRevision: crypto.randomUUID() }, quoted.quote))
+      .toMatchObject({ status: 'REJECTED', code: 'QUOTE_MISMATCH' });
     await kit.adjustPoints(fixture.account, 'DEBIT', '100', fixture.balanceRevision);
     expect(await kit.reserve(context, quoted.quote)).toMatchObject({
       status: 'REJECTED',
       code: expect.stringMatching(/CONCURRENT_BALANCE_CHANGE|INSUFFICIENT_AVAILABLE_POINTS/),
     });
-    expect(await kit.reserve({ ...context, pricingQuoteRevision: crypto.randomUUID() }, quoted.quote))
-      .toMatchObject({ status: 'REJECTED', code: 'QUOTE_MISMATCH' });
   });
 
   test('is idempotent under repeated reserve and commit requests', async () => {

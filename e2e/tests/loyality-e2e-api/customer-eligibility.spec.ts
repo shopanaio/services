@@ -1,5 +1,6 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { decodeGlobalId } from '@utils/globalid';
 import { createSegment } from '../customers-admin-api/helpers';
 import { baseRules } from '../loyality-admin-api/helpers';
 import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
@@ -30,11 +31,11 @@ test.describe('Loyalty customer eligibility across Admin and Storefront', () => 
     expect(await quoteWithEligibility({
       type: 'SEGMENTS', segmentMatchMode: 'ANY', channelCodes: ['WEB'],
       segmentIds: [one.id, two.id], excludedSegmentIds: [],
-    }, [two.id])).toMatchObject({ status: 'QUOTED' });
+    }, [decodeGlobalId(two.id).id])).toMatchObject({ status: 'QUOTED' });
     expect(await quoteWithEligibility({
       type: 'SEGMENTS', segmentMatchMode: 'ALL', channelCodes: ['WEB'],
       segmentIds: [one.id, two.id], excludedSegmentIds: [],
-    }, [one.id])).toMatchObject({ status: 'NOT_APPLICABLE', code: 'REQUIRED_SEGMENT_MISSING' });
+    }, [decodeGlobalId(one.id).id])).toMatchObject({ status: 'NOT_APPLICABLE', code: 'REQUIRED_SEGMENT_MISSING' });
   });
 
   test('gives excluded segments precedence', async () => {
@@ -43,7 +44,7 @@ test.describe('Loyalty customer eligibility across Admin and Storefront', () => 
     expect(await quoteWithEligibility({
       type: 'SEGMENTS', segmentMatchMode: 'ANY', channelCodes: ['WEB'],
       segmentIds: [included.id], excludedSegmentIds: [excluded.id],
-    }, [included.id, excluded.id])).toMatchObject({
+    }, [decodeGlobalId(included.id).id, decodeGlobalId(excluded.id).id])).toMatchObject({
       status: 'NOT_APPLICABLE', code: 'EXCLUDED_SEGMENT_MATCHED',
     });
   });

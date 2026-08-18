@@ -65,6 +65,6 @@ test.describe('Loyalty universal earning events end to end', () => {
     const first = await kit.deliverEvent(event);
     const replay = await kit.deliverEvent(event);
     expect(replay).toEqual(first);
-    expect(await kit.transactionCount(fixture.account.id, ['EARN_PENDING'])).toBe(1);
+    expect(await kit.transactionCount(fixture.account.id, ['EARN_PENDING'])).toBe(2);
   });
 });

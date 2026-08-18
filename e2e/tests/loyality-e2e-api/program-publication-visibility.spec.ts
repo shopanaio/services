@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { decodeGlobalId } from '@utils/globalid';
 import {
   createProgram, createVersion, idempotencyKey, publishVersion, seedAccount,
 } from '../loyality-admin-api/helpers';
@@ -54,7 +55,10 @@ test.describe('Loyalty Admin to Storefront program publication', () => {
     });
     expect(before.account.program.programVersionId).toBeDefined();
     expect(after.account.program.programVersionId).toBeDefined();
-    expect(after.account.revision).not.toBe(before.account.revision);
+    expect(after.account.program.programVersionId)
+      .toBe(decodeGlobalId(scheduled.id).id);
+    expect(after.account.program.programVersionId)
+      .not.toBe(before.account.program.programVersionId);
   });
 
   test('pauses and archives a program without rewriting historical transactions', async () => {

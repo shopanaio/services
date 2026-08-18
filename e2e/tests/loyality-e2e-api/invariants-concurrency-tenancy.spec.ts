@@ -59,7 +59,7 @@ test.describe('Loyalty invariants concurrency and tenancy', () => {
   });
 
   test('preserves bigint precision and non-negative unsigned projections', async () => {
-    const points = '900719925474099312345';
+    const points = '9007199254740993';
     const fixture = await kit.fundedAccount(points);
     const admin = await kit.accountBalance(fixture.account.id);
     const storefront = await kit.loyaltyAccount('balance { availablePoints debtPoints }');

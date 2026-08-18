@@ -2,6 +2,7 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { decodeGlobalId } from '@utils/globalid';
+import { createSegment } from '../customers-admin-api/helpers';
 import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 const emptyConditions = { type: 'ALL', conditions: [] };
@@ -102,13 +103,18 @@ test.describe('Loyalty earning rule runtime branches end to end', () => {
   });
 
   test('matches every catalog selector against immutable order lines', async () => {
+    const product = await kit.createProduct('1000');
+    const categoryId = await kit.attachCategory(product.productId);
+    const tagId = await kit.attachTag(product.productId);
+    const featureId = await kit.attachFeature(product.productId);
+    const optionValueId = await kit.attachOptionValue(product.productId, product.variantId);
     const ids = {
-      productId: crypto.randomUUID(),
-      variantId: crypto.randomUUID(),
-      categoryId: crypto.randomUUID(),
-      tagId: crypto.randomUUID(),
-      featureId: crypto.randomUUID(),
-      optionValueId: crypto.randomUUID(),
+      productId: decodeGlobalId(product.productId).id,
+      variantId: decodeGlobalId(product.variantId).id,
+      categoryId: decodeGlobalId(categoryId).id,
+      tagId: decodeGlobalId(tagId).id,
+      featureId: decodeGlobalId(featureId).id,
+      optionValueId: decodeGlobalId(optionValueId).id,
     };
     const selectors: Array<[string, string | null]> = [
       ['ALL', null],
@@ -141,7 +147,7 @@ test.describe('Loyalty earning rule runtime branches end to end', () => {
   });
 
   test('evaluates payment first-purchase schedule and nested boolean conditions', async () => {
-    const segmentId = crypto.randomUUID();
+    const segmentId = decodeGlobalId((await createSegment(kit.api)).id).id;
     const at = new Date(Date.now() + 60_000).toISOString();
     const fixture = await kit.createActiveAccount({
       earningRules: [rule('compound-condition', {
@@ -218,6 +224,10 @@ test.describe('Loyalty earning rule runtime branches end to end', () => {
           settlement: 'MONETARY', currencyCode: 'USD',
         },
         limits: {
+          startsAt: null,
+          endsAt: null,
+          perEventMaxPoints: null,
+          perAccount: null,
           campaign: {
             maxOccurrences: '1', maxPoints: null,
             maxMonetaryMinorByCurrency: { USD: '100' },

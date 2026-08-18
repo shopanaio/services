@@ -84,10 +84,14 @@ test.describe('Loyalty calendar earning limit windows end to end', () => {
           actionType: 'AWARD_FIXED_POINTS',
           action: { type: 'AWARD_FIXED_POINTS', points: '10' },
           limits: {
+            startsAt: null,
+            endsAt: null,
+            perEventMaxPoints: null,
             perAccount: {
               maxOccurrences: '1', maxPoints: null,
               window: { type: window.type, rollingWindowSeconds: null },
             },
+            campaign: null,
           },
         }],
       });

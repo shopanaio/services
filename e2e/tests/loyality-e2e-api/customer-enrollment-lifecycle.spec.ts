@@ -50,7 +50,7 @@ test.describe('Loyalty customer lifecycle across Admin and Storefront', () => {
       `;
       await sql`
         update customers.customer set lifecycle_status = 'BLOCKED',
-          blocked_reason = 'deleted customer e2e', blocked_at = now()
+          blocked_reason = 'deleted customer e2e', updated_at = now(), revision = revision + 1
         where id = ${kit.customer.rawId}
       `;
     });

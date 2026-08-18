@@ -23,6 +23,7 @@ import { LoyaltyDomainError } from "../application/errors.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Kernel } from "../kernel/Kernel.js";
 import { Loader } from "../loaders/Loader.js";
+import type { ExternalRewardWorkflowResult } from "../workflows/ExternalRewardWorkflow.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -58,7 +59,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
       ?? (event.subject.type === "customer" ? event.subject.id : null);
     if (!storeId || !customerId) return { success: true };
     try {
-      await this.broker.runWorkflow("loyalty.processExternalReward", {
+      const result = await this.broker.runWorkflow<ExternalRewardWorkflowResult>("loyalty.processExternalReward", {
         producer: event.source,
         externalEventId: event.eventId,
         eventType: event.eventType,
@@ -80,6 +81,16 @@ export class LoyaltyEventHandlers extends EventHandlers {
         contentHash: hashContent(event),
         organizationId: event.context.organizationId,
       });
+      if (!result.success) {
+        return {
+          success: false,
+          error: {
+            message: result.message,
+            code: "EXTERNAL_LOYALTY_EARNING_FAILED",
+            retryable: result.retryable,
+          },
+        };
+      }
       return { success: true };
     } catch (error) {
       return this.failure(error, "EXTERNAL_LOYALTY_EARNING_FAILED");

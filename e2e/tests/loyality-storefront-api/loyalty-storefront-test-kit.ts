@@ -180,7 +180,6 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
             accountId: account.id,
             rewardDefinitionId: definitionId,
             quantity: '1',
-            reasonCode: 'E2E_ISSUE',
             idempotencyKey: idempotencyKey('storefront-reward'),
             ...overrides,
           },

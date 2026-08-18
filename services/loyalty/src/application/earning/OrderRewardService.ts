@@ -677,7 +677,13 @@ export class OrderRewardService {
       0n,
     );
     const cumulative = await this.cumulativeReversedAmount(customerId, orderId, basis);
-    const allocatedTotal = cumulative < totalEligible ? cumulative : totalEligible;
+    if (cumulative > totalEligible) {
+      throw new LoyaltyDomainError(
+        "REFUND_EXCEEDS_ORDER_ELIGIBLE_AMOUNT",
+        "Cumulative refund economics exceed the eligible order amount",
+      );
+    }
+    const allocatedTotal = cumulative;
     const byOrderRevision = new Map<string, bigint>();
     let remaining = allocatedTotal;
     for (const fact of facts) {

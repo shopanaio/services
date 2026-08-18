@@ -2,7 +2,9 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
 import { decodeGlobalId } from '@utils/globalid';
-import { baseRules } from '../loyality-admin-api/helpers';
+import {
+  baseRules, createProgram, expectUserError, requestVersionCreate, versionInput,
+} from '../loyality-admin-api/helpers';
 import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 test.describe('Loyalty product applies-to across Admin and Storefront', () => {
@@ -68,16 +70,19 @@ test.describe('Loyalty product applies-to across Admin and Storefront', () => {
     expect(await points('ProductVariant', second.variantId)).toBeNull();
   });
 
-  test('does not match a selector reference from another store', async () => {
+  test('rejects a selector reference unavailable in the current store', async () => {
     const product = await kit.createProduct('1000');
-    const fixture = await kit.createActiveAccount();
+    const program = await createProgram(kit.api);
     const rules = baseRules({ earning: { modifiers: [
       modifier({ type: 'PRODUCT', ids: [crypto.randomUUID()] }),
     ] } });
-    await kit.sql`
-      update loyalty.program_version set rules = ${kit.sql.json(rules)}
-      where id = ${decodeGlobalId(fixture.version.id).id}
-    `;
+    const { payload, errors } = await requestVersionCreate(
+      kit.api,
+      versionInput(program, { rules }),
+    );
+    expect(errors ?? []).toHaveLength(0);
+    expectUserError(payload, 'STALE_PROGRAM_REFERENCE');
+    await kit.createActiveAccount();
     expect(await points('Product', product.productId)).toEqual({ minimum: '10', maximum: '10' });
   });
 });

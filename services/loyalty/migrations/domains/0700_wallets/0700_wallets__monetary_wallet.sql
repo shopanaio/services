@@ -265,8 +265,10 @@ BEGIN
   END IF;
 
   IF transaction_kind = 'EARN_PENDING'
-    AND NOT (pending_delta > 0 AND available_delta = 0
-      AND reserved_delta = 0 AND debt_delta = 0) THEN
+    AND NOT (pending_delta >= 0 AND available_delta >= 0
+      AND NOT (pending_delta > 0 AND available_delta > 0)
+      AND reserved_delta = 0 AND debt_delta <= 0
+      AND (pending_delta > 0 OR available_delta > 0 OR debt_delta < 0)) THEN
     RAISE EXCEPTION 'Invalid EARN_PENDING monetary ledger entries';
   ELSIF transaction_kind = 'ACTIVATE'
     AND NOT (pending_delta < 0 AND available_delta = -pending_delta
