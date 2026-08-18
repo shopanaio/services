@@ -288,7 +288,9 @@ test.describe('Customers Storefront API — privacy data requests', () => {
       email: null,
       normalizedEmail: null,
       emailDomainNormalized: null,
+      emailVerified: false,
       phoneE164: null,
+      phoneVerified: false,
       firstName: null,
       lastName: null,
     });
@@ -297,7 +299,14 @@ test.describe('Customers Storefront API — privacy data requests', () => {
     expect(response.data?.customer).toBeNull();
     const row = await kit.customerRow();
     expect(row).toEqual(
-      expect.objectContaining({ email: null, phone_e164: null, first_name: null, last_name: null }),
+      expect.objectContaining({
+        email: null,
+        email_verified: false,
+        phone_e164: null,
+        phone_verified: false,
+        first_name: null,
+        last_name: null,
+      }),
     );
   });
 });

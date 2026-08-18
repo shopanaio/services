@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect } from '@playwright/test';
 import { test } from '@fixtures/base.extend';
 import {
@@ -63,7 +64,7 @@ test.describe('Customers Storefront API — customer query', () => {
   test('customer session is rejected when its customer link cannot be resolved', async () => {
     await kit.sql`
       update customers.customer
-      set iam_principal_id = null, iam_principal_status = null, account_status = 'GUEST'
+      set iam_principal_id = ${randomUUID()}, iam_principal_status = 'active'
       where id = ${kit.customer.rawId}
     `;
     const response = await kit.customerQuery<{ id: string }>('id');
