@@ -23,6 +23,8 @@ import {
 import { CheckoutPlacementRepository } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
 import type { LoyaltyReservation, PlaceOrderWorkflowResult } from "./PlaceOrderWorkflow.js";
+import type { CheckoutCompensationFailure } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
+import { compensationFailures } from "../infrastructure/observability/checkoutObservability.js";
 
 export interface MonitorPlacedPaymentInput {
   organizationId: string;
@@ -77,9 +79,12 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         );
       }
       if (isTerminalFailure(session.state)) {
-        await this.releaseInventory(input);
-        await this.reverseDiscountUsage(input);
-        await this.releaseLoyalty(input);
+        const failures = await this.runCompensations([
+          ["releaseInventory", () => this.releaseInventory(input)],
+          ["reverseDiscountUsage", () => this.reverseDiscountUsage(input)],
+          ["releaseLoyalty", () => this.releaseLoyalty(input)],
+        ]);
+        await this.recordCompensationFailures(input.placementId, failures);
         return this.replacePlacementResult(
           input.placementId,
           paymentResult(input.initialResult, session, operation.operationId),
@@ -209,7 +214,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     >(InventoryCheckoutActions.confirm, { storeId, orderId });
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async releaseInventory(input: MonitorPlacedPaymentInput): Promise<void> {
     await this.broker.call<
       Inventory.ReleaseCheckoutInventoryResult,
@@ -222,7 +227,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async reverseDiscountUsage(input: MonitorPlacedPaymentInput): Promise<void> {
     if (input.redemptionIds.length === 0) return;
     await this.broker.call<
@@ -308,7 +313,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     );
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async releaseLoyaltyAt(
     input: MonitorPlacedPaymentInput,
     releasedAt: string,
@@ -347,6 +352,33 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       );
       if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
     }
+  }
+
+  private async runCompensations(
+    actions: ReadonlyArray<readonly [string, () => Promise<void>]>,
+  ): Promise<CheckoutCompensationFailure[]> {
+    const failures: CheckoutCompensationFailure[] = [];
+    for (const [operation, compensate] of actions) {
+      try {
+        await compensate();
+      } catch (error) {
+        compensationFailures.inc({ operation });
+        failures.push({
+          operation,
+          message: error instanceof Error ? error.message : String(error),
+          recordedAt: new Date(await DBOS.now()).toISOString(),
+        });
+      }
+    }
+    return failures;
+  }
+
+  @WorkflowStep()
+  private recordCompensationFailures(
+    placementId: string,
+    failures: readonly CheckoutCompensationFailure[],
+  ): Promise<void> {
+    return this.placements.recordCompensationFailures(placementId, failures);
   }
 
   @WorkflowStep()

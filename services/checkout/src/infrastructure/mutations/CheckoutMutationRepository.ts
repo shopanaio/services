@@ -9,13 +9,99 @@ import type {
   CheckoutRecalculationCommitPort,
 } from "../../application/mutations/contracts.js";
 import type { CheckoutRecalculationResult } from "../../application/pipeline/contracts/index.js";
+import { checkoutCommittedSnapshotSchema } from "../../application/mutations/checkoutCommittedSnapshotSchema.js";
+import { checkoutRetentionPolicy } from "../../configuration/checkoutRetention.js";
 
-type SnapshotRow = { snapshot: CheckoutCommittedSnapshot };
+type SnapshotRow = {
+  snapshot: CheckoutCommittedSnapshot;
+  status?: CheckoutCommittedSnapshot["lifecycle"]["status"];
+  expires_at?: Date | string;
+  pii_anonymized_at?: Date | string | null;
+  retention_until?: Date | string;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1_000;
 
 export class CheckoutMutationRepository
   implements CheckoutMutationSnapshotPort, CheckoutRecalculationCommitPort
 {
   constructor(private readonly execute: SQLExecutor = dumboPool.execute) {}
+
+  async enforceRetention(batchSize = checkoutRetentionPolicy().cleanup_batch_size): Promise<{
+    expired: number;
+    anonymized: number;
+    purged: number;
+  }> {
+    const query = knex.raw(
+      `WITH candidates AS MATERIALIZED (
+         SELECT id, store_id, status, expires_at, retention_until
+           FROM checkout.checkouts
+          WHERE ((status IN ('OPEN', 'READY') AND expires_at <= CURRENT_TIMESTAMP)
+             OR retention_until <= CURRENT_TIMESTAMP)
+            AND NOT EXISTS (
+              SELECT 1
+                FROM checkout.checkout_placements p
+               WHERE p.store_id = checkouts.store_id AND p.checkout_id = checkouts.id
+                 AND p.status IN ('CLAIMED', 'RESOURCES_RESERVED', 'ORDER_CREATED', 'PAYMENT_CREATED')
+            )
+          ORDER BY LEAST(expires_at, retention_until)
+          LIMIT ?
+          FOR UPDATE SKIP LOCKED
+       ), expired AS (
+         UPDATE checkout.checkouts c
+            SET status = 'EXPIRED', pii_anonymized_at = COALESCE(c.pii_anonymized_at, CURRENT_TIMESTAMP),
+                customer_note = NULL, updated_at = CURRENT_TIMESTAMP
+           FROM candidates x
+          WHERE c.id = x.id AND c.store_id = x.store_id
+            AND x.status IN ('OPEN', 'READY')
+            AND x.expires_at <= CURRENT_TIMESTAMP
+            AND x.retention_until > CURRENT_TIMESTAMP
+         RETURNING c.id, c.store_id
+       ), anonymized AS (
+         UPDATE checkout.checkout_current_snapshots s
+            SET snapshot = checkout.strip_snapshot_pii(s.snapshot), updated_at = CURRENT_TIMESTAMP
+           FROM expired e
+          WHERE s.checkout_id = e.id AND s.store_id = e.store_id
+         RETURNING s.checkout_id
+       ), anonymized_quarantine AS (
+         UPDATE checkout.checkout_snapshot_quarantine q
+            SET snapshot = checkout.strip_snapshot_pii(q.snapshot),
+                quarantined_at = CURRENT_TIMESTAMP
+           FROM expired e
+          WHERE q.checkout_id = e.id AND q.store_id = e.store_id
+         RETURNING q.checkout_id
+       ), purge_candidates AS MATERIALIZED (
+         SELECT id, store_id FROM candidates WHERE retention_until <= CURRENT_TIMESTAMP
+       ), deleted_placements AS (
+         DELETE FROM checkout.checkout_placements p
+          USING purge_candidates c
+          WHERE p.store_id = c.store_id AND p.checkout_id = c.id
+       ), deleted_idempotency AS (
+         DELETE FROM checkout.checkout_create_idempotency i
+          USING purge_candidates p
+          WHERE i.store_id = p.store_id AND i.committed_checkout_id = p.id
+       ), deleted_quarantine AS (
+         DELETE FROM checkout.checkout_snapshot_quarantine q
+          USING purge_candidates p
+          WHERE q.store_id = p.store_id AND q.checkout_id = p.id
+       ), purged AS (
+         DELETE FROM checkout.checkouts c USING purge_candidates p
+          WHERE c.id = p.id AND c.store_id = p.store_id
+         RETURNING c.id
+       )
+       SELECT
+         (SELECT count(*)::int FROM expired) AS expired,
+         (SELECT count(*)::int FROM anonymized) AS anonymized,
+         (SELECT count(*)::int FROM purged) AS purged`,
+      [batchSize],
+    ).toString();
+    const row = await singleOrNull(this.execute.query<{
+      expired: number;
+      anonymized: number;
+      purged: number;
+    }>(rawSql(query)));
+    return row ?? { expired: 0, anonymized: 0, purged: 0 };
+  }
 
   async load(input: {
     checkoutId: string;
@@ -23,13 +109,48 @@ export class CheckoutMutationRepository
   }): Promise<CheckoutCommittedSnapshot | null> {
     const query = knex
       .withSchema("checkout")
-      .table("checkout_current_snapshots")
-      .select("snapshot")
-      .where({ checkout_id: input.checkoutId, store_id: input.storeId })
+      .table("checkout_current_snapshots as snapshots")
+      .innerJoin("checkout.checkouts as checkouts", function () {
+        this.on("checkouts.id", "=", "snapshots.checkout_id")
+          .andOn("checkouts.store_id", "=", "snapshots.store_id");
+      })
+      .select(
+        "snapshots.snapshot",
+        "checkouts.status",
+        "checkouts.expires_at",
+        "checkouts.pii_anonymized_at",
+        "checkouts.retention_until",
+      )
+      .where({
+        "snapshots.checkout_id": input.checkoutId,
+        "snapshots.store_id": input.storeId,
+      })
       .limit(1)
       .toString();
     const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(query)));
-    return row?.snapshot ?? null;
+    if (!row) return null;
+    const parsed = checkoutCommittedSnapshotSchema.safeParse(withLifecycle(row));
+    if (parsed.success) return parsed.data as unknown as CheckoutCommittedSnapshot;
+    await this.quarantine(input, row.snapshot, parsed.error.message);
+    throw new Error("CHECKOUT_SNAPSHOT_QUARANTINED");
+  }
+
+  private async quarantine(
+    input: { checkoutId: string; storeId: string },
+    snapshot: unknown,
+    reason: string,
+  ): Promise<void> {
+    const query = knex.raw(
+      `INSERT INTO checkout.checkout_snapshot_quarantine
+         (checkout_id, store_id, snapshot, reason, quarantined_at)
+       VALUES (?, ?, ?::jsonb, ?, CURRENT_TIMESTAMP)
+       ON CONFLICT (store_id, checkout_id) DO UPDATE
+         SET snapshot = EXCLUDED.snapshot,
+             reason = EXCLUDED.reason,
+             quarantined_at = EXCLUDED.quarantined_at`,
+      [input.checkoutId, input.storeId, JSON.stringify(snapshot), reason.slice(0, 16_384)],
+    ).toString();
+    await this.execute.query(rawSql(query));
   }
 
   async create(input: {
@@ -41,7 +162,12 @@ export class CheckoutMutationRepository
     | { status: "VERSION_CONFLICT" }
   > {
     const now = new Date().toISOString();
-    const checkout = snapshot(input.draft, input.result, now, now);
+    const retention = checkoutRetentionPolicy();
+    const expiresAt = new Date(Date.parse(now) + retention.active_ttl_days * DAY_MS).toISOString();
+    const retentionUntil = new Date(
+      Date.parse(now) + retention.snapshot_retention_days * DAY_MS,
+    ).toISOString();
+    const checkout = snapshot(input.draft, input.result, now, now, expiresAt, retentionUntil);
     const projection = canonicalProjection(input.result);
     const sql = knex.raw(
       `WITH locked_reservation AS MATERIALIZED (
@@ -55,8 +181,9 @@ export class CheckoutMutationRepository
            id, store_id, version, channel_code, external_source, external_id,
            customer_note, locale_code, currency_code, subtotal, shipping_total,
            discount_total, tax_total, grand_total, status, result_revision,
-           checkout_valid, pipeline_issues, metadata, created_at, updated_at
-         ) SELECT ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?::jsonb, '{}'::jsonb, ?, ?
+           checkout_valid, pipeline_issues, metadata, expires_at, retention_until,
+           created_at, updated_at
+         ) SELECT ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, '{}'::jsonb, ?, ?, ?, ?
              FROM locked_reservation WHERE checkout_id = ?
          ON CONFLICT (id) DO NOTHING
          RETURNING id
@@ -97,9 +224,12 @@ export class CheckoutMutationRepository
         projection.discountTotal,
         projection.taxTotal,
         projection.grandTotal,
+        projection.valid ? "READY" : "OPEN",
         input.result.resultRevision,
         projection.valid,
         JSON.stringify(input.result.issues),
+        expiresAt,
+        retentionUntil,
         now,
         now,
         input.draft.checkoutId,
@@ -138,7 +268,19 @@ export class CheckoutMutationRepository
     | { status: "VERSION_CONFLICT" }
   > {
     const now = new Date().toISOString();
-    const checkout = snapshot(input.draft, input.result, input.createdAt, now);
+    const retention = checkoutRetentionPolicy();
+    const expiresAt = new Date(Date.parse(now) + retention.active_ttl_days * DAY_MS).toISOString();
+    const retentionUntil = new Date(
+      Date.parse(now) + retention.snapshot_retention_days * DAY_MS,
+    ).toISOString();
+    const checkout = snapshot(
+      input.draft,
+      input.result,
+      input.createdAt,
+      now,
+      expiresAt,
+      retentionUntil,
+    );
     const projection = canonicalProjection(input.result);
     const sql = knex.raw(
       `WITH updated_checkout AS (
@@ -146,13 +288,13 @@ export class CheckoutMutationRepository
             SET version = ?, channel_code = ?, external_source = ?, external_id = ?,
                 customer_note = ?, locale_code = ?, currency_code = ?, subtotal = ?,
                 shipping_total = ?, discount_total = ?, tax_total = ?, grand_total = ?,
-                result_revision = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
+                status = ?, result_revision = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
+                expires_at = ?, retention_until = ?,
                 updated_at = ?
           WHERE id = ? AND store_id = ? AND version = ?
             AND NOT EXISTS (
               SELECT 1 FROM checkout.checkout_placements
                WHERE store_id = ? AND checkout_id = ?
-                 AND status IN ('IN_PROGRESS', 'PLACED')
             )
             AND EXISTS (
               SELECT 1 FROM checkout.checkout_current_snapshots
@@ -180,9 +322,12 @@ export class CheckoutMutationRepository
         projection.discountTotal,
         projection.taxTotal,
         projection.grandTotal,
+        projection.valid ? "READY" : "OPEN",
         input.result.resultRevision,
         projection.valid,
         JSON.stringify(input.result.issues),
+        expiresAt,
+        retentionUntil,
         now,
         input.checkoutId,
         input.storeId,
@@ -228,6 +373,8 @@ function snapshot(
   result: CheckoutRecalculationResult,
   createdAt: string,
   updatedAt: string,
+  expiresAt: string,
+  retentionUntil: string,
 ): CheckoutCommittedSnapshot {
   return {
     checkoutId: draft.checkoutId,
@@ -235,9 +382,36 @@ function snapshot(
     version: draft.version,
     createdAt,
     updatedAt,
+    lifecycle: {
+      status: result.validation.status === "SUCCESS" && result.validation.data.valid
+        ? "READY"
+        : "OPEN",
+      expiresAt,
+      piiAnonymizedAt: null,
+      retentionUntil,
+    },
     draft,
     result,
   };
+}
+
+function withLifecycle(row: SnapshotRow): CheckoutCommittedSnapshot {
+  if (!row.status || !row.expires_at || !row.retention_until) {
+    throw new Error("CHECKOUT_LIFECYCLE_MISSING");
+  }
+  return {
+    ...row.snapshot,
+    lifecycle: {
+      status: row.status,
+      expiresAt: iso(row.expires_at),
+      piiAnonymizedAt: row.pii_anonymized_at ? iso(row.pii_anonymized_at) : null,
+      retentionUntil: iso(row.retention_until),
+    },
+  };
+}
+
+function iso(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
 function canonicalProjection(result: CheckoutRecalculationResult) {

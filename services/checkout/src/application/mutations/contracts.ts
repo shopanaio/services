@@ -81,8 +81,23 @@ export interface CheckoutCommittedSnapshot {
   version: number;
   createdAt: string;
   updatedAt: string;
+  lifecycle: CheckoutLifecycle;
   draft: CheckoutMutationDraft;
   result: CheckoutRecalculationResult;
+}
+
+export type CheckoutLifecycleStatus =
+  | "OPEN"
+  | "READY"
+  | "PLACED"
+  | "EXPIRED"
+  | "ABANDONED";
+
+export interface CheckoutLifecycle {
+  status: CheckoutLifecycleStatus;
+  expiresAt: string;
+  piiAnonymizedAt: string | null;
+  retentionUntil: string;
 }
 
 export interface CheckoutMutationSnapshotPort {

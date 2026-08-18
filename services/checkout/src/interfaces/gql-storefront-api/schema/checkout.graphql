@@ -89,6 +89,12 @@ type Checkout implements Node @key(fields: "id") {
   """Whether the committed checkout is ready according to validation."""
   valid: Boolean!
 
+  """Lifecycle state persisted by checkout, not inferred by the client."""
+  status: CheckoutLifecycleStatus!
+
+  """Deadline after which an OPEN or READY checkout becomes EXPIRED."""
+  expiresAt: DateTime!
+
   """Ordered issues emitted by the checkout pipeline."""
   issues: [CheckoutIssue!]!
 
@@ -160,6 +166,14 @@ type Checkout implements Node @key(fields: "id") {
 
   """Reward entitlement selected and validated for this checkout."""
   loyaltyRewardEntitlementId: ID
+}
+
+enum CheckoutLifecycleStatus {
+  OPEN
+  READY
+  PLACED
+  EXPIRED
+  ABANDONED
 }
 
 type CheckoutLoyaltyRedemption {

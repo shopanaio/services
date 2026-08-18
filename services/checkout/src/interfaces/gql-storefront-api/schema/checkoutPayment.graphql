@@ -143,6 +143,8 @@ type PlaceOrderPaymentFailure {
 type PlaceOrderPayload {
   """Durable placement identifier used by Query.checkoutPlacement."""
   placementId: ID
+  """Persisted orchestration state used for recovery and reconciliation."""
+  placementState: CheckoutPlacementState
   """Checkout snapshot committed by this placement."""
   checkoutId: ID
   """Checkout.resultRevision captured by this placement."""
@@ -156,4 +158,13 @@ type PlaceOrderPayload {
   paymentFailure: PlaceOrderPaymentFailure
   """Validation, stale-snapshot, and business errors produced before placement."""
   userErrors: [CheckoutUserError!]!
+}
+
+enum CheckoutPlacementState {
+  CLAIMED
+  RESOURCES_RESERVED
+  ORDER_CREATED
+  PAYMENT_CREATED
+  PLACED
+  FAILED
 }

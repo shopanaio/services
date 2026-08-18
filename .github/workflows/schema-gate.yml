@@ -1,0 +1,22 @@
+name: GraphQL Schema Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "release/*"
+
+jobs:
+  compose-storefront-and-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+      - run: corepack enable
+      - run: yarn install --immutable
+      - name: Export subgraphs and compose supergraphs
+        run: yarn shopana schema build

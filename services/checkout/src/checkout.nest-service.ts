@@ -11,12 +11,16 @@ import { FastifyInstance } from 'fastify';
 import 'reflect-metadata';
 import { App } from './ioc/container';
 import { startServer } from './interfaces/server/server';
+import { startCheckoutMetricsServer } from './interfaces/server/metricsServer.js';
+import { getServiceConfig } from '@shopana/shared-service-config';
 
 @Injectable()
 export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CheckoutNestService.name);
   private app!: App;
   private graphqlServer!: FastifyInstance;
+  private metricsServer: FastifyInstance | null = null;
+  private maintenanceTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(@InjectBroker('checkout') private readonly broker: ServiceBroker) {}
 
@@ -100,11 +104,41 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
     );
 
     this.graphqlServer = await startServer(this.broker as any);
+    const { service } = getServiceConfig('checkout');
+    if (service.ports?.metrics) {
+      this.metricsServer = await startCheckoutMetricsServer({
+        port: service.ports.metrics,
+        broker: this.broker,
+        placements: this.app.checkoutPlacementRepository,
+      });
+    }
+    await this.startMaintenance();
+    this.maintenanceTimer = setInterval(() => {
+      void this.startMaintenance().catch((error) =>
+        this.logger.error(error, 'Failed to start checkout maintenance workflow')
+      );
+    }, 60_000);
     this.logger.log('Checkout service started');
   }
 
   async onModuleDestroy() {
     if (this.graphqlServer) await this.graphqlServer.close();
+    if (this.metricsServer) await this.metricsServer.close();
+    if (this.maintenanceTimer) clearInterval(this.maintenanceTimer);
     this.logger.log('Checkout service stopped');
+  }
+
+  private async startMaintenance(): Promise<void> {
+    const minuteBucket = new Date(Math.floor(Date.now() / 60_000) * 60_000).toISOString();
+    await this.broker.startWorkflow(
+      'checkout.maintainCheckout',
+      { minuteBucket },
+      {
+        source: 'content',
+        resourceId: 'checkout-maintenance',
+        operation: minuteBucket,
+        content: { minuteBucket },
+      },
+    );
   }
 }

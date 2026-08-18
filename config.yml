@@ -85,6 +85,14 @@ services:
     db:
       <<: *db_default
       schema: checkout
+    security:
+      allowed_return_origins:
+        - https://localhost:3000
+      allowed_deep_link_schemes: []
+    retention:
+      active_ttl_days: 30
+      snapshot_retention_days: 90
+      cleanup_batch_size: 500
 
   catalog:
     ports:

@@ -51,6 +51,10 @@ import {
 } from "./boundaries.js";
 import { canonicalJsonRevision, canonicalJsonSha256 } from "./canonicalJson.js";
 import { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
+import {
+  checkoutTracer,
+  pipelineStageLatency,
+} from "../../infrastructure/observability/checkoutObservability.js";
 
 export interface CheckoutPipelinePorts {
   readonly pricing: PricingCheckoutPort;
@@ -353,7 +357,14 @@ export class CheckoutPipeline {
   }
 
   async recalculate(rawRequest: CheckoutRecalculationRequest): Promise<CheckoutRecalculationResult> {
+    const span = checkoutTracer.startSpan("checkout.pipeline.recalculate");
+    try {
     const request = parseCheckoutRecalculationRequest(rawRequest);
+    span.setAttributes({
+      "checkout.id": request.context.checkoutId,
+      "checkout.version": request.context.expectedCheckoutVersion,
+      "checkout.correlation_id": request.context.correlationId,
+    });
     const deadlineAt = Date.parse(request.context.deadlineAt);
     const executionStarted = this.runtime.now();
     let deadlineObservedAt: number | null = null;
@@ -631,7 +642,21 @@ export class CheckoutPipeline {
         stages: stages.map(({ trace }) => trace),
       },
     };
-    return parseCheckoutRecalculationResult(request, result);
+    for (const outcome of stages) {
+      pipelineStageLatency.observe(
+        { stage: outcome.trace.stage, status: outcome.status },
+        outcome.trace.durationMs / 1_000,
+      );
+    }
+    span.setAttribute("checkout.pipeline.deadline_exceeded", deadlineObservedAt !== null);
+    const parsed = parseCheckoutRecalculationResult(request, result);
+    span.end();
+    return parsed;
+    } catch (error) {
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      span.end();
+      throw error;
+    }
   }
 
   private failedOutcome<T, TStage extends CheckoutPipelineStage>(

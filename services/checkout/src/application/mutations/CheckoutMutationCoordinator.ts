@@ -21,6 +21,7 @@ import {
   type CheckoutMutationSnapshotPort,
   type CheckoutRecalculationCommitPort,
 } from "./contracts.js";
+import { casConflicts } from "../../infrastructure/observability/checkoutObservability.js";
 
 export interface CheckoutMutationCommit<T> {
   checkout: CheckoutCommittedSnapshot;
@@ -85,6 +86,7 @@ export class CheckoutMutationCoordinator {
         }),
       );
       if (committed.status === "VERSION_CONFLICT") {
+        casConflicts.inc();
         throw new CheckoutMutationError(
           "CHECKOUT_COMMIT_FAILED",
           "Checkout could not be created.",
@@ -158,6 +160,7 @@ export class CheckoutMutationCoordinator {
       }),
     );
     if (committed.status === "VERSION_CONFLICT") {
+      casConflicts.inc();
       throw new CheckoutMutationError(
         "CHECKOUT_VERSION_CONFLICT",
         "Checkout changed while it was being recalculated. Retry the mutation.",
@@ -192,6 +195,7 @@ export class CheckoutMutationCoordinator {
       }),
     );
     if (committed.status === "VERSION_CONFLICT") {
+      casConflicts.inc();
       throw new CheckoutMutationError(
         "CHECKOUT_VERSION_CONFLICT",
         "Checkout changed while the mutation was being committed. Retry the mutation.",

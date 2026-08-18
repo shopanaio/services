@@ -177,8 +177,8 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     ),
     createdBy: null,
     number: null,
-    status: result.validation.data.valid ? "ready" : "new",
-    expiresAt: null,
+    status: checkout.lifecycle.status.toLowerCase(),
+    expiresAt: checkout.lifecycle.expiresAt,
     metadata: {
       resultRevision: result.resultRevision,
       loyaltyRedemption: loyalty ? {

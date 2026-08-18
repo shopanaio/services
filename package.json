@@ -22,7 +22,8 @@
     "e2e:codegen": "yarn shopana e2e codegen",
     "e2e:test": "yarn shopana e2e test",
     "migrate": "yarn shopana migrate",
-    "gateway": "yarn shopana gateway"
+    "gateway": "yarn shopana gateway",
+    "schema:check": "yarn shopana schema build"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.53.1",

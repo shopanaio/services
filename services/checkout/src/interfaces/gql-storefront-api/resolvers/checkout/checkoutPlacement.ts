@@ -1,6 +1,7 @@
 import { GlobalIdEntity, decodeGlobalIdByType } from "@shopana/shared-graphql-guid";
 import { App } from "@src/ioc/container";
 import type {
+  ApiCheckoutPlacementState,
   ApiQuery,
   ApiQueryCheckoutPlacementArgs,
 } from "@src/interfaces/gql-storefront-api/types";
@@ -19,11 +20,17 @@ export async function checkoutPlacement(
   );
   const placement = await App.getInstance()
     .checkoutPlacementRepository
-    .findByIdForStore<PlaceOrderWorkflowResult>(placementId, ctx.store.id);
+    .findByIdForStorefrontCredential<PlaceOrderWorkflowResult>({
+      placementId,
+      storeId: ctx.store.id,
+      credentialId: ctx.storefrontAccess.credentialId,
+    });
   if (!placement) return null;
   return mapPlaceOrderPayload(placement.result, {
     placementId: placement.placementId,
     checkoutId: placement.checkoutId,
     resultRevision: placement.resultRevision,
+    placementState: placement.status as ApiCheckoutPlacementState,
+    failure: placement.failure,
   });
 }

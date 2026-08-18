@@ -142,6 +142,12 @@ async function committedCurrent(
     version: currentDraft.version,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
+    lifecycle: {
+      status: "READY",
+      expiresAt: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1_000).toISOString(),
+      piiAnonymizedAt: null,
+      retentionUntil: new Date(now.getTime() + 90 * 24 * 60 * 60 * 1_000).toISOString(),
+    },
     draft: currentDraft,
     result,
   };

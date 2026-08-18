@@ -60,6 +60,8 @@ export type ApiCheckout = ApiNode & {
   customerNote: Maybe<Scalars['String']['output']>;
   /** Delivery groups. */
   deliveryGroups: Array<ApiCheckoutDeliveryGroup>;
+  /** Deadline after which an OPEN or READY checkout becomes EXPIRED. */
+  expiresAt: Scalars['DateTime']['output'];
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
   /** Ordered issues emitted by the checkout pipeline. */
@@ -81,6 +83,8 @@ export type ApiCheckout = ApiNode & {
   payment: ApiCheckoutPayment;
   /** Revision of the last complete checkout pipeline result. */
   resultRevision: Scalars['String']['output'];
+  /** Lifecycle state persisted by checkout, not inferred by the client. */
+  status: ApiCheckoutLifecycleStatus;
   /** Tags that can be used to organize checkout lines. */
   tags: Array<ApiCheckoutTag>;
   /** Quantity of the item being purchased. */
@@ -498,6 +502,14 @@ export type ApiCheckoutLanguageCodeUpdateInput = {
   localeCode: Scalars['String']['input'];
 };
 
+export enum ApiCheckoutLifecycleStatus {
+  Abandoned = 'ABANDONED',
+  Expired = 'EXPIRED',
+  Open = 'OPEN',
+  Placed = 'PLACED',
+  Ready = 'READY'
+}
+
 /** A single item in a checkout. */
 export type ApiCheckoutLine = ApiNode & {
   __typename?: 'CheckoutLine';
@@ -772,6 +784,15 @@ export type ApiCheckoutPaymentMethodUpdateInput = {
   /** Opaque handle returned by the current checkout snapshot. */
   methodHandle: Scalars['String']['input'];
 };
+
+export enum ApiCheckoutPlacementState {
+  Claimed = 'CLAIMED',
+  Failed = 'FAILED',
+  OrderCreated = 'ORDER_CREATED',
+  PaymentCreated = 'PAYMENT_CREATED',
+  Placed = 'PLACED',
+  ResourcesReserved = 'RESOURCES_RESERVED'
+}
 
 /** Applied promo code for a checkout. */
 export type ApiCheckoutPromoCode = {
@@ -2116,6 +2137,8 @@ export type ApiPlaceOrderPayload = {
   paymentSessionId: Maybe<Scalars['ID']['output']>;
   /** Durable placement identifier used by Query.checkoutPlacement. */
   placementId: Maybe<Scalars['ID']['output']>;
+  /** Persisted orchestration state used for recovery and reconciliation. */
+  placementState: Maybe<ApiCheckoutPlacementState>;
   /** Checkout.resultRevision captured by this placement. */
   resultRevision: Maybe<Scalars['String']['output']>;
   status: Maybe<ApiPlaceOrderStatus>;
@@ -2353,6 +2376,7 @@ export type ApiResolversTypes = {
   CheckoutIssueEffect: ApiCheckoutIssueEffect;
   CheckoutIssueSeverity: ApiCheckoutIssueSeverity;
   CheckoutLanguageCodeUpdateInput: ApiCheckoutLanguageCodeUpdateInput;
+  CheckoutLifecycleStatus: ApiCheckoutLifecycleStatus;
   CheckoutLine: ResolverTypeWrapper<Omit<ApiCheckoutLine, 'children' | 'cost' | 'parent' | 'purchasable'> & { children: Array<ApiResolversTypes['CheckoutLine']>, cost: ApiResolversTypes['CheckoutLineCost'], parent: Maybe<ApiResolversTypes['CheckoutLine']>, purchasable: ApiResolversTypes['Purchasable'] }>;
   CheckoutLineAddInput: ApiCheckoutLineAddInput;
   CheckoutLineCost: ResolverTypeWrapper<ApiCheckoutLineCost>;
@@ -2377,6 +2401,7 @@ export type ApiResolversTypes = {
   CheckoutPaymentMethod: ResolverTypeWrapper<ApiCheckoutPaymentMethod>;
   CheckoutPaymentMethodSelection: ResolverTypeWrapper<ApiCheckoutPaymentMethodSelection>;
   CheckoutPaymentMethodUpdateInput: ApiCheckoutPaymentMethodUpdateInput;
+  CheckoutPlacementState: ApiCheckoutPlacementState;
   CheckoutPromoCode: ResolverTypeWrapper<ApiCheckoutPromoCode>;
   CheckoutPromoCodeAddInput: ApiCheckoutPromoCodeAddInput;
   CheckoutPromoCodeRemoveInput: ApiCheckoutPromoCodeRemoveInput;
@@ -2553,6 +2578,7 @@ export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extend
   customerIdentity: Resolver<ApiResolversTypes['CheckoutCustomerIdentity'], ParentType, ContextType>;
   customerNote: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   deliveryGroups: Resolver<Array<ApiResolversTypes['CheckoutDeliveryGroup']>, ParentType, ContextType>;
+  expiresAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
   id: Resolver<ApiResolversTypes['ID'], ParentType, ContextType>;
   issues: Resolver<Array<ApiResolversTypes['CheckoutIssue']>, ParentType, ContextType>;
   lines: Resolver<Array<ApiResolversTypes['CheckoutLine']>, ParentType, ContextType>;
@@ -2562,6 +2588,7 @@ export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extend
   notifications: Resolver<Array<ApiResolversTypes['CheckoutNotification']>, ParentType, ContextType>;
   payment: Resolver<ApiResolversTypes['CheckoutPayment'], ParentType, ContextType>;
   resultRevision: Resolver<ApiResolversTypes['String'], ParentType, ContextType>;
+  status: Resolver<ApiResolversTypes['CheckoutLifecycleStatus'], ParentType, ContextType>;
   tags: Resolver<Array<ApiResolversTypes['CheckoutTag']>, ParentType, ContextType>;
   totalQuantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2943,6 +2970,7 @@ export type ApiPlaceOrderPayloadResolvers<ContextType = GraphQLContext, ParentTy
   paymentOperationId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   paymentSessionId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   placementId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
+  placementState: Resolver<Maybe<ApiResolversTypes['CheckoutPlacementState']>, ParentType, ContextType>;
   resultRevision: Resolver<Maybe<ApiResolversTypes['String']>, ParentType, ContextType>;
   status: Resolver<Maybe<ApiResolversTypes['PlaceOrderStatus']>, ParentType, ContextType>;
   userErrors: Resolver<Array<ApiResolversTypes['CheckoutUserError']>, ParentType, ContextType>;

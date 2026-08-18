@@ -5,6 +5,7 @@ import { CheckoutMutationRepository } from './infrastructure/mutations/CheckoutM
 import { CheckoutPlacementRepository } from './infrastructure/mutations/CheckoutPlacementRepository.js';
 import { PlaceOrderWorkflow } from './workflows/PlaceOrderWorkflow.js';
 import { MonitorPlacedPaymentWorkflow } from './workflows/MonitorPlacedPaymentWorkflow.js';
+import { CheckoutMaintenanceWorkflow } from './workflows/CheckoutMaintenanceWorkflow.js';
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: 'checkout' })],
@@ -14,6 +15,7 @@ import { MonitorPlacedPaymentWorkflow } from './workflows/MonitorPlacedPaymentWo
     CheckoutPlacementRepository,
     PlaceOrderWorkflow,
     MonitorPlacedPaymentWorkflow,
+    CheckoutMaintenanceWorkflow,
   ],
 })
 export class CheckoutModule {}

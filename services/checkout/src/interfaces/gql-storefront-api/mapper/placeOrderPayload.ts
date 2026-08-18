@@ -5,6 +5,7 @@ import type {
   ApiPlaceOrderPayload,
   ApiPlaceOrderPaymentFailureCategory,
   ApiPlaceOrderStatus,
+  ApiCheckoutPlacementState,
 } from "../types.js";
 import type { PlaceOrderWorkflowResult } from "../../../workflows/PlaceOrderWorkflow.js";
 
@@ -12,6 +13,8 @@ type PlaceOrderPayloadContext = {
   placementId: string;
   checkoutId: string;
   resultRevision: string;
+  placementState?: ApiCheckoutPlacementState;
+  failure?: { code: string; message: string; retryable: boolean } | null;
 };
 
 type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId">;
@@ -26,6 +29,7 @@ export function mapPlaceOrderPayload(
       context.placementId,
       GlobalIdEntity.CheckoutPlacement,
     ),
+    placementState: context.placementState ?? "PLACED" as ApiCheckoutPlacementState,
     checkoutId: encodeGlobalIdByType(
       context.checkoutId,
       GlobalIdEntity.Checkout,
@@ -64,7 +68,15 @@ export function mapPlaceOrderPayload(
           category: result.paymentFailure.category as ApiPlaceOrderPaymentFailureCategory,
         }
       : null,
-    userErrors: [],
+    userErrors: context.failure
+      ? [{
+          __typename: "CheckoutUserError",
+          field: [],
+          code: context.failure.code,
+          message: context.failure.message,
+          retryable: context.failure.retryable,
+        }]
+      : [],
   };
 }
 
@@ -75,6 +87,7 @@ export function mapPlaceOrderErrorPayload(
   return {
     __typename: "PlaceOrderPayload",
     placementId: null,
+    placementState: null,
     checkoutId: encodeGlobalIdByType(
       context.checkoutId,
       GlobalIdEntity.Checkout,

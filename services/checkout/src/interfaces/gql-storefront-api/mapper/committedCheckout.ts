@@ -6,6 +6,7 @@ import type {
   ApiCheckoutIssueEffect,
   ApiCheckoutIssueSeverity,
   ApiCheckoutLinePurchaseType,
+  ApiCheckoutLifecycleStatus,
   ApiCheckoutSelectionStatus,
   ApiCountryCode,
   ApiCurrencyCode,
@@ -278,6 +279,8 @@ export function mapCommittedCheckoutToApi(
     localeCode: (draft.localeCode ?? "en") as ApiLocaleCode,
     resultRevision: result.resultRevision,
     valid: result.validation.data.valid,
+    status: checkout.lifecycle.status as ApiCheckoutLifecycleStatus,
+    expiresAt: checkout.lifecycle.expiresAt,
     issues: result.issues.map((issue) => ({
       __typename: "CheckoutIssue",
       code: issue.code,

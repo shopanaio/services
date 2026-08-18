@@ -39,6 +39,9 @@ import {
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
 import { CheckoutMutationRepository } from "../infrastructure/mutations/CheckoutMutationRepository.js";
 import { CheckoutPlacementRepository } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
+import type { CheckoutCompensationFailure } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
+import { assertAllowedCheckoutReturnUrl } from "../configuration/checkoutSecurity.js";
+import { compensationFailures } from "../infrastructure/observability/checkoutObservability.js";
 
 export interface PlaceOrderWorkflowInput {
   organizationId: string;
@@ -162,27 +165,27 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     try {
       discounts = await this.reserveDiscountUsage(input, snapshot);
     } catch (error) {
-      if (isNonRetryablePricingFailure(error)) {
-        await this.abandonPlacement(snapshot.placementId);
-      }
+      await this.compensateAndFail(snapshot.placementId, error, []);
       throw error;
     }
     let loyalty: LoyaltyReservation | null;
     try {
       loyalty = await this.reserveLoyalty(input, snapshot);
     } catch (error) {
-      await this.releaseDiscountUsage(input.storeId, discounts);
-      await this.abandonPlacement(snapshot.placementId);
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
+      ]);
       throw error;
     }
     const requestedOrderId = await this.generateOrderId();
     try {
       await this.reserveInventory(input, snapshot, requestedOrderId);
     } catch (error) {
-      await this.releaseInventory(input, requestedOrderId);
-      await this.releaseDiscountUsage(input.storeId, discounts);
-      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
-      await this.abandonPlacement(snapshot.placementId);
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
+        ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+      ]);
       throw error;
     }
 
@@ -195,10 +198,11 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         requestedOrderId,
       );
     } catch (error) {
-      await this.releaseInventory(input, requestedOrderId);
-      await this.releaseDiscountUsage(input.storeId, discounts);
-      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
-      await this.abandonPlacement(snapshot.placementId);
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
+        ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+      ]);
       throw error;
     }
 
@@ -206,23 +210,33 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     try {
       deliveryCommitments = await this.commitDelivery(input, snapshot);
     } catch (error) {
-      await this.releaseInventory(input, requestedOrderId);
-      await this.reverseDiscountUsage(input.storeId, committedDiscounts);
-      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
-      await this.abandonPlacement(snapshot.placementId);
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+        ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+      ]);
       throw error;
     }
+
+    await this.markResourcesReserved(
+      snapshot.placementId,
+      discounts,
+      loyalty,
+      requestedOrderId,
+    );
 
     let orderId: string;
     try {
       orderId = await this.createOrder(input, snapshot, requestedOrderId, deliveryCommitments);
     } catch (error) {
-      await this.releaseInventory(input, requestedOrderId);
-      await this.reverseDiscountUsage(input.storeId, committedDiscounts);
-      await this.releaseLoyalty(input, loyalty, "ORDER_FAILED");
-      await this.abandonPlacement(snapshot.placementId);
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+        ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+      ]);
       throw error;
     }
+    await this.markOrderCreated(snapshot.placementId, orderId);
 
     let result: PlaceOrderWorkflowResult;
     let paymentOutcome: PaymentOutcome | null = null;
@@ -243,26 +257,33 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       };
     } else {
       if (!snapshot.selectedPayment) {
-        await this.releaseInventory(input, orderId);
-        await this.reverseDiscountUsage(input.storeId, committedDiscounts);
-        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
-        await this.abandonPlacement(snapshot.placementId);
-        throw new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
+        const error = new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
+        await this.compensateAndFail(snapshot.placementId, error, [
+          ["releaseInventory", () => this.releaseInventory(input, orderId)],
+          ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+          ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+        ]);
+        throw error;
       }
       try {
         paymentOutcome = await this.createPayment(input, snapshot, orderId);
         result = paymentOutcome.result;
       } catch (error) {
-        await this.releaseInventory(input, orderId);
-        await this.reverseDiscountUsage(input.storeId, committedDiscounts);
-        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
-        await this.abandonPlacement(snapshot.placementId);
+        await this.compensateAndFail(snapshot.placementId, error, [
+          ["releaseInventory", () => this.releaseInventory(input, orderId)],
+          ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+          ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+        ]);
         throw error;
       }
+      await this.markPaymentCreated(snapshot.placementId, result);
       if (result.status === "PAYMENT_FAILED") {
-        await this.releaseInventory(input, orderId);
-        await this.reverseDiscountUsage(input.storeId, committedDiscounts);
-        await this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED");
+        const failures = await this.runCompensations([
+          ["releaseInventory", () => this.releaseInventory(input, orderId)],
+          ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+          ["releaseLoyalty", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+        ]);
+        await this.recordCompensationFailures(snapshot.placementId, failures);
       } else if (result.status === "AUTHORIZED" || result.status === "PAID") {
         const eligibleAt = new Date(await DBOS.now()).toISOString();
         await this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt);
@@ -302,6 +323,8 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
 
   @WorkflowStep()
   private async claim(input: PlaceOrderWorkflowInput): Promise<PlaceOrderClaim> {
+    const workflowId = DBOS.workflowID;
+    if (!workflowId) throw new Error("PLACE_ORDER_WORKFLOW_CONTEXT_MISSING");
     const requestHash = placeOrderRequestHash(input);
     const checkout = await this.checkouts.load({
       storeId: input.storeId,
@@ -333,21 +356,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           customerInput: selection.customerInput,
         }
       : null;
-    const placement = await this.placements.claim({
-      storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      checkoutVersion: checkout.version,
-      resultRevision: input.expectedResultRevision,
-      idempotencyKey: input.idempotencyKey,
-      requestHash,
-    });
-    if (placement.status === "PLACED") {
-      if (!placement.result) throw new Error("CHECKOUT_PLACEMENT_RESULT_MISSING");
-      return {
-        status: "COMPLETED",
-        result: placement.result as PlaceOrderWorkflowResult,
-      };
-    }
     const buyer = checkout.draft.buyerIdentity;
     const orderRewardEligibility = await this.resolveOrderRewardEligibility(checkout);
     const loyaltyResult = checkout.result.loyalty.status === "SUCCESS"
@@ -365,12 +373,54 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     ) {
       throw new Error("CHECKOUT_PAYMENT_METHOD_REQUIRED");
     }
+    const checkoutDto = committedCheckoutToDto(checkout);
+    const deliverySelections = delivery.data.groups.flatMap((group) => {
+      if (group.selection.status !== "SELECTED") return [];
+      const destination = checkout.draft.cartIntent.destinations.find(
+        ({ destinationId }) => destinationId === group.destinationId,
+      );
+      const firstName = destination?.address.firstName?.trim();
+      const lastName = destination?.address.lastName?.trim();
+      if (!destination || !firstName || !lastName) {
+        throw new Error("CHECKOUT_DELIVERY_RECIPIENT_REQUIRED");
+      }
+      return [{
+        groupId: group.groupId,
+        optionHandle: group.selection.optionHandle,
+        customerInput: group.selection.customerInput,
+        recipient: {
+          firstName,
+          middleName: destination.address.middleName ?? null,
+          lastName,
+          company: destination.address.company ?? null,
+          email: destination.address.email ?? null,
+          phone: destination.address.phone ?? null,
+        },
+      }];
+    });
+    const placement = await this.placements.claim({
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      checkoutVersion: checkout.version,
+      resultRevision: input.expectedResultRevision,
+      idempotencyKey: input.idempotencyKey,
+      requestHash,
+      credentialId: input.credentialId,
+      workflowId,
+    });
+    if (placement.status === "PLACED") {
+      if (!placement.result) throw new Error("CHECKOUT_PLACEMENT_RESULT_MISSING");
+      return {
+        status: "COMPLETED",
+        result: placement.result as PlaceOrderWorkflowResult,
+      };
+    }
 
     return {
       status: "READY",
       snapshot: {
         placementId: placement.placementId,
-        checkout: committedCheckoutToDto(checkout),
+        checkout: checkoutDto,
         checkoutVersion: checkout.version,
         quoteId: finalQuote.data.quoteId,
         quoteRevision: finalQuote.data.revision,
@@ -395,28 +445,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         loyaltyReward,
         orderRewardEligibility,
         deliveryRevision: delivery.data.revision,
-        deliverySelections: delivery.data.groups.flatMap((group) => {
-          if (group.selection.status !== "SELECTED") return [];
-          const destination = checkout.draft.cartIntent.destinations.find(({ destinationId }) => destinationId === group.destinationId);
-          const firstName = destination?.address.firstName?.trim();
-          const lastName = destination?.address.lastName?.trim();
-          if (!destination || !firstName || !lastName) {
-            throw new Error("CHECKOUT_DELIVERY_RECIPIENT_REQUIRED");
-          }
-          return [{
-            groupId: group.groupId,
-            optionHandle: group.selection.optionHandle,
-            customerInput: group.selection.customerInput,
-            recipient: {
-              firstName,
-              middleName: destination.address.middleName ?? null,
-              lastName,
-              company: destination.address.company ?? null,
-              email: destination.address.email ?? null,
-              phone: destination.address.phone ?? null,
-            },
-          }];
-        }),
+        deliverySelections,
       },
     };
   }
@@ -595,7 +624,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     );
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async releaseLoyaltyAt(
     input: PlaceOrderWorkflowInput,
     reservation: LoyaltyReservation | null,
@@ -872,7 +901,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     };
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async reverseDiscountUsage(
     storeId: string,
     committed: CommittedDiscountUsage,
@@ -888,7 +917,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async releaseDiscountUsage(
     storeId: string,
     reservation: DiscountReservation,
@@ -903,7 +932,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
   private async releaseInventory(
     input: PlaceOrderWorkflowInput,
     orderId: string,
@@ -973,8 +1002,102 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private abandonPlacement(placementId: string): Promise<void> {
-    return this.placements.abandon(placementId);
+  private markResourcesReserved(
+    placementId: string,
+    discounts: DiscountReservation,
+    loyalty: LoyaltyReservation | null,
+    requestedOrderId: string,
+  ) {
+    return this.placements.transition(placementId, {
+      from: "CLAIMED",
+      to: "RESOURCES_RESERVED",
+      discountReservationIds: discounts.reservationIds,
+      loyaltyReservation: loyalty,
+      requestedOrderId,
+    });
+  }
+
+  @WorkflowStep()
+  private markOrderCreated(placementId: string, orderId: string) {
+    return this.placements.transition(placementId, {
+      from: "RESOURCES_RESERVED",
+      to: "ORDER_CREATED",
+      orderId,
+    });
+  }
+
+  @WorkflowStep()
+  private markPaymentCreated(
+    placementId: string,
+    result: PlaceOrderWorkflowResult,
+  ) {
+    if (
+      !result.paymentCollectionId ||
+      !result.paymentSessionId ||
+      !result.paymentOperationId
+    ) {
+      throw new Error("CHECKOUT_PAYMENT_IDENTIFIERS_MISSING");
+    }
+    return this.placements.transition(placementId, {
+      from: "ORDER_CREATED",
+      to: "PAYMENT_CREATED",
+      paymentCollectionId: result.paymentCollectionId,
+      paymentSessionId: result.paymentSessionId,
+      paymentOperationId: result.paymentOperationId,
+    });
+  }
+
+  private async compensateAndFail(
+    placementId: string,
+    cause: unknown,
+    actions: ReadonlyArray<readonly [string, () => Promise<void>]>,
+  ): Promise<void> {
+    const failures = await this.runCompensations(actions);
+    await this.failPlacement(
+      placementId,
+      {
+        code: errorCode(cause),
+        message: errorMessage(cause),
+        retryable: isRetryable(cause),
+      },
+      failures,
+    );
+  }
+
+  private async runCompensations(
+    actions: ReadonlyArray<readonly [string, () => Promise<void>]>,
+  ): Promise<CheckoutCompensationFailure[]> {
+    const failures: CheckoutCompensationFailure[] = [];
+    for (const [operation, compensate] of actions) {
+      try {
+        await compensate();
+      } catch (error) {
+        compensationFailures.inc({ operation });
+        failures.push({
+          operation,
+          message: errorMessage(error),
+          recordedAt: new Date(await DBOS.now()).toISOString(),
+        });
+      }
+    }
+    return failures;
+  }
+
+  @WorkflowStep()
+  private recordCompensationFailures(
+    placementId: string,
+    failures: readonly CheckoutCompensationFailure[],
+  ): Promise<void> {
+    return this.placements.recordCompensationFailures(placementId, failures);
+  }
+
+  @WorkflowStep()
+  private failPlacement(
+    placementId: string,
+    failure: { code: string; message: string; retryable: boolean },
+    compensationFailures: readonly CheckoutCompensationFailure[],
+  ): Promise<void> {
+    return this.placements.fail(placementId, failure, compensationFailures);
   }
 }
 
@@ -1013,20 +1136,13 @@ function validatePlaceOrderInput(input: PlaceOrderWorkflowInput): void {
   if (
     input.expectedResultRevision.length > 256 ||
     input.idempotencyKey.length > 200 ||
+    input.credentialId.length > 256 ||
     input.correlationId.length > 255
   ) {
     throw new Error("PLACE_ORDER_INPUT_TOO_LONG");
   }
   if (input.returnUrl !== null) {
-    let returnUrl: URL;
-    try {
-      returnUrl = new URL(input.returnUrl);
-    } catch {
-      throw new Error("PLACE_ORDER_RETURN_URL_INVALID");
-    }
-    if (returnUrl.protocol !== "https:" || input.returnUrl.length > 2_048) {
-      throw new Error("PLACE_ORDER_RETURN_URL_INVALID");
-    }
+    assertAllowedCheckoutReturnUrl(input.returnUrl);
   }
 }
 
@@ -1036,15 +1152,20 @@ function isUuid(value: string): boolean {
   );
 }
 
-function isNonRetryablePricingFailure(error: unknown): boolean {
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorCode(error: unknown): string {
+  return error && typeof error === "object" && "code" in error &&
+      typeof error.code === "string"
+    ? error.code
+    : errorMessage(error).split(":", 1)[0] || "CHECKOUT_PLACEMENT_FAILED";
+}
+
+function isRetryable(error: unknown): boolean {
   return Boolean(
-    error &&
-    typeof error === "object" &&
-    "retryable" in error &&
-    error.retryable === false &&
-    "code" in error &&
-    typeof error.code === "string" &&
-    error.code.startsWith("PRICING_"),
+    error && typeof error === "object" && "retryable" in error && error.retryable === true,
   );
 }
 
@@ -1058,6 +1179,12 @@ function validateCheckoutSnapshot(
   checkout: CheckoutCommittedSnapshot,
   input: PlaceOrderWorkflowInput,
 ): void {
+  if (checkout.lifecycle.status !== "READY") {
+    throw new Error(`CHECKOUT_${checkout.lifecycle.status}`);
+  }
+  if (Date.parse(checkout.lifecycle.expiresAt) <= Date.now()) {
+    throw new Error("CHECKOUT_EXPIRED");
+  }
   if (
     checkout.storeId !== input.storeId ||
     checkout.checkoutId !== input.checkoutId ||
