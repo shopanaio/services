@@ -173,7 +173,9 @@ export function mapCommittedCheckoutToApi(
     return {
       __typename: "CheckoutDeliveryGroup" as const,
       id: encodeGlobalIdByType(group.groupId, GlobalIdEntity.CheckoutDeliveryGroup),
-      checkoutLines: selectGroupedLines(finalQuote.lines, new Set(group.lineIds)).map(lineToApi),
+      checkoutLines: selectGroupedLines(finalQuote.lines, new Set(group.lineIds)).map((line) =>
+        lineToApi(line),
+      ),
       deliveryAddress: destination
         ? {
             __typename: "CheckoutDeliveryAddress" as const,
@@ -293,7 +295,7 @@ export function mapCommittedCheckoutToApi(
     updatedAt: checkout.updatedAt,
     totalQuantity: draft.cartIntent.lines.reduce((sum, line) => sum + line.quantity, 0),
     notifications: [],
-    lines: finalQuote.lines.map(lineToApi),
+    lines: finalQuote.lines.map((line) => lineToApi(line)),
     customerIdentity: {
       __typename: "CheckoutCustomerIdentity",
       countryCode: buyer?.countryCode

@@ -114,9 +114,15 @@ export class CustomersStorefrontTestKit {
     const withCustomer = options.customer ?? true;
     const withChannel = options.channel ?? true;
     if (options.reuseSession) {
-      await this.api.session.setupProject({ locales: ['en', 'uk'] });
+      await this.api.session.setupProject({
+        locales: ['en', 'uk'],
+        email: 'no-reply@playwright.dev',
+      });
     } else {
-      await this.api.session.setupUserAndStore({ locales: ['en', 'uk'] });
+      await this.api.session.setupUserAndStore({
+        locales: ['en', 'uk'],
+        email: 'no-reply@playwright.dev',
+      });
     }
     this.realm = await this.waitForRealm();
     await installMailpitSmtp(this.api);
@@ -574,17 +580,27 @@ export class CustomersStorefrontTestKit {
       30_000,
       previousLink,
     );
-    const token = new URL(verificationUrl).searchParams.get('token');
-    expect(token).toBeTruthy();
-    const response = await this.request.get(
-      `${endpoint(this.realm, '/verify-email')}?token=${encodeURIComponent(token!)}&callbackURL=${encodeURIComponent(endpoint(this.realm, '/verified'))}`,
-      { headers: formHeaders(this.realm.origin), maxRedirects: 0 },
-    );
+    const response = await this.request.get(verificationUrl, {
+      headers: formHeaders(this.realm.origin),
+      maxRedirects: 0,
+    });
     expect(response.status()).toBeGreaterThanOrEqual(300);
     expect(response.status()).toBeLessThan(400);
+    const [verifiedUser] = await this.sql<{ emailVerified: boolean }[]>`
+      select email_verified as "emailVerified"
+      from iam.application_user
+      where application_id = ${this.realm.applicationId}
+        and email = ${normalizedEmail}
+    `;
+    expect(verifiedUser?.emailVerified).toBe(true);
   }
 
   async issueAccessToken(email: string): Promise<string> {
+    const passwordSignIn = await this.request.post(endpoint(this.realm, '/sign-in/email'), {
+      headers: jsonHeaders(this.realm.origin),
+      data: { email, password: defaultPassword },
+    });
+    expect(passwordSignIn.ok(), await passwordSignIn.text()).toBe(true);
     const verifier = crypto.randomUUID().replaceAll('-', '').repeat(2);
     const challenge = createHash('sha256').update(verifier).digest('base64url');
     const authorize = new URL(endpoint(this.realm, '/oauth2/authorize'));

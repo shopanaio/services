@@ -34,6 +34,21 @@ export async function installMailpitSmtp(api: ApiFixtures['api']): Promise<void>
       },
     )
     .toBe('ACTIVE');
+
+  const connection = await api.admin.mutation('apps-smtp-admin/SmtpConnectionCreate', {
+    variables: {
+      input: {
+        displayName: 'E2E Mailpit',
+        provider: 'CUSTOM',
+        host: '127.0.0.1',
+        port: 11025,
+        security: 'NONE',
+      },
+    },
+  });
+  const connectionPayload = connection.data.smtpAppMutation.smtpConnectionCreate;
+  expect(connectionPayload.userErrors).toEqual([]);
+  expect(connectionPayload.connection?.status).toBe('ACTIVE');
 }
 
 export async function waitForEmailVerificationLink(
@@ -61,9 +76,10 @@ export async function latestEmailVerificationLink(recipient: string): Promise<st
     throw new Error(`Mailpit returned ${response.status}: ${await response.text()}`);
   }
   const email = await response.text();
-  return (
-    email.match(/https?:\/\/[^\s<>"']+\/verify-email\?[^\s<>"']+/u)?.[0] ?? null
-  );
+  const link = email.match(/https?:\/\/[^\s<>"']+\/verify-email\?[^\s<>"']+/u)?.[0];
+  return link
+    ? link.replaceAll('&amp;', '&').replace(/&#(?:x3d|61);/giu, '=')
+    : null;
 }
 
 export async function waitForEmailOtp(

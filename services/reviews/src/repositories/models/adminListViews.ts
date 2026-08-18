@@ -112,6 +112,7 @@ const contentAggregateListColumns = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
   deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+  redactedAt: timestamp("redacted_at", { withTimezone: true, mode: "string" }),
   likeCount: integer("like_count").notNull(),
 };
 
@@ -126,6 +127,7 @@ export const reviewReplyListView = reviewsSchema
     SELECT content.store_id, content.id, content.body, content.locale,
       content.author_type, content.author_customer_id, content.status,
       content.revision, content.created_at, content.updated_at, content.deleted_at,
+      content.redacted_at,
       COALESCE(metrics.like_count, 0)::int AS like_count,
       reply.review_id, reply.is_official, reply.sort_index
     FROM reviews.content_item content
@@ -156,6 +158,7 @@ export const productQuestionListView = reviewsSchema
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
+    redactedAt: timestamp("redacted_at", { withTimezone: true, mode: "string" }),
     answerCount: integer("answer_count").notNull(),
     officialAnswerCount: integer("official_answer_count").notNull(),
     acceptedAnswerCount: integer("accepted_answer_count").notNull(),
@@ -170,7 +173,7 @@ export const productQuestionListView = reviewsSchema
       CASE WHEN COALESCE(metrics.child_count, 0) > 0 THEN 'ANSWERED'
            ELSE 'UNANSWERED' END AS answer_state,
       content.revision, content.created_at, content.updated_at,
-      content.published_at, content.deleted_at,
+      content.published_at, content.deleted_at, content.redacted_at,
       COALESCE(metrics.child_count, 0)::int AS answer_count,
       COALESCE(metrics.official_child_count, 0)::int AS official_answer_count,
       COALESCE(metrics.accepted_child_count, 0)::int AS accepted_answer_count,
@@ -197,6 +200,7 @@ export const productQuestionAnswerListView = reviewsSchema
     SELECT content.store_id, content.id, content.body, content.locale,
       content.author_type, content.author_customer_id, content.status,
       content.revision, content.created_at, content.updated_at, content.deleted_at,
+      content.redacted_at,
       COALESCE(metrics.like_count, 0)::int AS like_count,
       answer.question_id, answer.is_official, answer.is_accepted, answer.sort_index
     FROM reviews.content_item content

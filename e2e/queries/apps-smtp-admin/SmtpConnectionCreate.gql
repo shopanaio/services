@@ -1,0 +1,15 @@
+mutation SmtpConnectionCreate($input: SmtpConnectionCreateInput!) {
+  smtpAppMutation {
+    smtpConnectionCreate(input: $input) {
+      connection {
+        id
+        status
+      }
+      userErrors {
+        code
+        message
+        field
+      }
+    }
+  }
+}
