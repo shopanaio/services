@@ -458,11 +458,13 @@ function createCommonOptions(
               phoneNumber: {
                 type: "string" as const,
                 required: false,
+                input: false,
               },
               phoneNumberVerified: {
                 type: "boolean" as const,
                 required: false,
                 defaultValue: false,
+                input: false,
               },
               syntheticEmail: {
                 type: "boolean" as const,

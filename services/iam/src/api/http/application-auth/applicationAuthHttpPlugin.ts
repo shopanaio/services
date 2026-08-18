@@ -563,6 +563,17 @@ function assertEffectiveRequestPolicy(
   normalizedPath: string,
   raw: RawApplicationAuthRequest
 ): void {
+  if (normalizedPath === "/sign-up/email") {
+    if (!raw.body) {
+      throw new ApplicationAuthRequestError("JSON body is required");
+    }
+    const body = parseJsonBody(raw.body);
+    if ("phoneNumber" in body || "phoneNumberVerified" in body) {
+      throw new ApplicationAuthRequestError(
+        "Phone identity fields cannot be set during email sign-up"
+      );
+    }
+  }
   if (normalizedPath === "/sign-in/social") {
     if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
     const body = parseJsonBody(raw.body);
