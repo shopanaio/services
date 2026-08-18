@@ -25,6 +25,7 @@ CREATE TABLE "loyalty"."tier_policy" (
       AND "calendar_period" IS NULL
       AND "program_year_starts_month" IS NULL)
     OR ("window_type" = 'ROLLING'
+      AND "rolling_window_days" IS NOT NULL
       AND "rolling_window_days" > 0
       AND "calendar_period" IS NULL
       AND "program_year_starts_month" IS NULL)
@@ -33,6 +34,7 @@ CREATE TABLE "loyalty"."tier_policy" (
       AND "calendar_period" IS NOT NULL
       AND (
         ("calendar_period" = 'PROGRAM_YEAR'
+          AND "program_year_starts_month" IS NOT NULL
           AND "program_year_starts_month" BETWEEN 1 AND 12)
         OR ("calendar_period" <> 'PROGRAM_YEAR'
           AND "program_year_starts_month" IS NULL)

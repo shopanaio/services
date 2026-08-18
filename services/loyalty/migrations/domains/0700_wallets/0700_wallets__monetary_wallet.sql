@@ -234,19 +234,19 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   transaction_kind "loyalty"."monetary_transaction_kind";
-  entries_finalized boolean;
+  transaction_entries_finalized boolean;
   entry_count integer;
   pending_delta bigint;
   available_delta bigint;
   reserved_delta bigint;
   debt_delta bigint;
 BEGIN
-  SELECT "kind", "entries_finalized"
-    INTO transaction_kind, entries_finalized
-    FROM "loyalty"."monetary_transaction"
-   WHERE "id" = NEW."id";
+  SELECT monetary_tx."kind", monetary_tx."entries_finalized"
+    INTO transaction_kind, transaction_entries_finalized
+    FROM "loyalty"."monetary_transaction" AS monetary_tx
+   WHERE monetary_tx."id" = NEW."id";
 
-  IF NOT entries_finalized THEN
+  IF NOT transaction_entries_finalized THEN
     RAISE EXCEPTION 'Monetary transaction must be finalized before commit';
   END IF;
 

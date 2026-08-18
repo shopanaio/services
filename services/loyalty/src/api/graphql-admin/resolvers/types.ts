@@ -74,6 +74,10 @@ const nodeTypes = [
   [LoyaltyMonetaryLotAllocationResolver, "LoyaltyMonetaryLotAllocation"],
 ] as const;
 
+const nodeTypesByConstructorName = new Map(
+  nodeTypes.map(([Resolver, typeName]) => [Resolver.name, typeName]),
+);
+
 function reference(Resolver: any, type: GlobalIdType) {
   return async (value: { id: string }, ctx: ServiceContext, info: GraphQLResolveInfo) =>
     Resolver.load(decodeGlobalIdByType(value.id, type), parseGraphqlInfo(info), ctx);
@@ -85,6 +89,11 @@ export const typeResolvers = {
     __resolveType: (value: unknown) => {
       for (const [Resolver, typeName] of nodeTypes) {
         if (value instanceof Resolver) return typeName;
+      }
+      if (value && typeof value === "object") {
+        const typename = (value as { __typename?: unknown }).__typename;
+        if (typeof typename === "string") return typename;
+        return nodeTypesByConstructorName.get((value as object).constructor.name) ?? null;
       }
       return null;
     },

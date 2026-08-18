@@ -68,6 +68,7 @@ export const tierPolicies = loyaltySchema.table(
           AND ${table.calendarPeriod} IS NULL
           AND ${table.programYearStartsMonth} IS NULL)
         OR (${table.windowType} = 'ROLLING'
+          AND ${table.rollingWindowDays} IS NOT NULL
           AND ${table.rollingWindowDays} > 0
           AND ${table.calendarPeriod} IS NULL
           AND ${table.programYearStartsMonth} IS NULL)
@@ -75,6 +76,7 @@ export const tierPolicies = loyaltySchema.table(
           AND ${table.rollingWindowDays} IS NULL
           AND ${table.calendarPeriod} IS NOT NULL
           AND ((${table.calendarPeriod} = 'PROGRAM_YEAR'
+              AND ${table.programYearStartsMonth} IS NOT NULL
               AND ${table.programYearStartsMonth} BETWEEN 1 AND 12)
             OR (${table.calendarPeriod} <> 'PROGRAM_YEAR'
               AND ${table.programYearStartsMonth} IS NULL)))`,

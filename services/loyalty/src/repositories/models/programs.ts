@@ -1,12 +1,12 @@
 import { sql } from "drizzle-orm";
 import {
-  bigint,
   boolean,
   check,
   foreignKey,
   index,
   integer,
   jsonb,
+  numeric,
   text,
   timestamp,
   unique,
@@ -117,21 +117,21 @@ export const programVersions = loyaltySchema.table(
       .notNull()
       .default(0),
     pointsExpiryDays: integer("points_expiry_days"),
-    earnPoints: bigint("earn_points", { mode: "bigint" }).notNull(),
-    earnAmountMinor: bigint("earn_amount_minor", { mode: "bigint" }).notNull(),
-    minimumEligibleAmountMinor: bigint("minimum_eligible_amount_minor", {
+    earnPoints: numeric("earn_points", { mode: "bigint" }).notNull(),
+    earnAmountMinor: numeric("earn_amount_minor", { mode: "bigint" }).notNull(),
+    minimumEligibleAmountMinor: numeric("minimum_eligible_amount_minor", {
       mode: "bigint",
     })
       .notNull()
       .default(0n),
-    redeemPoints: bigint("redeem_points", { mode: "bigint" }).notNull(),
-    redeemAmountMinor: bigint("redeem_amount_minor", {
+    redeemPoints: numeric("redeem_points", { mode: "bigint" }).notNull(),
+    redeemAmountMinor: numeric("redeem_amount_minor", {
       mode: "bigint",
     }).notNull(),
-    minimumRedeemPoints: bigint("minimum_redeem_points", { mode: "bigint" })
+    minimumRedeemPoints: numeric("minimum_redeem_points", { mode: "bigint" })
       .notNull()
       .default(1n),
-    maximumRedeemPointsPerOrder: bigint("maximum_redeem_points_per_order", {
+    maximumRedeemPointsPerOrder: numeric("maximum_redeem_points_per_order", {
       mode: "bigint",
     }),
     maximumOrderPercentageBps: integer("maximum_order_percentage_bps")
@@ -201,9 +201,11 @@ export const programVersions = loyaltySchema.table(
     ),
     check(
       "loyalty_program_version_schedule_check",
-      sql`(${table.status} = 'DRAFT' OR ${table.effectiveFrom} IS NOT NULL)
-        AND (${table.effectiveTo} IS NULL
-          OR (${table.effectiveFrom} IS NOT NULL AND ${table.effectiveTo} > ${table.effectiveFrom}))`,
+      sql`(${table.status} = 'DRAFT'
+          AND (${table.effectiveFrom} IS NULL OR ${table.effectiveTo} IS NULL
+            OR ${table.effectiveTo} > ${table.effectiveFrom}))
+        OR (${table.status} <> 'DRAFT' AND ${table.effectiveFrom} IS NOT NULL
+          AND (${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}))`,
     ),
     check(
       "loyalty_program_version_published_check",

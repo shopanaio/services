@@ -202,8 +202,7 @@ BEGIN
     NEW."quantity",
     NEW."valid_from",
     NEW."valid_to",
-    NEW."issued_at",
-    NEW."created_at"
+    NEW."issued_at"
   ) IS DISTINCT FROM (
     OLD."id",
     OLD."store_id",
@@ -218,8 +217,7 @@ BEGIN
     OLD."quantity",
     OLD."valid_from",
     OLD."valid_to",
-    OLD."issued_at",
-    OLD."created_at"
+    OLD."issued_at"
   ) THEN
     RAISE EXCEPTION 'Issued reward entitlement identity and snapshot are immutable';
   END IF;

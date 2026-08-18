@@ -282,7 +282,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, transaction: null, userErrors: [toUserError(error)] };
+      return { account: null, transaction: null, userErrors: [this.toUserError(error, "pointsAdjust")] };
     }
   }
 
@@ -317,7 +317,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { reservation: null, transaction: null, userErrors: [toUserError(error)] };
+      return { reservation: null, transaction: null, userErrors: [this.toUserError(error, "reservationRelease")] };
     }
   }
 
@@ -367,7 +367,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       if (version) this.$ctx.loaders.programVersions.clear(version.programId);
       return { deletedProgramVersionId: this.encodeId(id, GlobalIdEntity.LoyaltyProgramVersion), userErrors: [] };
     } catch (error) {
-      return { deletedProgramVersionId: null, userErrors: [toUserError(error)] };
+      return { deletedProgramVersionId: null, userErrors: [this.toUserError(error, "programVersionDelete")] };
     }
   }
 
@@ -511,7 +511,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       if (policy) this.$ctx.loaders.tierPolicy.clear(policy.id);
       return { deletedId: this.encodeId(deleted.id, GlobalIdEntity.LoyaltyTierPolicy), userErrors: [] };
     } catch (error) {
-      return { deletedId: null, userErrors: [toUserError(error)] };
+      return { deletedId: null, userErrors: [this.toUserError(error, "tierPolicyDelete")] };
     }
   }
 
@@ -728,7 +728,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { monetaryWallet: null, transaction: null, userErrors: [toUserError(error)] };
+      return { monetaryWallet: null, transaction: null, userErrors: [this.toUserError(error, "monetaryWalletAdjust")] };
     }
   }
 
@@ -762,7 +762,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, monetaryWallet: null, pointsTransaction: null, monetaryTransaction: null, amount: null, userErrors: [toUserError(error)] };
+      return { account: null, monetaryWallet: null, pointsTransaction: null, monetaryTransaction: null, amount: null, userErrors: [this.toUserError(error, "pointsConvertToMonetary")] };
     }
   }
 
@@ -784,7 +784,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       }, { adminContext: this.$ctx.adminContext });
       return { result, userErrors: [] };
     } catch (error) {
-      return { result: null, userErrors: [toUserError(error)] };
+      return { result: null, userErrors: [this.toUserError(error, "maintenanceRun")] };
     }
   }
 
@@ -802,7 +802,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         userErrors: [],
       };
     } catch (error) {
-      return { account: null, balance: null, userErrors: [toUserError(error)] };
+      return { account: null, balance: null, userErrors: [this.toUserError(error, "accountBalanceRebuild")] };
     }
   }
 
@@ -843,7 +843,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       await work(id);
       return { deletedId: this.encodeId(id, type), userErrors: [] };
     } catch (error) {
-      return { deletedId: null, userErrors: [toUserError(error)] };
+      return { deletedId: null, userErrors: [this.toUserError(error, "delete")] };
     }
   }
 
@@ -902,21 +902,31 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
     try {
       return { [key]: await work(), userErrors: [] };
     } catch (error) {
-      return { [key]: null, userErrors: [toUserError(error)] };
+      return { [key]: null, userErrors: [this.toUserError(error, key)] };
     }
   }
-}
 
-function toUserError(error: unknown): UserError {
-  if (error instanceof LoyaltyDomainError) {
-    return { message: error.message, field: [], code: error.code, retryable: error.retryable };
+  private toUserError(error: unknown, operation: string): UserError {
+    if (error instanceof LoyaltyDomainError) {
+      return { message: error.message, field: [], code: error.code, retryable: error.retryable };
+    }
+    this.$ctx.kernel.getServices().logger.error(
+      {
+        requestId: this.$ctx.requestId,
+        operation,
+        error: error instanceof Error
+          ? { name: error.name, message: error.message, stack: error.stack }
+          : { value: String(error) },
+      },
+      "Loyalty Admin GraphQL mutation failed",
+    );
+    return {
+      message: "The loyalty operation could not be completed",
+      field: [],
+      code: "LOYALTY_OPERATION_FAILED",
+      retryable: false,
+    };
   }
-  return {
-    message: "The loyalty operation could not be completed",
-    field: [],
-    code: "LOYALTY_OPERATION_FAILED",
-    retryable: false,
-  };
 }
 
 function copyDefined(target: Record<string, unknown>, source: Record<string, any>, keys: readonly string[]): void {

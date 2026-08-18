@@ -48,13 +48,13 @@ CREATE TABLE "loyalty"."program_version" (
   "redemption_enabled" boolean NOT NULL DEFAULT true,
   "activation_delay_seconds" integer NOT NULL DEFAULT 0,
   "points_expiry_days" integer,
-  "earn_points" bigint NOT NULL,
-  "earn_amount_minor" bigint NOT NULL,
-  "minimum_eligible_amount_minor" bigint NOT NULL DEFAULT 0,
-  "redeem_points" bigint NOT NULL,
-  "redeem_amount_minor" bigint NOT NULL,
-  "minimum_redeem_points" bigint NOT NULL DEFAULT 1,
-  "maximum_redeem_points_per_order" bigint,
+  "earn_points" numeric NOT NULL,
+  "earn_amount_minor" numeric NOT NULL,
+  "minimum_eligible_amount_minor" numeric NOT NULL DEFAULT 0,
+  "redeem_points" numeric NOT NULL,
+  "redeem_amount_minor" numeric NOT NULL,
+  "minimum_redeem_points" numeric NOT NULL DEFAULT 1,
+  "maximum_redeem_points_per_order" numeric,
   "maximum_order_percentage_bps" integer NOT NULL DEFAULT 10000,
   "rounding_mode" "loyalty"."rounding_mode" NOT NULL DEFAULT 'DOWN',
   "refund_policy" "loyalty"."refund_policy" NOT NULL DEFAULT 'PROPORTIONAL',
@@ -79,11 +79,13 @@ CREATE TABLE "loyalty"."program_version" (
     UNIQUE ("id", "program_id", "store_id"),
   CONSTRAINT "loyalty_program_version_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_program_version_schedule_check" CHECK (
-    ("status" = 'DRAFT' OR "effective_from" IS NOT NULL)
-    AND (
-      "effective_to" IS NULL
-      OR ("effective_from" IS NOT NULL AND "effective_to" > "effective_from")
-    )
+    ("status" = 'DRAFT' AND (
+      "effective_from" IS NULL OR "effective_to" IS NULL
+      OR "effective_to" > "effective_from"
+    ))
+    OR ("status" <> 'DRAFT' AND "effective_from" IS NOT NULL AND (
+      "effective_to" IS NULL OR "effective_to" > "effective_from"
+    ))
   ),
   CONSTRAINT "loyalty_program_version_published_check" CHECK (
     ("status" = 'DRAFT' AND "published_at" IS NULL AND "published_by_id" IS NULL)

@@ -124,6 +124,14 @@ export class ProgramLifecycleService {
     input: ProgramVersionDraftInput,
     configuration: ProgramVersionConfigurationInput = {},
   ): Promise<ProgramVersion> {
+    if (input.effectiveFrom != null
+      && input.effectiveTo != null
+      && Date.parse(input.effectiveTo) <= Date.parse(input.effectiveFrom)) {
+      throw new LoyaltyDomainError(
+        "INVALID_PROGRAM_VERSION_WINDOW",
+        "Program version effectiveTo must be after effectiveFrom",
+      );
+    }
     const canonical = createLoyaltyProgramRulesV1(input.rules);
     if (!canonical.valid) {
       throw new LoyaltyDomainError(
@@ -354,6 +362,7 @@ export class ProgramLifecycleService {
 
   async upsertTierPolicy(versionId: string, input: TierPolicyDraftInput) {
     validateTierMetricSchemaVersion(input.metricSchemaVersion);
+    validateTierPolicyConfiguration(input);
     return this.repository.runInTransaction(async () => {
       await this.requireDraftVersion(versionId);
       const current = await this.repository.tier.findPolicy(versionId);
@@ -378,6 +387,9 @@ export class ProgramLifecycleService {
     if (input.maintenance) validateTierPolicyExpression(input.maintenance, "maintenance", input.qualificationSchemaVersion);
     return this.repository.runInTransaction(async () => {
       await this.requireDraftVersion(versionId);
+      if ((await this.repository.tier.listForVersion(versionId)).some(({ rank }) => rank === input.rank)) {
+        throw new LoyaltyDomainError("TIER_RANK_CONFLICT", "Tier rank must be unique within a program version");
+      }
       return this.repository.tier.createTier({ ...input, programVersionId: versionId });
     });
   }
@@ -466,9 +478,24 @@ export class ProgramLifecycleService {
       for (const definition of rewardDefinitions) {
         validateRewardConfiguration(definition.rewardType, definition.configuration, definition.configurationSchemaVersion);
       }
-      const policy = await this.repository.tier.findPolicy(draft.id);
+      let policy = await this.repository.tier.findPolicy(draft.id);
+      const tiers = await this.repository.tier.listForVersion(draft.id);
+      if (!policy && tiers.length > 0) {
+        policy = await this.repository.tier.createPolicy({
+          programVersionId: draft.id,
+          windowType: "LIFETIME",
+          rollingWindowDays: null,
+          calendarPeriod: null,
+          programYearStartsMonth: null,
+          membershipDurationDays: null,
+          gracePeriodDays: 0,
+          downgradePolicy: "IMMEDIATE",
+          requalificationPolicy: "AUTOMATIC",
+          metricSchemaVersion: 1,
+        });
+      }
       if (policy) validateTierMetricSchemaVersion(policy.metricSchemaVersion);
-      for (const tier of await this.repository.tier.listForVersion(draft.id)) {
+      for (const tier of tiers) {
         validateTierPolicyExpression(tier.qualification, "qualification", tier.qualificationSchemaVersion);
         if (tier.maintenance) validateTierPolicyExpression(tier.maintenance, "maintenance", tier.qualificationSchemaVersion);
         for (const benefit of await this.repository.reward.listTierBenefits(tier.id)) {
@@ -483,33 +510,32 @@ export class ProgramLifecycleService {
         earningRules,
       });
       if (referenceIssues.length > 0) throw new LoyaltyDomainError("STALE_PROGRAM_REFERENCE", referenceIssues.map(({ message }) => message).join("; "));
-      if (Date.parse(input.effectiveFrom) < Date.parse(input.publishedAt)) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_VERSION_BACKDATING_FORBIDDEN",
-          "A published program version cannot take effect before publication",
-        );
-      }
+      const requestedEffectiveFrom = Date.parse(input.effectiveFrom);
+      const publishedAt = Date.parse(input.publishedAt);
+      const effectiveFrom = requestedEffectiveFrom <= publishedAt
+        ? input.publishedAt
+        : input.effectiveFrom;
       const publishedVersions = (await this.repository.program.listVersions(draft.programId))
         .filter(({ id, status }) => id !== draft.id && status !== "DRAFT");
       const latestEffectiveFrom = publishedVersions
         .map(({ effectiveFrom }) => effectiveFrom)
         .filter((value): value is string => value !== null)
         .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
-      if (latestEffectiveFrom && Date.parse(input.effectiveFrom) <= Date.parse(latestEffectiveFrom)) {
+      if (latestEffectiveFrom && Date.parse(effectiveFrom) <= Date.parse(latestEffectiveFrom)) {
         throw new LoyaltyDomainError(
           "INVALID_PROGRAM_VERSION_WINDOW",
           "A new version must start after every previously published version",
         );
       }
-      const activeNow = Date.parse(input.effectiveFrom) === Date.parse(input.publishedAt);
+      const activeNow = effectiveFrom === input.publishedAt;
       const effectiveTo = input.effectiveTo === undefined ? draft.effectiveTo : input.effectiveTo;
-      if (effectiveTo && Date.parse(effectiveTo) <= Date.parse(input.effectiveFrom)) {
+      if (effectiveTo && Date.parse(effectiveTo) <= Date.parse(effectiveFrom)) {
         throw new LoyaltyDomainError("INVALID_PROGRAM_VERSION_WINDOW", "Program version effectiveTo must be after effectiveFrom");
       }
       if (activeNow) {
         const current = await this.repository.program.findActiveVersion(draft.programId);
         if (current) {
-          const retired = await this.repository.program.retireActiveVersion(current.id, input.effectiveFrom);
+          const retired = await this.repository.program.retireActiveVersion(current.id, effectiveFrom);
           if (!retired) {
             throw new LoyaltyDomainError(
               "INVALID_PROGRAM_VERSION_WINDOW",
@@ -520,7 +546,7 @@ export class ProgramLifecycleService {
       }
       const published = await this.repository.program.publishDraftVersion(draft.id, {
         status: activeNow ? "ACTIVE" : "SCHEDULED",
-        effectiveFrom: input.effectiveFrom,
+        effectiveFrom,
         effectiveTo,
         publishedAt: input.publishedAt,
         publishedById: input.publishedById,
@@ -606,5 +632,44 @@ export class ProgramLifecycleService {
         );
       }
     }
+  }
+}
+
+function validateTierPolicyConfiguration(input: TierPolicyDraftInput): void {
+  const rollingWindowDays = input.rollingWindowDays ?? null;
+  const calendarPeriod = input.calendarPeriod ?? null;
+  const programYearStartsMonth = input.programYearStartsMonth ?? null;
+  const membershipDurationDays = input.membershipDurationDays ?? null;
+  const gracePeriodDays = input.gracePeriodDays ?? 0;
+  const downgradePolicy = input.downgradePolicy ?? "IMMEDIATE";
+  const validWindow = input.windowType === "LIFETIME"
+    ? rollingWindowDays === null
+      && calendarPeriod === null
+      && programYearStartsMonth === null
+    : input.windowType === "ROLLING"
+      ? rollingWindowDays !== null
+        && rollingWindowDays > 0
+        && calendarPeriod === null
+        && programYearStartsMonth === null
+      : rollingWindowDays === null
+        && calendarPeriod !== null
+        && (calendarPeriod === "PROGRAM_YEAR"
+          ? programYearStartsMonth !== null
+            && programYearStartsMonth >= 1
+            && programYearStartsMonth <= 12
+          : programYearStartsMonth === null);
+  if (!validWindow) {
+    throw new LoyaltyDomainError(
+      "INVALID_TIER_POLICY",
+      "Tier policy evaluation window options are inconsistent",
+    );
+  }
+  if ((membershipDurationDays !== null && membershipDurationDays <= 0)
+    || gracePeriodDays < 0
+    || (downgradePolicy !== "GRACE_PERIOD" && gracePeriodDays !== 0)) {
+    throw new LoyaltyDomainError(
+      "INVALID_TIER_POLICY",
+      "Tier policy duration and grace period options are inconsistent",
+    );
   }
 }

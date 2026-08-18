@@ -264,7 +264,12 @@ export class RewardEntitlementService {
       if (current.status !== "ISSUED" && current.status !== "RESERVED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement cannot be expired");
       return { eventType: "EXPIRED", fields: { status: "EXPIRED", reservedForCheckoutId: null, reservedAt: null, expiredAt: at } };
     }
-    if (current.status === "REDEEMED" || current.status === "EXPIRED") throw new LoyaltyDomainError("ENTITLEMENT_TERMINAL", "Redeemed or expired rewards cannot be revoked");
+    if (current.status === "REDEEMED" || current.status === "EXPIRED" || current.status === "REVOKED") {
+      throw new LoyaltyDomainError(
+        "ENTITLEMENT_TERMINAL",
+        "Redeemed, expired, or revoked rewards cannot be revoked",
+      );
+    }
     return { eventType: "REVOKED", fields: { status: "REVOKED", reservedForCheckoutId: null, reservedAt: null, revokedAt: at } };
   }
 }

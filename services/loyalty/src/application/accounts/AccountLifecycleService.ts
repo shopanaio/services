@@ -63,6 +63,10 @@ export class AccountLifecycleService {
       }
       if (input.points <= 0n) throw new LoyaltyDomainError("INVALID_ADJUSTMENT", "Adjustment points must be positive");
       if (input.direction === "CREDIT") {
+        const expiresAt = input.expiresAt ?? null;
+        const activationAt = expiresAt !== null && Date.parse(expiresAt) <= Date.parse(input.occurredAt)
+          ? new Date(Date.parse(expiresAt) - 1).toISOString()
+          : input.occurredAt;
         return this.points.award({
           account,
           programVersionId: null,
@@ -76,8 +80,8 @@ export class AccountLifecycleService {
           occurredAt: input.occurredAt,
           effectiveAt: input.occurredAt,
           points: input.points,
-          activationAt: input.occurredAt,
-          expiresAt: input.expiresAt ?? null,
+          activationAt,
+          expiresAt,
           operationKind: "ADJUST_CREDIT",
           metadata: { adjustment: true, ...(input.metadata ?? {}) },
         });
