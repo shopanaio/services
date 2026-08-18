@@ -130,12 +130,6 @@ export class CreateCheckoutDto {
   @Expose()
   @IsString()
   @IsNotEmpty()
-  @MaxLength(256)
-  idempotencyKey!: string;
-
-  @Expose()
-  @IsString()
-  @IsNotEmpty()
   @MaxLength(128)
   channelCode!: string;
 

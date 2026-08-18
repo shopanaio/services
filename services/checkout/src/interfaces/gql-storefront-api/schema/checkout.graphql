@@ -83,9 +83,6 @@ type Checkout implements Node @key(fields: "id") {
   """Display and settlement currency of this checkout snapshot."""
   currencyCode: CurrencyCode!
 
-  """Optimistic concurrency version of the committed checkout."""
-  version: Int!
-
   """Revision of the last complete checkout pipeline result."""
   resultRevision: String!
 
@@ -210,8 +207,6 @@ type CheckoutTag implements Node @key(fields: "id") {
 Input data for creating a new checkout.
 """
 input CheckoutCreateInput {
-  """Client-generated opaque key used to replay this create safely."""
-  idempotencyKey: String!
   """Canonical sales channel used by pricing and eligibility rules."""
   channelCode: String!
   """
@@ -493,11 +488,7 @@ input CheckoutCustomerIdentityUpdateInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Customer's email address. If specified, will be linked to the checkout.
@@ -540,11 +531,7 @@ input CheckoutCustomerNoteUpdateInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Text of the customer note (delivery instructions, etc.).
@@ -562,11 +549,7 @@ input CheckoutLanguageCodeUpdateInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
@@ -584,11 +567,7 @@ input CheckoutCurrencyCodeUpdateInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Currency code according to ISO 4217 (e.g., "USD", "EUR").
@@ -642,10 +621,6 @@ input CheckoutBillingAddressInput {
 """Input for replacing or clearing the checkout billing address."""
 input CheckoutBillingAddressUpdateInput {
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """New address. Passing null clears the current billing address."""
   billingAddress: CheckoutBillingAddressInput
 }
@@ -659,11 +634,7 @@ input CheckoutPromoCodeAddInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Text code of the coupon/promo code.
@@ -680,11 +651,7 @@ input CheckoutPromoCodeRemoveInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
 
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 
   """
   Text code of the coupon/promo code to be cancelled.
@@ -714,10 +681,6 @@ input CheckoutTagCreateInput {
   Checkout identifier.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   Tag configuration.
   """
@@ -732,10 +695,6 @@ input CheckoutTagUpdateInput {
   Checkout identifier.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   Tag identifier (global ID).
   """
@@ -758,10 +717,6 @@ input CheckoutTagDeleteInput {
   Checkout identifier.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   Tag identifier (global ID).
   """

@@ -1930,12 +1930,8 @@ export type PlaceOrderCustomerActionType =
 export type ApiPlaceOrderInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Optimistic concurrency version returned by Checkout.version. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
   /** Pipeline revision returned by Checkout.resultRevision. */
   expectedResultRevision: Scalars['String']['input'];
-  /** Client-generated opaque key used to replay placement safely. */
-  idempotencyKey: Scalars['String']['input'];
   /** HTTPS URL to which an online payment provider may return the customer. */
   returnUrl?: InputMaybe<Scalars['String']['input']>;
 };

@@ -2,7 +2,6 @@ import {
   IsEmail,
   IsString,
   IsOptional,
-  MinLength,
   Matches,
 } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
@@ -31,11 +30,6 @@ export class CheckoutCustomerIdentityUpdateInput {
     message: "Country code must be a valid 2-letter ISO code",
   })
   countryCode?: string | null;
-
-  @IsOptional()
-  @IsString({ message: "Idempotency key must be a string" })
-  @MinLength(1, { message: "Idempotency key cannot be empty" })
-  idempotencyKey?: string;
 
   @IsOptional()
   @IsString({ message: "First name must be a string" })

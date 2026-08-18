@@ -26,9 +26,8 @@ export const placeOrder = async (
     organizationId: ctx.organizationId,
     storeId: ctx.store.id,
     checkoutId: dto.checkoutId,
-    expectedCheckoutVersion: dto.expectedCheckoutVersion,
     expectedResultRevision: dto.expectedResultRevision.trim(),
-    idempotencyKey: dto.idempotencyKey.trim(),
+    idempotencyKey: uuidv7(),
     correlationId: uuidv7(),
     credentialId: ctx.storefrontAccess.credentialId,
     userId: ctx.user?.id ?? null,
@@ -78,7 +77,6 @@ export const placeOrder = async (
       {
         reason,
         checkoutId: dto.checkoutId,
-        expectedCheckoutVersion: dto.expectedCheckoutVersion,
       },
       "Place order failed",
     );

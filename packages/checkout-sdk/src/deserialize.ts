@@ -178,7 +178,6 @@ export const deserializeCheckout = (dto: CheckoutDto): Checkout => ({
   updatedAt: dto.updatedAt,
   storeId: dto.storeId,
   currencyCode: dto.currencyCode,
-  idempotencyKey: dto.idempotencyKey,
   salesChannel: dto.salesChannel,
   externalSource: dto.externalSource,
   externalId: dto.externalId,
@@ -196,7 +195,6 @@ export const deserializeCheckout = (dto: CheckoutDto): Checkout => ({
   number: dto.number,
   status: dto.status,
   expiresAt: dto.expiresAt,
-  version: dto.version,
   metadata: dto.metadata,
   deletedAt: dto.deletedAt,
 });

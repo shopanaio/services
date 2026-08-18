@@ -5,7 +5,6 @@ export type { CheckoutContext };
 
 export type CreateCheckoutInput = {
   currencyCode: string;
-  idempotencyKey: string;
   channelCode: string;
   externalSource?: string | null;
   externalId?: string | null;

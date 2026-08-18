@@ -216,10 +216,6 @@ input CheckoutLinesAddInput {
   ID of the checkout.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   List of checkout items to add.
   """
@@ -234,10 +230,6 @@ input CheckoutLinesUpdateInput {
   ID of the checkout.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   List of checkout items to update.
   """
@@ -267,10 +259,6 @@ input CheckoutLinesDeleteInput {
   ID of the checkout.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   IDs of the lines to remove.
   """
@@ -285,10 +273,6 @@ input CheckoutLinesClearInput {
   ID of the checkout to clear.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
 }
 
 """
@@ -301,10 +285,6 @@ input CheckoutLinesReplaceInput {
   ID of the checkout.
   """
   checkoutId: ID!
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
   """
   List of replacement operations to apply.
   """

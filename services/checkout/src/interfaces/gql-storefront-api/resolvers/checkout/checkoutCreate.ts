@@ -23,7 +23,6 @@ export const checkoutCreate = async (
       channelCode: dto.channelCode.trim(),
       externalId: dto.externalId ?? null,
       externalSource: dto.externalSource ?? null,
-      idempotencyKey: dto.idempotencyKey.trim(),
       localeCode: dto.localeCode ?? null,
       tags: (dto.tags ?? []).map((tag) => ({
         slug: tag.slug,

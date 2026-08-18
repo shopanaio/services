@@ -63,12 +63,6 @@ input CheckoutPaymentMethodUpdateInput {
   """
   checkoutId: ID!
 
-  """Checkout.version expected by the client."""
-  expectedCheckoutVersion: Int!
-
-  """Client-generated opaque key used to safely replay this mutation."""
-  idempotencyKey: String!
-
   """Opaque handle returned by the current checkout snapshot."""
   methodHandle: String!
 
@@ -84,14 +78,8 @@ input PlaceOrderInput {
   """Checkout identifier."""
   checkoutId: ID!
 
-  """Optimistic concurrency version returned by Checkout.version."""
-  expectedCheckoutVersion: Int!
-
   """Pipeline revision returned by Checkout.resultRevision."""
   expectedResultRevision: String!
-
-  """Client-generated opaque key used to replay placement safely."""
-  idempotencyKey: String!
 
   """HTTPS URL to which an online payment provider may return the customer."""
   returnUrl: String
@@ -151,8 +139,6 @@ type PlaceOrderPayload {
   placementId: ID
   """Checkout snapshot committed by this placement."""
   checkoutId: ID
-  """Checkout.version captured by this placement."""
-  checkoutVersion: Int
   """Checkout.resultRevision captured by this placement."""
   resultRevision: String
   orderId: ID

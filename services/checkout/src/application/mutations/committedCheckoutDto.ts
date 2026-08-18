@@ -179,7 +179,6 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     number: null,
     status: result.validation.data.valid ? "ready" : "new",
     expiresAt: null,
-    version: checkout.version,
     metadata: {
       resultRevision: result.resultRevision,
       loyaltyRedemption: loyalty ? {

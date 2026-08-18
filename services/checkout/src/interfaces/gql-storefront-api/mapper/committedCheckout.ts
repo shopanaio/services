@@ -272,7 +272,6 @@ export function mapCommittedCheckoutToApi(
   return {
     __typename: "Checkout",
     id: encodeGlobalIdByType(checkout.checkoutId, GlobalIdEntity.Checkout),
-    version: checkout.version,
     billingAddress: null,
     channelCode: draft.channelCode,
     currencyCode: draft.currencyCode as ApiCurrencyCode,

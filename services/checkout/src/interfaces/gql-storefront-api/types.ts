@@ -38,6 +38,7 @@ export type Scalars = {
   /** An unsigned 64-bit integer serialized as a decimal string. */
   UnsignedInt64: { input: any; output: any; }
 };
+
 /** A checkout with multiple items. */
 export type ApiCheckout = ApiNode & {
   __typename?: 'Checkout';
@@ -88,8 +89,6 @@ export type ApiCheckout = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
   /** Whether the committed checkout is ready according to validation. */
   valid: Scalars['Boolean']['output'];
-  /** Optimistic concurrency version of the committed checkout. */
-  version: Scalars['Int']['output'];
 };
 
 /**
@@ -141,10 +140,6 @@ export type ApiCheckoutBillingAddressUpdateInput = {
   /** New address. Passing null clears the current billing address. */
   billingAddress: InputMaybe<ApiCheckoutBillingAddressInput>;
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /**
@@ -192,8 +187,6 @@ export type ApiCheckoutCreateInput = {
   externalId: InputMaybe<Scalars['String']['input']>;
   /** Source of sales for the checkout. */
   externalSource: InputMaybe<Scalars['String']['input']>;
-  /** Client-generated opaque key used to replay this create safely. */
-  idempotencyKey: Scalars['String']['input'];
   /** Initial items to add to the new checkout. */
   items: Array<ApiCheckoutLineAddInput>;
   /** Locale code for the checkout. ISO 639-1 (2 letters, e.g., "en", "ru") */
@@ -208,10 +201,6 @@ export type ApiCheckoutCurrencyCodeUpdateInput = {
   checkoutId: Scalars['ID']['input'];
   /** Currency code according to ISO 4217 (e.g., "USD", "EUR"). */
   currencyCode: ApiCurrencyCode;
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 export type ApiCheckoutCustomerIdentity = {
@@ -243,12 +232,8 @@ export type ApiCheckoutCustomerIdentityUpdateInput = {
   countryCode: InputMaybe<ApiCountryCode>;
   /** Customer's email address. If specified, will be linked to the checkout. */
   email: InputMaybe<Scalars['Email']['input']>;
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
   /** First name of the customer. */
   firstName: InputMaybe<Scalars['String']['input']>;
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** Last name of the customer. */
   lastName: InputMaybe<Scalars['String']['input']>;
   /** Middle name of the customer. */
@@ -261,10 +246,6 @@ export type ApiCheckoutCustomerIdentityUpdateInput = {
 export type ApiCheckoutCustomerNoteUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /**
    * Text of the customer note (delivery instructions, etc.).
    * Empty value clears the note.
@@ -363,10 +344,6 @@ export type ApiCheckoutDeliveryAddressesAddInput = {
   addresses: Array<ApiCheckoutDeliveryDestinationInput>;
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing one or more delivery addresses from the checkout. */
@@ -375,20 +352,12 @@ export type ApiCheckoutDeliveryAddressesRemoveInput = {
   addressIds: Array<Scalars['ID']['input']>;
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for batch updating previously added delivery addresses. */
 export type ApiCheckoutDeliveryAddressesUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of updates for delivery addresses. */
   updates: Array<ApiCheckoutDeliveryAddressUpdateInput>;
 };
@@ -437,10 +406,6 @@ export type ApiCheckoutDeliveryMethodUpdateInput = {
   customerInput: InputMaybe<Scalars['JSON']['input']>;
   /** Identifier of the delivery group for which the delivery method is selected. */
   deliveryGroupId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** Opaque handle returned by the current checkout snapshot. */
   optionHandle: Scalars['String']['input'];
 };
@@ -481,10 +446,6 @@ export type ApiCheckoutDeliveryRecipientUpdateInput = {
 export type ApiCheckoutDeliveryRecipientsAddInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of recipients to be added for delivery groups. */
   recipients: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
 };
@@ -495,20 +456,12 @@ export type ApiCheckoutDeliveryRecipientsRemoveInput = {
   checkoutId: Scalars['ID']['input'];
   /** Identifiers of delivery groups whose recipients should be removed. */
   deliveryGroupIds: Array<Scalars['ID']['input']>;
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for batch updating recipients for delivery groups. */
 export type ApiCheckoutDeliveryRecipientsUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of updates for recipients. */
   updates: Array<ApiCheckoutDeliveryRecipientUpdateInput>;
 };
@@ -538,10 +491,6 @@ export enum ApiCheckoutIssueSeverity {
 export type ApiCheckoutLanguageCodeUpdateInput = {
   /** Identifier of the checkout on which the operation is performed. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /**
    * Language/locale code (ISO 639-1, BCP 47 if necessary), e.g. "en", "ru", "uk".
    * Affects localization and formatting.
@@ -672,10 +621,6 @@ export type ApiCheckoutLineUpdateInput = {
 export type ApiCheckoutLinesAddInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of checkout items to add. */
   lines: Array<ApiCheckoutLineAddInput>;
 };
@@ -684,20 +629,12 @@ export type ApiCheckoutLinesAddInput = {
 export type ApiCheckoutLinesClearInput = {
   /** ID of the checkout to clear. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing one or more items from the checkout. */
 export type ApiCheckoutLinesDeleteInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** IDs of the lines to remove. */
   lineIds: Array<Scalars['ID']['input']>;
 };
@@ -710,10 +647,6 @@ export type ApiCheckoutLinesDeleteInput = {
 export type ApiCheckoutLinesReplaceInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of replacement operations to apply. */
   lines: Array<ApiCheckoutLineReplaceInput>;
 };
@@ -722,10 +655,6 @@ export type ApiCheckoutLinesReplaceInput = {
 export type ApiCheckoutLinesUpdateInput = {
   /** ID of the checkout. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** List of checkout items to update. */
   lines: Array<ApiCheckoutLineUpdateInput>;
 };
@@ -753,8 +682,10 @@ export type ApiCheckoutLoyaltyRedemptionRemoveInput = {
 export type ApiCheckoutLoyaltyRedemptionUpdateInput = {
   checkoutId: Scalars['ID']['input'];
   programId: InputMaybe<Scalars['ID']['input']>;
-  redeemPoints?: Scalars['Boolean']['input'];
+  /** Whether points should be redeemed in addition to a selected reward. */
+  redeemPoints: Scalars['Boolean']['input'];
   requestedPoints: InputMaybe<Scalars['BigInt']['input']>;
+  /** Issued loyalty reward entitlement to reserve for this checkout. */
   rewardEntitlementId: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -838,10 +769,6 @@ export type ApiCheckoutPaymentMethodUpdateInput = {
    * It remains private selection intent and is never returned by Storefront API.
    */
   customerInput: InputMaybe<Scalars['JSON']['input']>;
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** Opaque handle returned by the current checkout snapshot. */
   methodHandle: Scalars['String']['input'];
 };
@@ -869,10 +796,6 @@ export type ApiCheckoutPromoCodeAddInput = {
   checkoutId: Scalars['ID']['input'];
   /** Text code of the coupon/promo code. */
   code: Scalars['String']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Input data for removing a previously applied promo code from the checkout. */
@@ -881,10 +804,6 @@ export type ApiCheckoutPromoCodeRemoveInput = {
   checkoutId: Scalars['ID']['input'];
   /** Text code of the coupon/promo code to be cancelled. */
   code: Scalars['String']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
 };
 
 /** Recipient details for the delivery group. */
@@ -947,10 +866,6 @@ export type ApiCheckoutTag = ApiNode & {
 export type ApiCheckoutTagCreateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** Tag configuration. */
   tag: ApiCheckoutTagInput;
 };
@@ -959,10 +874,6 @@ export type ApiCheckoutTagCreateInput = {
 export type ApiCheckoutTagDeleteInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** Tag identifier (global ID). */
   tagId: Scalars['ID']['input'];
 };
@@ -979,10 +890,6 @@ export type ApiCheckoutTagInput = {
 export type ApiCheckoutTagUpdateInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Checkout.version expected by the client. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
-  /** Client-generated opaque key used to safely replay this mutation. */
-  idempotencyKey: Scalars['String']['input'];
   /** New slug, if tag needs to be renamed. */
   slug: InputMaybe<Scalars['String']['input']>;
   /** Tag identifier (global ID). */
@@ -1977,7 +1884,7 @@ export type ApiMutation = {
   checkoutLinesUpdate: ApiCheckoutMutationPayload;
   /** Removes the loyalty redemption selection from this checkout. */
   checkoutLoyaltyRedemptionRemove: ApiCheckoutMutationPayload;
-  /** Applies an exact point amount, or the maximum allowed amount when omitted. */
+  /** Selects loyalty points, an issued reward entitlement, or both. */
   checkoutLoyaltyRedemptionUpdate: ApiCheckoutMutationPayload;
   /** Selects or changes the payment method for the checkout. */
   checkoutPaymentMethodUpdate: ApiCheckoutMutationPayload;
@@ -2185,12 +2092,8 @@ export enum ApiPlaceOrderCustomerActionType {
 export type ApiPlaceOrderInput = {
   /** Checkout identifier. */
   checkoutId: Scalars['ID']['input'];
-  /** Optimistic concurrency version returned by Checkout.version. */
-  expectedCheckoutVersion: Scalars['Int']['input'];
   /** Pipeline revision returned by Checkout.resultRevision. */
   expectedResultRevision: Scalars['String']['input'];
-  /** Client-generated opaque key used to replay placement safely. */
-  idempotencyKey: Scalars['String']['input'];
   /** HTTPS URL to which an online payment provider may return the customer. */
   returnUrl: InputMaybe<Scalars['String']['input']>;
 };
@@ -2200,8 +2103,6 @@ export type ApiPlaceOrderPayload = {
   __typename?: 'PlaceOrderPayload';
   /** Checkout snapshot committed by this placement. */
   checkoutId: Maybe<Scalars['ID']['output']>;
-  /** Checkout.version captured by this placement. */
-  checkoutVersion: Maybe<Scalars['Int']['output']>;
   customerAction: Maybe<ApiPlaceOrderCustomerAction>;
   orderId: Maybe<Scalars['ID']['output']>;
   paymentCollectionId: Maybe<Scalars['ID']['output']>;
@@ -2660,7 +2561,6 @@ export type ApiCheckoutResolvers<ContextType = GraphQLContext, ParentType extend
   totalQuantity: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   updatedAt: Resolver<ApiResolversTypes['DateTime'], ParentType, ContextType>;
   valid: Resolver<ApiResolversTypes['Boolean'], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -3031,7 +2931,6 @@ export type ApiPlaceOrderCustomerActionResolvers<ContextType = GraphQLContext, P
 
 export type ApiPlaceOrderPayloadResolvers<ContextType = GraphQLContext, ParentType extends ApiResolversParentTypes['PlaceOrderPayload'] = ApiResolversParentTypes['PlaceOrderPayload']> = {
   checkoutId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
-  checkoutVersion: Resolver<Maybe<ApiResolversTypes['Int']>, ParentType, ContextType>;
   customerAction: Resolver<Maybe<ApiResolversTypes['PlaceOrderCustomerAction']>, ParentType, ContextType>;
   orderId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;
   paymentCollectionId: Resolver<Maybe<ApiResolversTypes['ID']>, ParentType, ContextType>;

@@ -120,14 +120,8 @@ input PlaceOrderInput {
   """Checkout identifier."""
   checkoutId: ID!
 
-  """Optimistic concurrency version returned by Checkout.version."""
-  expectedCheckoutVersion: Int!
-
   """Pipeline revision returned by Checkout.resultRevision."""
   expectedResultRevision: String!
-
-  """Client-generated opaque key used to replay placement safely."""
-  idempotencyKey: String!
 
   """HTTPS URL to which an online payment provider may return the customer."""
   returnUrl: String

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength, Matches } from "class-validator";
+import { IsString, Matches } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
 import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
@@ -11,9 +11,4 @@ export class CheckoutCurrencyCodeUpdateInput {
     message: "Invalid currency code format (expected: USD, EUR, etc.)",
   })
   currencyCode!: string;
-
-  @IsOptional()
-  @IsString({ message: "Idempotency key must be a string" })
-  @MinLength(1, { message: "Idempotency key cannot be empty" })
-  idempotencyKey?: string;
 }

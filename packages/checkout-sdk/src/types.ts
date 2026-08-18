@@ -155,7 +155,6 @@ export type Checkout = Readonly<{
   updatedAt: string; // DateTime ISO
   storeId?: string;
   currencyCode?: string;
-  idempotencyKey?: string;
   salesChannel?: string;
   externalSource: string | null;
   externalId: string | null;
@@ -173,7 +172,6 @@ export type Checkout = Readonly<{
   number: number | null;
   status?: string;
   expiresAt: string | null; // DateTime ISO
-  version?: number;
   metadata?: Record<string, unknown>;
   deletedAt: string | null; // DateTime ISO
 }>;

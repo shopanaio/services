@@ -24,11 +24,8 @@ export class CreateCheckoutUseCase extends UseCase<
   async execute(input: CreateCheckoutInput): Promise<CheckoutCommittedSnapshot> {
     const { storefrontAccess, store, customer, user, ...business } = input;
     const context = { storefrontAccess, store, customer, user };
-    const idempotencyKey = business.idempotencyKey.trim();
+    const idempotencyKey = uuidv7();
     const channelCode = business.channelCode.trim();
-    if (!idempotencyKey || idempotencyKey.length > 256) {
-      throw invalidCheckoutMutation("CHECKOUT_IDEMPOTENCY_KEY_INVALID", "Checkout idempotency key is invalid.");
-    }
     if (!channelCode || channelCode.length > 128) {
       throw invalidCheckoutMutation("CHECKOUT_CHANNEL_INVALID", "Checkout channel code is invalid.");
     }

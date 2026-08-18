@@ -2,8 +2,6 @@ import { Expose } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
-  IsOptional,
-  MinLength,
   MaxLength,
 } from "class-validator";
 import { IsGlobalId } from "@src/application/validation/globalIdValidators";
@@ -22,12 +20,6 @@ export class CheckoutPromoCodeAddDto {
   @IsNotEmpty({ message: "Promo code cannot be empty" })
   @MaxLength(50, { message: "Promo code too long" })
   code!: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString({ message: "Idempotency key must be a string" })
-  @MinLength(1, { message: "Idempotency key cannot be empty" })
-  idempotencyKey?: string;
 }
 
 /**
@@ -43,10 +35,4 @@ export class CheckoutPromoCodeRemoveDto {
   @IsNotEmpty({ message: "Promo code cannot be empty" })
   @MaxLength(50, { message: "Promo code too long" })
   code!: string;
-
-  @Expose()
-  @IsOptional()
-  @IsString({ message: "Idempotency key must be a string" })
-  @MinLength(1, { message: "Idempotency key cannot be empty" })
-  idempotencyKey?: string;
 }

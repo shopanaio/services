@@ -44,7 +44,6 @@ export interface PlaceOrderWorkflowInput {
   organizationId: string;
   storeId: string;
   checkoutId: string;
-  expectedCheckoutVersion: number;
   expectedResultRevision: string;
   idempotencyKey: string;
   correlationId: string;
@@ -337,7 +336,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     const placement = await this.placements.claim({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
-      checkoutVersion: input.expectedCheckoutVersion,
+      checkoutVersion: checkout.version,
       resultRevision: input.expectedResultRevision,
       idempotencyKey: input.idempotencyKey,
       requestHash,
@@ -986,7 +985,6 @@ export function placeOrderRequestHash(
     organizationId: input.organizationId,
     storeId: input.storeId,
     checkoutId: input.checkoutId,
-    expectedCheckoutVersion: input.expectedCheckoutVersion,
     expectedResultRevision: input.expectedResultRevision,
     credentialId: input.credentialId,
     userId: input.userId,
@@ -1002,12 +1000,6 @@ function validatePlaceOrderInput(input: PlaceOrderWorkflowInput): void {
     ["correlationId", input.correlationId],
   ] as const) {
     if (!isUuid(value)) throw new Error(`PLACE_ORDER_${field.toUpperCase()}_INVALID`);
-  }
-  if (
-    !Number.isSafeInteger(input.expectedCheckoutVersion) ||
-    input.expectedCheckoutVersion <= 0
-  ) {
-    throw new Error("PLACE_ORDER_CHECKOUT_VERSION_INVALID");
   }
   for (const [field, value] of [
     ["expectedResultRevision", input.expectedResultRevision],
@@ -1069,7 +1061,6 @@ function validateCheckoutSnapshot(
   if (
     checkout.storeId !== input.storeId ||
     checkout.checkoutId !== input.checkoutId ||
-    checkout.version !== input.expectedCheckoutVersion ||
     checkout.result.resultRevision !== input.expectedResultRevision
   ) {
     throw new Error("CHECKOUT_PLACEMENT_SNAPSHOT_STALE");
