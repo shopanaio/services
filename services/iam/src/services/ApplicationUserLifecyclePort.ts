@@ -11,6 +11,8 @@ export interface ApplicationUserProjectionChangedInput
     | "emailVerified"
     | "firstName"
     | "lastName"
+    | "phoneNumber"
+    | "phoneNumberVerified"
   )[];
   readonly updatedAt: string;
 }

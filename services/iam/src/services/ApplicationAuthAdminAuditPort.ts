@@ -96,13 +96,13 @@ export interface ApplicationRealmAdminAuditSafeDiff {
   enabled?: boolean;
   status?: "active" | "blocked" | "archived";
   provider?: "google" | "facebook";
-  methodId?: "password" | "email_otp";
+  methodId?: "password" | "email_otp" | "phone_otp";
   enabledCapabilities?: readonly (
     | "sign_in"
     | "sign_up"
     | "password_reset"
   )[];
-  enabledMethods?: readonly ("password" | "email_otp")[];
+  enabledMethods?: readonly ("password" | "email_otp" | "phone_otp")[];
   trustedOriginCount?: number;
   scopeCount?: number;
   revokedCount?: number;

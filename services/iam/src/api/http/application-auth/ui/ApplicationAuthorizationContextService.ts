@@ -36,6 +36,8 @@ export type ApplicationAuthorizationContextAction =
   | "verification-resend"
   | "email-otp-request"
   | "email-otp-verify"
+  | "phone-otp-request"
+  | "phone-otp-verify"
   | `social-signin:${ApplicationAuthProviderName}`
   | "consent";
 

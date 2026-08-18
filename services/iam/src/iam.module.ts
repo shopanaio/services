@@ -55,6 +55,14 @@ export {
   type ApplicationAuthEmailDeliveryPort,
 } from "./services/ApplicationAuthEmailDeliveryPort.js";
 export {
+  APPLICATION_AUTH_SMS_DELIVERY_PORT,
+  type ApplicationAuthSmsDeliveryPort,
+} from "./services/ApplicationAuthSmsDeliveryPort.js";
+export {
+  APPLICATION_AUTH_SMS_PROVIDER_AVAILABILITY_PORT,
+  type ApplicationAuthSmsProviderAvailabilityPort,
+} from "./services/ApplicationAuthSmsProviderAvailabilityPort.js";
+export {
   APPLICATION_AUTH_RATE_LIMIT_PORT,
   type ApplicationAuthRateLimitPort,
 } from "./services/ApplicationAuthRateLimiter.js";

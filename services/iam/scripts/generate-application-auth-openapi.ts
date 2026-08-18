@@ -15,7 +15,7 @@ import {
   signUpEmail,
   verifyEmail,
 } from "better-auth/api";
-import { emailOTP, jwt } from "better-auth/plugins";
+import { emailOTP, jwt, phoneNumber } from "better-auth/plugins";
 import { generator } from "better-call";
 import YAML from "yaml";
 import { createEffectiveApplicationAuthRouteManifest } from "../src/auth/applicationAuthRouteManifest.js";
@@ -46,6 +46,8 @@ const manifest = createEffectiveApplicationAuthRouteManifest({
     passwordResetAllowed: true,
     emailOtpSignInAllowed: true,
     emailOtpSignUpAllowed: true,
+    phoneOtpSignInAllowed: true,
+    phoneOtpSignUpAllowed: true,
     socialProviders: [
       {
         provider: "google",
@@ -74,6 +76,15 @@ const emailOtpPlugin = emailOTP({
   disableSignUp: false,
   sendVerificationOTP: async () => undefined,
 });
+const phoneOtpPlugin = phoneNumber({
+  otpLength: 6,
+  expiresIn: 5 * 60,
+  allowedAttempts: 3,
+  sendOTP: async () => undefined,
+  signUpOnVerification: {
+    getTempEmail: () => "phone@phone.invalid",
+  },
+});
 const oauthPlugin = oauthProvider({
   loginPage: "/login",
   consentPage: "/consent",
@@ -98,6 +109,7 @@ const upstreamEndpoints = {
   revokeSession,
   signOut,
   ...emailOtpPlugin.endpoints,
+  ...phoneOtpPlugin.endpoints,
   ...oauthPlugin.endpoints,
   ...jwt().endpoints,
 };

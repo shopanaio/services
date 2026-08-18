@@ -47,6 +47,8 @@ const UI_FORM_PATHS = new Set([
   "/signup/password",
   "/email-otp/request",
   "/email-otp/verify",
+  "/phone-otp/request",
+  "/phone-otp/verify",
   "/password/forgot",
   "/password/reset",
   "/verification/resend",
@@ -62,6 +64,8 @@ const UI_GET_PATHS = new Set([
   "/signup",
   "/email-otp",
   "/email-otp/verify",
+  "/phone-otp",
+  "/phone-otp/verify",
   "/password/forgot",
   "/password/reset",
   "/verification-pending",
@@ -157,6 +161,18 @@ export class ApplicationAuthHostedUiController {
         break;
       case "POST /email-otp/verify":
         await this.postEmailOtpVerify(input);
+        break;
+      case "GET /phone-otp":
+        await this.getPhoneOtpRequest(input);
+        break;
+      case "POST /phone-otp/request":
+        await this.postPhoneOtpRequest(input);
+        break;
+      case "GET /phone-otp/verify":
+        await this.getPhoneOtpVerify(input);
+        break;
+      case "POST /phone-otp/verify":
+        await this.postPhoneOtpVerify(input);
         break;
       case "GET /password/forgot":
         await this.getForgotPassword(input);
@@ -323,6 +339,9 @@ export class ApplicationAuthHostedUiController {
         : "",
       runtime.policy.emailOtpSignInAllowed
         ? `<a href="./email-otp">${escapeHtml(t("emailOtpTitle"))}</a>`
+        : "",
+      runtime.policy.phoneOtpSignInAllowed
+        ? `<a href="./phone-otp">${escapeHtml(t("phoneOtpTitle"))}</a>`
         : "",
     ]
       .filter(Boolean)
@@ -532,6 +551,142 @@ export class ApplicationAuthHostedUiController {
     }
     input.reply.header("set-cookie", contextCookie);
     await this.renderSignup(input, rotated, true);
+  }
+
+  private async getPhoneOtpRequest(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.phoneOtpSignInAllowed) throw uiNotFound();
+    const active = await this.requireContext(input, "login");
+    const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
+    const csrf = await this.authorizationContexts.createCsrfToken(
+      input.runtime,
+      active.opaqueId,
+      "phone-otp-request"
+    );
+    const body = `<h1>${escapeHtml(t("phoneOtpTitle"))}</h1><p class="muted">${escapeHtml(
+      t("phoneOtpRequestHint")
+    )}</p><form method="post" action="./phone-otp/request">
+      ${hiddenInput("csrf", csrf)}
+      <div class="field"><label for="phoneNumber">${escapeHtml(t("phone"))}</label><input id="phoneNumber" name="phoneNumber" type="tel" autocomplete="tel" required maxlength="16" pattern="\\+[1-9][0-9]{6,14}"></div>
+      <button type="submit">${escapeHtml(t("sendPhoneOtp"))}</button>
+    </form><nav class="links"><a href="./login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
+    await sendHtml(input.reply, input.runtime, t("phoneOtpTitle"), body);
+  }
+
+  private async postPhoneOtpRequest(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.phoneOtpSignInAllowed) throw uiNotFound();
+    const startedAt = Date.now();
+    const form = parseForm(input.raw);
+    const phoneNumber = parsePhoneNumber(singleFormValue(form, "phoneNumber", 8, 16));
+    const active = await this.requireContext(input, "login");
+    await this.authorizationContexts.assertCsrfToken(
+      input.runtime,
+      active,
+      "phone-otp-request",
+      singleFormValue(form, "csrf", 16, 1024)
+    );
+    await this.kernel.applicationAuthRateLimiter.assertPhoneOtpRequest({
+      applicationId: input.runtime.applicationId,
+      phoneNumber,
+      ip: input.request.ip,
+      secret: this.rateLimitSecret(input.runtime),
+    });
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(input, "/phone-number/send-otp", { phoneNumber });
+    } catch {
+      await waitForEmailOtpGenericResponseFloor(startedAt);
+      throw emailOtpDeliveryUnavailable();
+    }
+    await waitForEmailOtpGenericResponseFloor(startedAt);
+    if (!response.ok) throw emailOtpDeliveryUnavailable();
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, { currentStep: "login" });
+    await redirectToUi(input, "/phone-otp/verify", [
+      await this.authorizationContexts.serializeCookie(input.runtime, rotated.opaqueId),
+    ]);
+  }
+
+  private async getPhoneOtpVerify(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.phoneOtpSignInAllowed) throw uiNotFound();
+    const active = await this.requireContext(input, "login");
+    await this.renderPhoneOtpVerify(input, active);
+  }
+
+  private async renderPhoneOtpVerify(
+    input: HandlerInput,
+    active: ActiveApplicationAuthorizationContext,
+    error = false
+  ): Promise<void> {
+    const t = createApplicationAuthTranslator(input.runtime.defaultLocale);
+    const csrf = await this.authorizationContexts.createCsrfToken(
+      input.runtime,
+      active.opaqueId,
+      "phone-otp-verify"
+    );
+    const body = `<h1>${escapeHtml(t("phoneOtpVerifyTitle"))}</h1>${renderMessage(
+      input.runtime,
+      "success",
+      "phoneOtpAccepted"
+    )}<p class="muted">${escapeHtml(t("phoneOtpVerifyHint"))}</p>${
+      error ? renderMessage(input.runtime, "error", "genericAuthError") : ""
+    }<form method="post" action="./verify">
+      ${hiddenInput("csrf", csrf)}
+      <div class="field"><label for="phoneNumber">${escapeHtml(t("phone"))}</label><input id="phoneNumber" name="phoneNumber" type="tel" autocomplete="tel" required maxlength="16" pattern="\\+[1-9][0-9]{6,14}"></div>
+      <div class="field"><label for="code">${escapeHtml(t("emailOtpCode"))}</label><input id="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" required minlength="6" maxlength="6" pattern="[0-9]{6}"></div>
+      <button type="submit">${escapeHtml(t("verifyPhoneOtp"))}</button>
+    </form><nav class="links"><a href="../phone-otp">${escapeHtml(t("resendPhoneOtp"))}</a><a href="../login">${escapeHtml(t("backToSignIn"))}</a></nav>`;
+    input.reply.header(
+      "set-cookie",
+      await this.authorizationContexts.serializeCookie(input.runtime, active.opaqueId)
+    );
+    await sendHtml(input.reply, input.runtime, t("phoneOtpVerifyTitle"), body);
+  }
+
+  private async postPhoneOtpVerify(input: HandlerInput): Promise<void> {
+    if (!input.runtime.policy.phoneOtpSignInAllowed) throw uiNotFound();
+    const form = parseForm(input.raw);
+    const phoneNumber = parsePhoneNumber(singleFormValue(form, "phoneNumber", 8, 16));
+    const code = parsePhoneOtp(singleFormValue(form, "code", 6, 6));
+    const active = await this.requireContext(input, "login");
+    await this.authorizationContexts.assertCsrfToken(
+      input.runtime,
+      active,
+      "phone-otp-verify",
+      singleFormValue(form, "csrf", 16, 1024)
+    );
+    await this.kernel.applicationAuthRateLimiter.assertPhoneOtpVerify({
+      applicationId: input.runtime.applicationId,
+      phoneNumber,
+      ip: input.request.ip,
+      secret: this.rateLimitSecret(input.runtime),
+    });
+    const rotated = await this.authorizationContexts.rotate(input.runtime, active, { currentStep: "login" });
+    const existingUser = await this.kernel.repository.applicationUser
+      .forApplication(input.runtime.applicationId)
+      .findByPhoneNumber(phoneNumber);
+    if (existingUser?.status === "blocked") {
+      await this.renderPhoneOtpVerify(input, rotated, true);
+      return;
+    }
+    let response: Response;
+    try {
+      response = await this.callBetterAuth(input, "/phone-number/verify", {
+        phoneNumber,
+        code,
+        oauth_query: await this.authorizationContexts.buildSignedOAuthQuery(input.runtime, rotated),
+      });
+    } catch {
+      await this.renderPhoneOtpVerify(input, rotated, true);
+      return;
+    }
+    if (isRedirectResponse(response)) {
+      await this.authorizationContexts.consume(input.runtime, rotated);
+      await sendApplicationAuthFetchResponse(
+        appendSetCookie(response, this.authorizationContexts.clearCookie(input.runtime)),
+        input.reply
+      );
+      return;
+    }
+    await this.renderPhoneOtpVerify(input, rotated, true);
   }
 
   private async getEmailOtpRequest(input: HandlerInput): Promise<void> {
@@ -1986,6 +2141,20 @@ function parseEmail(value: string): string {
 function parseEmailOtp(value: string): string {
   if (!/^\d{6}$/u.test(value)) {
     throw new ApplicationAuthRequestError("Email OTP is invalid");
+  }
+  return value;
+}
+
+function parsePhoneNumber(value: string): string {
+  if (!/^\+[1-9][0-9]{6,14}$/u.test(value)) {
+    throw new ApplicationAuthRequestError("Phone number is invalid");
+  }
+  return value;
+}
+
+function parsePhoneOtp(value: string): string {
+  if (!/^\d{6}$/u.test(value)) {
+    throw new ApplicationAuthRequestError("Phone OTP is invalid");
   }
   return value;
 }

@@ -174,8 +174,8 @@ const updateServiceLinkedApplicationAuthSettingsInputSchema =
     .extend({
       userId: z.string().trim().min(1).max(128),
       enabledMethods: z
-        .array(z.enum(["password", "email_otp"]))
-        .max(2),
+        .array(z.enum(["password", "email_otp", "phone_otp"]))
+        .max(3),
       expectedRevision: z.number().int().positive(),
     })
     .strict()
@@ -238,7 +238,7 @@ type ServiceLinkedApplicationAuthSettings = {
   registrationMode: "open" | "disabled";
   revision: number;
   methods: Array<{
-    method: "password" | "email_otp";
+    method: "password" | "email_otp" | "phone_otp";
     enabled: boolean;
     configured: boolean;
   }>;
@@ -275,8 +275,10 @@ type GetServiceLinkedApplicationUserResult =
       user: {
         id: string;
         status: "active" | "blocked";
-        email: string;
+        email: string | null;
         emailVerified: boolean;
+        phoneNumber: string | null;
+        phoneNumberVerified: boolean;
         firstName: string | null;
         lastName: string | null;
       };
@@ -628,7 +630,14 @@ export class IamBrokerActions extends BrokerActions {
           errorCode: "APPLICATION_NOT_FOUND",
         };
       }
-      return { success: true, settings: mapServiceLinkedAuthSettings(view) };
+      const phoneOtpConfigured =
+        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
+          params.applicationId
+        );
+      return {
+        success: true,
+        settings: mapServiceLinkedAuthSettings(view, phoneOtpConfigured),
+      };
     } catch (error) {
       return {
         success: false,
@@ -668,7 +677,14 @@ export class IamBrokerActions extends BrokerActions {
           [{ id: params.applicationId, organizationId: params.organizationId }],
         );
       if (!view) throw new Error("Application auth settings were not found");
-      return { success: true, settings: mapServiceLinkedAuthSettings(view) };
+      const phoneOtpConfigured =
+        await this.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
+          params.applicationId
+        );
+      return {
+        success: true,
+        settings: mapServiceLinkedAuthSettings(view, phoneOtpConfigured),
+      };
     } catch (error) {
       return {
         success: false,
@@ -728,8 +744,10 @@ export class IamBrokerActions extends BrokerActions {
       user: {
         id: user.id,
         status: user.status,
-        email: user.email,
-        emailVerified: user.emailVerified,
+        email: user.syntheticEmail ? null : user.email,
+        emailVerified: user.syntheticEmail ? false : user.emailVerified,
+        phoneNumber: user.phoneNumber,
+        phoneNumberVerified: user.phoneNumberVerified,
         firstName: user.firstName,
         lastName: user.lastName,
       },
@@ -926,13 +944,15 @@ function mapServiceLinkedAuthSettings(view: {
     passwordResetEnabled: boolean;
     emailOtpSignInEnabled: boolean;
     emailOtpSignUpEnabled: boolean;
+    phoneOtpSignInEnabled: boolean;
+    phoneOtpSignUpEnabled: boolean;
   };
   deliveryProfile: unknown | null;
   providers: ReadonlyArray<{
     provider: "google" | "facebook";
     enabled: boolean;
   }>;
-}): ServiceLinkedApplicationAuthSettings {
+}, phoneOtpConfigured: boolean): ServiceLinkedApplicationAuthSettings {
   const { configuration } = view;
   return {
     realmEnabled: configuration.realmEnabled,
@@ -953,6 +973,13 @@ function mapServiceLinkedAuthSettings(view: {
           configuration.emailOtpSignInEnabled ||
           configuration.emailOtpSignUpEnabled,
         configured: view.deliveryProfile !== null,
+      },
+      {
+        method: "phone_otp",
+        enabled:
+          configuration.phoneOtpSignInEnabled ||
+          configuration.phoneOtpSignUpEnabled,
+        configured: phoneOtpConfigured,
       },
     ],
     providers: (["google", "facebook"] as const).map((provider) => {

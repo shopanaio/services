@@ -71,6 +71,7 @@ export class NotificationBrokerActions extends BrokerActions {
       );
     }
     const notification = applicationAuthNotification(params);
+    const isSms = params.notification.kind === "PHONE_OTP_SIGN_IN";
     const data = {
       store: {
         id: store.id,
@@ -92,7 +93,9 @@ export class NotificationBrokerActions extends BrokerActions {
         key: notification.key,
         recipients: [
           {
-            email: normalizeEmail(params.recipient.email),
+            ...(isSms
+              ? { phone: normalizePhone(params.recipient.phone) }
+              : { email: normalizeEmail(params.recipient.email) }),
             locale: params.recipient.locale,
             name: params.recipient.name,
           },
@@ -107,7 +110,7 @@ export class NotificationBrokerActions extends BrokerActions {
         correlationId: params.idempotencyKey,
         sourceService: context.caller.service,
         purpose: "BUSINESS",
-        forcedChannels: ["EMAIL"],
+        forcedChannels: [isSms ? "SMS" : "EMAIL"],
       },
       {
         source: "content",
@@ -341,6 +344,14 @@ function applicationAuthNotification(
         key: "customer.auth.login_code",
         data: { otp: params.notification.otp },
       };
+    case "PHONE_OTP_SIGN_IN":
+      if (!/^\d{6}$/u.test(params.notification.otp)) {
+        throw new Error("Application auth phone OTP is invalid");
+      }
+      return {
+        key: "customer.auth.login_code",
+        data: { otp: params.notification.otp },
+      };
     case "PASSWORD_RESET":
       return {
         key: "customer.auth.password_reset",
@@ -349,7 +360,8 @@ function applicationAuthNotification(
   }
 }
 
-function normalizeEmail(value: string): string {
+function normalizeEmail(value: string | undefined): string {
+  if (!value) throw new Error("Application auth notification email is missing");
   const email = value.trim().toLowerCase();
   if (
     email.length === 0 ||
@@ -359,6 +371,14 @@ function normalizeEmail(value: string): string {
     throw new Error("Application auth notification email is invalid");
   }
   return email;
+}
+
+function normalizePhone(value: string | undefined): string {
+  const phone = value?.trim() ?? "";
+  if (!/^\+[1-9][0-9]{6,14}$/u.test(phone)) {
+    throw new Error("Application auth notification phone is invalid");
+  }
+  return phone;
 }
 
 function requireHttpsOrLocalUrl(value: string): string {

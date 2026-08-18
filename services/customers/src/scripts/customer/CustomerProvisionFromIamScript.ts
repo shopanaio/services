@@ -4,8 +4,10 @@ import type { Customer } from "../../repositories/models/index.js";
 export interface CustomerProvisionFromIamParams {
   readonly iamPrincipalId: string;
   readonly iamStatus: "active" | "blocked";
-  readonly email: string;
+  readonly email: string | null;
   readonly emailVerified: boolean;
+  readonly phoneE164: string | null;
+  readonly phoneVerified: boolean;
   readonly firstName: string | null;
   readonly lastName: string | null;
 }
@@ -43,9 +45,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       return this.synchronizeExisting(existingByPrincipal, params);
     }
 
-    const existingByEmail = await this.repository.customer.findByEmail(
-      params.email,
-    );
+    const existingByEmail = params.email
+      ? await this.repository.customer.findByEmail(params.email)
+      : null;
     if (existingByEmail) {
       return this.claimExistingEmail(existingByEmail, params);
     }
@@ -58,6 +60,8 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       accountStatus: "REGISTERED",
       email: params.email,
       emailVerified: params.emailVerified,
+      phoneE164: params.phoneE164,
+      phoneVerified: params.phoneVerified,
       firstName: params.firstName,
       lastName: params.lastName,
       source: "iam_application_signup",
@@ -82,7 +86,9 @@ export class CustomerProvisionFromIamScript extends BaseScript<
     if (racedByPrincipal) {
       return this.synchronizeExisting(racedByPrincipal, params);
     }
-    const racedByEmail = await this.repository.customer.findByEmail(params.email);
+    const racedByEmail = params.email
+      ? await this.repository.customer.findByEmail(params.email)
+      : null;
     if (racedByEmail) {
       return this.claimExistingEmail(racedByEmail, params);
     }
@@ -102,6 +108,13 @@ export class CustomerProvisionFromIamScript extends BaseScript<
     customer: Customer,
     params: CustomerProvisionFromIamParams,
   ): Promise<CustomerProvisionFromIamResult> {
+    if (!params.email) {
+      throw new CustomerProvisioningError(
+        "Customer email claim requires an email",
+        "CUSTOMER_EMAIL_REQUIRED",
+        false,
+      );
+    }
     if (customer.iamPrincipalId === params.iamPrincipalId) {
       return this.synchronizeExisting(customer, params);
     }
@@ -184,6 +197,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       };
     }
     if (
+      params.email !== null &&
       customer.normalizedEmail !== normalizeEmail(params.email) &&
       !params.emailVerified
     ) {
@@ -193,7 +207,7 @@ export class CustomerProvisionFromIamScript extends BaseScript<
         false,
       );
     }
-    if (customer.normalizedEmail !== normalizeEmail(params.email)) {
+    if (params.email !== null && customer.normalizedEmail !== normalizeEmail(params.email)) {
       const conflictingCustomer =
         await this.repository.customer.findByEmail(params.email);
       if (conflictingCustomer && conflictingCustomer.id !== customer.id) {
@@ -226,11 +240,17 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       ...(customer.accountStatus !== "REGISTERED"
         ? { accountStatus: "REGISTERED" as const }
         : {}),
-      ...(customer.normalizedEmail !== normalizeEmail(params.email)
+      ...(params.email !== null && customer.normalizedEmail !== normalizeEmail(params.email)
         ? { email: params.email }
         : {}),
       ...(customer.emailVerified !== params.emailVerified
         ? { emailVerified: params.emailVerified }
+        : {}),
+      ...(customer.phoneE164 !== params.phoneE164
+        ? { phoneE164: params.phoneE164 }
+        : {}),
+      ...(customer.phoneVerified !== params.phoneVerified
+        ? { phoneVerified: params.phoneVerified }
         : {}),
     };
     if (Object.keys(patch).length === 0) {

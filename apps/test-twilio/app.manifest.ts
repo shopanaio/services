@@ -1,16 +1,12 @@
 import { defineAppManifest } from "@shopana/app-sdk";
 
-export const smtpManifest = defineAppManifest({
+export const testTwilioManifest = defineAppManifest({
   schemaVersion: 2,
-  code: "shopana-smtp",
+  code: "test-twilio",
   version: "1.0.0",
-  displayName: "Mailer",
-  description:
-    "Deliver store email through configurable SMTP provider connections.",
-  icon: {
-    url: "/app-icons/mailer.svg",
-    alt: "Mailer",
-  },
+  displayName: "Twilio Test",
+  description: "Deterministic in-memory SMS gateway for authentication tests.",
+  icon: { url: "/app-icons/test-twilio.svg", alt: "Twilio Test" },
   lifecycle: {
     installWorkflow: "install",
     updateWorkflow: "update",
@@ -24,11 +20,8 @@ export const smtpManifest = defineAppManifest({
     {
       key: "notifications",
       assignmentMode: "store",
-      operations: {
-        deliver: "deliver",
-        getCapabilities: "getCapabilities",
-      },
+      operations: { deliver: "deliver", getCapabilities: "getCapabilities" },
     },
   ],
-  graphql: { admin: true, storefront: false },
+  graphql: { admin: false, storefront: false },
 });

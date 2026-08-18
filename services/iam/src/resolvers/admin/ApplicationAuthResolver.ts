@@ -32,7 +32,7 @@ export interface ApplicationAuthConfigurationResolverInput {
   applicationId: string;
 }
 
-type ApplicationAuthMethodId = "password" | "email_otp";
+type ApplicationAuthMethodId = "password" | "email_otp" | "phone_otp";
 type ApplicationAuthMethodCapability =
   | "SIGN_IN"
   | "SIGN_UP"
@@ -227,10 +227,14 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
   }
 
   private async authMethodViews(): Promise<ApplicationAuthMethodView[]> {
-    const [configuration, deliveryProfile] = await Promise.all([
-      this.$get("configuration"),
-      this.$get("deliveryProfile"),
-    ]);
+    const [configuration, deliveryProfile, phoneOtpConfigured] =
+      await Promise.all([
+        this.$get("configuration"),
+        this.$get("deliveryProfile"),
+        this.$ctx.kernel.applicationAuthAdminManagement.isPhoneOtpConfigured(
+          this.$props.applicationId
+        ),
+      ]);
     const passwordCapabilities: ApplicationAuthMethodCapability[] = [];
     if (configuration.passwordSignInEnabled) {
       passwordCapabilities.push("SIGN_IN");
@@ -247,6 +251,13 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
     }
     if (configuration.emailOtpSignUpEnabled) {
       emailOtpCapabilities.push("SIGN_UP");
+    }
+    const phoneOtpCapabilities: ApplicationAuthMethodCapability[] = [];
+    if (configuration.phoneOtpSignInEnabled) {
+      phoneOtpCapabilities.push("SIGN_IN");
+    }
+    if (configuration.phoneOtpSignUpEnabled) {
+      phoneOtpCapabilities.push("SIGN_UP");
     }
     const passwordNeedsDelivery =
       configuration.passwordResetEnabled ||
@@ -268,6 +279,15 @@ export class ApplicationAuthConfigurationResolver extends IAMType<
         availableCapabilities: ["SIGN_IN", "SIGN_UP"],
         enabledCapabilities: emailOtpCapabilities,
         configured: deliveryProfile !== null,
+        revision: configuration.revision,
+        updatedAt: configuration.updatedAt,
+        updatedBy: null,
+      },
+      {
+        id: "phone_otp",
+        availableCapabilities: ["SIGN_IN", "SIGN_UP"],
+        enabledCapabilities: phoneOtpCapabilities,
+        configured: phoneOtpConfigured,
         revision: configuration.revision,
         updatedAt: configuration.updatedAt,
         updatedBy: null,

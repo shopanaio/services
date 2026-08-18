@@ -4,6 +4,7 @@ export function isBroadcastStoreRoute(
 ): boolean {
   return (
     capability === "commerce.function" ||
-    (capability === "notifications" && operation === "deliver")
+    (capability === "notifications" &&
+      (operation === "deliver" || operation === "getCapabilities"))
   );
 }

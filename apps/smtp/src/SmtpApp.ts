@@ -63,6 +63,7 @@ export class SmtpApp implements ShopanaApp {
       NotificationDeliveryInput,
       NotificationDeliveryReceipt
     >("deliver", (input) => this.deliver(input));
+    this.host.broker.register("getCapabilities", () => ({ channels: ["EMAIL"] }));
   }
 
   start(): void {}

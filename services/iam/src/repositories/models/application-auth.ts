@@ -50,6 +50,11 @@ export const applicationUser = iamSchema.table(
     lastName: text("last_name"),
     email: text("email").notNull(),
     emailVerified: boolean("email_verified").notNull().default(false),
+    phoneNumber: varchar("phone_number", { length: 32 }),
+    phoneNumberVerified: boolean("phone_number_verified")
+      .notNull()
+      .default(false),
+    syntheticEmail: boolean("synthetic_email").notNull().default(false),
     image: text("image"),
     status: varchar("status", { length: 16 })
       .$type<ApplicationUserStatus>()
@@ -70,6 +75,17 @@ export const applicationUser = iamSchema.table(
     uniqueIndex("idx_application_user_application_email").on(
       table.applicationId,
       table.email
+    ),
+    uniqueIndex("idx_application_user_application_phone")
+      .on(table.applicationId, table.phoneNumber)
+      .where(sql`${table.phoneNumber} IS NOT NULL`),
+    check(
+      "application_user_phone_e164_check",
+      sql`${table.phoneNumber} IS NULL OR ${table.phoneNumber} ~ '^\\+[1-9][0-9]{6,14}$'`
+    ),
+    check(
+      "application_user_phone_verified_check",
+      sql`NOT ${table.phoneNumberVerified} OR ${table.phoneNumber} IS NOT NULL`
     ),
     uniqueIndex("idx_application_user_application_global_user").on(
       table.applicationId,
@@ -293,6 +309,12 @@ export const applicationAuthConfiguration = iamSchema.table(
     emailOtpSignUpEnabled: boolean("email_otp_sign_up_enabled")
       .notNull()
       .default(false),
+    phoneOtpSignInEnabled: boolean("phone_otp_sign_in_enabled")
+      .notNull()
+      .default(false),
+    phoneOtpSignUpEnabled: boolean("phone_otp_sign_up_enabled")
+      .notNull()
+      .default(false),
     consentMode: varchar("consent_mode", { length: 16 })
       .$type<ApplicationConsentMode>()
       .notNull()
@@ -355,6 +377,10 @@ export const applicationAuthConfiguration = iamSchema.table(
     check(
       "application_auth_configuration_otp_flags_check",
       sql`NOT ${table.emailOtpSignUpEnabled} OR ${table.emailOtpSignInEnabled}`
+    ),
+    check(
+      "application_auth_configuration_phone_otp_flags_check",
+      sql`NOT ${table.phoneOtpSignUpEnabled} OR ${table.phoneOtpSignInEnabled}`
     ),
     check(
       "application_auth_configuration_access_ttl_check",

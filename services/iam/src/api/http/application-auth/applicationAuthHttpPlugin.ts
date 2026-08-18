@@ -61,7 +61,7 @@ const NORMALIZED_EMAIL_JSON_ROUTES = new Set([
   "/sign-in/email-otp",
   "/sign-up/email",
 ]);
-const EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
+const OTP_GENERIC_RESPONSE_FLOOR_MS = 250;
 
 class ApplicationAuthBoundaryError extends Error {
   constructor(
@@ -272,6 +272,12 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         normalizedPath,
         raw,
       });
+      await assertPhoneOtpUserCanSignIn({
+        kernel: options.kernel,
+        runtime,
+        normalizedPath,
+        raw,
+      });
       await resourceGuard.assertRequest({
         applicationId,
         resource: runtime.resource,
@@ -302,8 +308,9 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
         raw,
         publicBaseUrl: options.publicBaseUrl,
       });
-      const emailOtpStartedAt =
-        normalizedPath === "/email-otp/send-verification-otp"
+      const otpStartedAt =
+        normalizedPath === "/email-otp/send-verification-otp" ||
+        normalizedPath === "/phone-number/send-otp"
           ? Date.now()
           : undefined;
       let response: Response;
@@ -323,16 +330,16 @@ export const applicationAuthHttpPlugin: FastifyPluginAsync<
             provider: socialCallbackProvider,
           });
         }
-        if (emailOtpStartedAt !== undefined) {
-          await waitForEmailOtpGenericResponseFloor(emailOtpStartedAt);
-          throw emailOtpDeliveryUnavailable();
+        if (otpStartedAt !== undefined) {
+          await waitForOtpGenericResponseFloor(otpStartedAt);
+          throw otpDeliveryUnavailable();
         }
         throw error;
       }
       response = await normalizeSensitiveApplicationAuthResponse(
         normalizedPath,
         response,
-        emailOtpStartedAt
+        otpStartedAt
       );
       if (normalizedPath === "/oauth2/introspect") {
         response = await applyApplicationTokenIntrospection({
@@ -596,6 +603,18 @@ function assertEffectiveRequestPolicy(
       throw new ApplicationAuthRequestError("Email OTP is invalid");
     }
   }
+  if (normalizedPath === "/phone-number/send-otp") {
+    if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    parseApplicationAuthPhone(parseJsonBody(raw.body).phoneNumber);
+  }
+  if (normalizedPath === "/phone-number/verify") {
+    if (!raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const body = parseJsonBody(raw.body);
+    parseApplicationAuthPhone(body.phoneNumber);
+    if (typeof body.code !== "string" || !/^\d{6}$/u.test(body.code)) {
+      throw new ApplicationAuthRequestError("Phone OTP is invalid");
+    }
+  }
 }
 
 async function auditSocialProviderCallback(input: {
@@ -805,6 +824,32 @@ async function assertApplicationAuthRateLimit(input: {
     });
     return;
   }
+  if (input.normalizedPath === "/phone-number/send-otp") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const phoneNumber = parseApplicationAuthPhone(
+      parseJsonBody(input.raw.body).phoneNumber
+    );
+    await input.kernel.applicationAuthRateLimiter.assertPhoneOtpRequest({
+      applicationId: input.runtime.applicationId,
+      phoneNumber,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
+  if (input.normalizedPath === "/phone-number/verify") {
+    if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+    const phoneNumber = parseApplicationAuthPhone(
+      parseJsonBody(input.raw.body).phoneNumber
+    );
+    await input.kernel.applicationAuthRateLimiter.assertPhoneOtpVerify({
+      applicationId: input.runtime.applicationId,
+      phoneNumber,
+      ip: input.request.ip,
+      secret,
+    });
+    return;
+  }
   if (input.normalizedPath === "/oauth2/token") {
     if (!input.raw.body) throw new ApplicationAuthRequestError("Token body is required");
     const form = parseRawSearchParams(input.raw.body.toString("utf8"));
@@ -872,7 +917,7 @@ async function assertApplicationAuthRateLimit(input: {
 async function normalizeSensitiveApplicationAuthResponse(
   normalizedPath: string,
   response: Response,
-  emailOtpStartedAt?: number
+  otpStartedAt?: number
 ): Promise<Response> {
   if (normalizedPath === "/sign-in/email" && !response.ok) {
     return replaceJsonResponse(response, 401, {
@@ -896,8 +941,8 @@ async function normalizeSensitiveApplicationAuthResponse(
     });
   }
   if (normalizedPath === "/email-otp/send-verification-otp") {
-    if (emailOtpStartedAt !== undefined) {
-      await waitForEmailOtpGenericResponseFloor(emailOtpStartedAt);
+    if (otpStartedAt !== undefined) {
+      await waitForOtpGenericResponseFloor(otpStartedAt);
     }
     return response.ok
       ? replaceJsonResponse(response, 202, {
@@ -921,7 +966,55 @@ async function normalizeSensitiveApplicationAuthResponse(
       error_description: "Email or code is invalid",
     });
   }
+  if (normalizedPath === "/phone-number/send-otp") {
+    if (otpStartedAt !== undefined) {
+      await waitForOtpGenericResponseFloor(otpStartedAt);
+    }
+    return response.ok
+      ? replaceJsonResponse(response, 200, {
+          status: true,
+          message: "If the phone can sign in, an authentication code will be sent",
+        })
+      : response.status === 429
+        ? replaceJsonResponse(response, 429, {
+            error: "slow_down",
+            error_description: "Authentication request rate limit exceeded",
+          })
+        : replaceJsonResponse(response, 503, {
+            error: "temporarily_unavailable",
+            error_description: "Authentication message could not be accepted",
+          });
+  }
+  if (normalizedPath === "/phone-number/verify" && !response.ok) {
+    return replaceJsonResponse(response, 401, {
+      error: "invalid_code",
+      error_description: "Phone or code is invalid",
+    });
+  }
   return response;
+}
+
+async function assertPhoneOtpUserCanSignIn(input: {
+  kernel: Kernel;
+  runtime: ApplicationAuthFactoryRuntime;
+  normalizedPath: string;
+  raw: RawApplicationAuthRequest;
+}): Promise<void> {
+  if (input.normalizedPath !== "/phone-number/verify") return;
+  if (!input.raw.body) throw new ApplicationAuthRequestError("JSON body is required");
+  const phoneNumber = parseApplicationAuthPhone(
+    parseJsonBody(input.raw.body).phoneNumber
+  );
+  const user = await input.kernel.repository.applicationUser
+    .forApplication(input.runtime.applicationId)
+    .findByPhoneNumber(phoneNumber);
+  if (user?.status === "blocked") {
+    throw new ApplicationAuthBoundaryError(
+      401,
+      "invalid_code",
+      "Phone or code is invalid"
+    );
+  }
 }
 
 async function assertRefreshGrantLiveState(input: {
@@ -1179,6 +1272,14 @@ function parseApplicationAuthEmail(value: unknown): string {
   return parsed.data.toLowerCase();
 }
 
+function parseApplicationAuthPhone(value: unknown): string {
+  const parsed = z.string().trim().regex(/^\+[1-9][0-9]{6,14}$/u).safeParse(value);
+  if (!parsed.success) {
+    throw new ApplicationAuthRequestError("Phone number is invalid");
+  }
+  return parsed.data;
+}
+
 function normalizeApplicationAuthEmailBody(
   normalizedPath: string,
   raw: RawApplicationAuthRequest
@@ -1201,16 +1302,16 @@ function normalizeApplicationAuthEmailBody(
   };
 }
 
-async function waitForEmailOtpGenericResponseFloor(
+async function waitForOtpGenericResponseFloor(
   startedAt: number
 ): Promise<void> {
   const remaining =
-    EMAIL_OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
+    OTP_GENERIC_RESPONSE_FLOOR_MS - (Date.now() - startedAt);
   if (remaining <= 0) return;
   await new Promise<void>((resolve) => setTimeout(resolve, remaining));
 }
 
-function emailOtpDeliveryUnavailable(): ApplicationAuthBoundaryError {
+function otpDeliveryUnavailable(): ApplicationAuthBoundaryError {
   return new ApplicationAuthBoundaryError(
     503,
     "temporarily_unavailable",

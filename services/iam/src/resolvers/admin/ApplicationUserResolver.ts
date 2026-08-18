@@ -68,11 +68,19 @@ export class ApplicationUserResolver extends IAMType<
   }
 
   async email() {
-    return this.$get("email");
+    return (await this.$get("syntheticEmail")) ? null : this.$get("email");
   }
 
   async emailVerified() {
     return this.$get("emailVerified");
+  }
+
+  async phoneNumber() {
+    return this.$get("phoneNumber");
+  }
+
+  async phoneNumberVerified() {
+    return this.$get("phoneNumberVerified");
   }
 
   async imageUrl() {

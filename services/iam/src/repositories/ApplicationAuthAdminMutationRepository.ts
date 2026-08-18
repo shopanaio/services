@@ -442,6 +442,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       emailVerificationRequired: current.emailVerificationRequired,
       emailOtpSignInEnabled: current.emailOtpSignInEnabled,
       emailOtpSignUpEnabled: current.emailOtpSignUpEnabled,
+      phoneOtpSignInEnabled: current.phoneOtpSignInEnabled,
+      phoneOtpSignUpEnabled: current.phoneOtpSignUpEnabled,
       consentMode: current.consentMode,
       accessTokenTtlSeconds: current.accessTokenTtlSeconds,
       idTokenTtlSeconds: current.idTokenTtlSeconds,
@@ -521,22 +523,26 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   @Transactional()
   async updateAuthMethod(input: {
     applicationId: string;
-    methodId: "password" | "email_otp";
+    methodId: "password" | "email_otp" | "phone_otp";
     enabledCapabilities: readonly ("sign_in" | "sign_up" | "password_reset")[];
     expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const enabled = new Set(input.enabledCapabilities);
-    const patch =
-      input.methodId === "password"
-        ? {
+    const patch = input.methodId === "password"
+      ? {
             passwordSignInEnabled: enabled.has("sign_in"),
             passwordSignUpEnabled: enabled.has("sign_up"),
             passwordResetEnabled: enabled.has("password_reset"),
-          }
-        : {
+        }
+      : input.methodId === "email_otp"
+      ? {
             emailOtpSignInEnabled: enabled.has("sign_in"),
             emailOtpSignUpEnabled: enabled.has("sign_up"),
-          };
+        }
+      : {
+          phoneOtpSignInEnabled: enabled.has("sign_in"),
+          phoneOtpSignUpEnabled: enabled.has("sign_up"),
+        };
     const [updated] = await this.connection
       .update(applicationAuthConfiguration)
       .set({
@@ -557,7 +563,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   @Transactional()
   async replaceAuthMethods(input: {
     applicationId: string;
-    enabledMethods: readonly ("password" | "email_otp")[];
+    enabledMethods: readonly ("password" | "email_otp" | "phone_otp")[];
     expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const enabled = new Set(input.enabledMethods);
@@ -568,6 +574,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         passwordSignUpEnabled: enabled.has("password"),
         emailOtpSignInEnabled: enabled.has("email_otp"),
         emailOtpSignUpEnabled: enabled.has("email_otp"),
+        phoneOtpSignInEnabled: enabled.has("phone_otp"),
+        phoneOtpSignUpEnabled: enabled.has("phone_otp"),
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })

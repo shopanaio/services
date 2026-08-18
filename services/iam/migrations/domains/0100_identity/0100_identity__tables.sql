@@ -99,10 +99,15 @@ CREATE TABLE "iam"."application_user" (
 	"last_name" text,
 	"email" text NOT NULL,
 	"email_verified" boolean DEFAULT false NOT NULL,
+	"phone_number" varchar(32),
+	"phone_number_verified" boolean DEFAULT false NOT NULL,
+	"synthetic_email" boolean DEFAULT false NOT NULL,
 	"image" text,
 	"status" varchar(16) DEFAULT 'active' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "application_user_phone_e164_check" CHECK ("phone_number" IS NULL OR "phone_number" ~ '^\\+[1-9][0-9]{6,14}$'),
+	CONSTRAINT "application_user_phone_verified_check" CHECK (NOT "phone_number_verified" OR "phone_number" IS NOT NULL)
 );
 CREATE TABLE "iam"."application_verification" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -226,6 +231,7 @@ CREATE UNIQUE INDEX "idx_application_session_application_token" ON "iam"."applic
 CREATE INDEX "idx_application_session_application_user" ON "iam"."application_session" USING btree ("application_id","user_id");
 CREATE INDEX "idx_application_session_expires_at" ON "iam"."application_session" USING btree ("expires_at");
 CREATE UNIQUE INDEX "idx_application_user_application_email" ON "iam"."application_user" USING btree ("application_id","email");
+CREATE UNIQUE INDEX "idx_application_user_application_phone" ON "iam"."application_user" USING btree ("application_id","phone_number") WHERE "phone_number" IS NOT NULL;
 CREATE UNIQUE INDEX "idx_application_user_application_global_user" ON "iam"."application_user" USING btree ("application_id","global_user_id");
 CREATE INDEX "idx_application_user_application_status" ON "iam"."application_user" USING btree ("application_id","status");
 CREATE UNIQUE INDEX "idx_application_verification_application_id" ON "iam"."application_verification" USING btree ("application_id","id");

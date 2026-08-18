@@ -5,6 +5,7 @@ import type {
 import type { ApplicationAuthConfiguredProvider } from "../repositories/ApplicationAuthConfigurationRepository.js";
 import type { ApplicationAuthKeyring } from "../services/ApplicationAuthKeyring.js";
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
+import type { ApplicationAuthSmsDeliveryPort } from "../services/ApplicationAuthSmsDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
 import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
@@ -72,6 +73,7 @@ export interface ApplicationAuthFactoryRuntime {
 
 export interface ApplicationAuthFactoryOptions {
   emailDelivery?: ApplicationAuthEmailDeliveryPort;
+  smsDelivery?: ApplicationAuthSmsDeliveryPort;
   liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
   applicationUserLifecycle?: ApplicationUserLifecyclePort;
   publicBaseUrl?: string | (() => string | undefined);
@@ -237,6 +239,7 @@ export class ApplicationAuthFactory {
       keyring: this.keyring,
       secrets: this.secrets,
       emailDelivery: this.options.emailDelivery,
+      smsDelivery: this.options.smsDelivery,
       liveStateInvalidation: this.options.liveStateInvalidation,
       applicationUserLifecycle: this.options.applicationUserLifecycle,
     });
@@ -302,6 +305,8 @@ export class ApplicationAuthFactory {
         emailVerificationRequired: initial.emailVerificationRequired,
         emailOtpSignInEnabled: initial.emailOtpSignInEnabled,
         emailOtpSignUpEnabled: initial.emailOtpSignUpEnabled,
+        phoneOtpSignInEnabled: initial.phoneOtpSignInEnabled,
+        phoneOtpSignUpEnabled: initial.phoneOtpSignUpEnabled,
         consentMode: initial.consentMode,
         accessTokenTtlSeconds: initial.accessTokenTtlSeconds,
         idTokenTtlSeconds: initial.idTokenTtlSeconds,

@@ -141,6 +141,10 @@ export type ApplicationAuthNotificationParams =
       otp: string;
     }
   | {
+      kind: "PHONE_OTP_SIGN_IN";
+      otp: string;
+    }
+  | {
       kind: "PASSWORD_RESET";
       url: string;
     };
@@ -150,7 +154,8 @@ export interface EnqueueApplicationAuthNotificationParams {
   storeId: string;
   organizationId: string;
   recipient: {
-    email: string;
+    email?: string;
+    phone?: string;
     locale?: string;
     name?: string;
   };
@@ -218,6 +223,10 @@ export interface NotificationDeliveryReceipt {
   deliveredAt?: string;
   responseCode?: string;
   retryAfterMs?: number;
+}
+
+export interface NotificationProviderCapabilities {
+  channels: readonly NotificationChannel[];
 }
 
 export interface SendTestNotificationParams {

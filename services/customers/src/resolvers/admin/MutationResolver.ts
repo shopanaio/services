@@ -124,22 +124,11 @@ export class CustomersMutationResolver extends CustomersType<
       };
     }
 
-    if (args.input.enabledMethods.includes(CustomerAuthenticationMethod.PhoneOtp)) {
-      return {
-        settings: null,
-        userErrors: [
-          userError(
-            "METHOD_NOT_CONFIGURED",
-            "Phone one-time code is not configured yet",
-            ["input", "enabledMethods"],
-          ),
-        ],
-      };
-    }
     const enabledMethods = args.input.enabledMethods.map((method) => {
       if (method === CustomerAuthenticationMethod.Password) return "password" as const;
       if (method === CustomerAuthenticationMethod.EmailOtp) return "email_otp" as const;
-      throw new Error("Phone OTP must be rejected before IAM mapping");
+      if (method === CustomerAuthenticationMethod.PhoneOtp) return "phone_otp" as const;
+      throw new Error("Unsupported customer authentication method");
     });
     if (new Set(enabledMethods).size !== enabledMethods.length) {
       return {

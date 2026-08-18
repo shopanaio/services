@@ -79,6 +79,9 @@ export const APPLICATION_AUTH_FORBIDDEN_ROUTES: readonly ApplicationAuthRouteMan
     exact("POST", "/forget-password/email-otp"),
     exact("POST", "/email-otp/request-email-change"),
     exact("POST", "/email-otp/change-email"),
+    exact("POST", "/sign-in/phone-number"),
+    exact("POST", "/phone-number/request-password-reset"),
+    exact("POST", "/phone-number/reset-password"),
     exact("POST", "/link-social"),
     exact("GET", "/list-accounts"),
     exact("POST", "/unlink-account"),
@@ -147,6 +150,16 @@ export function createEffectiveApplicationAuthRouteManifest(input: {
       exact("POST", "/email-otp/verify"),
       exact("POST", "/email-otp/send-verification-otp"),
       exact("POST", "/sign-in/email-otp")
+    );
+  }
+  if (input.policy.phoneOtpSignInAllowed) {
+    allowedRoutes.push(
+      exact("GET", "/phone-otp"),
+      exact("POST", "/phone-otp/request"),
+      exact("GET", "/phone-otp/verify"),
+      exact("POST", "/phone-otp/verify"),
+      exact("POST", "/phone-number/send-otp"),
+      exact("POST", "/phone-number/verify")
     );
   }
   if (enabledSocialProviders.length > 0) {

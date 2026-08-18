@@ -104,7 +104,7 @@ export interface DeleteServiceLinkedApplicationResult {
   error?: string;
 }
 
-export type ApplicationAuthMethod = "password" | "email_otp";
+export type ApplicationAuthMethod = "password" | "email_otp" | "phone_otp";
 export type ApplicationAuthProvider = "google" | "facebook";
 
 export interface ServiceLinkedApplicationAuthSettings {
@@ -173,8 +173,10 @@ export type GetServiceLinkedApplicationUserResult =
       user: {
         id: string;
         status: "active" | "blocked";
-        email: string;
+        email: string | null;
         emailVerified: boolean;
+        phoneNumber: string | null;
+        phoneNumberVerified: boolean;
         firstName: string | null;
         lastName: string | null;
       };

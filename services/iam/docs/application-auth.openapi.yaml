@@ -2035,6 +2035,257 @@ paths:
           $ref: "#/components/responses/ApplicationAuthError"
       summary: Sign in with a six-digit email code
       x-feature-condition: emailOtpSignInAllowed
+  /auth/applications/{applicationId}/phone-number/send-otp:
+    post:
+      tags:
+        - Phone OTP
+      description: Accepts canonical E.164 phone numbers and returns a generic response.
+      operationId: requestApplicationUserPhoneOtp
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+                  pattern: ^\+[1-9][0-9]{6,14}$
+              additionalProperties: false
+              required:
+                - phoneNumber
+        required: true
+      responses:
+        "200":
+          description: Generic acceptance response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                $ref: "#/components/schemas/GenericMessageResponse"
+        "400":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+          description: Bad Request. Usually due to missing parameters, or invalid parameters.
+        "401":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+          description: Unauthorized. Due to missing or invalid authentication.
+        "403":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Forbidden. You do not have permission to access this resource or to perform this action.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Not Found. The requested resource was not found.
+        "429":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Too Many Requests. You have exceeded the rate limit. Try again later.
+          $ref: "#/components/responses/RateLimitError"
+        "500":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Internal Server Error. This is a problem with the server that you cannot fix.
+        "503":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+      summary: Request a six-digit phone sign-in code
+      x-feature-condition: phoneOtpSignInAllowed
+  /auth/applications/{applicationId}/phone-number/verify:
+    post:
+      tags:
+        - Phone OTP
+      description: May create a phone-only user when phone OTP signup and registration are enabled.
+      operationId: verifyApplicationUserPhoneOtp
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+                  pattern: ^\+[1-9][0-9]{6,14}$
+                code:
+                  type: string
+                  pattern: ^[0-9]{6}$
+              additionalProperties: false
+              required:
+                - phoneNumber
+                - code
+        required: true
+      responses:
+        "200":
+          description: Phone verified and application session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    description: Indicates if the verification was successful
+                    enum:
+                      - true
+                  token:
+                    type: string
+                    nullable: true
+                    description: Session token if session is created, null if disableSession is true or no session is
+                      created
+                  user:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: string
+                        description: Unique identifier of the user
+                      email:
+                        type: string
+                        format: email
+                        nullable: true
+                        description: User's email address
+                      emailVerified:
+                        type: boolean
+                        nullable: true
+                        description: Whether the email is verified
+                      name:
+                        type: string
+                        nullable: true
+                        description: User's name
+                      image:
+                        type: string
+                        format: uri
+                        nullable: true
+                        description: User's profile image URL
+                      phoneNumber:
+                        type: string
+                        description: User's phone number
+                      phoneNumberVerified:
+                        type: boolean
+                        description: Whether the phone number is verified
+                      createdAt:
+                        type: string
+                        format: date-time
+                        description: Timestamp when the user was created
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        description: Timestamp when the user was last updated
+                    required:
+                      - id
+                      - phoneNumber
+                      - phoneNumberVerified
+                      - createdAt
+                      - updatedAt
+                    description: User object with phone number details, null if no user is created or found
+                required:
+                  - status
+                $ref: "#/components/schemas/ApplicationAuthenticationResponse"
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/ApplicationSessionSetCookie"
+        "400":
+          description: Invalid OTP
+        "401":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                required:
+                  - message
+                $ref: "#/components/schemas/OAuthError"
+          description: Invalid phone number or code
+        "403":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Forbidden. You do not have permission to access this resource or to perform this action.
+        "404":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Not Found. The requested resource was not found.
+        "429":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Too Many Requests. You have exceeded the rate limit. Try again later.
+          $ref: "#/components/responses/RateLimitError"
+        "500":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+          description: Internal Server Error. This is a problem with the server that you cannot fix.
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+      summary: Verify a six-digit phone code
+      x-feature-condition: phoneOtpSignInAllowed
   /auth/applications/{applicationId}/oauth2/authorize:
     get:
       tags:

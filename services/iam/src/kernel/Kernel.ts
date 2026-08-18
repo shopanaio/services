@@ -23,6 +23,7 @@ import { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretS
 import { ApplicationAuthProvisioningService } from "../services/ApplicationAuthProvisioningService.js";
 import { ApplicationAuthSecretRotationService } from "../services/ApplicationAuthSecretRotationService.js";
 import type { ApplicationAuthEmailDeliveryPort } from "../services/ApplicationAuthEmailDeliveryPort.js";
+import type { ApplicationAuthSmsDeliveryPort } from "../services/ApplicationAuthSmsDeliveryPort.js";
 import {
   ApplicationAuthRateLimiter,
   type ApplicationAuthRateLimitPort,
@@ -51,7 +52,10 @@ import {
   type ApplicationAuthLiveStateInvalidationPort,
 } from "../events/application-auth/index.js";
 import { NotificationsApplicationAuthEmailDelivery } from "../infrastructure/notifications/NotificationsApplicationAuthEmailDelivery.js";
+import { NotificationsApplicationAuthSmsDelivery } from "../infrastructure/notifications/NotificationsApplicationAuthSmsDelivery.js";
 import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
+import type { ApplicationAuthSmsProviderAvailabilityPort } from "../services/ApplicationAuthSmsProviderAvailabilityPort.js";
+import { NotificationsApplicationAuthSmsProviderAvailability } from "../infrastructure/notifications/NotificationsApplicationAuthSmsProviderAvailability.js";
 
 /**
  * Extended kernel for IAM microservice (singleton)
@@ -132,6 +136,8 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     options: {
       applicationAuthRootKeys?: ApplicationAuthRootKeyProvider;
       applicationAuthEmailDelivery?: ApplicationAuthEmailDeliveryPort;
+      applicationAuthSmsDelivery?: ApplicationAuthSmsDeliveryPort;
+      applicationAuthSmsProviderAvailability?: ApplicationAuthSmsProviderAvailabilityPort;
       applicationAuthRateLimit?: ApplicationAuthRateLimitPort;
       applicationAuthAudit?: ApplicationAuthAuditPort;
       applicationAuthAdminAudit?: ApplicationAuthAdminAuditPort;
@@ -194,6 +200,15 @@ export class Kernel extends BaseKernel<IamKernelServices> {
     const applicationAuthEmailDelivery =
       options.applicationAuthEmailDelivery ??
       new NotificationsApplicationAuthEmailDelivery(broker, repository);
+    const applicationAuthSmsDelivery =
+      options.applicationAuthSmsDelivery ??
+      new NotificationsApplicationAuthSmsDelivery(broker, repository);
+    const applicationAuthSmsProviderAvailability =
+      options.applicationAuthSmsProviderAvailability ??
+      new NotificationsApplicationAuthSmsProviderAvailability(
+        broker,
+        repository
+      );
     const startApplicationUserEvent = async <
       TInput extends {
         applicationId: string;
@@ -246,6 +261,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
       repository.applicationAuthConfiguration,
       {
         emailDelivery: applicationAuthEmailDelivery,
+        smsDelivery: applicationAuthSmsDelivery,
         liveStateInvalidation: applicationAuthLiveStateInvalidation,
         applicationUserLifecycle,
         publicBaseUrl: applicationAuthPublicBaseUrl,
@@ -316,6 +332,7 @@ export class Kernel extends BaseKernel<IamKernelServices> {
         applicationAuthAdminAudit,
         options.applicationAuthProviderValidation ??
           unavailableApplicationAuthProviderValidationPort,
+        applicationAuthSmsProviderAvailability,
         {
           invalidateApplication(applicationId) {
             applicationAuth.invalidate(applicationId);

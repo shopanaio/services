@@ -3,11 +3,11 @@ import {
   type Auth as BetterAuthInstance,
   type BetterAuthOptions,
 } from "better-auth";
-import { bearer, emailOTP, jwt } from "better-auth/plugins";
+import { bearer, emailOTP, jwt, phoneNumber } from "better-auth/plugins";
 import { signJWT } from "better-auth/plugins/jwt";
 import { getCurrentAuthContext } from "@better-auth/core/context";
 import { oauthProvider } from "@better-auth/oauth-provider";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { getDatabase } from "../infrastructure/db/database.js";
 import type {
   ApplicationAuthDeliveryProfile,
@@ -19,6 +19,11 @@ import {
   normalizeApplicationAuthEmailRecipient,
   type ApplicationAuthEmailDeliveryPort,
 } from "../services/ApplicationAuthEmailDeliveryPort.js";
+import {
+  createApplicationAuthSmsIdempotencyKey,
+  normalizeApplicationAuthPhoneRecipient,
+  type ApplicationAuthSmsDeliveryPort,
+} from "../services/ApplicationAuthSmsDeliveryPort.js";
 import type { ApplicationAuthSecretService } from "../services/ApplicationAuthSecretService.js";
 import type { ApplicationUserLifecyclePort } from "../services/ApplicationUserLifecyclePort.js";
 import type { ApplicationAuthLiveStateInvalidationBus } from "../events/application-auth/index.js";
@@ -110,6 +115,7 @@ export function createApplicationAuth(
     keyring: ApplicationAuthKeyring;
     secrets: ApplicationAuthSecretService;
     emailDelivery?: ApplicationAuthEmailDeliveryPort;
+    smsDelivery?: ApplicationAuthSmsDeliveryPort;
     liveStateInvalidation?: ApplicationAuthLiveStateInvalidationBus;
     applicationUserLifecycle?: ApplicationUserLifecyclePort;
   }
@@ -179,6 +185,51 @@ export function createApplicationAuth(
         overrideDefaultEmailVerification: false,
         changeEmail: { enabled: false, verifyCurrentEmail: false },
         sendVerificationOTP: delivery.sendVerificationOTP,
+      })
+    );
+  }
+  if (config.policy.phoneOtpSignInAllowed) {
+    if (!security.smsDelivery) {
+      throw new Error("Application phone OTP delivery is not configured");
+    }
+    plugins.push(
+      phoneNumber({
+        otpLength: 6,
+        expiresIn: 5 * 60,
+        allowedAttempts: 3,
+        phoneNumberValidator: (value) => /^\+[1-9][0-9]{6,14}$/u.test(value),
+        sendOTP: async ({ phoneNumber: rawPhoneNumber, code }) => {
+          const recipient = normalizeApplicationAuthPhoneRecipient(rawPhoneNumber);
+          const result = await security.smsDelivery!.enqueue({
+            applicationId,
+            recipient,
+            otp: code,
+            idempotencyKey: createApplicationAuthSmsIdempotencyKey({
+              applicationId,
+              recipient,
+              otp: code,
+            }),
+          });
+          if (!result.accepted) {
+            throw new Error("Application phone OTP delivery is unavailable");
+          }
+        },
+        ...(config.policy.phoneOtpSignUpAllowed
+          ? {
+              signUpOnVerification: {
+                getTempEmail: (value: string) =>
+                  createSyntheticPhoneEmail(
+                    applicationId,
+                    normalizeApplicationAuthPhoneRecipient(value),
+                    security.secrets.deriveRealmSecret(
+                      applicationId,
+                      config.secretKeyVersion
+                    )
+                  ),
+                getTempName: () => "Customer",
+              },
+            }
+          : {}),
       })
     );
   }
@@ -254,6 +305,16 @@ export function createApplicationAuth(
       ? {
           databaseHooks: {
             user: {
+              create: {
+                before: async (user: Record<string, unknown>) => ({
+                  data: {
+                    ...user,
+                    syntheticEmail:
+                      typeof user.email === "string" &&
+                      user.email.endsWith("@phone.invalid"),
+                  },
+                }),
+              },
               update: {
                 after: async (user: { id: string }) => {
                   await security.applicationUserLifecycle!.projectionChanged({
@@ -268,6 +329,8 @@ export function createApplicationAuth(
                       "emailVerified",
                       "firstName",
                       "lastName",
+                      "phoneNumber",
+                      "phoneNumberVerified",
                     ],
                     updatedAt: new Date().toISOString(),
                   });
@@ -390,6 +453,21 @@ function createCommonOptions(
               applicationId: {
                 type: "string" as const,
                 required: false,
+                input: false,
+              },
+              phoneNumber: {
+                type: "string" as const,
+                required: false,
+              },
+              phoneNumberVerified: {
+                type: "boolean" as const,
+                required: false,
+                defaultValue: false,
+              },
+              syntheticEmail: {
+                type: "boolean" as const,
+                required: false,
+                defaultValue: false,
                 input: false,
               },
             }
@@ -704,6 +782,20 @@ function assertApplicationRuntimeConfiguration(
   ) {
     throw new Error("Application auth public base URL is not canonical");
   }
+}
+
+function createSyntheticPhoneEmail(
+  applicationId: string,
+  phone: string,
+  secret: string
+): string {
+  const localPart = createHmac("sha256", secret)
+    .update("shopana:iam:phone-identity:v1\0")
+    .update(applicationId)
+    .update("\0")
+    .update(phone)
+    .digest("hex");
+  return `${localPart}@phone.invalid`;
 }
 
 export type Auth = ReturnType<typeof createAuth>;

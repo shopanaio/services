@@ -95,6 +95,8 @@ export class ApplicationUserEventHandlers extends EventHandlers {
           iamStatus: identity.user.status,
           email: identity.user.email,
           emailVerified: identity.user.emailVerified,
+          phoneE164: identity.user.phoneNumber,
+          phoneVerified: identity.user.phoneNumberVerified,
           firstName: identity.user.firstName,
           lastName: identity.user.lastName,
         },

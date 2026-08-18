@@ -41,6 +41,16 @@ const messages = {
     emailOtpCode: "Six-digit code",
     verifyEmailOtp: "Verify and sign in",
     resendEmailOtp: "Send another code",
+    phone: "Phone number",
+    phoneOtpTitle: "Sign in with a phone code",
+    phoneOtpRequestHint: "Enter a phone number in international format.",
+    phoneOtpAccepted: "Check your phone for a six-digit code.",
+    phoneOtpVerifyTitle: "Enter phone code",
+    phoneOtpVerifyHint:
+      "Enter the phone number and six-digit code. The code expires in five minutes.",
+    sendPhoneOtp: "Send code",
+    verifyPhoneOtp: "Verify and sign in",
+    resendPhoneOtp: "Send another code",
     forgotPassword: "Forgot password?",
     resetPasswordTitle: "Reset password",
     resetPasswordRequestHint:

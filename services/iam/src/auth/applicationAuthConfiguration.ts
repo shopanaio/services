@@ -78,6 +78,8 @@ export const applicationAuthMutableConfigurationSchema = z
     emailVerificationRequired: z.boolean(),
     emailOtpSignInEnabled: z.boolean(),
     emailOtpSignUpEnabled: z.boolean(),
+    phoneOtpSignInEnabled: z.boolean(),
+    phoneOtpSignUpEnabled: z.boolean(),
     consentMode: z.literal("explicit"),
     accessTokenTtlSeconds: z
       .number()
@@ -110,6 +112,14 @@ export const applicationAuthMutableConfigurationSchema = z
         path: ["emailOtpSignUpEnabled"],
         message:
           "emailOtpSignUpEnabled requires emailOtpSignInEnabled to be enabled",
+      });
+    }
+    if (value.phoneOtpSignUpEnabled && !value.phoneOtpSignInEnabled) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["phoneOtpSignUpEnabled"],
+        message:
+          "phoneOtpSignUpEnabled requires phoneOtpSignInEnabled to be enabled",
       });
     }
   });
@@ -216,6 +226,8 @@ export const DEFAULT_APPLICATION_AUTH_CONFIGURATION: ApplicationAuthMutableConfi
     emailVerificationRequired: true,
     emailOtpSignInEnabled: false,
     emailOtpSignUpEnabled: false,
+    phoneOtpSignInEnabled: false,
+    phoneOtpSignUpEnabled: false,
     consentMode: "explicit",
     accessTokenTtlSeconds: APPLICATION_AUTH_TTL.accessToken.default,
     idTokenTtlSeconds: APPLICATION_AUTH_TTL.idToken.default,
@@ -232,6 +244,8 @@ export interface EffectiveApplicationAuthPolicy {
   passwordResetAllowed: boolean;
   emailOtpSignInAllowed: boolean;
   emailOtpSignUpAllowed: boolean;
+  phoneOtpSignInAllowed: boolean;
+  phoneOtpSignUpAllowed: boolean;
   socialProviders: readonly EffectiveApplicationSocialProviderPolicy[];
 }
 
@@ -253,6 +267,8 @@ export function calculateEffectiveApplicationAuthPolicy(
     | "passwordResetEnabled"
     | "emailOtpSignInEnabled"
     | "emailOtpSignUpEnabled"
+    | "phoneOtpSignInEnabled"
+    | "phoneOtpSignUpEnabled"
   >,
   providers: readonly {
     provider: ApplicationAuthProviderName;
@@ -280,6 +296,10 @@ export function calculateEffectiveApplicationAuthPolicy(
       realmEnabled && configuration.emailOtpSignInEnabled,
     emailOtpSignUpAllowed:
       signUpAllowed && configuration.emailOtpSignUpEnabled,
+    phoneOtpSignInAllowed:
+      realmEnabled && configuration.phoneOtpSignInEnabled,
+    phoneOtpSignUpAllowed:
+      signUpAllowed && configuration.phoneOtpSignUpEnabled,
     socialProviders: Object.freeze(
       providers.map(({ provider, enabled }) =>
         Object.freeze({

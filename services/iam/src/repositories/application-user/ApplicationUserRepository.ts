@@ -128,6 +128,21 @@ export class ApplicationUserRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findByPhoneNumber(phoneNumber: string): Promise<ApplicationUser | null> {
+    const [result] = await this.connection
+      .select()
+      .from(applicationUser)
+      .where(
+        and(
+          eq(applicationUser.applicationId, this.applicationId),
+          eq(applicationUser.phoneNumber, phoneNumber)
+        )
+      )
+      .limit(1);
+    return result ?? null;
+  }
+
+  @ReadOnly()
   async findByGlobalUserId(
     globalUserId: string
   ): Promise<ApplicationUser | null> {

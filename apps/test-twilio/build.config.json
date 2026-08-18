@@ -1,0 +1,5 @@
+{
+  "appCode": "test-twilio",
+  "entryPoint": "src/index.ts",
+  "outFile": "dist/index.js"
+}

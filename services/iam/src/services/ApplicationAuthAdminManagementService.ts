@@ -27,6 +27,7 @@ import type { ResourceManagementMode } from "../repositories/models/index.js";
 import type { ApplicationAuthProviderValidationPort } from "./ApplicationAuthProviderValidationPort.js";
 import { OAuthClientSecretCodec } from "./OAuthClientSecretCodec.js";
 import type { ApplicationUserLifecyclePort } from "./ApplicationUserLifecyclePort.js";
+import type { ApplicationAuthSmsProviderAvailabilityPort } from "./ApplicationAuthSmsProviderAvailabilityPort.js";
 
 const APPLICATIONS_RESOURCE = "org.applications";
 const AUTH_RESOURCE = "org.application-auth";
@@ -241,7 +242,7 @@ const authUpdateSchema = scopeSchema
 const realmEnabledSchema = revisionedScopeSchema.extend({ enabled: z.boolean() }).strict();
 const methodSchema = revisionedScopeSchema
   .extend({
-    methodId: z.enum(["password", "email_otp"]),
+    methodId: z.enum(["password", "email_otp", "phone_otp"]),
     enabledCapabilities: z
       .array(z.enum(["sign_in", "sign_up", "password_reset"]))
       .max(3),
@@ -259,21 +260,21 @@ const methodSchema = revisionedScopeSchema
       });
     }
     if (
-      value.methodId === "email_otp" &&
+      value.methodId !== "password" &&
       value.enabledCapabilities.includes("password_reset")
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["enabledCapabilities"],
-        message: "Email OTP does not support password reset",
+        message: "OTP methods do not support password reset",
       });
     }
   });
 const replaceAuthMethodsSchema = revisionedScopeSchema
   .extend({
     enabledMethods: z
-      .array(z.enum(["password", "email_otp"]))
-      .max(2),
+      .array(z.enum(["password", "email_otp", "phone_otp"]))
+      .max(3),
   })
   .strict()
   .superRefine((value, context) => {
@@ -359,6 +360,7 @@ export class ApplicationAuthAdminManagementService {
     private readonly authorizer: AuthProvider,
     private readonly audit: ApplicationAuthAdminAuditPort,
     private readonly providerValidation: ApplicationAuthProviderValidationPort,
+    private readonly smsProviderAvailability: ApplicationAuthSmsProviderAvailabilityPort,
     private readonly invalidation: ApplicationAuthAdminInvalidator,
     options: {
       now?: () => Date;
@@ -367,6 +369,12 @@ export class ApplicationAuthAdminManagementService {
   ) {
     this.now = options.now ?? (() => new Date());
     this.applicationUserLifecycle = options.applicationUserLifecycle;
+  }
+
+  isPhoneOtpConfigured(applicationId: string): Promise<boolean> {
+    return this.smsProviderAvailability.isConfiguredForApplication(
+      applicationId
+    );
   }
 
   /** Audit a GraphQL-boundary rejection that cannot safely enter a domain method. */
@@ -743,7 +751,7 @@ export class ApplicationAuthAdminManagementService {
   async updateAuthMethod(
     input: z.input<typeof methodSchema>,
     actor: ApplicationAuthAdminActor
-  ): Promise<ApplicationMutationResult & { methodId: "password" | "email_otp" }> {
+  ): Promise<ApplicationMutationResult & { methodId: "password" | "email_otp" | "phone_otp" }> {
     const { value, actor: trustedActor } = await this.parseAuditedMutation(
       methodSchema,
       input,
@@ -769,16 +777,25 @@ export class ApplicationAuthAdminManagementService {
       },
       execute: async (scope) => {
         this.assertRevision(scope, value.expectedRevision);
-        const needsDelivery =
+        const needsEmailDelivery =
           value.methodId === "email_otp"
             ? capabilities.length > 0
             : capabilities.includes("password_reset") ||
               (capabilities.includes("sign_up") &&
                 scope.configuration.emailVerificationRequired);
-        if (needsDelivery && !scope.deliveryConfigured) {
+        if (needsEmailDelivery && !scope.deliveryConfigured) {
           throw invalidRealmState(
             "Authentication method requires email delivery configuration"
           );
+        }
+        if (
+          value.methodId === "phone_otp" &&
+          capabilities.length > 0 &&
+          !(await this.smsProviderAvailability.isConfiguredForApplication(
+            scope.applicationId
+          ))
+        ) {
+          throw invalidRealmState("Phone OTP requires an active SMS provider");
         }
         const resultingPasswordSignIn =
           value.methodId === "password"
@@ -788,10 +805,15 @@ export class ApplicationAuthAdminManagementService {
           value.methodId === "email_otp"
             ? capabilities.includes("sign_in")
             : scope.configuration.emailOtpSignInEnabled;
+        const resultingPhoneOtpSignIn =
+          value.methodId === "phone_otp"
+            ? capabilities.includes("sign_in")
+            : scope.configuration.phoneOtpSignInEnabled;
         if (
           scope.configuration.realmEnabled &&
           !resultingPasswordSignIn &&
           !resultingEmailOtpSignIn &&
+          !resultingPhoneOtpSignIn &&
           scope.enabledProviderCount === 0
         ) {
           throw new ApplicationAuthAdminManagementError(
@@ -859,6 +881,14 @@ export class ApplicationAuthAdminManagementService {
           throw invalidRealmState(
             "Enabled authentication methods require email delivery configuration"
           );
+        }
+        if (
+          enabledMethods.includes("phone_otp") &&
+          !(await this.smsProviderAvailability.isConfiguredForApplication(
+            scope.applicationId
+          ))
+        ) {
+          throw invalidRealmState("Phone OTP requires an active SMS provider");
         }
         const updated = await this.repository.replaceAuthMethods({
           applicationId: scope.applicationId,
@@ -947,6 +977,7 @@ export class ApplicationAuthAdminManagementService {
           scope.configuration.realmEnabled &&
           !scope.configuration.passwordSignInEnabled &&
           !scope.configuration.emailOtpSignInEnabled &&
+          !scope.configuration.phoneOtpSignInEnabled &&
           !(await this.repository.hasEnabledProvider(
             scope.applicationId,
             value.provider
@@ -1467,6 +1498,7 @@ export class ApplicationAuthAdminManagementService {
     const hasEnabledSignIn =
       configuration.passwordSignInEnabled ||
       configuration.emailOtpSignInEnabled ||
+      configuration.phoneOtpSignInEnabled ||
       (await this.repository.hasEnabledProvider(scope.applicationId));
     if (!hasEnabledSignIn) {
       throw invalidRealmState(
@@ -1572,7 +1604,8 @@ function safeTargetId(
   if (
     targetType === "auth_method" &&
     candidate !== "password" &&
-    candidate !== "email_otp"
+    candidate !== "email_otp" &&
+    candidate !== "phone_otp"
   ) {
     return undefined;
   }

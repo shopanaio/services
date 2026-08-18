@@ -290,7 +290,9 @@ export type ApplicationUserProjectionField =
   | "email"
   | "emailVerified"
   | "firstName"
-  | "lastName";
+  | "lastName"
+  | "phoneNumber"
+  | "phoneNumberVerified";
 
 /**
  * Signals that an application-local IAM identity projection changed.

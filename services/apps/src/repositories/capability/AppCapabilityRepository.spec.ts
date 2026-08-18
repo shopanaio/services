@@ -22,6 +22,9 @@ describe("isBroadcastStoreRoute", () => {
 
   it("preserves existing notification and single-route semantics", () => {
     expect(isBroadcastStoreRoute("notifications", "deliver")).toBe(true);
+    expect(
+      isBroadcastStoreRoute("notifications", "getCapabilities"),
+    ).toBe(true);
     expect(isBroadcastStoreRoute("payments.provider", "authorize")).toBe(
       false,
     );

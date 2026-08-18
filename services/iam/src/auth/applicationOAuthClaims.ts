@@ -3,7 +3,7 @@ import { readApplicationOAuthClientPolicyMetadata } from "./applicationOAuthPoli
 
 type OAuthClaimsOptions = Pick<
   OAuthOptions<Scope[]>,
-  "customAccessTokenClaims" | "customIdTokenClaims"
+  "customAccessTokenClaims" | "customIdTokenClaims" | "customUserInfoClaims"
 >;
 
 export function createApplicationOAuthClaimsPolicy(input: {
@@ -49,7 +49,16 @@ export function createApplicationOAuthClaimsPolicy(input: {
       return {
         application_id: input.applicationId,
         actor_type: "application_user",
+        ...(user.syntheticEmail === true
+          ? { email: undefined, email_verified: undefined }
+          : {}),
       };
+    },
+    customUserInfoClaims: ({ user }) => {
+      assertUserScope(user);
+      return user.syntheticEmail === true
+        ? { email: undefined, email_verified: undefined }
+        : {};
     },
   };
 }

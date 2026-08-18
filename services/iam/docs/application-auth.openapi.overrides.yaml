@@ -774,6 +774,86 @@ paths:
         default:
           $ref: "#/components/responses/ApplicationAuthError"
 
+  /auth/applications/{applicationId}/phone-number/send-otp:
+    post:
+      tags: [Phone OTP]
+      operationId: requestApplicationUserPhoneOtp
+      summary: Request a six-digit phone sign-in code
+      description: Accepts canonical E.164 phone numbers and returns a generic response.
+      x-feature-condition: phoneOtpSignInAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phoneNumber]
+              properties:
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+[1-9][0-9]{6,14}$"
+      responses:
+        "200":
+          description: Generic acceptance response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenericMessageResponse"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        "503":
+          $ref: "#/components/responses/ApplicationAuthError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
+  /auth/applications/{applicationId}/phone-number/verify:
+    post:
+      tags: [Phone OTP]
+      operationId: verifyApplicationUserPhoneOtp
+      summary: Verify a six-digit phone code
+      description: May create a phone-only user when phone OTP signup and registration are enabled.
+      x-feature-condition: phoneOtpSignInAllowed
+      parameters:
+        - $ref: "#/components/parameters/ApplicationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phoneNumber, code]
+              properties:
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+[1-9][0-9]{6,14}$"
+                code:
+                  type: string
+                  pattern: "^[0-9]{6}$"
+      responses:
+        "200":
+          description: Phone verified and application session created
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/ApplicationSessionSetCookie"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationAuthenticationResponse"
+        "401":
+          description: Invalid phone number or code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OAuthError"
+        "429":
+          $ref: "#/components/responses/RateLimitError"
+        default:
+          $ref: "#/components/responses/ApplicationAuthError"
+
   /auth/applications/{applicationId}/sign-in/social:
     post:
       tags: [Social authentication]

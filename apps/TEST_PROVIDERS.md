@@ -4,6 +4,10 @@ The bundled `test-fedex` and `test-stripe` Apps are deterministic provider
 simulators for checkout E2E tests. They never call external networks and must
 not be used as production integrations.
 
+`test-twilio` is an in-memory SMS gateway for authentication tests. It accepts
+only the `SMS` notification channel, records delivered messages in its runtime
+outbox, and never generates or verifies OTP codes itself.
+
 ## Delivery scenarios
 
 `test-fedex` implements `delivery.carrier-service` protocol version 2.

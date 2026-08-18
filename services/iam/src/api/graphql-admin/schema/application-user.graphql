@@ -15,8 +15,10 @@ type ApplicationUser implements Node {
   name: String!
   firstName: String
   lastName: String
-  email: Email!
+  email: Email
   emailVerified: Boolean!
+  phoneNumber: String
+  phoneNumberVerified: Boolean!
   imageUrl: String
   status: ApplicationUserStatus!
   """Safe security metadata without credentials or token values."""

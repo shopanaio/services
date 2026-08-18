@@ -224,6 +224,34 @@ export class ApplicationAuthRateLimiter {
     );
   }
 
+  async assertPhoneOtpRequest(input: {
+    applicationId: string;
+    phoneNumber: string;
+    ip: string;
+    secret: string;
+  }): Promise<void> {
+    return this.assertEmailOtpRequest({
+      applicationId: input.applicationId,
+      normalizedEmail: input.phoneNumber,
+      ip: input.ip,
+      secret: input.secret,
+    });
+  }
+
+  async assertPhoneOtpVerify(input: {
+    applicationId: string;
+    phoneNumber: string;
+    ip: string;
+    secret: string;
+  }): Promise<void> {
+    return this.assertEmailOtpVerify({
+      applicationId: input.applicationId,
+      verificationId: `phone-otp-${input.phoneNumber}`,
+      ip: input.ip,
+      secret: input.secret,
+    });
+  }
+
   async assertAuthorize(input: {
     applicationId: string;
     clientId: string;
