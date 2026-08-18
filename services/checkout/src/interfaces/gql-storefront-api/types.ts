@@ -2094,6 +2094,11 @@ export type ApiPlaceOrderInput = {
   checkoutId: Scalars['ID']['input'];
   /** Pipeline revision returned by Checkout.resultRevision. */
   expectedResultRevision: Scalars['String']['input'];
+  /**
+   * Client-generated key identifying this payment/order attempt. Reuse the same
+   * key with identical input when retrying after a timeout or connection failure.
+   */
+  idempotencyKey: Scalars['String']['input'];
   /** HTTPS URL to which an online payment provider may return the customer. */
   returnUrl: InputMaybe<Scalars['String']['input']>;
 };

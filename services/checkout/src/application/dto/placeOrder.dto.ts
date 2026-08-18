@@ -2,6 +2,7 @@ import { GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import {
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
 } from "class-validator";
@@ -18,6 +19,12 @@ export class PlaceOrderDto {
   @MinLength(1)
   @MaxLength(256)
   expectedResultRevision!: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  @Matches(/\S/, { message: "Idempotency key cannot be blank" })
+  idempotencyKey!: string;
 
   @IsOptional()
   @IsString()

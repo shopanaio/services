@@ -1,5 +1,6 @@
 import { GlobalIdEntity, encodeGlobalIdByType } from "@shopana/shared-graphql-guid";
 import type {
+  ApiCheckoutUserError,
   ApiPlaceOrderCustomerActionType,
   ApiPlaceOrderPayload,
   ApiPlaceOrderPaymentFailureCategory,
@@ -7,13 +8,17 @@ import type {
 } from "../types.js";
 import type { PlaceOrderWorkflowResult } from "../../../workflows/PlaceOrderWorkflow.js";
 
+type PlaceOrderPayloadContext = {
+  placementId: string;
+  checkoutId: string;
+  resultRevision: string;
+};
+
+type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId">;
+
 export function mapPlaceOrderPayload(
   result: PlaceOrderWorkflowResult | null,
-  context: {
-    placementId: string;
-    checkoutId: string;
-    resultRevision: string;
-  },
+  context: PlaceOrderPayloadContext,
 ): ApiPlaceOrderPayload {
   return {
     __typename: "PlaceOrderPayload",
@@ -60,5 +65,28 @@ export function mapPlaceOrderPayload(
         }
       : null,
     userErrors: [],
+  };
+}
+
+export function mapPlaceOrderErrorPayload(
+  error: ApiCheckoutUserError,
+  context: PlaceOrderErrorContext,
+): ApiPlaceOrderPayload {
+  return {
+    __typename: "PlaceOrderPayload",
+    placementId: null,
+    checkoutId: encodeGlobalIdByType(
+      context.checkoutId,
+      GlobalIdEntity.Checkout,
+    ),
+    resultRevision: context.resultRevision,
+    orderId: null,
+    status: null,
+    paymentCollectionId: null,
+    paymentSessionId: null,
+    paymentOperationId: null,
+    customerAction: null,
+    paymentFailure: null,
+    userErrors: [error],
   };
 }

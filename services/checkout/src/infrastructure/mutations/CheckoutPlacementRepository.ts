@@ -74,15 +74,23 @@ export class CheckoutPlacementRepository {
         input.idempotencyKey,
       );
       if (idempotencyConflict) {
-        throw new Error("CHECKOUT_IDEMPOTENCY_KEY_REUSED");
+        throw new Error("IDEMPOTENCY_KEY_PARAMETER_MISMATCH");
       }
       throw new Error("CHECKOUT_PLACEMENT_SNAPSHOT_STALE");
     }
     if (
+      existing.idempotencyKey === input.idempotencyKey &&
+      (
+        existing.requestHash !== input.requestHash ||
+        existing.checkoutVersion !== input.checkoutVersion ||
+        existing.resultRevision !== input.resultRevision
+      )
+    ) {
+      throw new Error("IDEMPOTENCY_KEY_PARAMETER_MISMATCH");
+    }
+    if (
       existing.idempotencyKey !== input.idempotencyKey ||
-      existing.requestHash !== input.requestHash ||
-      existing.checkoutVersion !== input.checkoutVersion ||
-      existing.resultRevision !== input.resultRevision
+      existing.requestHash !== input.requestHash
     ) {
       throw new Error("CHECKOUT_ALREADY_PLACED");
     }

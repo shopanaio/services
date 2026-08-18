@@ -13,7 +13,25 @@ import type {
 } from "@src/interfaces/gql-storefront-api/types";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { createValidated } from "@src/utils/validation";
-import { mapPlaceOrderPayload } from "@src/interfaces/gql-storefront-api/mapper/placeOrderPayload";
+import {
+  mapPlaceOrderErrorPayload,
+  mapPlaceOrderPayload,
+} from "@src/interfaces/gql-storefront-api/mapper/placeOrderPayload";
+
+const IDEMPOTENCY_PARAMETER_MISMATCH =
+  "IDEMPOTENCY_KEY_PARAMETER_MISMATCH";
+
+function errorCode(error: unknown): string | null {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+  return error instanceof Error ? error.message : null;
+}
 
 export const placeOrder = async (
   _parent: ApiMutation,
@@ -27,7 +45,7 @@ export const placeOrder = async (
     storeId: ctx.store.id,
     checkoutId: dto.checkoutId,
     expectedResultRevision: dto.expectedResultRevision.trim(),
-    idempotencyKey: uuidv7(),
+    idempotencyKey: dto.idempotencyKey,
     correlationId: uuidv7(),
     credentialId: ctx.storefrontAccess.credentialId,
     userId: ctx.user?.id ?? null,
@@ -43,9 +61,10 @@ export const placeOrder = async (
       input,
       {
         source: "client",
-        clientKey: `${input.idempotencyKey}:${placeOrderRequestHash(input)}`,
+        clientKey: input.idempotencyKey,
         organizationId: input.organizationId,
         apiKeyId: input.credentialId,
+        requestHash: placeOrderRequestHash(input),
       },
     );
 
@@ -55,6 +74,26 @@ export const placeOrder = async (
       resultRevision: input.expectedResultRevision,
     });
   } catch (error) {
+    const code = errorCode(error);
+    if (
+      code === "IDEMPOTENCY_CONFLICT" ||
+      code === IDEMPOTENCY_PARAMETER_MISMATCH
+    ) {
+      return mapPlaceOrderErrorPayload(
+        {
+          __typename: "CheckoutUserError",
+          field: ["input", "idempotencyKey"],
+          code: IDEMPOTENCY_PARAMETER_MISMATCH,
+          message:
+            "The idempotency key has already been used with different input.",
+          retryable: false,
+        },
+        {
+          checkoutId: input.checkoutId,
+          resultRevision: input.expectedResultRevision,
+        },
+      );
+    }
     const reason = error instanceof Error ? error.message : String(error);
     logger.error(
       {
