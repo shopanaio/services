@@ -25,7 +25,14 @@ export default defineApp({
   create: (host) => new OnlineStoreApp(host),
   graphql: {
     admin: {
-      schema: "./graphql/admin/online-store.graphql",
+      schema: [
+        "./graphql/admin/base.graphql",
+        "./graphql/admin/scalars.graphql",
+        "./graphql/admin/relay.graphql",
+        "./graphql/admin/page.graphql",
+        "./graphql/admin/navigation.graphql",
+        "./graphql/admin/__generated__/filters.graphql",
+      ],
       handlers: {
         "Query.onlineStoreAppQuery": appGraphQL.handler(
           (_parent, _args, context) => {

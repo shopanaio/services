@@ -52,12 +52,21 @@ export class AppGraphQLServerFactory {
     const app = fastify({
       disableRequestLogging: true,
     });
-    const schemaUrl = new URL(module.schema, hosted.moduleUrl);
-    const typeDefs = gql(readFileSync(schemaUrl, "utf8"));
+    const schemaPaths =
+      typeof module.schema === "string" ? [module.schema] : module.schema;
+    const typeDefs = schemaPaths.map((schemaPath) => {
+      const schemaUrl = new URL(schemaPath, hosted.moduleUrl);
+      return gql(readFileSync(schemaUrl, "utf8"));
+    });
     const resolvers = this.createResolvers(hosted, module);
     const apollo = new ApolloServer<RuntimeGraphQLContext>({
       introspection: true,
-      schema: buildSubgraphSchema([{ typeDefs, resolvers }]),
+      schema: buildSubgraphSchema(
+        typeDefs.map((document, index) => ({
+          typeDefs: document,
+          ...(index === 0 ? { resolvers } : {}),
+        })),
+      ),
       plugins: [
         fastifyApolloDrainPlugin(app),
         ApolloServerPluginInlineTraceDisabled(),

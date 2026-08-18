@@ -1,39 +1,65 @@
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { createSegment } from '../customers-admin-api/helpers';
+import { baseRules } from '../loyality-admin-api/helpers';
+import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 test.describe('Loyalty customer eligibility across Admin and Storefront', () => {
-  test('applies ALL eligibility to every non-excluded customer', () => {
-    // Publish ALL in Admin and verify earning, redemption, account opportunities, and product presentation agree.
+  let kit: LoyaltyE2eTestKit;
+
+  test.beforeEach(async ({ api, request }) => {
+    kit = new LoyaltyE2eTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  async function quoteWithEligibility(eligibility: Record<string, unknown>, segmentIds: string[]) {
+    const fixture = await kit.fundedAccount('100', { rules: baseRules({ eligibility }) });
+    return kit.quote(fixture, '10', kit.checkoutContext({ segmentIds }));
+  }
+
+  test('applies ALL eligibility to non-excluded customers', async () => {
+    expect(await quoteWithEligibility({
+      type: 'ALL', channelCodes: ['WEB'], segmentIds: [], excludedSegmentIds: [],
+    }, [])).toMatchObject({ status: 'QUOTED' });
   });
 
-  test('applies SEGMENTS ANY when at least one included segment matches', () => {
-    // Compare zero/one/many matches across earning, redemption, and both storefront projection families.
+  test('applies SEGMENTS ANY and ALL with canonical decisions', async () => {
+    const one = await createSegment(kit.api);
+    const two = await createSegment(kit.api);
+    expect(await quoteWithEligibility({
+      type: 'SEGMENTS', segmentMatchMode: 'ANY', channelCodes: ['WEB'],
+      segmentIds: [one.id, two.id], excludedSegmentIds: [],
+    }, [two.id])).toMatchObject({ status: 'QUOTED' });
+    expect(await quoteWithEligibility({
+      type: 'SEGMENTS', segmentMatchMode: 'ALL', channelCodes: ['WEB'],
+      segmentIds: [one.id, two.id], excludedSegmentIds: [],
+    }, [one.id])).toMatchObject({ status: 'NOT_APPLICABLE', code: 'REQUIRED_SEGMENT_MISSING' });
   });
 
-  test('applies SEGMENTS ALL only when every included segment matches', () => {
-    // Compare partial/full membership and verify no surface implements looser matching.
+  test('gives excluded segments precedence', async () => {
+    const included = await createSegment(kit.api);
+    const excluded = await createSegment(kit.api);
+    expect(await quoteWithEligibility({
+      type: 'SEGMENTS', segmentMatchMode: 'ANY', channelCodes: ['WEB'],
+      segmentIds: [included.id], excludedSegmentIds: [excluded.id],
+    }, [included.id, excluded.id])).toMatchObject({
+      status: 'NOT_APPLICABLE', code: 'EXCLUDED_SEGMENT_MATCHED',
+    });
   });
 
-  test('gives excluded segments precedence across all loyalty paths', () => {
-    // Match included and excluded segments simultaneously and verify no presentation, earning, or redemption.
-  });
-
-  test('applies eligible channel codes consistently to earning and redemption', () => {
-    // Use the same customer/order on allowed and denied channels and verify canonical ineligibility codes.
-  });
-
-  test('uses immutable eligibility snapshots after customer segments change', () => {
-    // Change memberships after checkout/order capture and verify historical calculation/audit uses the old revision.
-  });
-
-  test('uses current segment membership for a new storefront presentation', () => {
-    // Change customer segments and verify new presentation revisions and opportunities reflect current membership.
-  });
-
-  test('rejects redemption when customer eligibility revision changes after quote', () => {
-    // Quote, mutate membership, reserve/place order, and verify the stale eligibility snapshot cannot commit.
-  });
-
-  test('returns identical eligibility decisions under concurrent event delivery', () => {
-    // Deliver matching events in parallel and verify one canonical account/evaluation outcome without limit drift.
+  test('applies channel codes and immutable eligibility revisions', async () => {
+    const fixture = await kit.fundedAccount('100', {
+      rules: baseRules({ eligibility: {
+        type: 'ALL', channelCodes: ['MOBILE'], segmentIds: [], excludedSegmentIds: [],
+      } }),
+    });
+    expect(await kit.quote(fixture, '10', kit.checkoutContext({ channelCode: 'WEB' }))).toMatchObject({
+      status: 'NOT_APPLICABLE', code: 'CHANNEL_NOT_ELIGIBLE',
+    });
+    const context = kit.checkoutContext({ channelCode: 'MOBILE' });
+    const quoted = await kit.quote(fixture, '10', context);
+    expect(quoted.quote.basedOnCustomerEligibilityRevision)
+      .toBe(context.customerEligibilityRevision);
   });
 });

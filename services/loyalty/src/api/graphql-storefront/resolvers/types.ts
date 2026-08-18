@@ -6,6 +6,7 @@ import {
 import { requireStorefrontPermission, STOREFRONT_PERMISSIONS } from "@shopana/shared-context";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
+import { dateTimeScalar } from "../../scalars.js";
 import type { ServiceContext } from "../../../context/types.js";
 import {
   CustomerFederationResolver,
@@ -31,6 +32,7 @@ function referenceResolver(entity: GlobalIdType, Resolver: Loadable) {
 }
 
 export const typeResolvers = {
+  DateTime: dateTimeScalar,
   Node: {
     __resolveType: (value: unknown) => value instanceof LoyaltyAvailableRewardResolver
       ? "LoyaltyAvailableReward"

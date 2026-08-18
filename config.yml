@@ -74,6 +74,9 @@ services:
       test-stripe:
         enabled: true
         required: true
+      test-twilio:
+        enabled: true
+        required: true
 
   checkout:
     ports:

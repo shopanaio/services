@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   smallint,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -126,7 +127,7 @@ export const monetaryTransactions = loyaltySchema.table(
     idempotencyKey: varchar("idempotency_key", { length: 255 }).notNull(),
     requestHash: varchar("request_hash", { length: 64 }).notNull(),
     actorType: actorTypeEnum("actor_type").notNull(),
-    actorId: uuid("actor_id"),
+    actorId: text("actor_id"),
     reasonCode: varchar("reason_code", { length: 128 }).notNull(),
     occurredAt: timestamp("occurred_at", {
       withTimezone: true,

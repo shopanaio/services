@@ -63,8 +63,8 @@ CREATE TABLE "loyalty"."program_version" (
     NOT NULL DEFAULT 'ORIGINAL_EXPIRY',
   "rules_schema_version" integer NOT NULL DEFAULT 1,
   "rules" jsonb NOT NULL DEFAULT '{}'::jsonb,
-  "created_by_id" uuid,
-  "published_by_id" uuid,
+  "created_by_id" text,
+  "published_by_id" text,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "published_at" timestamptz,
 

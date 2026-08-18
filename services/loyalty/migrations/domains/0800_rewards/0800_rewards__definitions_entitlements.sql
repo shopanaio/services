@@ -241,7 +241,7 @@ CREATE TABLE "loyalty"."reward_entitlement_event" (
   "status" "loyalty"."reward_entitlement_status" NOT NULL,
   "idempotency_key" varchar(255) NOT NULL,
   "actor_type" "loyalty"."actor_type" NOT NULL,
-  "actor_id" uuid,
+  "actor_id" text,
   "reason_code" varchar(128) NOT NULL,
   "occurred_at" timestamptz NOT NULL,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,

@@ -1,39 +1,57 @@
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { decodeGlobalId } from '@utils/globalid';
+import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
+
+const metric = {
+  type: 'METRIC', metric: 'QUALIFYING_POINTS', customMetricCode: null,
+  operator: 'GTE', threshold: '100', currencyCode: null,
+};
+const tier = (code: string, name: string, rank: number) => ({
+  code, name, rank, qualification: metric, maintenance: null,
+});
 
 test.describe('Loyalty tiers and benefits end to end', () => {
-  test('qualifies a customer into the first tier after earning metrics', () => {
-    // Generate qualifying facts, evaluate tier, and verify Admin events plus Storefront current tier.
+  let kit: LoyaltyE2eTestKit;
+
+  test.beforeEach(async ({ api, request }) => {
+    kit = new LoyaltyE2eTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  test('presents the current effective tier without internal qualification policy', async () => {
+    const fixture = await kit.createActiveAccount({ tiers: [tier('gold', 'Gold', 10)] });
+    await kit.seedTierMembership(fixture.account, fixture.version);
+    const result = await kit.loyaltyAccount('tier { code name rank effectiveFrom effectiveTo }');
+    expect(result?.tier).toMatchObject({ code: 'gold', name: 'Gold', rank: 10 });
+    expect(JSON.stringify(result)).not.toMatch(/qualification|threshold|metric/iu);
   });
 
-  test('upgrades through multiple ranked tiers at exact thresholds', () => {
-    // Exercise GTE/GT boundaries for points, spend, orders, referrals, and custom metrics.
+  test('upgrades and revokes a membership atomically in customer projection', async () => {
+    const fixture = await kit.createActiveAccount({
+      tiers: [tier('silver', 'Silver', 5), tier('gold', 'Gold', 10)],
+    });
+    const membership = await kit.seedTierMembership(fixture.account, fixture.version);
+    expect((await kit.loyaltyAccount('tier { code }'))?.tier.code).toBe('silver');
+    await kit.sql`
+      update loyalty.tier_membership
+      set tier_id = ${decodeGlobalId(fixture.version.tiers[1].id).id}, revision = revision + 1
+      where id = ${membership.membershipId}
+    `;
+    expect((await kit.loyaltyAccount('tier { code }'))?.tier.code).toBe('gold');
+    await kit.sql`
+      update loyalty.tier_membership set status = 'REVOKED', effective_to = now(), revision = revision + 1
+      where id = ${membership.membershipId}
+    `;
+    expect(await kit.loyaltyAccount('tier { code }')).toEqual({ tier: null });
   });
 
-  test('evaluates ALL ANY and NOT qualification expressions', () => {
-    // Produce matching and near-miss metric sets and verify the selected membership.
-  });
-
-  test('evaluates lifetime rolling and every calendar window', () => {
-    // Cross day/month/quarter/year/program-year/rolling boundaries and verify included metric facts.
-  });
-
-  test('applies immediate grace-period and end-of-membership downgrades', () => {
-    // Fall below maintenance criteria and verify exact effective windows and storefront transitions.
-  });
-
-  test('supports automatic and manual requalification', () => {
-    // Cross membership end while still qualified and compare automatic renewal with explicit Admin evaluation.
-  });
-
-  test('issues every configured tier reward benefit once per grant policy', () => {
-    // Qualify/upgrade/renew and verify entitlements, definition snapshots, limits, and Storefront rewards.
-  });
-
-  test('revokes membership without deleting earned rewards or history', () => {
-    // Revoke in Admin and verify Storefront tier removal plus retained membership/reward audit semantics.
-  });
-
-  test('serializes concurrent evaluations into one membership event', () => {
-    // Trigger admin and maintenance evaluation together and verify a single deterministic transition.
+  test('honors effective membership boundaries', async () => {
+    const fixture = await kit.createActiveAccount({ tiers: [tier('gold', 'Gold', 10)] });
+    await kit.seedTierMembership(fixture.account, fixture.version, {
+      effectiveFrom: new Date(Date.now() + 60_000).toISOString(),
+    });
+    expect(await kit.loyaltyAccount('tier { code }')).toEqual({ tier: null });
   });
 });

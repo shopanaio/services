@@ -92,7 +92,7 @@ CREATE TABLE "loyalty"."reservation_event" (
   "idempotency_key" varchar(255) NOT NULL,
   "reason_code" varchar(128) NOT NULL,
   "actor_type" "loyalty"."actor_type" NOT NULL,
-  "actor_id" uuid,
+  "actor_id" text,
   "occurred_at" timestamptz NOT NULL,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_at" timestamptz NOT NULL DEFAULT now(),

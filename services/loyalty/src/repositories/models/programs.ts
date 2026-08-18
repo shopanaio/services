@@ -7,6 +7,7 @@ import {
   index,
   integer,
   jsonb,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -153,8 +154,8 @@ export const programVersions = loyaltySchema.table(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    createdById: uuid("created_by_id"),
-    publishedById: uuid("published_by_id"),
+    createdById: text("created_by_id"),
+    publishedById: text("published_by_id"),
     createdAt: createdAt(),
     publishedAt: timestamp("published_at", {
       withTimezone: true,

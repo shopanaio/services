@@ -39,6 +39,8 @@ export function normalizeProgramRulesInput(value: Record<string, unknown>): Reco
               ...modifier,
               selector: decodeSelectorIds(modifier.selector as { type: string; ids: readonly string[] }),
               segmentIds: decodeSegments(modifier.segmentIds),
+              startsAt: modifier.startsAt ?? null,
+              endsAt: modifier.endsAt ?? null,
             };
           })
         : [],

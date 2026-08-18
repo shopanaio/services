@@ -1,5 +1,6 @@
-import { GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
+import { GLOBAL_ID_NAMESPACE, GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
 import { ApolloQuery } from "@shopana/type-resolver";
+import { GraphQLError } from "graphql";
 import type {
   LoyaltyQueryAccountArgs,
   LoyaltyQueryAccountsArgs,
@@ -46,8 +47,7 @@ export class QueryResolver extends LoyaltyType<Record<string, never>> {
 
 export class LoyaltyQueryResolver extends LoyaltyType<Record<string, never>> {
   async node(args: LoyaltyQueryNodeArgs) {
-    let parsed: ReturnType<typeof parseGlobalId>;
-    try { parsed = parseGlobalId(args.id); } catch { return null; }
+    const parsed = parseNodeId(args.id);
     switch (parsed.typeName) {
       case GlobalIdEntity.LoyaltyProgram:
         return (await this.$ctx.loaders.program.load(parsed.id)) ? this.resolvers.program(parsed.id) : null;
@@ -249,6 +249,18 @@ export class LoyaltyQueryResolver extends LoyaltyType<Record<string, never>> {
     const walletId = this.decodeId(args.walletId, GlobalIdEntity.LoyaltyMonetaryWallet);
     return Promise.all((await this.$ctx.kernel.repository.wallet.listTransactions(walletId, bounded(args.first)))
       .map(({ id }) => this.resolvers.monetaryTransaction(id)));
+  }
+}
+
+function parseNodeId(value: string): ReturnType<typeof parseGlobalId> {
+  try {
+    const parsed = parseGlobalId(value);
+    if (parsed.namespace !== GLOBAL_ID_NAMESPACE) throw new Error("Unexpected namespace");
+    return parsed;
+  } catch {
+    throw new GraphQLError("Invalid node ID", {
+      extensions: { code: "BAD_USER_INPUT" },
+    });
   }
 }
 

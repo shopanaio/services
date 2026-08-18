@@ -1,39 +1,83 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { idempotencyKey } from '../loyality-admin-api/helpers';
+import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 test.describe('Loyalty monetary wallets end to end', () => {
-  test('earns pending cashback and activates it after the configured delay', () => {
-    // Trigger monetary cashback, verify Admin pending wallet, maintenance activation, and separated points balance.
+  let kit: LoyaltyE2eTestKit;
+
+  test.beforeEach(async ({ api, request }) => {
+    kit = new LoyaltyE2eTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  async function convert(fixture: any, overrides: Record<string, unknown> = {}) {
+    return kit.api.admin.mutation<any>('loyality-admin-api/PointsConvertToMonetary', {
+      variables: { input: {
+        accountId: fixture.account.id, programVersionId: fixture.version.id,
+        walletType: 'STORE_CREDIT', currencyCode: 'USD', points: '200',
+        idempotencyKey: idempotencyKey('convert'), ...overrides,
+      } },
+    });
+  }
+
+  test('converts points into exact monetary credit atomically', async () => {
+    const fixture = await kit.fundedAccount('500');
+    const result = await convert(fixture);
+    const payload = result.data.loyaltyMutation.pointsConvertToMonetary;
+    expect(payload.userErrors).toEqual([]);
+    expect(payload).toMatchObject({
+      account: { balance: { availablePoints: '300' } },
+      monetaryWallet: {
+        walletType: 'STORE_CREDIT', currencyCode: 'USD',
+        balance: { available: { amountMinor: '200', currencyCode: 'USD' } },
+      },
+      pointsTransaction: { kind: 'ADJUST_DEBIT' },
+      monetaryTransaction: { kind: 'ADJUST_CREDIT', sourceType: 'POINTS_CONVERSION' },
+    });
   });
 
-  test('earns store credit in the configured currency', () => {
-    // Issue a store-credit reward and verify wallet identity, exact minor units, lot, and audit transaction.
+  test('keeps cashback and store-credit wallets separate', async () => {
+    const fixture = await kit.fundedAccount('500');
+    const credit = (await convert(fixture, { points: '100' })).data.loyaltyMutation.pointsConvertToMonetary.monetaryWallet;
+    const cashback = (await convert(fixture, { points: '100', walletType: 'CASHBACK' }))
+      .data.loyaltyMutation.pointsConvertToMonetary.monetaryWallet;
+    expect(cashback.id).not.toBe(credit.id);
+    const listed = await kit.api.admin.query<any>('loyality-admin-api/MonetaryWallets', {
+      variables: { first: 20, where: { accountIds: [fixture.account.id] } },
+    });
+    expect(listed.data.loyaltyQuery.monetaryWallets.map(({ walletType }: any) => walletType).sort())
+      .toEqual(['CASHBACK', 'STORE_CREDIT']);
   });
 
-  test('converts available points to cashback and store credit atomically', () => {
-    // Convert through Admin and verify paired ledgers, exact rate, account balance, and wallet balance.
+  test('prevents overspend and duplicate conversion', async () => {
+    const fixture = await kit.fundedAccount('250');
+    const key = idempotencyKey('same-conversion');
+    const first = await convert(fixture, { points: '200', idempotencyKey: key });
+    const replay = await convert(fixture, { points: '200', idempotencyKey: key });
+    expect(replay.data.loyaltyMutation.pointsConvertToMonetary.monetaryTransaction.id)
+      .toBe(first.data.loyaltyMutation.pointsConvertToMonetary.monetaryTransaction.id);
+    const rejected = await convert(fixture, { points: '100' });
+    expect(rejected.data.loyaltyMutation.pointsConvertToMonetary.userErrors.length).toBeGreaterThan(0);
+    expect((await kit.accountBalance(fixture.account.id)).availablePoints).toBe('50');
   });
 
-  test('reserves spends releases and restores monetary credit through checkout', () => {
-    // Exercise successful, failed, and refunded orders with exact wallet lot allocation.
-  });
-
-  test('expires monetary credit without affecting the points ledger', () => {
-    // Run maintenance at lot expiry and verify monetary audit/balance only.
-  });
-
-  test('tracks or rejects monetary reversal debt according to policy', () => {
-    // Spend earned credit before reversal and verify configured underfunding behavior.
-  });
-
-  test('keeps wallets separate by cashback store-credit type and currency', () => {
-    // Earn into several wallets and verify no cross-wallet allocation, conversion, or balance mixing.
-  });
-
-  test('merges customer wallets while retaining source transaction history', () => {
-    // Merge accounts and verify economic transfer, source closure/linkage, and surviving wallet balances.
-  });
-
-  test('prevents concurrent wallet overspend and duplicate conversions', () => {
-    // Race final balance operations and retry IDs while preserving finalized double-entry invariants.
+  test('adjusts wallet credit and debit without touching the points ledger', async () => {
+    const fixture = await kit.fundedAccount('300');
+    const wallet = (await convert(fixture, { points: '100' }))
+      .data.loyaltyMutation.pointsConvertToMonetary.monetaryWallet;
+    const pointTransactions = await kit.transactionCount(fixture.account.id);
+    for (const [direction, amountMinor] of [['CREDIT', '50'], ['DEBIT', '25']] as const) {
+      const result = await kit.api.admin.mutation<any>('loyality-admin-api/MonetaryWalletAdjust', {
+        variables: { input: {
+          walletId: wallet.id, direction, amountMinor, reasonCode: `E2E_${direction}`,
+          idempotencyKey: idempotencyKey(`wallet-${direction}`),
+        } },
+      });
+      expect(result.data.loyaltyMutation.monetaryWalletAdjust.userErrors).toEqual([]);
+    }
+    expect(await kit.transactionCount(fixture.account.id)).toBe(pointTransactions);
   });
 });

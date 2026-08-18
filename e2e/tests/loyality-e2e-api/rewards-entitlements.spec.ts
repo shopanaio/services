@@ -1,35 +1,74 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { idempotencyKey } from '../loyality-admin-api/helpers';
+import { REWARD_FIELDS } from '../loyality-storefront-api/loyalty-storefront-test-kit';
+import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 test.describe('Loyalty reward entitlements end to end', () => {
-  test('issues and presents points voucher and discount rewards', () => {
-    // Issue from Admin/rules and verify every structured Storefront type, copy, validity, and revision.
+  let kit: LoyaltyE2eTestKit;
+
+  test.beforeEach(async ({ api, request }) => {
+    kit = new LoyaltyE2eTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  test('issues an immutable reward and presents it on Storefront', async () => {
+    const fixture = await kit.createActiveAccount();
+    const definition = fixture.version.rewardDefinitions.find(({ rewardType }: any) => rewardType === 'POINTS');
+    const entitlement = await kit.issueReward(fixture.account, definition.id, { quantity: '2' });
+    expect(entitlement).toMatchObject({
+      status: 'ISSUED', quantity: '2', configurationSnapshot: { points: '1' }, revision: 1,
+    });
+    const account = await kit.loyaltyAccount(`availableRewards(first: 20) {
+      totalCount nodes { id reward { ${REWARD_FIELDS} } }
+    }`);
+    expect(account?.availableRewards).toMatchObject({
+      totalCount: 1,
+      nodes: [{ reward: { kind: 'POINTS', points: { minimum: '2', maximum: '2' } } }],
+    });
   });
 
-  test('issues and presents free shipping free product and member benefits', () => {
-    // Resolve external catalog references and verify safe customer-ready reward projections.
+  test('excludes future expired revoked reserved and redeemed rewards', async () => {
+    const fixture = await kit.createActiveAccount();
+    await kit.seedAvailableReward(fixture, 'POINTS', { points: '1' });
+    for (const status of ['RESERVED', 'REDEEMED', 'EXPIRED', 'REVOKED']) {
+      await kit.seedAvailableReward(fixture, 'POINTS', { points: '1' }, { status });
+    }
+    await kit.seedAvailableReward(fixture, 'POINTS', { points: '1' }, {
+      validFrom: new Date(Date.now() + 60_000), validTo: new Date(Date.now() + 120_000),
+    });
+    const account = await kit.loyaltyAccount('availableRewards(first: 20) { totalCount nodes { id } }');
+    expect(account?.availableRewards).toMatchObject({ totalCount: 1 });
   });
 
-  test('issues and presents cashback and store-credit rewards', () => {
-    // Verify monetary entitlement issuance feeds the correct wallet type and storefront money presentation.
+  test('revokes an entitlement with an audit event and removes it from Storefront', async () => {
+    const fixture = await kit.createActiveAccount();
+    const definition = fixture.version.rewardDefinitions.find(({ rewardType }: any) => rewardType === 'POINTS');
+    const issued = await kit.issueReward(fixture.account, definition.id);
+    const revoked = await kit.api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', {
+      variables: { input: {
+        entitlementId: issued.id, expectedRevision: issued.revision,
+        reasonCode: 'E2E_REVOKED', idempotencyKey: idempotencyKey('revoke'),
+      } },
+    });
+    expect(revoked.data.loyaltyMutation.rewardEntitlementRevoke.rewardEntitlement)
+      .toMatchObject({ status: 'REVOKED', revision: 2 });
+    expect((await kit.loyaltyAccount('availableRewards(first: 20) { totalCount }'))?.availableRewards.totalCount)
+      .toBe(0);
   });
 
-  test('reserves commits and releases a reward through checkout', () => {
-    // Exercise issued-to-reserved-to-redeemed and issued-to-reserved-to-issued paths with Admin events.
-  });
-
-  test('excludes future expired revoked reserved and redeemed rewards from storefront', () => {
-    // Transition through every state/time boundary and verify only currently usable entitlements appear.
-  });
-
-  test('enforces global issuance and per-account limits under concurrency', () => {
-    // Race final issuance slots and verify one entitlement/usage result without budget overflow.
-  });
-
-  test('keeps definition configuration immutable after successor publication', () => {
-    // Issue under two versions and verify each entitlement presents its own captured configuration.
-  });
-
-  test('replays issuance and transition requests exactly once', () => {
-    // Repeat direct and event-driven commands and verify one entitlement plus one event per transition.
+  test('replays issuance exactly once', async () => {
+    const fixture = await kit.createActiveAccount();
+    const definition = fixture.version.rewardDefinitions.find(({ rewardType }: any) => rewardType === 'POINTS');
+    const key = idempotencyKey('issue-replay');
+    const first = await kit.issueReward(fixture.account, definition.id, { idempotencyKey: key });
+    const replay = await kit.issueReward(fixture.account, definition.id, { idempotencyKey: key });
+    expect(replay.id).toBe(first.id);
+    const listed = await kit.api.admin.query<any>('loyality-admin-api/RewardEntitlements', {
+      variables: { first: 20, where: { accountIds: [fixture.account.id] } },
+    });
+    expect(listed.data.loyaltyQuery.rewardEntitlements).toHaveLength(1);
   });
 });

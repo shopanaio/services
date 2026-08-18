@@ -93,7 +93,7 @@ CREATE TABLE "loyalty"."monetary_transaction" (
   "idempotency_key" varchar(255) NOT NULL,
   "request_hash" varchar(64) NOT NULL,
   "actor_type" "loyalty"."actor_type" NOT NULL,
-  "actor_id" uuid,
+  "actor_id" text,
   "reason_code" varchar(128) NOT NULL,
   "occurred_at" timestamptz NOT NULL,
   "effective_at" timestamptz NOT NULL,

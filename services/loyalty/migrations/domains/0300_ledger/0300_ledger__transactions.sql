@@ -15,7 +15,7 @@ CREATE TABLE "loyalty"."transaction" (
   "event_id" varchar(128),
   "workflow_id" varchar(255),
   "actor_type" "loyalty"."actor_type" NOT NULL,
-  "actor_id" uuid,
+  "actor_id" text,
   "reason_code" varchar(128) NOT NULL,
   "description" varchar(1000),
   "occurred_at" timestamptz NOT NULL,

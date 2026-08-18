@@ -912,7 +912,7 @@ function toUserError(error: unknown): UserError {
     return { message: error.message, field: [], code: error.code, retryable: error.retryable };
   }
   return {
-    message: error instanceof Error ? error.message : String(error),
+    message: "The loyalty operation could not be completed",
     field: [],
     code: "LOYALTY_OPERATION_FAILED",
     retryable: false,

@@ -389,9 +389,9 @@ export type AppGraphQLHandlerDefinition =
 
 export interface AppGraphQLModuleDefinition {
   /**
-   * Schema asset path relative to the built App module entry point.
+   * Schema asset path(s) relative to the built App module entry point.
    */
-  readonly schema: string;
+  readonly schema: string | readonly string[];
   /**
    * Resolver mapping using "Type.field" keys.
    */

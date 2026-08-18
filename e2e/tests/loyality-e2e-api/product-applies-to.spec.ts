@@ -1,47 +1,83 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
+import { expect } from '@playwright/test';
+import { decodeGlobalId } from '@utils/globalid';
+import { baseRules } from '../loyality-admin-api/helpers';
+import { LoyaltyE2eTestKit } from './loyalty-e2e-test-kit';
 
 test.describe('Loyalty product applies-to across Admin and Storefront', () => {
-  test('applies ALL targeting in presentation and final order earning', () => {
-    // Publish ALL, compare product/variant estimates with checkout/order authoritative calculations.
+  let kit: LoyaltyE2eTestKit;
+
+  test.beforeEach(async ({ api, request }) => {
+    kit = new LoyaltyE2eTestKit(api, request);
+    await kit.setup();
+  });
+  test.afterEach(async () => kit.close());
+
+  async function points(type: 'Product' | 'ProductVariant', id: string) {
+    const response = await kit.entityQuery<any>(type, id, `loyalty {
+      purchaseOpportunity { reward {
+        ... on LoyaltyPointsRewardPresentation { points { minimum maximum } }
+      } }
+    }`);
+    expect(response.errors).toBeUndefined();
+    return response.data?.entities[0]?.loyalty?.purchaseOpportunity?.reward?.points ?? null;
+  }
+
+  const modifier = (selector: Record<string, unknown>) => ({
+    id: `modifier-${crypto.randomUUID().slice(0, 8)}`, title: 'Double', priority: 1,
+    multiplierBps: 20_000, selector, segmentIds: [], startsAt: null, endsAt: null,
   });
 
-  test('applies PRODUCT targeting in presentation and final order earning', () => {
-    // Order selected and unselected products and verify per-line estimates, snapshots, and awarded points agree.
+  test('applies ALL targeting in presentation and final earning', async () => {
+    const product = await kit.createProduct('1000');
+    const fixture = await kit.createActiveAccount({ rules: baseRules({ earning: {
+      modifiers: [modifier({ type: 'ALL', ids: [] })],
+    } }) });
+    expect(await points('Product', product.productId)).toEqual({ minimum: '20', maximum: '20' });
+    await kit.deliverEvent(kit.orderRewardEvent({ payload: { lines: [{
+      orderLineId: crypto.randomUUID(), productId: decodeGlobalId(product.productId).id,
+      variantId: decodeGlobalId(product.variantId).id, categoryIds: [], tagIds: [],
+      featureIds: [], optionValueIds: [], quantity: 1,
+      eligibleAmountAfterProductDiscountsMinor: '1000',
+      eligibleAmountAfterAllDiscountsMinor: '1000',
+    }] } }));
+    expect((await kit.accountBalance(fixture.account.id)).availablePoints).toBe('20');
   });
 
-  test('applies VARIANT targeting in presentation and final order earning', () => {
-    // Compare sibling variants through Product/Variant loyalty and mixed checkout lines.
+  test('applies PRODUCT and VARIANT targeting only to selected catalog entities', async () => {
+    const selected = await kit.createProduct('1000');
+    const other = await kit.createProduct('1000');
+    await kit.createActiveAccount({ rules: baseRules({ earning: { modifiers: [
+      modifier({ type: 'PRODUCT', ids: [decodeGlobalId(selected.productId).id] }),
+      modifier({ type: 'VARIANT', ids: [decodeGlobalId(selected.variantId).id] }),
+    ] } }) });
+    expect((await points('Product', selected.productId))?.minimum).toBe('20');
+    expect((await points('ProductVariant', selected.variantId))?.minimum).toBe('20');
+    expect((await points('Product', other.productId))?.minimum).toBe('10');
   });
 
-  test('applies CATEGORY targeting in presentation and final order earning', () => {
-    // Use category membership at the immutable catalog snapshot and verify matching lines only.
+  test('uses union semantics for standard-earning exclusions', async () => {
+    const first = await kit.createProduct('1000');
+    const second = await kit.createProduct('1000');
+    await kit.createActiveAccount({ rules: baseRules({ earning: { excludedSelectors: [
+      { type: 'PRODUCT', ids: [decodeGlobalId(first.productId).id] },
+      { type: 'VARIANT', ids: [decodeGlobalId(second.variantId).id] },
+    ] } }) });
+    expect(await points('Product', first.productId)).toBeNull();
+    expect(await points('ProductVariant', second.variantId)).toBeNull();
   });
 
-  test('applies TAG targeting in presentation and final order earning', () => {
-    // Use tagged/untagged lines and verify Storefront, Orders facts, and Loyalty audit select the same lines.
-  });
-
-  test('applies FEATURE targeting in presentation and final order earning', () => {
-    // Use feature assignments and verify applies-to consistency with no cross-store reference matches.
-  });
-
-  test('applies OPTION_VALUE targeting in presentation and final order earning', () => {
-    // Select variants by option value and verify only matching order lines receive the configured reward.
-  });
-
-  test('applies every selector type as a standard-earning exclusion', () => {
-    // Repeat ALL and each specific selector and verify estimates and actual ledger awards exclude identical lines.
-  });
-
-  test('combines multiple applies-to and exclusion selectors deterministically', () => {
-    // Use a mixed cart where lines match several selectors and verify union/no-double-count invariants.
-  });
-
-  test('captures catalog targeting immutably when catalog membership changes later', () => {
-    // Change tags/categories/features/options after order fact capture and preserve historical awarded calculation.
-  });
-
-  test('rejects stale or deleted catalog references before publication', () => {
-    // Create valid draft targeting, delete/move the reference, publish, and verify Admin blocks Storefront exposure.
+  test('does not match a selector reference from another store', async () => {
+    const product = await kit.createProduct('1000');
+    const fixture = await kit.createActiveAccount();
+    const rules = baseRules({ earning: { modifiers: [
+      modifier({ type: 'PRODUCT', ids: [crypto.randomUUID()] }),
+    ] } });
+    await kit.sql`
+      update loyalty.program_version set rules = ${kit.sql.json(rules)}
+      where id = ${decodeGlobalId(fixture.version.id).id}
+    `;
+    expect(await points('Product', product.productId)).toEqual({ minimum: '10', maximum: '10' });
   });
 });

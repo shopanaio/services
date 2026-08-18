@@ -1,6 +1,7 @@
 import { decodeGlobalIdByType, GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
 import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
+import { dateTimeScalar } from "../../scalars.js";
 import type { ServiceContext } from "../../../context/types.js";
 import {
   LoyaltyAccountResolver,
@@ -79,6 +80,7 @@ function reference(Resolver: any, type: GlobalIdType) {
 }
 
 export const typeResolvers = {
+  DateTime: dateTimeScalar,
   Node: {
     __resolveType: (value: unknown) => {
       for (const [Resolver, typeName] of nodeTypes) {

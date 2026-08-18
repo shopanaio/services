@@ -6,6 +6,7 @@ import {
   index,
   integer,
   jsonb,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -180,7 +181,7 @@ export const reservationEvents = loyaltySchema.table(
     idempotencyKey: varchar("idempotency_key", { length: 255 }).notNull(),
     reasonCode: varchar("reason_code", { length: 128 }).notNull(),
     actorType: actorTypeEnum("actor_type").notNull(),
-    actorId: uuid("actor_id"),
+    actorId: text("actor_id"),
     occurredAt: timestamp("occurred_at", {
       withTimezone: true,
       mode: "string",

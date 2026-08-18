@@ -6,6 +6,7 @@ import {
   index,
   jsonb,
   smallint,
+  text,
   timestamp,
   unique,
   uniqueIndex,
@@ -47,7 +48,7 @@ export const transactions = loyaltySchema.table(
     eventId: varchar("event_id", { length: 128 }),
     workflowId: varchar("workflow_id", { length: 255 }),
     actorType: actorTypeEnum("actor_type").notNull(),
-    actorId: uuid("actor_id"),
+    actorId: text("actor_id"),
     reasonCode: varchar("reason_code", { length: 128 }).notNull(),
     description: varchar("description", { length: 1000 }),
     occurredAt: timestamp("occurred_at", {
