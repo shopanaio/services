@@ -52,6 +52,14 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       return this.claimExistingEmail(existingByEmail, params);
     }
 
+    const existingByPhone =
+      params.phoneE164 && params.phoneVerified
+        ? await this.repository.customer.findByPhoneE164(params.phoneE164)
+        : null;
+    if (existingByPhone) {
+      return this.claimExistingPhone(existingByPhone, params);
+    }
+
     const created = await this.repository.customer.createIfAbsent({
       iamPrincipalId: params.iamPrincipalId,
       iamPrincipalStatus: params.iamStatus,
@@ -91,6 +99,13 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       : null;
     if (racedByEmail) {
       return this.claimExistingEmail(racedByEmail, params);
+    }
+    const racedByPhone =
+      params.phoneE164 && params.phoneVerified
+        ? await this.repository.customer.findByPhoneE164(params.phoneE164)
+        : null;
+    if (racedByPhone) {
+      return this.claimExistingPhone(racedByPhone, params);
     }
 
     throw new CustomerProvisioningError(
@@ -178,6 +193,80 @@ export class CustomerProvisionFromIamScript extends BaseScript<
     );
   }
 
+  private async claimExistingPhone(
+    customer: Customer,
+    params: CustomerProvisionFromIamParams,
+  ): Promise<CustomerProvisionFromIamResult> {
+    if (!params.phoneE164) {
+      throw new CustomerProvisioningError(
+        "Customer phone claim requires a phone number",
+        "CUSTOMER_PHONE_REQUIRED",
+        false,
+      );
+    }
+    if (customer.iamPrincipalId === params.iamPrincipalId) {
+      return this.synchronizeExisting(customer, params);
+    }
+    if (customer.iamPrincipalId) {
+      throw new CustomerProvisioningError(
+        "Customer phone is already linked to another IAM principal",
+        "CUSTOMER_PHONE_PRINCIPAL_CONFLICT",
+        false,
+      );
+    }
+    if (customer.lifecycleStatus !== "ACTIVE") {
+      throw new CustomerProvisioningError(
+        "Customer phone belongs to an inactive customer",
+        "CUSTOMER_PHONE_TARGET_INACTIVE",
+        false,
+      );
+    }
+    if (!params.phoneVerified) {
+      throw new CustomerProvisioningError(
+        "Verified phone is required to claim an existing customer",
+        "CUSTOMER_PHONE_CLAIM_REQUIRES_VERIFICATION",
+        false,
+      );
+    }
+
+    const claimed = await this.repository.customer.claimIamPrincipal(
+      customer.id,
+      {
+        iamPrincipalId: params.iamPrincipalId,
+        iamStatus: params.iamStatus,
+        phoneE164: params.phoneE164,
+        phoneVerified: params.phoneVerified,
+        iamLifecycleDisabled:
+          params.iamStatus === "blocked" &&
+          customer.lifecycleStatus === "ACTIVE",
+      },
+    );
+    if (claimed) {
+      await this.invalidateDynamicSegments(
+        claimed.id,
+        ["profile", "contact", "status"],
+        "iamCustomerClaimed",
+      );
+      return {
+        customerId: claimed.id,
+        created: false,
+        updated: true,
+      };
+    }
+
+    const raced =
+      await this.repository.customer.findByIamPrincipalIdIncludingDeleted(
+        params.iamPrincipalId,
+      );
+    if (raced) return this.synchronizeExisting(raced, params);
+
+    throw new CustomerProvisioningError(
+      "Customer identity claim conflicted with another write",
+      "CUSTOMER_IDENTITY_CLAIM_CONFLICT",
+      true,
+    );
+  }
+
   private async synchronizeExisting(
     customer: Customer,
     params: CustomerProvisionFromIamParams,
@@ -218,6 +307,28 @@ export class CustomerProvisionFromIamScript extends BaseScript<
         );
       }
     }
+    if (
+      params.phoneE164 !== null &&
+      customer.phoneE164 !== params.phoneE164 &&
+      !params.phoneVerified
+    ) {
+      throw new CustomerProvisioningError(
+        "Verified phone is required to change the customer identity phone",
+        "CUSTOMER_PHONE_CHANGE_REQUIRES_VERIFICATION",
+        false,
+      );
+    }
+    if (params.phoneE164 !== null && customer.phoneE164 !== params.phoneE164) {
+      const conflictingCustomer =
+        await this.repository.customer.findByPhoneE164(params.phoneE164);
+      if (conflictingCustomer && conflictingCustomer.id !== customer.id) {
+        throw new CustomerProvisioningError(
+          "Customer phone is already used by another customer",
+          "CUSTOMER_PHONE_CONFLICT",
+          false,
+        );
+      }
+    }
 
     const patch = {
       ...(customer.iamPrincipalStatus !== params.iamStatus
@@ -243,13 +354,13 @@ export class CustomerProvisionFromIamScript extends BaseScript<
       ...(params.email !== null && customer.normalizedEmail !== normalizeEmail(params.email)
         ? { email: params.email }
         : {}),
-      ...(customer.emailVerified !== params.emailVerified
+      ...(params.email !== null && customer.emailVerified !== params.emailVerified
         ? { emailVerified: params.emailVerified }
         : {}),
-      ...(customer.phoneE164 !== params.phoneE164
+      ...(params.phoneE164 !== null && customer.phoneE164 !== params.phoneE164
         ? { phoneE164: params.phoneE164 }
         : {}),
-      ...(customer.phoneVerified !== params.phoneVerified
+      ...(params.phoneE164 !== null && customer.phoneVerified !== params.phoneVerified
         ? { phoneVerified: params.phoneVerified }
         : {}),
     };

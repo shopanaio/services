@@ -271,6 +271,22 @@ export class CustomerRepository extends BaseRepository {
   }
 
   @ReadOnly()
+  async findByPhoneE164(phoneE164: string): Promise<Customer | null> {
+    const rows = await this.connection
+      .select()
+      .from(customer)
+      .where(
+        and(
+          eq(customer.storeId, this.storeId),
+          eq(customer.phoneE164, phoneE164),
+          isNull(customer.deletedAt)
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  @ReadOnly()
   async findByIamPrincipalId(iamPrincipalId: string): Promise<Customer | null> {
     return this.findByStoreAndIamPrincipalId(this.storeId, iamPrincipalId);
   }
@@ -384,8 +400,10 @@ export class CustomerRepository extends BaseRepository {
       iamPrincipalId: string;
       iamStatus: "active" | "blocked";
       iamLifecycleDisabled: boolean;
-      email: string;
-      emailVerified: boolean;
+      email?: string;
+      emailVerified?: boolean;
+      phoneE164?: string;
+      phoneVerified?: boolean;
     },
   ): Promise<Customer | null> {
     const rows = await this.connection
@@ -396,10 +414,20 @@ export class CustomerRepository extends BaseRepository {
         iamLifecycleDisabled: data.iamLifecycleDisabled,
         ...(data.iamLifecycleDisabled ? { lifecycleStatus: "DISABLED" as const } : {}),
         accountStatus: "REGISTERED",
-        email: data.email.trim(),
-        normalizedEmail: normalizeEmail(data.email),
-        emailDomainNormalized: normalizeEmailDomain(data.email),
-        emailVerified: data.emailVerified,
+        ...(data.email !== undefined
+          ? {
+              email: data.email.trim(),
+              normalizedEmail: normalizeEmail(data.email),
+              emailDomainNormalized: normalizeEmailDomain(data.email),
+              emailVerified: data.emailVerified ?? false,
+            }
+          : {}),
+        ...(data.phoneE164 !== undefined
+          ? {
+              phoneE164: data.phoneE164,
+              phoneVerified: data.phoneVerified ?? false,
+            }
+          : {}),
         updatedAt: new Date().toISOString(),
         revision: sql`${customer.revision} + 1`,
       })

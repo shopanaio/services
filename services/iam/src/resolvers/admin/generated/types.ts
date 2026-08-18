@@ -922,7 +922,7 @@ export type ApplicationUser = Node & {
   __typename?: 'ApplicationUser';
   applicationId: Scalars['ID']['output'];
   createdAt: Scalars['DateTime']['output'];
-  email: Scalars['Email']['output'];
+  email?: Maybe<Scalars['Email']['output']>;
   emailVerified: Scalars['Boolean']['output'];
   firstName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
@@ -931,6 +931,8 @@ export type ApplicationUser = Node & {
   /** Linked login accounts without provider credentials or tokens. */
   linkedAccounts: Array<ApplicationUserLinkedAccount>;
   name: Scalars['String']['output'];
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  phoneNumberVerified: Scalars['Boolean']['output'];
   /** Safe security metadata without credentials or token values. */
   security: ApplicationUserSecurityMetadata;
   status: ApplicationUserStatus;
@@ -3391,7 +3393,7 @@ export type ApplicationUpdatePayloadResolvers<ContextType = ServiceContext, Pare
 export type ApplicationUserResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ApplicationUser'] = ResolversParentTypes['ApplicationUser']> = ResolversObject<{
   applicationId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  email?: Resolver<ResolversTypes['Email'], ParentType, ContextType>;
+  email?: Resolver<Maybe<ResolversTypes['Email']>, ParentType, ContextType>;
   emailVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   firstName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -3399,6 +3401,8 @@ export type ApplicationUserResolvers<ContextType = ServiceContext, ParentType ex
   lastName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   linkedAccounts?: Resolver<Array<ResolversTypes['ApplicationUserLinkedAccount']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  phoneNumber?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
+  phoneNumberVerified?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   security?: Resolver<ResolversTypes['ApplicationUserSecurityMetadata'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ApplicationUserStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
