@@ -249,6 +249,17 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       ]);
       throw error;
     }
+    try {
+      await this.recordDeliveryCommitments(snapshot.placementId, deliveryCommitments);
+    } catch (error) {
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+        ["releaseLoyalty:ORDER_FAILED", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+        ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
+      ]);
+      throw error;
+    }
 
     try {
       await this.markResourcesReserved(
@@ -305,7 +316,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt)],
         ["confirmInventory", () => this.confirmInventory(input.storeId, orderId)],
         ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, orderId, eligibleAt)],
-      ]);
+      ], eligibleAt);
       if (finalizationFailures.length > 0) {
         await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
       }
@@ -360,7 +371,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt)],
           ["confirmInventory", () => this.confirmInventory(input.storeId, orderId)],
           ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, orderId, eligibleAt)],
-        ]);
+        ], eligibleAt);
         if (finalizationFailures.length > 0) {
           await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
         }
@@ -815,6 +826,17 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
+  private recordDeliveryCommitments(
+    placementId: string,
+    commitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
+  ): Promise<void> {
+    return this.placements.recordDeliveryCommitments(
+      placementId,
+      commitments.map((commitment) => commitment.groupId),
+    );
+  }
+
+  @WorkflowStep()
   private async releaseDelivery(
     input: PlaceOrderWorkflowInput,
     snapshot: PlaceOrderSnapshot,
@@ -1227,6 +1249,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
 
   private async runCompensations(
     actions: ReadonlyArray<readonly [string, () => Promise<void>]>,
+    recordedAt?: string,
   ): Promise<CheckoutCompensationFailure[]> {
     const failures: CheckoutCompensationFailure[] = [];
     for (const [operation, compensate] of actions) {
@@ -1237,7 +1260,10 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         failures.push({
           operation,
           message: errorMessage(error),
-          recordedAt: new Date(await DBOS.now()).toISOString(),
+          // Finalization failures pass the exact eligibleAt so reconciliation can
+          // reproduce the original idempotent request (loyalty commit hashes the
+          // committedAt), instead of a drifted "now" that would be rejected.
+          recordedAt: recordedAt ?? new Date(await DBOS.now()).toISOString(),
         });
       }
     }

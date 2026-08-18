@@ -120,10 +120,10 @@ export class CheckoutOptionBindingRepository extends BaseRepository implements D
     });
   }
 
-  async releaseCommitments(input: { storeId: string; checkoutId: string; checkoutVersion: number; groupIds: readonly string[]; releasedAt: string }): Promise<readonly string[]> {
+  async releaseCommitments(input: { storeId: string; checkoutId: string; checkoutVersion: number; groupIds: readonly string[]; releasedAt: string; reason: string }): Promise<readonly string[]> {
     if (input.groupIds.length === 0) return [];
     const rows = await this.connection.update(checkoutSelectionCommitments)
-      .set({ releasedAt: input.releasedAt })
+      .set({ releasedAt: input.releasedAt, releasedReason: input.reason })
       .where(and(
         eq(checkoutSelectionCommitments.storeId, input.storeId),
         eq(checkoutSelectionCommitments.checkoutId, input.checkoutId),

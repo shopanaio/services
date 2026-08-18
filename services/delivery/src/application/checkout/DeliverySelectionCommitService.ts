@@ -88,6 +88,7 @@ export class DeliverySelectionCommitService {
       checkoutVersion: params.checkoutVersion,
       groupIds: params.groupIds,
       releasedAt: params.releasedAt,
+      reason: params.reason,
     });
     return { releasedGroupIds };
   }

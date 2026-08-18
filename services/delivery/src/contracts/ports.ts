@@ -454,6 +454,7 @@ export interface DeliveryOptionBindingsPort {
     checkoutVersion: number;
     groupIds: readonly string[];
     releasedAt: string;
+    reason: string;
   }>): Promise<readonly string[]>;
 }
 

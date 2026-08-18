@@ -77,7 +77,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
           ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, eligibleAt)],
           ["confirmInventory", () => this.confirmInventory(input.storeId, input.orderId)],
           ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, eligibleAt)],
-        ]);
+        ], eligibleAt);
         if (finalizationFailures.length > 0) {
           await this.recordCompensationFailures(input.placementId, finalizationFailures);
         }
@@ -405,6 +405,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
 
   private async runCompensations(
     actions: ReadonlyArray<readonly [string, () => Promise<void>]>,
+    recordedAt?: string,
   ): Promise<CheckoutCompensationFailure[]> {
     const failures: CheckoutCompensationFailure[] = [];
     for (const [operation, compensate] of actions) {
@@ -415,7 +416,10 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         failures.push({
           operation,
           message: error instanceof Error ? error.message : String(error),
-          recordedAt: new Date(await DBOS.now()).toISOString(),
+          // Finalization failures pass the exact eligibleAt so reconciliation can
+          // reproduce the original idempotent request (loyalty commit hashes the
+          // committedAt), instead of a drifted "now" that would be rejected.
+          recordedAt: recordedAt ?? new Date(await DBOS.now()).toISOString(),
         });
       }
     }

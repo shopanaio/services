@@ -36,6 +36,7 @@ export interface CheckoutPlacementRecord<TResult = unknown> {
   status: CheckoutPlacementStatus;
   discountReservationIds: readonly string[];
   discountRedemptionIds: readonly string[];
+  deliveryGroupIds: readonly string[];
   loyaltyReservation: unknown | null;
   requestedOrderId: string | null;
   orderId: string | null;
@@ -65,6 +66,7 @@ type PlacementRow = {
   status: CheckoutPlacementStatus;
   discount_reservation_ids: string[];
   discount_redemption_ids: string[];
+  delivery_group_ids: string[];
   loyalty_reservation: unknown | null;
   requested_order_id: string | null;
   order_id: string | null;
@@ -239,6 +241,18 @@ export class CheckoutPlacementRepository {
       "discount_redemption_ids",
       redemptionIds,
       "CHECKOUT_PLACEMENT_DISCOUNT_REDEMPTIONS_CONFLICT",
+    );
+  }
+
+  async recordDeliveryCommitments(
+    placementId: string,
+    groupIds: readonly string[],
+  ): Promise<void> {
+    await this.recordClaimedJsonResource(
+      placementId,
+      "delivery_group_ids",
+      groupIds,
+      "CHECKOUT_PLACEMENT_DELIVERY_COMMITMENTS_CONFLICT",
     );
   }
 
@@ -436,7 +450,10 @@ export class CheckoutPlacementRepository {
     }
 
     const existing = await this.findById<TResult>(placementId);
-    if (existing?.status === "PLACED") return existing;
+    if (existing?.status === "PLACED") {
+      await this.setCheckoutLifecycle(existing.storeId, existing.checkoutId, checkoutLifecycleStatus);
+      return existing;
+    }
     throw new Error("CHECKOUT_PLACEMENT_RESULT_UPDATE_CONFLICT");
   }
 
@@ -652,7 +669,11 @@ export class CheckoutPlacementRepository {
 
   private async recordClaimedJsonResource(
     placementId: string,
-    column: "discount_reservation_ids" | "loyalty_reservation" | "discount_redemption_ids",
+    column:
+      | "discount_reservation_ids"
+      | "loyalty_reservation"
+      | "discount_redemption_ids"
+      | "delivery_group_ids",
     value: unknown,
     conflictCode: string,
   ): Promise<void> {
@@ -735,6 +756,7 @@ function mapPlacement(row: PlacementRow): CheckoutPlacementRecord {
     status: row.status,
     discountReservationIds: row.discount_reservation_ids,
     discountRedemptionIds: row.discount_redemption_ids,
+    deliveryGroupIds: row.delivery_group_ids,
     loyaltyReservation: row.loyalty_reservation,
     requestedOrderId: row.requested_order_id,
     orderId: row.order_id,

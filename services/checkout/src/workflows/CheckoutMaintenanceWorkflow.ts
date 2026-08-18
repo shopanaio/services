@@ -1,10 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import {
+  DeliveryActions,
   InventoryCheckoutActions,
   LoyaltyCheckoutActions,
+  OrderLoyaltyActions,
   PricingCheckoutActions,
+  type Delivery,
   type Inventory,
   type Pricing,
+  type CommitCheckoutLoyaltyRedemptionResult,
+  type PublishOrderLoyaltyRewardEligibleResult,
   type ReleaseCheckoutLoyaltyRedemptionResult,
   type TransitionCheckoutLoyaltyRewardResult,
 } from "@shopana/broker-types";
@@ -115,7 +120,11 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     placementId: string,
     result: PlaceOrderWorkflowResult,
   ): Promise<void> {
-    await this.placements.complete(placementId, result);
+    await this.placements.complete(
+      placementId,
+      result,
+      result.status === "PAYMENT_FAILED" ? "ABANDONED" : "PLACED",
+    );
   }
 
   @WorkflowStep()
@@ -185,6 +194,11 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
       "releaseDiscountUsage",
       "releaseLoyalty:ORDER_FAILED",
       "releaseLoyalty:PAYMENT_FAILED",
+      "releaseDelivery",
+      "confirmInventory",
+      "commitLoyaltyAt",
+      "publishOrderRewardEligible",
+      "markOrderCreated",
     ]);
     const unknown = [...operations].find((operation) => !knownOperations.has(operation));
     if (unknown) throw new Error(`CHECKOUT_COMPENSATION_OPERATION_UNSUPPORTED:${unknown}`);
@@ -236,6 +250,132 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
         failure?.recordedAt ?? placement.updatedAt,
       );
     }
+    if (operations.has("releaseDelivery")) {
+      const failure = placement.compensationFailures.find(({ operation }) => operation === "releaseDelivery");
+      await this.releaseDelivery(placement, failure?.recordedAt ?? placement.updatedAt);
+    }
+    if (operations.has("markOrderCreated")) {
+      if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+      await this.advanceOrderCreated(placement.placementId, orderId);
+    }
+    if (operations.has("confirmInventory")) {
+      if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+      await this.confirmInventory(placement.storeId, orderId);
+    }
+    if (operations.has("commitLoyaltyAt")) {
+      if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+      const failure = placement.compensationFailures.find(({ operation }) => operation === "commitLoyaltyAt");
+      await this.commitLoyalty(
+        placement,
+        assertLoyaltyReservation(placement.loyaltyReservation),
+        orderId,
+        failure?.recordedAt ?? placement.updatedAt,
+      );
+    }
+    if (operations.has("publishOrderRewardEligible")) {
+      if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+      const failure = placement.compensationFailures.find(({ operation }) => operation === "publishOrderRewardEligible");
+      await this.publishRewardEligible(placement, request, orderId, failure?.recordedAt ?? placement.updatedAt);
+    }
+  }
+
+  private async releaseDelivery(
+    placement: CheckoutPlacementRecord,
+    releasedAt: string,
+  ): Promise<void> {
+    if (placement.deliveryGroupIds.length === 0) return;
+    await this.broker.call<
+      Delivery.ReleaseCheckoutDeliverySelectionsResult,
+      Delivery.ReleaseCheckoutDeliverySelectionsParams
+    >(DeliveryActions.releaseSelections, {
+      storeId: placement.storeId,
+      checkoutId: placement.checkoutId,
+      checkoutVersion: placement.checkoutVersion,
+      groupIds: placement.deliveryGroupIds,
+      reason: "Checkout placement did not reach a payable order state.",
+      releasedAt,
+      idempotencyKey: `${placement.idempotencyKey}:delivery-release`,
+    });
+  }
+
+  private async confirmInventory(storeId: string, orderId: string): Promise<void> {
+    await this.broker.call<
+      Inventory.ConfirmCheckoutInventoryResult,
+      Inventory.ConfirmCheckoutInventoryParams
+    >(InventoryCheckoutActions.confirm, { storeId, orderId });
+  }
+
+  private async advanceOrderCreated(placementId: string, orderId: string): Promise<void> {
+    await this.placements.transition(placementId, {
+      from: "RESOURCES_RESERVED",
+      to: "ORDER_CREATED",
+      orderId,
+    });
+  }
+
+  private async commitLoyalty(
+    placement: CheckoutPlacementRecord,
+    reservation: LoyaltyReservation,
+    orderId: string,
+    committedAt: string,
+  ): Promise<void> {
+    if (reservation.points) {
+      const idempotencyKey = `${placement.idempotencyKey}:loyalty-commit`;
+      const base = {
+        storeId: placement.storeId,
+        checkoutId: placement.checkoutId,
+        checkoutVersion: placement.checkoutVersion,
+        reservationId: reservation.points.reservationId,
+        quoteId: reservation.points.quoteId,
+        quoteRevision: reservation.points.quoteRevision,
+        orderId,
+        orderRevision: 1,
+        committedAt,
+        idempotencyKey,
+      };
+      const result = await this.broker.call<
+        CommitCheckoutLoyaltyRedemptionResult,
+        import("@shopana/broker-types").CommitCheckoutLoyaltyRedemptionParams
+      >(LoyaltyCheckoutActions.commitRedemption, {
+        ...base,
+        requestHash: canonicalJsonSha256(base),
+      });
+      if (result.status !== "COMMITTED") throw new Error(`LOYALTY_${result.code}`);
+    }
+    if (reservation.reward) {
+      const result = await this.broker.call<TransitionCheckoutLoyaltyRewardResult>(
+        LoyaltyCheckoutActions.commitReward,
+        {
+          storeId: placement.storeId,
+          checkoutId: placement.checkoutId,
+          entitlementId: reservation.reward.entitlementId,
+          orderId,
+          externalReference: reservation.reward.externalReference,
+          committedAt,
+          idempotencyKey: `${placement.idempotencyKey}:loyalty-reward-commit:${orderId}`,
+        },
+      );
+      if (result.status === "REJECTED") throw new Error(`LOYALTY_${result.code}`);
+    }
+  }
+
+  private async publishRewardEligible(
+    placement: CheckoutPlacementRecord,
+    request: PlaceOrderWorkflowInput,
+    orderId: string,
+    eligibleAt: string,
+  ): Promise<void> {
+    await this.broker.call<PublishOrderLoyaltyRewardEligibleResult>(
+      OrderLoyaltyActions.publishEligible,
+      {
+        organizationId: request.organizationId,
+        storeId: placement.storeId,
+        orderId,
+        orderRevision: 1,
+        eligibleAt,
+        correlationId: request.correlationId,
+      },
+    );
   }
 
   private async releaseLoyalty(
@@ -314,12 +454,25 @@ export function assertCompensationRecoveryData(
   placement: CheckoutPlacementRecord,
   operations: ReadonlySet<string>,
 ): void {
+  const orderBoundOperations = [
+    "releaseInventory",
+    "confirmInventory",
+    "commitLoyaltyAt",
+    "publishOrderRewardEligible",
+    "markOrderCreated",
+  ];
   if (
-    operations.has("releaseInventory") &&
+    orderBoundOperations.some((operation) => operations.has(operation)) &&
     !placement.orderId &&
     !placement.requestedOrderId
   ) {
     throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+  }
+  if (
+    operations.has("commitLoyaltyAt") &&
+    placement.loyaltyReservation === null
+  ) {
+    throw new Error("CHECKOUT_LOYALTY_COMPENSATION_INPUT_INVALID");
   }
   if (
     operations.has("reverseDiscountUsage") &&
