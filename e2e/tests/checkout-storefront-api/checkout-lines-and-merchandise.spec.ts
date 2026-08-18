@@ -84,4 +84,28 @@ test.describe('Storefront checkout lines and merchandise', () => {
   test('rejects wrong-type, nested-child, duplicate, and foreign line IDs on every line mutation', () => {
     // TODO: Verify transport and domain failures leave the snapshot unchanged.
   });
+
+  test('projects the per-line cost breakdown for unit, subtotal, discount, tax, and total', () => {
+    // TODO: Verify CheckoutLineCost arithmetic is consistent with quantity and checkout totals.
+  });
+
+  test('separates compare-at sale price from the current unit price on a discounted line', () => {
+    // TODO: Verify compareAtUnitPrice and unitPrice differ only when the merchandise is on sale.
+  });
+
+  test('projects original price and child price configuration for bundle components', () => {
+    // TODO: Verify originalPrice and priceConfig (FREE, BASE, OVERRIDE, adjustments) on child lines.
+  });
+
+  test('resolves federated title, SKU, image, and purchasable variant for each line', () => {
+    // TODO: Verify catalog and media subgraph projections resolve from the committed snapshot.
+  });
+
+  test('auto-reduces quantity to the maximum available stock and warns with NOT_ENOUGH_STOCK', () => {
+    // TODO: Verify the clamped quantity, the WARNING notification, and recalculated totals.
+  });
+
+  test('projects OUT_OF_STOCK and ITEM_UNAVAILABLE notifications distinctly from blocking line issues', () => {
+    // TODO: Verify notification code, severity, and isDismissed independently of CheckoutIssue readiness.
+  });
 });

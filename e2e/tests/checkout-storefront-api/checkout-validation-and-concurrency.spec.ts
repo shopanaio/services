@@ -92,4 +92,8 @@ test.describe('Storefront checkout validation and concurrency', () => {
   test('returns only customer-safe public errors for invalid mutations', () => {
     // TODO: Verify internal causes are not disclosed.
   });
+
+  test('transitions a checkout from OPEN to READY when validation passes and back to OPEN when it fails', () => {
+    // TODO: Verify status and valid track the validation outcome across successive mutations.
+  });
 });

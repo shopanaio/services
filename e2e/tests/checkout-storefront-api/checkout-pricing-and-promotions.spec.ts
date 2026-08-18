@@ -76,4 +76,8 @@ test.describe('Storefront checkout pricing and promotions', () => {
   test('reserves discount usage competitively across concurrent ready checkouts', () => {
     // TODO: Verify the losing placement cannot oversubscribe a usage limit.
   });
+
+  test('projects promotion allocations onto per-line discount, tax, and total amounts', () => {
+    // TODO: Verify line-level discountAmount and totalAmount reconcile with the checkout totalDiscountAmount.
+  });
 });

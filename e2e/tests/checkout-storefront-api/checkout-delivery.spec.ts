@@ -84,4 +84,16 @@ test.describe('Storefront checkout delivery', () => {
   test('rejects malformed, wrong-type, and foreign address or delivery-group IDs atomically', () => {
     // TODO: Cover all address, recipient, and option-selection mutations.
   });
+
+  test('reports DELIVERY_OPTIONS_UNAVAILABLE when a physical group has no available options', () => {
+    // TODO: Verify the readiness issue blocks checkout while other groups stay selectable.
+  });
+
+  test('requires a recipient phone when the selected delivery option demands one', () => {
+    // TODO: Verify phoneRequired options block readiness until a phone is provided.
+  });
+
+  test('projects every delivery method type with its canonical type', () => {
+    // TODO: Cover SHIPPING, PICK_UP, PICKUP_POINT, LOCAL, and RETAIL option projections.
+  });
 });

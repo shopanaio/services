@@ -68,4 +68,8 @@ test.describe('Storefront checkout loyalty', () => {
   test('treats removal of an absent loyalty selection as an idempotent no-op', () => {
     // TODO: Verify no unnecessary pipeline revision or reservation release.
   });
+
+  test('folds an applied loyalty discount into checkout cost total discount and total amount', () => {
+    // TODO: Verify cost.totalDiscountAmount and cost.totalAmount reflect payableAfterLoyalty.
+  });
 });
