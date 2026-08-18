@@ -188,6 +188,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     ]);
     const unknown = [...operations].find((operation) => !knownOperations.has(operation));
     if (unknown) throw new Error(`CHECKOUT_COMPENSATION_OPERATION_UNSUPPORTED:${unknown}`);
+    assertCompensationRecoveryData(placement, operations);
     const orderId = placement.orderId ?? placement.requestedOrderId;
     if (operations.has("releaseInventory")) {
       if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
@@ -201,7 +202,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
         correlationId: request.correlationId,
       });
     }
-    if (operations.has("reverseDiscountUsage") && placement.discountRedemptionIds.length) {
+    if (operations.has("reverseDiscountUsage")) {
       await this.broker.call<
         Pricing.ReverseCheckoutDiscountUsageResult,
         Pricing.ReverseCheckoutDiscountUsageParams
@@ -211,7 +212,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
         reason: "Checkout placement did not reach a payable order state.",
       });
     }
-    if (operations.has("releaseDiscountUsage") && placement.discountReservationIds.length) {
+    if (operations.has("releaseDiscountUsage")) {
       await this.broker.call<
         Pricing.ReleaseCheckoutDiscountUsageResult,
         Pricing.ReleaseCheckoutDiscountUsageParams
@@ -295,7 +296,9 @@ function isPlacementResult(value: unknown): value is PlaceOrderWorkflowResult {
 }
 
 export function isTerminalWorkflowFailure(status: string | undefined): boolean {
-  return status === "ERROR" || status === "CANCELLED";
+  return status === "ERROR" ||
+    status === "CANCELLED" ||
+    status === "MAX_RECOVERY_ATTEMPTS_EXCEEDED";
 }
 
 export function placementRecoveryAction(
@@ -305,6 +308,38 @@ export function placementRecoveryAction(
   if (status === "SUCCESS" && isPlacementResult(output)) return "COMPLETE";
   if (isTerminalWorkflowFailure(status)) return "RECOVER";
   return "WAIT";
+}
+
+export function assertCompensationRecoveryData(
+  placement: CheckoutPlacementRecord,
+  operations: ReadonlySet<string>,
+): void {
+  if (
+    operations.has("releaseInventory") &&
+    !placement.orderId &&
+    !placement.requestedOrderId
+  ) {
+    throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
+  }
+  if (
+    operations.has("reverseDiscountUsage") &&
+    !placement.discountRedemptionIds.length
+  ) {
+    throw new Error("CHECKOUT_COMPENSATION_DISCOUNT_REDEMPTIONS_MISSING");
+  }
+  if (
+    operations.has("releaseDiscountUsage") &&
+    !placement.discountReservationIds.length
+  ) {
+    throw new Error("CHECKOUT_COMPENSATION_DISCOUNT_RESERVATIONS_MISSING");
+  }
+  if (
+    (operations.has("releaseLoyalty:ORDER_FAILED") ||
+      operations.has("releaseLoyalty:PAYMENT_FAILED")) &&
+    placement.loyaltyReservation === null
+  ) {
+    throw new Error("CHECKOUT_LOYALTY_COMPENSATION_INPUT_INVALID");
+  }
 }
 
 function assertPlaceOrderInput(value: unknown): PlaceOrderWorkflowInput {
@@ -321,8 +356,7 @@ function assertPaymentMonitorInput(value: unknown): MonitorPlacedPaymentInput {
   return value as MonitorPlacedPaymentInput;
 }
 
-function assertLoyaltyReservation(value: unknown): LoyaltyReservation | null {
-  if (value === null) return null;
+function assertLoyaltyReservation(value: unknown): LoyaltyReservation {
   if (!value || typeof value !== "object" || !("points" in value) || !("reward" in value)) {
     throw new Error("CHECKOUT_LOYALTY_COMPENSATION_INPUT_INVALID");
   }

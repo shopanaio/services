@@ -206,6 +206,42 @@ export class CheckoutPlacementRepository {
     throw new Error("CHECKOUT_PLACEMENT_ORDER_ID_CONFLICT");
   }
 
+  async recordDiscountReservations(
+    placementId: string,
+    reservationIds: readonly string[],
+  ): Promise<void> {
+    await this.recordClaimedJsonResource(
+      placementId,
+      "discount_reservation_ids",
+      reservationIds,
+      "CHECKOUT_PLACEMENT_DISCOUNT_RESERVATIONS_CONFLICT",
+    );
+  }
+
+  async recordLoyaltyReservation(
+    placementId: string,
+    reservation: unknown,
+  ): Promise<void> {
+    await this.recordClaimedJsonResource(
+      placementId,
+      "loyalty_reservation",
+      reservation,
+      "CHECKOUT_PLACEMENT_LOYALTY_RESERVATION_CONFLICT",
+    );
+  }
+
+  async recordDiscountRedemptions(
+    placementId: string,
+    redemptionIds: readonly string[],
+  ): Promise<void> {
+    await this.recordClaimedJsonResource(
+      placementId,
+      "discount_redemption_ids",
+      redemptionIds,
+      "CHECKOUT_PLACEMENT_DISCOUNT_REDEMPTIONS_CONFLICT",
+    );
+  }
+
   async complete<TResult>(
     placementId: string,
     result: TResult,
@@ -294,7 +330,7 @@ export class CheckoutPlacementRepository {
     const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
     if (updated) return mapPlacement(updated);
     const existing = await this.findById(placementId);
-    if (existing?.status === input.to) return existing;
+    if (existing && hasReachedPlacementState(existing.status, input.to)) return existing;
     throw new Error("CHECKOUT_PLACEMENT_TRANSITION_CONFLICT");
   }
 
@@ -606,6 +642,53 @@ export class CheckoutPlacementRepository {
     );
     return row ? mapPlacement(row) : null;
   }
+
+  private async recordClaimedJsonResource(
+    placementId: string,
+    column: "discount_reservation_ids" | "loyalty_reservation" | "discount_redemption_ids",
+    value: unknown,
+    conflictCode: string,
+  ): Promise<void> {
+    const encoded = JSON.stringify(value);
+    const emptyValue = column === "loyalty_reservation" ? "NULL" : "'[]'::jsonb";
+    const query = knex.raw(
+      `UPDATE checkout.checkout_placements
+          SET ?? = ?::jsonb, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND status = 'CLAIMED'
+          AND (?? IS NOT DISTINCT FROM ${emptyValue} OR ?? = ?::jsonb)
+      RETURNING id`,
+      [column, encoded, placementId, column, column, encoded],
+    ).toString();
+    const updated = await singleOrNull(
+      this.execute.query<{ id: string }>(rawSql(query)),
+    );
+    if (updated) return;
+
+    const matches = knex.raw(
+      `SELECT id FROM checkout.checkout_placements WHERE id = ? AND ?? = ?::jsonb LIMIT 1`,
+      [placementId, column, encoded],
+    ).toString();
+    const existing = await singleOrNull(
+      this.execute.query<{ id: string }>(rawSql(matches)),
+    );
+    if (existing) return;
+    throw new Error(conflictCode);
+  }
+}
+
+export function hasReachedPlacementState(
+  current: CheckoutPlacementStatus,
+  target: Exclude<CheckoutPlacementStatus, "CLAIMED" | "PLACED" | "FAILED">,
+): boolean {
+  if (current === "FAILED") return false;
+  const rank: Record<Exclude<CheckoutPlacementStatus, "FAILED">, number> = {
+    CLAIMED: 0,
+    RESOURCES_RESERVED: 1,
+    ORDER_CREATED: 2,
+    PAYMENT_CREATED: 3,
+    PLACED: 4,
+  };
+  return rank[current] >= rank[target];
 }
 
 function mapPlacement(row: PlacementRow): CheckoutPlacementRecord {

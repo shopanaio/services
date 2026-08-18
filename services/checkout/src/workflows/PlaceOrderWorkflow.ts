@@ -170,14 +170,31 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       await this.compensateAndFail(snapshot.placementId, error, []);
       throw error;
     }
-    let loyalty: LoyaltyReservation | null;
     try {
-      loyalty = await this.reserveLoyalty(input, snapshot);
+      await this.recordDiscountReservations(snapshot.placementId, discounts);
     } catch (error) {
       await this.compensateAndFail(snapshot.placementId, error, [
         ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
       ]);
       throw error;
+    }
+    let loyalty: LoyaltyReservation | null;
+    try {
+      loyalty = await this.reserveLoyalty(input, snapshot);
+    } catch (error) {
+      const loyaltyFailure = error instanceof LoyaltyReservationFailure ? error : null;
+      const cause = loyaltyFailure?.original ?? error;
+      const actions: Array<readonly [string, () => Promise<void>]> = [
+        ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
+      ];
+      if (loyaltyFailure) {
+        actions.push([
+          "releaseLoyalty:ORDER_FAILED",
+          () => this.releaseLoyalty(input, loyaltyFailure.reservation, "ORDER_FAILED"),
+        ]);
+      }
+      await this.compensateAndFail(snapshot.placementId, cause, actions);
+      throw cause;
     }
     const requestedOrderId = await this.prepareOrderId(
       snapshot.placementId,
@@ -206,6 +223,16 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       await this.compensateAndFail(snapshot.placementId, error, [
         ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
         ["releaseDiscountUsage", () => this.releaseDiscountUsage(input.storeId, discounts)],
+        ["releaseLoyalty:ORDER_FAILED", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+      ]);
+      throw error;
+    }
+    try {
+      await this.recordDiscountRedemptions(snapshot.placementId, committedDiscounts);
+    } catch (error) {
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
         ["releaseLoyalty:ORDER_FAILED", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
       ]);
       throw error;
@@ -537,29 +564,48 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         quoteId: snapshot.loyalty.quote.quoteId,
         quoteRevision: snapshot.loyalty.quote.revision,
       };
+      const pointsReservation = { points, reward: null };
+      try {
+        await this.recordLoyaltyReservation(snapshot.placementId, pointsReservation);
+      } catch (error) {
+        throw new LoyaltyReservationFailure(error, pointsReservation);
+      }
     }
     if (!snapshot.loyaltyReward) return { points, reward: null };
     const customerId = snapshot.loyaltyReward.context.customerId;
     if (!customerId) throw new Error("LOYALTY_CUSTOMER_REQUIRED");
-    const rewardResult = await this.reserveLoyaltyReward({
-      storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      customerId,
-      quote: snapshot.loyaltyReward.quote,
-      reservedAt: new Date(await DBOS.now()).toISOString(),
-      idempotencyKey: `${input.idempotencyKey}:loyalty-reward-reserve:${input.checkoutId}`,
-    });
-    if (rewardResult.status !== "RESERVED") {
-      if (points) await this.releaseLoyalty(input, { points, reward: null }, "ORDER_FAILED");
-      throw new Error(`LOYALTY_${rewardResult.code}`);
+    let rewardResult: ReserveCheckoutLoyaltyRewardResult;
+    try {
+      rewardResult = await this.reserveLoyaltyReward({
+        storeId: input.storeId,
+        checkoutId: input.checkoutId,
+        customerId,
+        quote: snapshot.loyaltyReward.quote,
+        reservedAt: new Date(await DBOS.now()).toISOString(),
+        idempotencyKey: `${input.idempotencyKey}:loyalty-reward-reserve:${input.checkoutId}`,
+      });
+    } catch (error) {
+      throw new LoyaltyReservationFailure(error, { points, reward: null });
     }
-    return {
+    if (rewardResult.status !== "RESERVED") {
+      throw new LoyaltyReservationFailure(
+        new Error(`LOYALTY_${rewardResult.code}`),
+        { points, reward: null },
+      );
+    }
+    const reservation = {
       points,
       reward: {
         entitlementId: rewardResult.entitlementId,
         externalReference: snapshot.loyaltyReward.quote.externalReference,
       },
     };
+    try {
+      await this.recordLoyaltyReservation(snapshot.placementId, reservation);
+    } catch (error) {
+      throw new LoyaltyReservationFailure(error, reservation);
+    }
+    return reservation;
   }
 
   @WorkflowStep()
@@ -1061,6 +1107,36 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return this.placements.prepareOrderId(placementId, requestedOrderId);
   }
 
+  @WorkflowStep()
+  private recordDiscountReservations(
+    placementId: string,
+    reservation: DiscountReservation,
+  ): Promise<void> {
+    return this.placements.recordDiscountReservations(
+      placementId,
+      reservation.reservationIds,
+    );
+  }
+
+  @WorkflowStep()
+  private recordLoyaltyReservation(
+    placementId: string,
+    reservation: LoyaltyReservation,
+  ): Promise<void> {
+    return this.placements.recordLoyaltyReservation(placementId, reservation);
+  }
+
+  @WorkflowStep()
+  private recordDiscountRedemptions(
+    placementId: string,
+    committed: CommittedDiscountUsage,
+  ): Promise<void> {
+    return this.placements.recordDiscountRedemptions(
+      placementId,
+      committed.redemptionIds,
+    );
+  }
+
   private async compensateAndFail(
     placementId: string,
     cause: unknown,
@@ -1112,6 +1188,16 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     compensationFailures: readonly CheckoutCompensationFailure[],
   ): Promise<void> {
     return this.placements.fail(placementId, failure, compensationFailures);
+  }
+}
+
+class LoyaltyReservationFailure extends Error {
+  constructor(
+    readonly original: unknown,
+    readonly reservation: LoyaltyReservation,
+  ) {
+    super(errorMessage(original));
+    this.name = "LoyaltyReservationFailure";
   }
 }
 
