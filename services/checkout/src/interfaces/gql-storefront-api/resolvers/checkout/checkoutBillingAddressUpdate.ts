@@ -35,6 +35,7 @@ export async function checkoutBillingAddressUpdate(
           }
         : null,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

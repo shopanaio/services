@@ -21,6 +21,7 @@ export abstract class UseCase<TInput = unknown, TOutput = unknown> {
   protected mutationContext(context: CheckoutContext) {
     return {
       storeId: context.store.id,
+      visitorId: context.visitorId,
       storefrontAccess: {
         connectionId: context.storefrontAccess.connectionId,
         installationId: context.storefrontAccess.installationId,

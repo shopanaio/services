@@ -14,6 +14,7 @@ export const checkoutDeliveryAddressesRemove = async (_parent: ApiMutation, args
       checkoutId: dto.checkoutId,
       addressIds: dto.addressIds,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

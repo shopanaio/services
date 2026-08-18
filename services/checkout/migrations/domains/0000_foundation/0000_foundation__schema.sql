@@ -4,6 +4,7 @@ CREATE SCHEMA IF NOT EXISTS "checkout";
 CREATE TABLE "checkout"."checkouts" (
   "id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
+  "owner_visitor_id" text NOT NULL,
   "version" integer NOT NULL,
   "channel_code" text NOT NULL,
   "external_source" text,
@@ -28,6 +29,8 @@ CREATE TABLE "checkout"."checkouts" (
   "updated_at" timestamptz NOT NULL,
   CONSTRAINT "checkouts_version_positive_check"
     CHECK ("version" > 0),
+  CONSTRAINT "checkouts_owner_visitor_id_check"
+    CHECK (char_length("owner_visitor_id") BETWEEN 16 AND 128 AND "owner_visitor_id" ~ '^[A-Za-z0-9_-]+$'),
   CONSTRAINT "checkouts_channel_code_not_blank_check"
     CHECK (char_length(btrim("channel_code")) BETWEEN 1 AND 128),
   CONSTRAINT "checkouts_result_revision_not_blank_check"
@@ -44,6 +47,9 @@ CREATE TABLE "checkout"."checkouts" (
 
 CREATE INDEX "checkouts_store_updated_at_idx"
   ON "checkout"."checkouts" ("store_id", "updated_at" DESC);
+
+CREATE INDEX "checkouts_store_visitor_idx"
+  ON "checkout"."checkouts" ("store_id", "owner_visitor_id", "updated_at" DESC);
 
 CREATE INDEX "checkouts_expiration_idx"
   ON "checkout"."checkouts" ("expires_at")

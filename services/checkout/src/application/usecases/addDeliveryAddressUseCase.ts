@@ -9,7 +9,7 @@ export class AddDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddressAd
       checkoutId,
       storeId: store.id,
       change: "DELIVERY_ADDRESS_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         const rootLineIds = new Set(draft.cartIntent.lines.map(({ lineId }) => lineId));
         const assigned = new Set(draft.cartIntent.destinations.flatMap(({ lineIds }) => lineIds));

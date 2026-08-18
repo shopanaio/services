@@ -9,7 +9,7 @@ export class ClearCheckoutLinesUseCase extends UseCase<CheckoutLinesClearInput, 
       checkoutId,
       storeId: store.id,
       change: "LINES_CLEAR",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => clearLines(draft),
     })).checkout;
   }

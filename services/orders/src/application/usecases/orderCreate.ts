@@ -396,17 +396,31 @@ export class CreateOrderUseCase extends UseCase<
     return snapshot;
   }
 
-  /**
-   * Validates that checkout aggregate is eligible to be turned into an order.
-   * This is a mock implementation and should be replaced with real checks
-   * (e.g., finalized state, non-empty lines, inventory/payment validations).
-   *
-   * @param aggregate - Checkout aggregate loaded from checkout service
-   */
   protected validateCheckout(aggregate: Checkout): void {
-    // Mock: basic guard to ensure there is at least one line
-    if (!aggregate.lines || aggregate.lines.length === 0) {
-      throw new Error("Checkout has no lines to create an order");
+    if (aggregate.status !== "ready") {
+      throw new Error("ORDER_CHECKOUT_NOT_READY");
+    }
+    if (!aggregate.lines.length) {
+      throw new Error("ORDER_CHECKOUT_EMPTY");
+    }
+    if (!aggregate.currencyCode || aggregate.currencyCode.length !== 3) {
+      throw new Error("ORDER_CHECKOUT_CURRENCY_INVALID");
+    }
+    if (aggregate.totalQuantity !== aggregate.lines.reduce((sum, line) => sum + line.quantity, 0)) {
+      throw new Error("ORDER_CHECKOUT_QUANTITY_MISMATCH");
+    }
+    const amounts = [
+      aggregate.cost.subtotalAmount,
+      aggregate.cost.totalDiscountAmount,
+      aggregate.cost.totalTaxAmount,
+      aggregate.cost.totalShippingAmount,
+      aggregate.cost.totalAmount,
+    ];
+    if (amounts.some((amount) => amount.amountMinor() < 0n)) {
+      throw new Error("ORDER_CHECKOUT_TOTAL_INVALID");
+    }
+    if (amounts.some((amount) => amount.currency().code !== aggregate.currencyCode)) {
+      throw new Error("ORDER_CHECKOUT_CURRENCY_MISMATCH");
     }
   }
 

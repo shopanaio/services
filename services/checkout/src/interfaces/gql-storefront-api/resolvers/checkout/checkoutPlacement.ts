@@ -24,6 +24,7 @@ export async function checkoutPlacement(
       placementId,
       storeId: ctx.store.id,
       credentialId: ctx.storefrontAccess.credentialId,
+      visitorId: ctx.visitorId,
     });
   if (!placement) return null;
   return mapPlaceOrderPayload(placement.result, {

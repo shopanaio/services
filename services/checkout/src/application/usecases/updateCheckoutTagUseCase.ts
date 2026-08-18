@@ -8,7 +8,7 @@ export class UpdateCheckoutTagUseCase extends UseCase<CheckoutTagUpdateInput, Ch
     return (await this.checkoutMutationCoordinator.executeWithoutRecalculation({
       checkoutId,
       storeId: store.id,
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         const current = draft.tags.find((tag) => tag.id === tagId);
         if (!current) throw invalidCheckoutMutation("CHECKOUT_TAG_NOT_FOUND", "Checkout tag was not found.");

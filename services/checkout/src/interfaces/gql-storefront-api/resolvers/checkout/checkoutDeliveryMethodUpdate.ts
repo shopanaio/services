@@ -29,6 +29,7 @@ export const checkoutDeliveryMethodUpdate = async (
       checkoutId: dto.checkoutId, // Already decoded by validator
       customerInput: dto.customerInput,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

@@ -32,14 +32,18 @@ export interface CheckoutPlacementRecord<TResult = unknown> {
   requestHash: string;
   credentialId: string;
   workflowId: string;
+  requestInput: unknown;
   status: CheckoutPlacementStatus;
   discountReservationIds: readonly string[];
+  discountRedemptionIds: readonly string[];
   loyaltyReservation: unknown | null;
   requestedOrderId: string | null;
   orderId: string | null;
   paymentCollectionId: string | null;
   paymentSessionId: string | null;
   paymentOperationId: string | null;
+  paymentMonitorInput: unknown | null;
+  paymentMonitorWorkflowId: string | null;
   compensationFailures: readonly CheckoutCompensationFailure[];
   failure: CheckoutPlacementFailure | null;
   result: TResult | null;
@@ -57,14 +61,18 @@ type PlacementRow = {
   request_hash: string;
   credential_id: string;
   workflow_id: string;
+  request_input: unknown;
   status: CheckoutPlacementStatus;
   discount_reservation_ids: string[];
+  discount_redemption_ids: string[];
   loyalty_reservation: unknown | null;
   requested_order_id: string | null;
   order_id: string | null;
   payment_collection_id: string | null;
   payment_session_id: string | null;
   payment_operation_id: string | null;
+  payment_monitor_input: unknown | null;
+  payment_monitor_workflow_id: string | null;
   compensation_failures: CheckoutCompensationFailure[];
   failure: CheckoutPlacementFailure | null;
   result: unknown | null;
@@ -84,26 +92,31 @@ export class CheckoutPlacementRepository {
     requestHash: string;
     credentialId: string;
     workflowId: string;
+    visitorId: string;
+    requestInput: unknown;
+    recoveryOfWorkflowId?: string;
   }): Promise<CheckoutPlacementRecord> {
     const insert = knex.raw(
       `WITH checkout_to_place AS MATERIALIZED (
          SELECT id
            FROM checkout.checkouts
-          WHERE store_id = ? AND id = ? AND version = ? AND result_revision = ?
+          WHERE store_id = ? AND id = ? AND owner_visitor_id = ?
+            AND version = ? AND result_revision = ?
             AND status = 'READY' AND expires_at > CURRENT_TIMESTAMP
           FOR UPDATE
        )
        INSERT INTO checkout.checkout_placements (
          store_id, checkout_id, checkout_version, result_revision,
-         idempotency_key, request_hash, credential_id, workflow_id
+         idempotency_key, request_hash, credential_id, workflow_id, request_input
        )
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?
+       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb
        FROM checkout_to_place
        ON CONFLICT DO NOTHING
        RETURNING *`,
       [
         input.storeId,
         input.checkoutId,
+        input.visitorId,
         input.checkoutVersion,
         input.resultRevision,
         input.storeId,
@@ -114,6 +127,7 @@ export class CheckoutPlacementRepository {
         input.requestHash,
         input.credentialId,
         input.workflowId,
+        JSON.stringify(input.requestInput),
       ],
     ).toString();
     const inserted = await singleOrNull(
@@ -148,13 +162,48 @@ export class CheckoutPlacementRepository {
     ) {
       throw new Error("CHECKOUT_ALREADY_PLACED");
     }
-    if (existing.workflowId !== input.workflowId) {
-      throw new Error("CHECKOUT_PLACEMENT_WORKFLOW_MISMATCH");
-    }
     if (existing.status === "FAILED") {
       throw new Error("CHECKOUT_PLACEMENT_FAILED");
     }
+    if (existing.workflowId !== input.workflowId) {
+      if (input.recoveryOfWorkflowId !== existing.workflowId) {
+        throw new Error("CHECKOUT_PLACEMENT_WORKFLOW_MISMATCH");
+      }
+      return this.takeOverWorkflow(existing.placementId, existing.workflowId, input.workflowId);
+    }
     return existing;
+  }
+
+  private async takeOverWorkflow(
+    placementId: string,
+    previousWorkflowId: string,
+    workflowId: string,
+  ): Promise<CheckoutPlacementRecord> {
+    const query = knex.withSchema("checkout").table("checkout_placements")
+      .update({ workflow_id: workflowId, updated_at: knex.fn.now() })
+      .where({ id: placementId, workflow_id: previousWorkflowId })
+      .whereIn("status", ["CLAIMED", "RESOURCES_RESERVED", "ORDER_CREATED", "PAYMENT_CREATED"])
+      .returning("*").toString();
+    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    if (updated) return mapPlacement(updated);
+    const existing = await this.findById(placementId);
+    if (existing?.workflowId === workflowId) return existing;
+    throw new Error("CHECKOUT_PLACEMENT_RECOVERY_CONFLICT");
+  }
+
+  async prepareOrderId(placementId: string, requestedOrderId: string): Promise<string> {
+    const query = knex.withSchema("checkout").table("checkout_placements")
+      .update({ requested_order_id: requestedOrderId, updated_at: knex.fn.now() })
+      .where({ id: placementId, status: "CLAIMED" })
+      .whereNull("requested_order_id")
+      .returning("requested_order_id").toString();
+    const updated = await singleOrNull(
+      this.execute.query<{ requested_order_id: string }>(rawSql(query)),
+    );
+    if (updated) return updated.requested_order_id;
+    const existing = await this.findById(placementId);
+    if (existing?.requestedOrderId) return existing.requestedOrderId;
+    throw new Error("CHECKOUT_PLACEMENT_ORDER_ID_CONFLICT");
   }
 
   async complete<TResult>(
@@ -198,6 +247,7 @@ export class CheckoutPlacementRepository {
           discountReservationIds: readonly string[];
           loyaltyReservation: unknown | null;
           requestedOrderId: string;
+          discountRedemptionIds: readonly string[];
         }
       | { from: "RESOURCES_RESERVED"; to: "ORDER_CREATED"; orderId: string }
       | {
@@ -206,6 +256,7 @@ export class CheckoutPlacementRepository {
           paymentCollectionId: string;
           paymentSessionId: string;
           paymentOperationId: string;
+          paymentMonitorInput: unknown;
         },
   ): Promise<CheckoutPlacementRecord> {
     const values: Record<string, unknown> = {
@@ -220,12 +271,18 @@ export class CheckoutPlacementRepository {
         ? null
         : knex.raw("?::jsonb", [JSON.stringify(input.loyaltyReservation)]);
       values.requested_order_id = input.requestedOrderId;
+      values.discount_redemption_ids = knex.raw("?::jsonb", [
+        JSON.stringify(input.discountRedemptionIds),
+      ]);
     } else if (input.to === "ORDER_CREATED") {
       values.order_id = input.orderId;
     } else {
       values.payment_collection_id = input.paymentCollectionId;
       values.payment_session_id = input.paymentSessionId;
       values.payment_operation_id = input.paymentOperationId;
+      values.payment_monitor_input = knex.raw("?::jsonb", [
+        JSON.stringify(input.paymentMonitorInput),
+      ]);
     }
     const query = knex
       .withSchema("checkout")
@@ -239,6 +296,25 @@ export class CheckoutPlacementRepository {
     const existing = await this.findById(placementId);
     if (existing?.status === input.to) return existing;
     throw new Error("CHECKOUT_PLACEMENT_TRANSITION_CONFLICT");
+  }
+
+  async markPaymentMonitorStarted(
+    placementId: string,
+    workflowId: string,
+    previousWorkflowId?: string,
+  ): Promise<void> {
+    const query = knex.withSchema("checkout").table("checkout_placements")
+      .update({ payment_monitor_workflow_id: workflowId, updated_at: knex.fn.now() })
+      .where({ id: placementId })
+      .whereIn("status", ["PAYMENT_CREATED", "PLACED"])
+      .where((builder) => builder.whereNull("payment_monitor_workflow_id")
+        .orWhereIn("payment_monitor_workflow_id", [
+          workflowId,
+          ...(previousWorkflowId ? [previousWorkflowId] : []),
+        ]))
+      .returning("id").toString();
+    const updated = await singleOrNull(this.execute.query<{ id: string }>(rawSql(query)));
+    if (!updated) throw new Error("CHECKOUT_PAYMENT_MONITOR_TRANSITION_CONFLICT");
   }
 
   async fail(
@@ -300,16 +376,21 @@ export class CheckoutPlacementRepository {
       .withSchema("checkout")
       .table("checkout_placements")
       .update({
+        status: "PLACED",
         result: knex.raw("?::jsonb", [JSON.stringify(result)]),
         updated_at: knex.fn.now(),
       })
-      .where({ id: placementId, status: "PLACED" })
+      .where({ id: placementId })
+      .whereIn("status", ["PAYMENT_CREATED", "PLACED"])
       .returning("*")
       .toString();
     const updated = await singleOrNull(
       this.execute.query<PlacementRow>(rawSql(query)),
     );
-    if (updated) return mapPlacement(updated) as CheckoutPlacementRecord<TResult>;
+    if (updated) {
+      await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, "PLACED");
+      return mapPlacement(updated) as CheckoutPlacementRecord<TResult>;
+    }
 
     const existing = await this.findById<TResult>(placementId);
     if (existing?.status === "PLACED") return existing;
@@ -344,6 +425,42 @@ export class CheckoutPlacementRepository {
     ).toString();
     const rows = await this.execute.query<PlacementRow>(rawSql(query));
     return rows.rows.map(mapPlacement);
+  }
+
+  async listPendingPaymentMonitors(limit = 100): Promise<CheckoutPlacementRecord[]> {
+    const query = knex.raw(
+      `SELECT * FROM checkout.checkout_placements
+        WHERE status = 'PLACED'
+          AND payment_monitor_input IS NOT NULL
+          AND payment_monitor_workflow_id IS NOT NULL
+          AND result->>'status' IN ('REQUIRES_ACTION', 'REQUIRES_CONFIRMATION', 'PAYMENT_PENDING')
+        ORDER BY updated_at
+        LIMIT ?`,
+      [limit],
+    ).toString();
+    const rows = await this.execute.query<PlacementRow>(rawSql(query));
+    return rows.rows.map(mapPlacement);
+  }
+
+  async listUnresolvedCompensations(limit = 100): Promise<CheckoutPlacementRecord[]> {
+    const query = knex.raw(
+      `SELECT * FROM checkout.checkout_placements
+        WHERE jsonb_array_length(compensation_failures) > 0
+        ORDER BY updated_at
+        LIMIT ?`,
+      [limit],
+    ).toString();
+    const rows = await this.execute.query<PlacementRow>(rawSql(query));
+    return rows.rows.map(mapPlacement);
+  }
+
+  async clearCompensationFailures(placementId: string): Promise<void> {
+    const query = knex.withSchema("checkout").table("checkout_placements")
+      .update({ compensation_failures: knex.raw("'[]'::jsonb"), updated_at: knex.fn.now() })
+      .where({ id: placementId })
+      .returning("id").toString();
+    const updated = await singleOrNull(this.execute.query<{ id: string }>(rawSql(query)));
+    if (!updated) throw new Error("CHECKOUT_COMPENSATION_PLACEMENT_NOT_FOUND");
   }
 
   async operationalMetrics(): Promise<{
@@ -408,22 +525,51 @@ export class CheckoutPlacementRepository {
       placementId: string;
       storeId: string;
       credentialId: string;
+      visitorId: string;
     },
   ): Promise<CheckoutPlacementRecord<TResult> | null> {
     const query = knex
       .withSchema("checkout")
       .table("checkout_placements")
-      .select("*")
+      .innerJoin("checkout.checkouts", function () {
+        this.on("checkouts.id", "=", "checkout_placements.checkout_id")
+          .andOn("checkouts.store_id", "=", "checkout_placements.store_id");
+      })
+      .select("checkout_placements.*")
       .where({
-        id: input.placementId,
-        store_id: input.storeId,
-        credential_id: input.credentialId,
+        "checkout_placements.id": input.placementId,
+        "checkout_placements.store_id": input.storeId,
+        "checkout_placements.credential_id": input.credentialId,
+        "checkouts.owner_visitor_id": input.visitorId,
       })
       .limit(1)
       .toString();
     const row = await singleOrNull(
       this.execute.query<PlacementRow>(rawSql(query)),
     );
+    return row ? mapPlacement(row) as CheckoutPlacementRecord<TResult> : null;
+  }
+
+  async findByCheckoutForStorefrontOwner<TResult = unknown>(input: {
+    checkoutId: string;
+    storeId: string;
+    credentialId: string;
+    visitorId: string;
+  }): Promise<CheckoutPlacementRecord<TResult> | null> {
+    const query = knex.withSchema("checkout").table("checkout_placements")
+      .innerJoin("checkout.checkouts", function () {
+        this.on("checkouts.id", "=", "checkout_placements.checkout_id")
+          .andOn("checkouts.store_id", "=", "checkout_placements.store_id");
+      })
+      .select("checkout_placements.*")
+      .where({
+        "checkout_placements.checkout_id": input.checkoutId,
+        "checkout_placements.store_id": input.storeId,
+        "checkout_placements.credential_id": input.credentialId,
+        "checkouts.owner_visitor_id": input.visitorId,
+      })
+      .limit(1).toString();
+    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
     return row ? mapPlacement(row) as CheckoutPlacementRecord<TResult> : null;
   }
 
@@ -473,14 +619,18 @@ function mapPlacement(row: PlacementRow): CheckoutPlacementRecord {
     requestHash: row.request_hash,
     credentialId: row.credential_id,
     workflowId: row.workflow_id,
+    requestInput: row.request_input,
     status: row.status,
     discountReservationIds: row.discount_reservation_ids,
+    discountRedemptionIds: row.discount_redemption_ids,
     loyaltyReservation: row.loyalty_reservation,
     requestedOrderId: row.requested_order_id,
     orderId: row.order_id,
     paymentCollectionId: row.payment_collection_id,
     paymentSessionId: row.payment_session_id,
     paymentOperationId: row.payment_operation_id,
+    paymentMonitorInput: row.payment_monitor_input,
+    paymentMonitorWorkflowId: row.payment_monitor_workflow_id,
     compensationFailures: row.compensation_failures,
     failure: row.failure,
     result: row.result,

@@ -17,7 +17,10 @@ type PlaceOrderPayloadContext = {
   failure?: { code: string; message: string; retryable: boolean } | null;
 };
 
-type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId">;
+type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId" | "checkoutId" | "resultRevision"> & {
+  checkoutId: string | null;
+  resultRevision: string | null;
+};
 
 export function mapPlaceOrderPayload(
   result: PlaceOrderWorkflowResult | null,
@@ -30,10 +33,9 @@ export function mapPlaceOrderPayload(
       GlobalIdEntity.CheckoutPlacement,
     ),
     placementState: context.placementState ?? "PLACED" as ApiCheckoutPlacementState,
-    checkoutId: encodeGlobalIdByType(
-      context.checkoutId,
-      GlobalIdEntity.Checkout,
-    ),
+    checkoutId: context.checkoutId
+      ? encodeGlobalIdByType(context.checkoutId, GlobalIdEntity.Checkout)
+      : null,
     resultRevision: context.resultRevision,
     orderId: result
       ? encodeGlobalIdByType(result.orderId, GlobalIdEntity.Order)
@@ -88,10 +90,9 @@ export function mapPlaceOrderErrorPayload(
     __typename: "PlaceOrderPayload",
     placementId: null,
     placementState: null,
-    checkoutId: encodeGlobalIdByType(
-      context.checkoutId,
-      GlobalIdEntity.Checkout,
-    ),
+    checkoutId: context.checkoutId
+      ? encodeGlobalIdByType(context.checkoutId, GlobalIdEntity.Checkout)
+      : null,
     resultRevision: context.resultRevision,
     orderId: null,
     status: null,

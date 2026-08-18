@@ -27,6 +27,7 @@ export const checkoutLinesDelete = async (
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       lineIds: dto.lineIds, // Already decoded by validator
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

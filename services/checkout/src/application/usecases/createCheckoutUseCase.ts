@@ -22,8 +22,8 @@ export class CreateCheckoutUseCase extends UseCase<
   CheckoutCommittedSnapshot
 > {
   async execute(input: CreateCheckoutInput): Promise<CheckoutCommittedSnapshot> {
-    const { storefrontAccess, store, customer, user, ...business } = input;
-    const context = { storefrontAccess, store, customer, user };
+    const { visitorId, storefrontAccess, store, customer, user, ...business } = input;
+    const context = { visitorId, storefrontAccess, store, customer, user };
     const idempotencyKey = uuidv7();
     const channelCode = business.channelCode.trim();
     if (!channelCode || channelCode.length > 128) {
@@ -59,6 +59,7 @@ export class CreateCheckoutUseCase extends UseCase<
       }),
       checkoutId: uuidv7(),
       initiatingCredentialId: storefrontAccess.credentialId,
+      ownerVisitorId: visitorId,
       reservedIds: { lineIds, tagIds },
     };
     const committed = await this.checkoutMutationCoordinator.create({

@@ -38,6 +38,7 @@ export const checkoutLinesReplace = async (
         quantity: l.quantity,
       })),
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

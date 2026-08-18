@@ -9,7 +9,7 @@ export class ReplaceCheckoutLinesUseCase extends UseCase<CheckoutLinesReplaceInp
       checkoutId,
       storeId: store.id,
       change: "LINES_REPLACE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => replaceLines(draft, lines),
     })).checkout;
   }

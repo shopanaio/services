@@ -10,7 +10,7 @@ export class CreateCheckoutTagUseCase extends UseCase<CheckoutTagCreateInput, Ch
     return (await this.checkoutMutationCoordinator.executeWithoutRecalculation({
       checkoutId,
       storeId: store.id,
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         if (draft.tags.some(({ slug }) => slug === tag.slug)) {
           throw invalidCheckoutMutation("CHECKOUT_TAG_ALREADY_EXISTS", "A checkout tag with this slug already exists.");

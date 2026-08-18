@@ -1,8 +1,8 @@
 import type { Checkout } from "@shopana/broker-types";
-import type { CheckoutMutationSnapshotPort } from "@src/application/mutations/index.js";
+import type { CheckoutInternalSnapshotPort } from "@src/application/mutations/index.js";
 
 export class GetCheckoutCompletionUseCase {
-  constructor(private readonly snapshots: CheckoutMutationSnapshotPort) {}
+  constructor(private readonly snapshots: CheckoutInternalSnapshotPort) {}
 
   async execute(
     input: Checkout.GetCheckoutCompletionParams,

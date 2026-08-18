@@ -127,6 +127,7 @@ async function committedCurrent(
     change: "CREATE",
     context: {
       storeId: currentDraft.storeId,
+      visitorId: "visitor-1234567890",
       storefrontAccess: {
         connectionId: "connection-1",
         installationId: "installation-1",
@@ -155,6 +156,7 @@ async function committedCurrent(
 
 const executionContext = {
   storeId: "store-1",
+  visitorId: "visitor-1234567890",
   storefrontAccess: {
     connectionId: "connection-1",
     installationId: "installation-1",
@@ -191,7 +193,7 @@ describe("CheckoutMutationCoordinator", () => {
       commitWithoutRecalculation: jest.fn(),
     };
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn(async () => current) },
+      snapshots: { loadOwned: jest.fn(async () => current) },
       commits,
       requests: factory(),
       pipeline: checkoutPipeline,
@@ -224,7 +226,7 @@ describe("CheckoutMutationCoordinator", () => {
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
     const commit = jest.fn();
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn(async () => current) },
+      snapshots: { loadOwned: jest.fn(async () => current) },
       commits: { create: jest.fn(), commit, commitWithoutRecalculation: jest.fn() },
       requests: factory(),
       pipeline: checkoutPipeline,
@@ -250,7 +252,7 @@ describe("CheckoutMutationCoordinator", () => {
     const failing = pipeline({ preliminaryFailure: true });
     const commit = jest.fn();
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn(async () => current) },
+      snapshots: { loadOwned: jest.fn(async () => current) },
       commits: { create: jest.fn(), commit, commitWithoutRecalculation: jest.fn() },
       requests: factory(),
       pipeline: failing,
@@ -277,7 +279,7 @@ describe("CheckoutMutationCoordinator", () => {
     const current = await committedCurrent(checkoutPipeline);
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn(async () => current) },
+      snapshots: { loadOwned: jest.fn(async () => current) },
       commits: {
         create: jest.fn(),
         commit: jest.fn(async () => ({ status: "VERSION_CONFLICT" as const })),
@@ -323,7 +325,7 @@ describe("CheckoutMutationCoordinator", () => {
       checkout: { ...current, version: input.nextVersion, draft: input.draft },
     }));
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn(async () => current) },
+      snapshots: { loadOwned: jest.fn(async () => current) },
       commits: { create: jest.fn(), commit: jest.fn(), commitWithoutRecalculation },
       requests: factory(),
       pipeline: checkoutPipeline,
@@ -348,7 +350,7 @@ describe("CheckoutMutationCoordinator", () => {
     const committed = await committedCurrent(checkoutPipeline, draft(1));
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn() },
+      snapshots: { loadOwned: jest.fn() },
       commits: { create: jest.fn(), commit: jest.fn(), commitWithoutRecalculation: jest.fn() },
       requests: factory(),
       pipeline: checkoutPipeline,
@@ -376,7 +378,7 @@ describe("CheckoutMutationCoordinator", () => {
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
     const createDraft = jest.fn(() => draft(0));
     const coordinator = new CheckoutMutationCoordinator({
-      snapshots: { load: jest.fn() },
+      snapshots: { loadOwned: jest.fn() },
       commits: { create: jest.fn(), commit: jest.fn(), commitWithoutRecalculation: jest.fn() },
       requests: factory(),
       pipeline: checkoutPipeline,
@@ -411,6 +413,7 @@ function reservation() {
     requestHash: "request-hash",
     checkoutId: "checkout-1",
     initiatingCredentialId: "credential-1",
+    ownerVisitorId: "visitor-1234567890",
     reservedIds: { lineIds: [], tagIds: [] },
   };
 }

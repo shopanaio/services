@@ -27,6 +27,7 @@ export const checkoutCustomerNoteUpdate = async (
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       note: dto.note,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

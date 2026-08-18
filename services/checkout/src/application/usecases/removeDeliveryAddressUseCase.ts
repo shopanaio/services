@@ -9,7 +9,7 @@ export class RemoveDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddres
       checkoutId,
       storeId: store.id,
       change: "DELIVERY_ADDRESS_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft, current) => {
         assertUniqueIds(addressIds, "delivery address");
         const ids = new Set(addressIds);

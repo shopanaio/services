@@ -15,15 +15,17 @@ describe("CheckoutMutationRepository", () => {
     const execute = executor([{ snapshot: { checkoutId: "checkout-1", version: 7 } }]);
     const repository = new CheckoutMutationRepository(execute);
 
-    await expect(repository.load({
+    await expect(repository.loadOwned({
       checkoutId: "checkout-1",
       storeId: "store-1",
+      visitorId: "visitor-1234567890",
     })).resolves.toEqual({ checkoutId: "checkout-1", version: 7 });
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain('from "checkout"."checkout_current_snapshots"');
     expect(sql).toContain('"checkout_id" = \'checkout-1\'');
     expect(sql).toContain('"store_id" = \'store-1\'');
+    expect(sql).toContain('"owner_visitor_id" = \'visitor-1234567890\'');
   });
 
   it("guards both root and snapshot with the same expected version CAS", async () => {
@@ -34,6 +36,7 @@ describe("CheckoutMutationRepository", () => {
     await expect(repository.commit({
       storeId: "store-1",
       checkoutId: "checkout-1",
+      visitorId: "visitor-1234567890",
       expectedVersion: 7,
       nextVersion: 8,
       createdAt: "2026-08-02T10:00:00.000Z",
@@ -70,6 +73,8 @@ describe("CheckoutMutationRepository", () => {
     expect(sql).toContain("version = 7");
     expect(sql).toContain("checkout_version = 7");
     expect(sql).toContain("EXISTS");
+    expect(sql).toContain("status IN ('OPEN', 'READY')");
+    expect(sql).toContain("expires_at > CURRENT_TIMESTAMP");
   });
 
   it("claims only the current unexpired create lease before inserting", async () => {
@@ -88,6 +93,7 @@ describe("CheckoutMutationRepository", () => {
         requestHash: "a".repeat(64),
         checkoutId: "checkout-1",
         initiatingCredentialId: "credential-1",
+        ownerVisitorId: "visitor-1234567890",
         reservedIds: { lineIds: [], tagIds: [] },
         leaseToken,
       },

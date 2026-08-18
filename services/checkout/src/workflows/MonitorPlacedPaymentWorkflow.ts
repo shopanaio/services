@@ -82,7 +82,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         const failures = await this.runCompensations([
           ["releaseInventory", () => this.releaseInventory(input)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input)],
-          ["releaseLoyalty", () => this.releaseLoyalty(input)],
+          ["releaseLoyalty:PAYMENT_FAILED", () => this.releaseLoyalty(input)],
         ]);
         await this.recordCompensationFailures(input.placementId, failures);
         return this.replacePlacementResult(
@@ -94,20 +94,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       if (session.state === "PROCESSING") {
         try {
           providerRetry += 1;
-          await this.broker.runWorkflow<
-            Payments.CreatePaymentSessionResult,
-            Payments.CreatePaymentSessionParams
-          >(
-            "payments.createSession",
-            input.sessionParams,
-            {
-              source: "workflow",
-              organizationId: input.organizationId,
-              workflowId,
-              stepId: "retryCreatePaymentSession",
-              callId: `${session.paymentSessionId}:${providerRetry}`,
-            },
-          );
+          await this.retryCreatePaymentSession(input, workflowId, session.paymentSessionId, providerRetry);
         } catch {
           const now = await DBOS.now();
           const retryAt = new Date(now + providerRetryDelay(providerRetry)).toISOString();
@@ -123,26 +110,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         session.nextReconcileAt &&
         Date.parse(session.nextReconcileAt) <= now
       ) {
-        await this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
-          "payments.executeOperation",
-          {
-            type: "RECONCILE",
-            params: {
-              storeId: input.storeId,
-              paymentSessionId: session.paymentSessionId,
-              expectedSessionRevision: session.revision,
-              idempotencyKey: `${input.idempotencyKey}:payment-reconcile:${session.revision}`,
-              correlationId: input.correlationId,
-            },
-          },
-          {
-            source: "workflow",
-            organizationId: input.organizationId,
-            workflowId,
-            stepId: "reconcilePendingPayment",
-            callId: `${session.paymentSessionId}:${session.revision}`,
-          },
-        );
+        await this.reconcilePendingPayment(input, workflowId, session);
         continue;
       }
       const deadline = paymentDeadline(session);
@@ -158,32 +126,84 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       }
 
       try {
-        await this.broker.runWorkflow<
-          Payments.PaymentOperationAcceptedResult,
-          Payments.ExpirePaymentParams
-        >(
-          "payments.expireSession",
-          {
-            organizationId: input.organizationId,
-            storeId: input.storeId,
-            paymentSessionId: session.paymentSessionId,
-            expectedSessionRevision: session.revision,
-            reason: "Checkout payment was not completed before its deadline.",
-            idempotencyKey: `${input.idempotencyKey}:payment-expire`,
-            correlationId: input.correlationId,
-          },
-          {
-            source: "workflow",
-            organizationId: input.organizationId,
-            workflowId,
-            stepId: "expirePaymentSession",
-            callId: `${session.paymentSessionId}:${session.revision}`,
-          },
-        );
+        await this.expirePaymentSession(input, workflowId, session);
       } catch (error) {
         if (!isPaymentRevisionConflict(error)) throw error;
       }
     }
+  }
+
+  @WorkflowStep()
+  private retryCreatePaymentSession(
+    input: MonitorPlacedPaymentInput,
+    workflowId: string,
+    paymentSessionId: string,
+    providerRetry: number,
+  ) {
+    return this.broker.runWorkflow<
+      Payments.CreatePaymentSessionResult,
+      Payments.CreatePaymentSessionParams
+    >("payments.createSession", input.sessionParams, {
+      source: "workflow",
+      organizationId: input.organizationId,
+      workflowId,
+      stepId: "retryCreatePaymentSession",
+      callId: `${paymentSessionId}:${providerRetry}`,
+    });
+  }
+
+  @WorkflowStep()
+  private reconcilePendingPayment(
+    input: MonitorPlacedPaymentInput,
+    workflowId: string,
+    session: Payments.PaymentSessionSnapshot,
+  ) {
+    return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
+      "payments.executeOperation",
+      {
+        type: "RECONCILE",
+        params: {
+          storeId: input.storeId,
+          paymentSessionId: session.paymentSessionId,
+          expectedSessionRevision: session.revision,
+          idempotencyKey: `${input.idempotencyKey}:payment-reconcile:${session.revision}`,
+          correlationId: input.correlationId,
+        },
+      },
+      {
+        source: "workflow",
+        organizationId: input.organizationId,
+        workflowId,
+        stepId: "reconcilePendingPayment",
+        callId: `${session.paymentSessionId}:${session.revision}`,
+      },
+    );
+  }
+
+  @WorkflowStep()
+  private expirePaymentSession(
+    input: MonitorPlacedPaymentInput,
+    workflowId: string,
+    session: Payments.PaymentSessionSnapshot,
+  ) {
+    return this.broker.runWorkflow<
+      Payments.PaymentOperationAcceptedResult,
+      Payments.ExpirePaymentParams
+    >("payments.expireSession", {
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      paymentSessionId: session.paymentSessionId,
+      expectedSessionRevision: session.revision,
+      reason: "Checkout payment was not completed before its deadline.",
+      idempotencyKey: `${input.idempotencyKey}:payment-expire`,
+      correlationId: input.correlationId,
+    }, {
+      source: "workflow",
+      organizationId: input.organizationId,
+      workflowId,
+      stepId: "expirePaymentSession",
+      callId: `${session.paymentSessionId}:${session.revision}`,
+    });
   }
 
   @WorkflowStep()
@@ -214,7 +234,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     >(InventoryCheckoutActions.confirm, { storeId, orderId });
   }
 
-  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep()
   private async releaseInventory(input: MonitorPlacedPaymentInput): Promise<void> {
     await this.broker.call<
       Inventory.ReleaseCheckoutInventoryResult,
@@ -227,7 +247,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep()
   private async reverseDiscountUsage(input: MonitorPlacedPaymentInput): Promise<void> {
     if (input.redemptionIds.length === 0) return;
     await this.broker.call<
@@ -313,7 +333,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     );
   }
 
-  @WorkflowStep({ retry: { maxAttempts: 10, intervalSeconds: 1, backoffRate: 2 } })
+  @WorkflowStep()
   private async releaseLoyaltyAt(
     input: MonitorPlacedPaymentInput,
     releasedAt: string,

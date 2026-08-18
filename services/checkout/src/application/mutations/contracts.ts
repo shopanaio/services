@@ -15,6 +15,7 @@ export interface CheckoutStorefrontExecutionIdentity {
 
 export interface CheckoutMutationExecutionContext {
   storeId: string;
+  visitorId: string;
   storefrontAccess: CheckoutStorefrontExecutionIdentity;
   correlationId?: string;
 }
@@ -101,6 +102,14 @@ export interface CheckoutLifecycle {
 }
 
 export interface CheckoutMutationSnapshotPort {
+  loadOwned(input: {
+    checkoutId: string;
+    storeId: string;
+    visitorId: string;
+  }): Promise<CheckoutCommittedSnapshot | null>;
+}
+
+export interface CheckoutInternalSnapshotPort {
   load(input: {
     checkoutId: string;
     storeId: string;
@@ -120,6 +129,7 @@ export interface CheckoutRecalculationCommitPort {
   commit(input: {
     storeId: string;
     checkoutId: string;
+    visitorId: string;
     expectedVersion: number;
     nextVersion: number;
     createdAt: string;
@@ -133,6 +143,7 @@ export interface CheckoutRecalculationCommitPort {
   commitWithoutRecalculation(input: {
     storeId: string;
     checkoutId: string;
+    visitorId: string;
     expectedVersion: number;
     nextVersion: number;
     createdAt: string;
@@ -156,6 +167,7 @@ export interface CheckoutCreateIdempotencyRequest {
   requestHash: string;
   checkoutId: string;
   initiatingCredentialId: string;
+  ownerVisitorId: string;
   reservedIds: CheckoutPipelineJsonObject;
 }
 

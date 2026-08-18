@@ -10,8 +10,10 @@ import type { GraphQLContext } from "@src/interfaces/gql-storefront-api/context"
 import type {
   ApiMutation,
   ApiMutationPlaceOrderArgs,
+  ApiCheckoutPlacementState,
 } from "@src/interfaces/gql-storefront-api/types";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
+import { checkoutUserErrorFrom } from "@src/interfaces/gql-storefront-api/errors";
 import { createValidated } from "@src/utils/validation";
 import {
   mapPlaceOrderErrorPayload,
@@ -38,7 +40,19 @@ export const placeOrder = async (
   args: ApiMutationPlaceOrderArgs,
   ctx: GraphQLContext,
 ) => {
-  const dto = createValidated(PlaceOrderDto, args.input);
+  let dto: PlaceOrderDto;
+  try {
+    dto = createValidated(PlaceOrderDto, args.input);
+  } catch (error) {
+    const userError = checkoutUserErrorFrom(error, ["input"]);
+    if (!userError) throw error;
+    return mapPlaceOrderErrorPayload(userError, {
+      checkoutId: null,
+      resultRevision: typeof args.input.expectedResultRevision === "string"
+        ? args.input.expectedResultRevision
+        : null,
+    });
+  }
   const { broker, logger } = App.getInstance();
   const input: PlaceOrderWorkflowInput = {
     organizationId: ctx.organizationId,
@@ -48,6 +62,7 @@ export const placeOrder = async (
     idempotencyKey: dto.idempotencyKey,
     correlationId: uuidv7(),
     credentialId: ctx.storefrontAccess.credentialId,
+    visitorId: ctx.visitorId,
     userId: ctx.user?.id ?? null,
     returnUrl: dto.returnUrl?.trim() || null,
   };
@@ -94,6 +109,37 @@ export const placeOrder = async (
         },
       );
     }
+    const placement = await App.getInstance().checkoutPlacementRepository
+      .findByCheckoutForStorefrontOwner<PlaceOrderWorkflowResult>({
+        checkoutId: input.checkoutId,
+        storeId: input.storeId,
+        credentialId: input.credentialId,
+        visitorId: input.visitorId,
+      });
+    if (placement) {
+      const failure = placement.failure ?? publicPlacementFailure(code);
+      return mapPlaceOrderPayload(placement.result, {
+        placementId: placement.placementId,
+        checkoutId: placement.checkoutId,
+        resultRevision: placement.resultRevision,
+        placementState: placement.status as ApiCheckoutPlacementState,
+        failure,
+      });
+    }
+    const failure = publicPlacementFailure(code);
+    if (failure) {
+      return mapPlaceOrderErrorPayload(
+        {
+          __typename: "CheckoutUserError",
+          field: ["input"],
+          ...failure,
+        },
+        {
+          checkoutId: input.checkoutId,
+          resultRevision: input.expectedResultRevision,
+        },
+      );
+    }
     const reason = error instanceof Error ? error.message : String(error);
     logger.error(
       {
@@ -105,3 +151,17 @@ export const placeOrder = async (
     throw await fromDomainError(error);
   }
 };
+
+function publicPlacementFailure(code: string | null) {
+  if (!code || !/^(CHECKOUT|PLACE_ORDER|IDEMPOTENCY|LOYALTY)_/.test(code)) return null;
+  const retryable = !code.endsWith("_INVALID") &&
+    !code.includes("MISMATCH") &&
+    !code.includes("ALREADY_PLACED") &&
+    !code.includes("NOT_FOUND") &&
+    !code.includes("REQUIRED");
+  return {
+    code,
+    message: "The checkout could not be placed.",
+    retryable,
+  };
+}

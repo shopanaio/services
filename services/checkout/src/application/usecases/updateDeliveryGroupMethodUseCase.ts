@@ -9,7 +9,7 @@ export class UpdateDeliveryGroupMethodUseCase extends UseCase<CheckoutDeliveryMe
       checkoutId,
       storeId: store.id,
       change: "DELIVERY_OPTION_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => updateDeliverySelection(draft, {
         groupId: input.deliveryGroupId,
         optionHandle: input.optionHandle,

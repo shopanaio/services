@@ -9,7 +9,7 @@ export class RemoveDeliveryGroupRecipientUseCase extends UseCase<CheckoutDeliver
       checkoutId,
       storeId: store.id,
       change: "DELIVERY_RECIPIENT_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft, current) => {
         assertUniqueIds(deliveryGroupIds, "delivery group");
         const destinationIds = new Set(deliveryGroupIds.map((groupId) => destinationIdForGroup(current, groupId)));

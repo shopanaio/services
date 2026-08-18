@@ -9,7 +9,7 @@ export class DeleteCheckoutLinesUseCase extends UseCase<CheckoutLinesDeleteInput
       checkoutId,
       storeId: store.id,
       change: "LINES_DELETE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => deleteLines(draft, lineIds),
     })).checkout;
   }

@@ -9,7 +9,7 @@ export class UpdateCheckoutLinesUseCase extends UseCase<CheckoutLinesUpdateInput
       checkoutId,
       storeId: store.id,
       change: "LINES_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => updateLineQuantities(draft, lines),
     })).checkout;
   }

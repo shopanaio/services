@@ -14,6 +14,7 @@ export const checkoutDeliveryRecipientsAdd = async (_parent: ApiMutation, args: 
       checkoutId: dto.checkoutId,
       updates: dto.recipients,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

@@ -6,6 +6,8 @@ import type { ContextStorefrontAccess } from "@shopana/shared-context";
  * Contains essential business context data available throughout request lifecycle
  */
 export interface CheckoutContext {
+  /** Anonymous browser identity from the verified storefront context. */
+  visitorId: string;
   /** Verified Headless storefront identity for the request. */
   storefrontAccess: ContextStorefrontAccess;
   /** Current store - required for all operations */

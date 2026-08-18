@@ -14,6 +14,7 @@ export const checkoutDeliveryRecipientsRemove = async (_parent: ApiMutation, arg
       checkoutId: dto.checkoutId,
       deliveryGroupIds: dto.deliveryGroupIds,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

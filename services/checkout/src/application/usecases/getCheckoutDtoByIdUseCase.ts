@@ -1,5 +1,5 @@
 import type { CheckoutDto } from "@shopana/checkout-sdk";
-import type { CheckoutMutationSnapshotPort } from "@src/application/mutations/index.js";
+import type { CheckoutInternalSnapshotPort } from "@src/application/mutations/index.js";
 import { committedCheckoutToDto } from "@src/application/mutations/index.js";
 
 export interface GetCheckoutDtoByIdInput {
@@ -8,7 +8,7 @@ export interface GetCheckoutDtoByIdInput {
 }
 
 export class GetCheckoutDtoByIdUseCase {
-  constructor(private readonly snapshots: CheckoutMutationSnapshotPort) {}
+  constructor(private readonly snapshots: CheckoutInternalSnapshotPort) {}
 
   async execute(input: GetCheckoutDtoByIdInput): Promise<CheckoutDto | null> {
     const checkout = await this.snapshots.load(input);

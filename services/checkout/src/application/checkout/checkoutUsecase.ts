@@ -28,6 +28,7 @@ import { GetCheckoutDtoByIdUseCase } from "@src/application/usecases/getCheckout
 import { GetCheckoutCompletionUseCase } from "@src/application/usecases/getCheckoutCompletionUseCase";
 import type {
   CheckoutMutationCoordinator,
+  CheckoutInternalSnapshotPort,
   CheckoutMutationSnapshotPort,
 } from "@src/application/mutations/index.js";
 
@@ -65,7 +66,7 @@ export class CheckoutUsecase {
 
   constructor(deps: {
     logger?: Logger;
-    checkoutMutationSnapshots: CheckoutMutationSnapshotPort;
+    checkoutMutationSnapshots: CheckoutMutationSnapshotPort & CheckoutInternalSnapshotPort;
     checkoutMutationCoordinator: CheckoutMutationCoordinator;
   }) {
     const baseDeps = {

@@ -14,6 +14,7 @@ export const checkoutDeliveryAddressesUpdate = async (_parent: ApiMutation, args
       checkoutId: dto.checkoutId,
       updates: dto.updates.map((update) => ({ addressId: update.addressId, address: update.address })),
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

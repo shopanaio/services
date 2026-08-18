@@ -107,6 +107,22 @@ export class CheckoutMutationRepository
     checkoutId: string;
     storeId: string;
   }): Promise<CheckoutCommittedSnapshot | null> {
+    return this.loadScoped(input);
+  }
+
+  async loadOwned(input: {
+    checkoutId: string;
+    storeId: string;
+    visitorId: string;
+  }): Promise<CheckoutCommittedSnapshot | null> {
+    return this.loadScoped(input);
+  }
+
+  private async loadScoped(input: {
+    checkoutId: string;
+    storeId: string;
+    visitorId?: string;
+  }): Promise<CheckoutCommittedSnapshot | null> {
     const query = knex
       .withSchema("checkout")
       .table("checkout_current_snapshots as snapshots")
@@ -124,6 +140,7 @@ export class CheckoutMutationRepository
       .where({
         "snapshots.checkout_id": input.checkoutId,
         "snapshots.store_id": input.storeId,
+        ...(input.visitorId ? { "checkouts.owner_visitor_id": input.visitorId } : {}),
       })
       .limit(1)
       .toString();
@@ -178,12 +195,12 @@ export class CheckoutMutationRepository
             FOR UPDATE
        ), inserted_checkout AS (
          INSERT INTO checkout.checkouts (
-           id, store_id, version, channel_code, external_source, external_id,
+           id, store_id, owner_visitor_id, version, channel_code, external_source, external_id,
            customer_note, locale_code, currency_code, subtotal, shipping_total,
            discount_total, tax_total, grand_total, status, result_revision,
            checkout_valid, pipeline_issues, metadata, expires_at, retention_until,
            created_at, updated_at
-         ) SELECT ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, '{}'::jsonb, ?, ?, ?, ?
+         ) SELECT ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, '{}'::jsonb, ?, ?, ?, ?
              FROM locked_reservation WHERE checkout_id = ?
          ON CONFLICT (id) DO NOTHING
          RETURNING id
@@ -213,6 +230,7 @@ export class CheckoutMutationRepository
         input.reservation.leaseToken,
         input.draft.checkoutId,
         input.draft.storeId,
+        input.reservation.ownerVisitorId,
         input.draft.channelCode,
         input.draft.externalSource,
         input.draft.externalId,
@@ -258,6 +276,7 @@ export class CheckoutMutationRepository
   async commit(input: {
     storeId: string;
     checkoutId: string;
+    visitorId: string;
     expectedVersion: number;
     nextVersion: number;
     createdAt: string;
@@ -291,7 +310,8 @@ export class CheckoutMutationRepository
                 status = ?, result_revision = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
                 expires_at = ?, retention_until = ?,
                 updated_at = ?
-          WHERE id = ? AND store_id = ? AND version = ?
+          WHERE id = ? AND store_id = ? AND owner_visitor_id = ? AND version = ?
+            AND status IN ('OPEN', 'READY') AND expires_at > CURRENT_TIMESTAMP
             AND NOT EXISTS (
               SELECT 1 FROM checkout.checkout_placements
                WHERE store_id = ? AND checkout_id = ?
@@ -331,6 +351,7 @@ export class CheckoutMutationRepository
         now,
         input.checkoutId,
         input.storeId,
+        input.visitorId,
         input.expectedVersion,
         input.storeId,
         input.checkoutId,
@@ -355,6 +376,7 @@ export class CheckoutMutationRepository
   commitWithoutRecalculation(input: {
     storeId: string;
     checkoutId: string;
+    visitorId: string;
     expectedVersion: number;
     nextVersion: number;
     createdAt: string;

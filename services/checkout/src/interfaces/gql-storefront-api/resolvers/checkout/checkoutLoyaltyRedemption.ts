@@ -24,6 +24,7 @@ export async function checkoutLoyaltyRedemptionUpdate(_parent: ApiMutation, args
         ? decodeGlobalIdByType(args.input.rewardEntitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
         : null,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,
@@ -40,6 +41,7 @@ export async function checkoutLoyaltyRedemptionRemove(_parent: ApiMutation, args
     const checkout = await checkoutUsecase.removeLoyaltyRedemption.execute({
       checkoutId: decodeGlobalIdByType(args.input.checkoutId, GlobalIdEntity.Checkout),
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

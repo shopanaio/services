@@ -37,6 +37,7 @@ import {
   STOREFRONT_PERMISSIONS,
 } from "@shopana/shared-context";
 import type { GraphQLContext } from "../context";
+import { checkoutUserErrorFrom } from "../errors.js";
 
 const checkoutResolvers = {
   Query: {
@@ -99,7 +100,18 @@ const checkoutResolvers = {
 function withCheckoutWrite<TParent, TArgs, TResult>(
   resolver: StorefrontResolver<TParent, TArgs, TResult>,
 ): StorefrontResolver<TParent, TArgs, TResult> {
-  return withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_WRITE, resolver);
+  return withPermission(
+    STOREFRONT_PERMISSIONS.CHECKOUT_WRITE,
+    async (parent, args, context, ...rest) => {
+      try {
+        return await resolver(parent, args, context, ...rest);
+      } catch (error) {
+        const userError = checkoutUserErrorFrom(error, ["input"]);
+        if (!userError) throw error;
+        return { checkout: null, userErrors: [userError] } as TResult;
+      }
+    },
+  ) as StorefrontResolver<TParent, TArgs, TResult>;
 }
 
 type StorefrontResolver<TParent, TArgs, TResult> = (

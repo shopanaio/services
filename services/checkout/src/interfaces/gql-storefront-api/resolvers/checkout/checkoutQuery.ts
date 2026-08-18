@@ -16,9 +16,10 @@ export const checkout = async (
   ctx: import("@src/interfaces/gql-storefront-api/context").GraphQLContext,
 ) => {
   const checkoutId = decodeGlobalIdByType(args.id, GlobalIdEntity.Checkout);
-  const read = await App.getInstance().checkoutMutationRepository.load({
+  const read = await App.getInstance().checkoutMutationRepository.loadOwned({
     checkoutId,
     storeId: ctx.store.id,
+    visitorId: ctx.visitorId,
   });
   return read ? mapCommittedCheckoutToApi(read) : null;
 };

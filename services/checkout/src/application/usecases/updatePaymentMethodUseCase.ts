@@ -9,7 +9,7 @@ export class UpdatePaymentMethodUseCase extends UseCase<CheckoutPaymentMethodUpd
       checkoutId,
       storeId: store.id,
       change: "PAYMENT_METHOD_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => updatePaymentSelection(draft, {
         methodHandle: input.methodHandle,
         customerInput: input.customerInput ?? null,

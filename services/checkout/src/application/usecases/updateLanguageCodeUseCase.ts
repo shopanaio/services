@@ -9,7 +9,7 @@ export class UpdateLanguageCodeUseCase extends UseCase<CheckoutLanguageCodeUpdat
       checkoutId,
       storeId: store.id,
       change: "LOCALE_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => { draft.localeCode = localeCode; },
     })).checkout;
   }

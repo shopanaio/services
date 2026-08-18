@@ -10,7 +10,7 @@ export class UpdateDeliveryAddressUseCase extends UseCase<CheckoutDeliveryAddres
       checkoutId,
       storeId: store.id,
       change: "DELIVERY_ADDRESS_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         assertUniqueIds(updates.map(({ addressId }) => addressId), "delivery address");
         const byId = new Map(updates.map((update) => [update.addressId, update.address]));

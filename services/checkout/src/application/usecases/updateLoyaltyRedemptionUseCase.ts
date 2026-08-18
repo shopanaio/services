@@ -43,7 +43,7 @@ export class UpdateLoyaltyRedemptionUseCase extends UseCase<
       checkoutId,
       storeId: store.id,
       change: "LOYALTY_REDEMPTION_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         if (draft.buyerIdentity?.customerId !== customer.id) {
           throw invalidCheckoutMutation(
@@ -72,7 +72,7 @@ export class RemoveLoyaltyRedemptionUseCase extends UseCase<
       checkoutId,
       storeId: store.id,
       change: "LOYALTY_REDEMPTION_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => { draft.loyaltyRedemption = null; },
     })).checkout;
   }

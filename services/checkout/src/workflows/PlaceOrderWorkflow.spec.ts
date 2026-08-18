@@ -1,5 +1,8 @@
 import type { CheckoutCommittedSnapshot } from "../application/mutations/index.js";
-import { createOrderRewardEligibilitySnapshot } from "./PlaceOrderWorkflow.js";
+import {
+  createOrderRewardEligibilitySnapshot,
+  placeOrderRequestHash,
+} from "./PlaceOrderWorkflow.js";
 
 describe("createOrderRewardEligibilitySnapshot", () => {
   it("captures immutable customer, pricing and catalog targeting facts", () => {
@@ -139,6 +142,33 @@ describe("createOrderRewardEligibilitySnapshot", () => {
       segmentIds: [],
       segmentMembershipRevision: "segments-revision-1",
     })).toThrow("CHECKOUT_ORDER_REWARD_CUSTOMER_MISMATCH");
+  });
+});
+
+describe("place-order public idempotency identity", () => {
+  const input = {
+    organizationId: "0198c4d4-9c00-7000-8000-000000000001",
+    storeId: "0198c4d4-9c00-7000-8000-000000000002",
+    checkoutId: "0198c4d4-9c00-7000-8000-000000000003",
+    expectedResultRevision: "revision-1",
+    idempotencyKey: "place-1",
+    correlationId: "0198c4d4-9c00-7000-8000-000000000004",
+    credentialId: "credential-1",
+    visitorId: "visitor-1234567890",
+    userId: null,
+    returnUrl: null,
+  } as const;
+
+  it("isolates anonymous visitors", () => {
+    expect(placeOrderRequestHash(input)).not.toBe(
+      placeOrderRequestHash({ ...input, visitorId: "visitor-0987654321" }),
+    );
+  });
+
+  it("keeps recovery attempts on the original public request hash", () => {
+    expect(placeOrderRequestHash(input)).toBe(
+      placeOrderRequestHash({ ...input, recoveryOfWorkflowId: "failed-workflow" }),
+    );
   });
 });
 

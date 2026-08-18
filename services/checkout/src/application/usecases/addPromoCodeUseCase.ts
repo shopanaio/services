@@ -10,7 +10,7 @@ export class AddPromoCodeUseCase extends UseCase<CheckoutPromoCodeAddInput, Chec
       checkoutId,
       storeId: store.id,
       change: "DISCOUNT_CODES_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         if (!draft.cartIntent.discountCodes.includes(code)) {
           draft.cartIntent = {

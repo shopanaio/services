@@ -27,6 +27,7 @@ export const checkoutPromoCodeAdd = async (
       checkoutId: dto.checkoutId, // Already decoded by validator dto.checkoutId, // Already decoded by validator
       code: dto.code,
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

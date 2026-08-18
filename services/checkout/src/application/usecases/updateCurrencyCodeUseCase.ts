@@ -10,7 +10,7 @@ export class UpdateCurrencyCodeUseCase extends UseCase<CheckoutCurrencyCodeUpdat
       checkoutId,
       storeId: store.id,
       change: "CURRENCY_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => { draft.currencyCode = currencyCode; },
     })).checkout;
   }

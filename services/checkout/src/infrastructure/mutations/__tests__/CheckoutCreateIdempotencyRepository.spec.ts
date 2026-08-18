@@ -15,6 +15,7 @@ function request() {
     requestHash: "a".repeat(64),
     checkoutId: "0198c4d4-9c00-7000-8000-000000000004",
     initiatingCredentialId: "0198c4d4-9c00-7000-8000-000000000005",
+    ownerVisitorId: "visitor-1234567890",
     reservedIds: { lineIds: [], tagIds: [] },
   };
 }

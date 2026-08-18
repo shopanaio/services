@@ -12,6 +12,7 @@ export type GraphQLContext = {
    */
   requestId: string;
   organizationId: string;
+  visitorId: string;
   storefrontAccess: ContextStorefrontAccess;
   /**
    * Current store. Required for all operations.

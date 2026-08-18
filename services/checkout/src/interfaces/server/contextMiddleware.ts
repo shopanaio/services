@@ -14,6 +14,7 @@ declare module "fastify" {
     store: CoreStore;
     customer: CoreCustomer | null;
     storefrontAccess: ContextStorefrontAccess;
+    storefrontVisitorId: string;
   }
 }
 
@@ -58,12 +59,14 @@ export function buildCoreContextMiddleware(grpcConfig: GrpcConfigPort) {
       request.organizationId = claims.organizationId;
       request.store = toCoreStore(claims.store);
       request.storefrontAccess = claims.storefront;
+      request.storefrontVisitorId = claims.visitorId;
       request.customer = claims.customer
         ? toCoreCustomer(claims.customer)
         : null;
 
       // Set context in async local storage
       setContext({
+        visitorId: claims.visitorId,
         storefrontAccess: claims.storefront,
         store: request.store,
         customer: request.customer,

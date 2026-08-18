@@ -9,7 +9,7 @@ export class UpdateCustomerIdentityUseCase extends UseCase<CheckoutCustomerIdent
       checkoutId,
       storeId: store.id,
       change: "BUYER_UPDATE",
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         const current = draft.buyerIdentity;
         draft.buyerIdentity = {

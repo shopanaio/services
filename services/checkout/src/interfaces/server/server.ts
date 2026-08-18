@@ -129,6 +129,7 @@ export async function startServer(broker: ServiceBroker) {
         const ctx = {
           requestId: request.id as string,
           organizationId: request.organizationId,
+          visitorId: request.storefrontVisitorId,
           store: request.store,
           user: null,
           customer: request.customer,

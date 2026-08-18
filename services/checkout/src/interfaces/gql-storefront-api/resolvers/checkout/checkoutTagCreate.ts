@@ -29,6 +29,7 @@ export const checkoutTagCreate = async (
         isUnique: dto.tag.unique,
       },
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

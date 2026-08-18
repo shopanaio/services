@@ -8,7 +8,7 @@ export class DeleteCheckoutTagUseCase extends UseCase<CheckoutTagDeleteInput, Ch
     return (await this.checkoutMutationCoordinator.executeWithoutRecalculation({
       checkoutId,
       storeId: store.id,
-      context: this.mutationContext({ storefrontAccess, store, customer, user }),
+      context: this.mutationContext({ visitorId: input.visitorId, storefrontAccess, store, customer, user }),
       apply: (draft) => {
         if (!draft.tags.some((tag) => tag.id === tagId)) {
           throw invalidCheckoutMutation("CHECKOUT_TAG_NOT_FOUND", "Checkout tag was not found.");

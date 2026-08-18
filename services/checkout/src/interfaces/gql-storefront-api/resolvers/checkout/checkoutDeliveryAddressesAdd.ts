@@ -19,6 +19,7 @@ export const checkoutDeliveryAddressesAdd = async (_parent: ApiMutation, args: A
         checkoutLineIds: destination.checkoutLineIds,
       })),
       storefrontAccess: ctx.storefrontAccess,
+      visitorId: ctx.visitorId,
       store: ctx.store,
       customer: ctx.customer,
       user: ctx.user,

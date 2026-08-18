@@ -140,7 +140,7 @@ export class CheckoutMutationCoordinator {
     context: CheckoutMutationExecutionContext;
     apply(draft: CheckoutMutationDraft, current: CheckoutCommittedSnapshot): T;
   }): Promise<CheckoutMutationCommit<T>> {
-    const current = await this.load(input.checkoutId, input.storeId);
+    const current = await this.load(input.checkoutId, input.storeId, input.context.visitorId);
     const draft = structuredClone(current.draft);
     const value = input.apply(draft, current);
     this.assertDraft(draft, current.version, input);
@@ -152,6 +152,7 @@ export class CheckoutMutationCoordinator {
       this.dependencies.commits.commit({
         storeId: input.storeId,
         checkoutId: input.checkoutId,
+        visitorId: input.context.visitorId,
         expectedVersion: current.version,
         nextVersion: current.version + 1,
         createdAt: current.createdAt,
@@ -176,7 +177,7 @@ export class CheckoutMutationCoordinator {
     context: CheckoutMutationExecutionContext;
     apply(draft: CheckoutMutationDraft, current: CheckoutCommittedSnapshot): T;
   }): Promise<CheckoutMutationCommit<T>> {
-    const current = await this.load(input.checkoutId, input.storeId);
+    const current = await this.load(input.checkoutId, input.storeId, input.context.visitorId);
     const draft = structuredClone(current.draft);
     const value = input.apply(draft, current);
     this.assertDraft(draft, current.version, input);
@@ -187,6 +188,7 @@ export class CheckoutMutationCoordinator {
       this.dependencies.commits.commitWithoutRecalculation({
         storeId: input.storeId,
         checkoutId: input.checkoutId,
+        visitorId: input.context.visitorId,
         expectedVersion: current.version,
         nextVersion: current.version + 1,
         createdAt: current.createdAt,
@@ -208,8 +210,9 @@ export class CheckoutMutationCoordinator {
   private async load(
     checkoutId: string,
     storeId: string,
+    visitorId: string,
   ): Promise<CheckoutCommittedSnapshot> {
-    const current = await this.dependencies.snapshots.load({ checkoutId, storeId });
+    const current = await this.dependencies.snapshots.loadOwned({ checkoutId, storeId, visitorId });
     if (!current) {
       throw new CheckoutMutationError(
         "CHECKOUT_NOT_FOUND",
