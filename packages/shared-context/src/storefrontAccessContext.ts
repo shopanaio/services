@@ -162,9 +162,6 @@ function validateClaims(
       "id", "name", "displayName", "organizationId", "timezone",
       "defaultLocale", "currencyCode",
     ]) ||
-    !Number.isSafeInteger(store.currencyExponent) ||
-    (store.currencyExponent as number) < 0 ||
-    (store.currencyExponent as number) > 6 ||
     !Number.isSafeInteger(store.segmentConfigurationRevision) ||
     (store.segmentConfigurationRevision as number) < 0 ||
     store.organizationId !== value.organizationId ||

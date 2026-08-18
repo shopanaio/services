@@ -20,7 +20,6 @@ export const SegmentValueSchema: z.ZodType<SegmentValue> = z.union([
     decimal: z.string().regex(/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/u),
     minor: z.string().regex(/^-?(?:0|[1-9]\d*)$/u),
     currencyCode: z.string().regex(/^[A-Z]{3}$/u),
-    currencyExponent: z.number().int().min(0).max(6),
   }),
   strict({
     kind: z.literal("date"),
@@ -136,7 +135,6 @@ export const SegmentDefinitionV1Schema: z.ZodType<SegmentDefinitionV1> = strict(
   contextDependencies: z.array(z.enum(["currency", "timezone"])),
   evaluationContext: strict({
     currencyCode: z.string().regex(/^[A-Z]{3}$/u),
-    currencyExponent: z.number().int().min(0).max(6),
     timeZone: z.string().min(1),
     storeConfigurationRevision: z.number().int().nonnegative(),
   }),

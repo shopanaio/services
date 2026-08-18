@@ -9,7 +9,6 @@ import {
 export interface CustomerSegmentStoreContextInput {
   readonly storeId: string;
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly configurationRevision: number;
   readonly occurredAt: string;
@@ -53,7 +52,6 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
           id: await this.generateUuidV7(),
           storeId: input.storeId,
           currencyCode: input.currencyCode,
-          currencyExponent: input.currencyExponent,
           timeZone: input.timeZone,
           configurationRevision: input.configurationRevision,
           updatedAt: input.occurredAt,
@@ -67,10 +65,7 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
       };
     }
 
-    if (
-      existing.currencyCode !== input.currencyCode ||
-      existing.currencyExponent !== input.currencyExponent
-    ) {
+    if (existing.currencyCode !== input.currencyCode) {
       return {
         context: existing,
         applied: false,

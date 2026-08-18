@@ -704,7 +704,6 @@ export class StoreUpdateSaga extends BrokerSaga<
           storeId: store.id,
           configurationRevision: store.segmentConfigurationRevision,
           currencyCode: store.currencyCode,
-          currencyExponent: currencyExponent(store.currencyCode),
           timeZone: store.timezone,
           occurredAt,
         },
@@ -749,13 +748,6 @@ function brandMediaEntries(previous: BrandMediaIds, next: BrandMediaIds) {
       next: next.coverImageMediaId,
     },
   ];
-}
-
-function currencyExponent(currencyCode: string): number {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currencyCode,
-  }).resolvedOptions().maximumFractionDigits ?? 2;
 }
 
 function brandMediaIds(brand: StoreBrandData | null): BrandMediaIds {

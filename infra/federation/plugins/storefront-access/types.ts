@@ -23,9 +23,6 @@ export function parseResolvedStorefrontAccessContext(
     locales.length > 100 ||
     !locales.every(isNonEmptyString) ||
     new Set(locales).size !== locales.length ||
-    !Number.isSafeInteger(store.currencyExponent) ||
-    (store.currencyExponent as number) < 0 ||
-    (store.currencyExponent as number) > 6 ||
     !Number.isSafeInteger(store.segmentConfigurationRevision) ||
     (store.segmentConfigurationRevision as number) < 0 ||
     !Array.isArray(permissions) ||
@@ -52,7 +49,6 @@ export function parseResolvedStorefrontAccessContext(
     defaultLocale: requiredString(store, "defaultLocale"),
     locales: Object.freeze([...locales] as string[]),
     currencyCode: requiredString(store, "currencyCode"),
-    currencyExponent: store.currencyExponent as number,
     segmentConfigurationRevision:
       store.segmentConfigurationRevision as number,
   };

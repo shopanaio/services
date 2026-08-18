@@ -25,7 +25,6 @@ export async function resolveSegmentStoreContext(
     !local ||
     local.configurationRevision !== trusted.segmentConfigurationRevision ||
     local.currencyCode !== trusted.currencyCode ||
-    local.currencyExponent !== trusted.currencyExponent ||
     local.timeZone !== trusted.timezone
   ) {
     throw new SegmentStoreContextNotReadyError(trusted.id);
@@ -33,7 +32,6 @@ export async function resolveSegmentStoreContext(
   return {
     storeId: local.storeId,
     currencyCode: local.currencyCode,
-    currencyExponent: local.currencyExponent,
     timeZone: local.timeZone,
     configurationRevision: local.configurationRevision,
   };

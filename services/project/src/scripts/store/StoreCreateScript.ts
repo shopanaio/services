@@ -97,9 +97,7 @@ export class StoreCreateScript extends BaseScript<
     const store = await this.repository.store.findById(storeId);
 
     return {
-      store: store
-        ? { ...store, currencyExponent: currencyExponent(store.currencyCode) }
-        : null,
+      store,
       userErrors: [],
     };
   }
@@ -138,11 +136,4 @@ export class StoreCreateScript extends BaseScript<
       ],
     };
   }
-}
-
-function currencyExponent(currencyCode: string): number {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currencyCode,
-  }).resolvedOptions().maximumFractionDigits ?? 2;
 }

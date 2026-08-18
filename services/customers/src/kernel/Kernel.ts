@@ -103,7 +103,6 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
       ? {
           timeZone: ctx.segmentStoreContext.timeZone,
           currencyCode: ctx.segmentStoreContext.currencyCode,
-          currencyExponent: ctx.segmentStoreContext.currencyExponent,
           configurationRevision:
             ctx.segmentStoreContext.configurationRevision,
         }
@@ -129,7 +128,6 @@ export class Kernel extends BaseKernel<CustomersKernelServices> {
         email: null,
         defaultLocale,
         currencyCode: projected.currencyCode,
-        currencyExponent: projected.currencyExponent,
         segmentConfigurationRevision: projected.configurationRevision,
         locales: ctx.locales ?? [defaultLocale],
       },

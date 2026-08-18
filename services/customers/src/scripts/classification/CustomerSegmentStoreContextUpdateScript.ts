@@ -6,7 +6,6 @@ import { validateCustomerSegmentQuery } from "../../segments/service.js";
 export interface CustomerSegmentStoreContextUpdateParams {
   readonly storeId: string;
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly configurationRevision: number;
   readonly occurredAt: string;
@@ -50,7 +49,6 @@ export class CustomerSegmentStoreContextUpdateScript extends BaseScript<
     const storeContext = {
       storeId: result.context.storeId,
       currencyCode: result.context.currencyCode,
-      currencyExponent: result.context.currencyExponent,
       timeZone: result.context.timeZone,
       configurationRevision: result.context.configurationRevision,
     };
@@ -93,9 +91,6 @@ function validate(params: CustomerSegmentStoreContextUpdateParams): void {
     throw new Error("Store segment currencyCode is invalid");
   }
   if (
-    !Number.isSafeInteger(params.currencyExponent) ||
-    params.currencyExponent < 0 ||
-    params.currencyExponent > 6 ||
     !Number.isSafeInteger(params.configurationRevision) ||
     params.configurationRevision < 0
   ) {

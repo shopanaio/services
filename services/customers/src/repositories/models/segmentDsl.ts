@@ -25,7 +25,6 @@ export const customerSegmentStoreContext = customersSchema.table(
     id: uuid("id").primaryKey().default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     currencyCode: varchar("currency_code", { length: 3 }).notNull(),
-    currencyExponent: integer("currency_exponent").notNull(),
     timeZone: varchar("time_zone", { length: 64 }).notNull(),
     configurationRevision: integer("configuration_revision").notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
@@ -33,7 +32,6 @@ export const customerSegmentStoreContext = customersSchema.table(
   (table) => [
     unique("customer_segment_store_context_store_unique").on(table.storeId),
     check("customer_segment_store_context_currency_check", sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
-    check("customer_segment_store_context_exponent_check", sql`${table.currencyExponent} BETWEEN 0 AND 6`),
     check("customer_segment_store_context_revision_check", sql`${table.configurationRevision} >= 0`),
   ],
 );

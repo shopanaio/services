@@ -123,14 +123,11 @@ CREATE TABLE "customers"."customer_segment_store_context" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL UNIQUE,
   "currency_code" varchar(3) NOT NULL,
-  "currency_exponent" integer NOT NULL,
   "time_zone" varchar(64) NOT NULL,
   "configuration_revision" integer NOT NULL,
   "updated_at" timestamptz NOT NULL,
   CONSTRAINT "customer_segment_store_context_currency_check"
     CHECK ("currency_code" ~ '^[A-Z]{3}$'),
-  CONSTRAINT "customer_segment_store_context_exponent_check"
-    CHECK ("currency_exponent" BETWEEN 0 AND 6),
   CONSTRAINT "customer_segment_store_context_revision_check"
     CHECK ("configuration_revision" >= 0)
 );

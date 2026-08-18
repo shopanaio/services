@@ -47,7 +47,6 @@ export class StoreEventHandlers extends EventHandlers {
           segmentStoreContext: {
             timeZone: input.timeZone,
             currencyCode: input.currencyCode,
-            currencyExponent: input.currencyExponent,
             configurationRevision: input.configurationRevision,
           },
         },

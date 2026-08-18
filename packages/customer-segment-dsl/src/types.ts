@@ -104,7 +104,6 @@ export type SegmentPredicateOperator = ParsedPredicateOperator;
 
 export interface SegmentEvaluationContextV1 {
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly storeConfigurationRevision: number;
 }
@@ -112,7 +111,6 @@ export interface SegmentEvaluationContextV1 {
 export interface SegmentStoreEvaluationContext {
   readonly storeId: string;
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly configurationRevision: number;
 }
@@ -128,7 +126,6 @@ export type SegmentValue =
       readonly decimal: string;
       readonly minor: string;
       readonly currencyCode: string;
-      readonly currencyExponent: number;
     }
   | { readonly kind: "date"; readonly value: string }
   | { readonly kind: "dateTime"; readonly value: string }

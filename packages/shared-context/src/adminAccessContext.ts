@@ -334,7 +334,6 @@ function parseStore(value: unknown): ContextStore {
     defaultLocale: requiredString(value, "defaultLocale", 255),
     locales: Object.freeze([...locales] as string[]),
     currencyCode: requiredString(value, "currencyCode", 255),
-    currencyExponent: requiredInteger(value, "currencyExponent", 0, 6),
     segmentConfigurationRevision: requiredInteger(
       value,
       "segmentConfigurationRevision",

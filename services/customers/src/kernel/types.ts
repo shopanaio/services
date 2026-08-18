@@ -29,7 +29,6 @@ export interface RunScriptContext {
   segmentStoreContext?: {
     readonly timeZone: string;
     readonly currencyCode: string;
-    readonly currencyExponent: number;
     readonly configurationRevision: number;
   };
 }

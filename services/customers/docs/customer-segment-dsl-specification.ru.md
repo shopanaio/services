@@ -169,17 +169,15 @@ amount_spent >= 500.00
 
 Semantic analyzer обязан преобразовать decimal string в integer minor units без
 использования IEEE-754 arithmetic. Значение с количеством decimal places больше
-currency exponent отклоняется.
+количества minor-unit digits, вычисленного из configured `currencyCode`, отклоняется.
+Рассчитанные minor units обязаны помещаться в signed 64-bit range PostgreSQL
+`bigint`; иначе возвращается `SEGMENT_INVALID_MONEY`.
 
-`currency_exponent` должен быть целым числом от 0 до 6. Рассчитанные minor units
-обязаны помещаться в signed 64-bit range PostgreSQL `bigint`; иначе возвращается
-`SEGMENT_INVALID_MONEY`.
-
-Normalized money value сохраняет как исходное canonical decimal, так и контекст,
-в котором были рассчитаны minor units: `currency_code` и `currency_exponent`.
-Это не позволяет молча переинтерпретировать literal после изменения Store
-currency. Изменение currency обрабатывается как изменение evaluation context по
-правилам раздела 18.5.
+Normalized money value сохраняет исходное canonical decimal, minor units и
+`currency_code`, из которого вычисляется количество minor-unit digits. Это не
+позволяет молча переинтерпретировать literal после изменения Store currency.
+Изменение currency обрабатывается как изменение evaluation context по правилам
+раздела 18.5.
 
 ### 5.4 Boolean
 
@@ -862,7 +860,6 @@ type SegmentPredicateOperator =
 
 interface SegmentEvaluationContextV1 {
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly storeConfigurationRevision: number;
 }
@@ -966,7 +963,6 @@ type SegmentValue =
       readonly decimal: string;
       readonly minor: string;
       readonly currencyCode: string;
-      readonly currencyExponent: number;
     }
   | { readonly kind: "date"; readonly value: string }
   | { readonly kind: "dateTime"; readonly value: string }
@@ -986,8 +982,7 @@ Typed values являются tagged objects, а не untyped JSON primitives:
   "kind": "money",
   "decimal": "500.00",
   "minor": "50000",
-  "currencyCode": "USD",
-  "currencyExponent": 2
+  "currencyCode": "USD"
 }
 ```
 
@@ -1008,7 +1003,7 @@ Typed values являются tagged objects, а не untyped JSON primitives:
 ```
 
 `storeConfigurationRevision` в этом contract является DSL-specific monotonic
-revision только currency code/exponent и timezone, а не общей revision любых
+revision только currency code и timezone, а не общей revision любых
 Store settings. Она сохраняется для audit, ordering событий конфигурации и
 диагностики, но сама по себе не участвует в equality check перед evaluation:
 freshness определяется только значениями полей, перечисленных в
@@ -1060,7 +1055,8 @@ Canonical printer детерминирован и выдает одну стро
 3. String использует одинарные кавычки и только escapes из раздела 5.2.
    Printable Unicode не экранируется и не нормализуется повторно printer-ом.
 4. Integer выводится без leading zeros; обычный Decimal — без insignificant
-   leading/trailing zeros; Money — ровно с `currencyExponent` fractional digits.
+   leading/trailing zeros; Money — с количеством fractional digits, вычисленным
+   из `currencyCode`.
    Dates, datetimes, Global IDs и relative dates выводятся в их canonical lexical
    representation.
 5. Logical children сохраняют normalized AST order. Parentheses ставятся только
@@ -1363,7 +1359,7 @@ Store timezone/currency и `effectiveAt`.
 
 ### 18.5 Store evaluation context
 
-Semantic validation получает currency, currency exponent, IANA timezone и
+Semantic validation получает currency, IANA timezone и
 монотонную `store_configuration_revision` только из trusted Store context и
 сохраняет snapshot в `definition.evaluationContext`. Context dependencies
 извлекаются так:
@@ -1374,7 +1370,6 @@ Semantic validation получает currency, currency exponent, IANA timezone 
 interface SegmentStoreEvaluationContext {
   readonly storeId: string;
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly configurationRevision: number;
 }
@@ -1383,7 +1378,7 @@ interface SegmentStoreEvaluationContext {
 Request path получает этот объект из authenticated platform context. Background
 workers читают принадлежащую Customers read model
 `customer_segment_store_context(store_id primary key, currency_code,
-currency_exponent, time_zone, configuration_revision, updated_at)`. Hardcoded
+time_zone, configuration_revision, updated_at)`. Hardcoded
 `UTC`, первая currency из массива и process environment не являются trusted
 fallback. Create/update/preview сравнивают request context с локальной read
 model; при различии revision операция временно возвращает retryable
@@ -1401,7 +1396,7 @@ snapshot.
 Compiler перед evaluation проверяет, что зависимые поля trusted Store context
 совпадают с snapshot definition:
 
-- dependency `currency` сравнивает `currencyCode` и `currencyExponent`;
+- dependency `currency` сравнивает `currencyCode`;
 - dependency `timezone` сравнивает `timeZone`;
 - отличие только `storeConfigurationRevision` не является stale context и не
   блокирует evaluation.
@@ -1411,8 +1406,8 @@ Mismatch хотя бы одного зависимого значения fail c
 запрещено. Segment без соответствующей context dependency не пересобирается и
 не становится stale из-за изменения независимого поля Store context.
 
-Store currency code и exponent являются immutable с момента создания Store.
-Store configuration API не предоставляет command их изменения. Это устраняет
+Store currency code является immutable с момента создания Store.
+Store configuration API не предоставляет command его изменения. Это устраняет
 межсервисную check-before-commit гонку между изменением currency и появлением
 первого order/refund fact. Исторические amounts не пересчитываются по FX и не
 переименовываются в другую currency. Для перехода Store на другую accounting
@@ -1444,7 +1439,6 @@ interface StoreConfigurationUpdatedV1 {
   readonly storeId: string;
   readonly configurationRevision: number;
   readonly currencyCode: string;
-  readonly currencyExponent: number;
   readonly timeZone: string;
   readonly occurredAt: string;
 }
@@ -1460,11 +1454,11 @@ acknowledgement события. Пропуск revision разрешен, пос
 
 Store creation публикует тот же payload с первой revision и тем самым создает
 локальную context row до операций с DYNAMIC segments. До сравнения revisions
-handler сначала проверяет immutable currency code/exponent относительно уже
-существующей row; их изменение идет по invariant-violation path ниже и никогда
+handler сначала проверяет immutable currency code относительно уже
+существующей row; его изменение идет по invariant-violation path ниже и никогда
 не обновляет локальный snapshot.
 
-Получение события с измененными currency code/exponent считается integration
+Получение события с измененным currency code считается integration
 invariant violation: Customers не обновляет context snapshot, все
 money-dependent segments переводятся в `FAILED`, evaluation остается fail
 closed, а событие требует операторского исправления producer configuration.
@@ -2643,7 +2637,7 @@ pages bulk run, пересекающего полночь Store timezone.
 
 ### Store context changes
 
-- Store API не допускает currency/exponent change после создания Store;
+- Store API не допускает currency change после создания Store;
 - ошибочное currency-change event переводит money-dependent segments в
   `FAILED`, не меняя context snapshot и не выбирая новую statistics row;
 - timezone change пересобирает зависимые Date predicates;

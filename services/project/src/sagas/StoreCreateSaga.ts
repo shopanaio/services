@@ -250,7 +250,6 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
           storeId: id,
           configurationRevision: 0,
           currencyCode: input.currencyCode,
-          currencyExponent: currencyExponent(input.currencyCode),
           timeZone: input.timezone ?? "UTC",
           occurredAt,
         },
@@ -290,11 +289,4 @@ export class StoreCreateSaga extends BrokerSaga<StoreCreateInput, StoreCreateOut
       this.logger.warn({ storeId: id, error }, "Failed to compensate media asset group");
     }
   }
-}
-
-function currencyExponent(currencyCode: string): number {
-  return new Intl.NumberFormat("en", {
-    style: "currency",
-    currency: currencyCode,
-  }).resolvedOptions().maximumFractionDigits ?? 2;
 }

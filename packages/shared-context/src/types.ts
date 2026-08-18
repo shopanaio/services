@@ -10,8 +10,6 @@ export interface ContextStore {
   email: string | null;
   defaultLocale: string;
   currencyCode: string;
-  /** ISO 4217 minor-unit exponent resolved by the Store bounded context. */
-  currencyExponent?: number;
   /** Revision of fields that affect deterministic segment evaluation. */
   segmentConfigurationRevision?: number;
   /** Active locale codes from the Store bounded context. */

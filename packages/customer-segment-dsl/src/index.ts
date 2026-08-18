@@ -1,4 +1,5 @@
 export * from "./constants.js";
+export * from "./currency.js";
 export * from "./case-fold.js";
 export * from "./date-time.js";
 export * from "./generated-parser.js";

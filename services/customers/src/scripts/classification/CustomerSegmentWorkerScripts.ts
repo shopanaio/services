@@ -333,7 +333,6 @@ async function segmentStoreContext(
   const store = await repository.segmentStoreContext.findByStoreId(storeId);
   if (
     !store ||
-    !Number.isSafeInteger(store.currencyExponent) ||
     !Number.isSafeInteger(store.configurationRevision)
   ) {
     throw new Error("Owned Store segment context is not ready");
@@ -341,7 +340,6 @@ async function segmentStoreContext(
   return {
     storeId: store.storeId,
     currencyCode: store.currencyCode,
-    currencyExponent: store.currencyExponent,
     timeZone: store.timeZone,
     configurationRevision: store.configurationRevision,
   };

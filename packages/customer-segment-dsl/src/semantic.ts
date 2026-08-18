@@ -3,6 +3,7 @@ import {
   GLOBAL_ID_NAMESPACE,
 } from "@shopana/shared-graphql-guid";
 import { SEGMENT_DIAGNOSTIC_CODES, SEGMENT_DSL_LIMITS, SEGMENT_DSL_VERSION } from "./constants.js";
+import { currencyMinorUnitDigits } from "./currency.js";
 import {
   calendarDayDistance,
   localDateTimeToUtc,
@@ -126,7 +127,6 @@ export async function validateSegmentQuery(
     contextDependencies: [...state.contextDependencies].sort(asciiCompare),
     evaluationContext: {
       currencyCode: options.storeContext.currencyCode.toUpperCase(),
-      currencyExponent: options.storeContext.currencyExponent,
       timeZone: options.storeContext.timeZone,
       storeConfigurationRevision: options.storeContext.configurationRevision,
     },
@@ -162,8 +162,7 @@ export function validatePersistedSegmentDefinition(
   forEachValue(definition.root, (value) => {
     if (
       value.kind === "money" &&
-      (value.currencyCode !== definition.evaluationContext.currencyCode ||
-        value.currencyExponent !== definition.evaluationContext.currencyExponent)
+      value.currencyCode !== definition.evaluationContext.currencyCode
     ) {
       throw new Error("Segment definition money context is corrupt");
     }
@@ -178,8 +177,7 @@ export function assertSegmentEvaluationContext(
 ): void {
   if (
     definition.contextDependencies.includes("currency") &&
-    (definition.evaluationContext.currencyCode !== trustedContext.currencyCode.toUpperCase() ||
-      definition.evaluationContext.currencyExponent !== trustedContext.currencyExponent)
+    definition.evaluationContext.currencyCode !== trustedContext.currencyCode.toUpperCase()
   ) {
     throw new Error("SEGMENT_EVALUATION_CONTEXT_STALE");
   }
@@ -433,7 +431,8 @@ function normalizeValue(
           if (decimal?.startsWith("-")) diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.money, "Money must be non-negative", parsed.range);
           return null;
         }
-        const minor = decimalToMinor(decimal, state.options.storeContext.currencyExponent);
+        const exponent = currencyMinorUnitDigits(state.options.storeContext.currencyCode);
+        const minor = decimalToMinor(decimal, exponent);
         if (minor === null || minor < INT64_MIN || minor > INT64_MAX) {
           diagnostic(state, SEGMENT_DIAGNOSTIC_CODES.money, "Money cannot be represented exactly in Store currency", parsed.range);
           return null;
@@ -441,10 +440,9 @@ function normalizeValue(
         state.contextDependencies.add("currency");
         return {
           kind: "money",
-          decimal: formatMinor(minor, state.options.storeContext.currencyExponent),
+          decimal: formatMinor(minor, exponent),
           minor: minor.toString(),
           currencyCode: state.options.storeContext.currencyCode.toUpperCase(),
-          currencyExponent: state.options.storeContext.currencyExponent,
         };
       }
       case "Date":
@@ -707,9 +705,7 @@ function formatMinor(minor: bigint, exponent: number): string {
 
 function validateStoreContext(context: SegmentStoreEvaluationContext): void {
   if (!/^[A-Z]{3}$/u.test(context.currencyCode.toUpperCase())) throw new Error("Invalid Store currencyCode");
-  if (!Number.isInteger(context.currencyExponent) || context.currencyExponent < 0 || context.currencyExponent > 6) {
-    throw new Error("Invalid Store currencyExponent");
-  }
+  currencyMinorUnitDigits(context.currencyCode);
   if (!Number.isSafeInteger(context.configurationRevision) || context.configurationRevision < 0) {
     throw new Error("Invalid Store configurationRevision");
   }
@@ -927,16 +923,16 @@ function assertPersistedValue(
         value.kind !== "money" ||
         !isBoundedDecimal(value.decimal) ||
         value.minor.length > 20 ||
-        value.currencyCode !== state.definition.evaluationContext.currencyCode ||
-        value.currencyExponent !== state.definition.evaluationContext.currencyExponent
+        value.currencyCode !== state.definition.evaluationContext.currencyCode
       ) throw persistedCorruption("Invalid canonical Money value");
+      const exponent = currencyMinorUnitDigits(value.currencyCode);
       const minor = BigInt(value.minor);
       if (
         minor < INT64_MIN ||
         minor > INT64_MAX ||
         (descriptor.nonNegative && minor < 0n) ||
-        decimalToMinor(value.decimal, value.currencyExponent) !== minor ||
-        formatMinor(minor, value.currencyExponent) !== value.decimal
+        decimalToMinor(value.decimal, exponent) !== minor ||
+        formatMinor(minor, exponent) !== value.decimal
       ) throw persistedCorruption("Money value is inconsistent with minor units");
       return;
     }

@@ -910,7 +910,6 @@ export interface StoreConfigurationUpdatedEvent
       storeId: string;
       configurationRevision: number;
       currencyCode: string;
-      currencyExponent: number;
       timeZone: string;
       occurredAt: string;
     }

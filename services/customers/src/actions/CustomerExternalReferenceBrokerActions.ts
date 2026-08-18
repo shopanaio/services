@@ -286,7 +286,6 @@ async function createServiceContext(
       email: null,
       defaultLocale: "und",
       currencyCode: projected.currencyCode,
-      currencyExponent: projected.currencyExponent,
       segmentConfigurationRevision: projected.configurationRevision,
       locales: ["und"],
     },

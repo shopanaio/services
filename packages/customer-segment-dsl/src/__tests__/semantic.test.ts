@@ -71,7 +71,6 @@ const registry = new SegmentRegistry([
 const storeContext: SegmentStoreEvaluationContext = {
   storeId: "01900000-0000-7000-8000-000000000001",
   currencyCode: "USD",
-  currencyExponent: 2,
   timeZone: "Europe/Kyiv",
   configurationRevision: 7,
 };

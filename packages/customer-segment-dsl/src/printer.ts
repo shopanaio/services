@@ -1,4 +1,5 @@
 import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
+import { currencyMinorUnitDigits } from "./currency.js";
 import type {
   SegmentExpression,
   SegmentFunctionParameter,
@@ -90,7 +91,7 @@ function printValue(value: SegmentValue): string {
     case "decimal":
       return value.value;
     case "money":
-      return formatMoney(value.minor, value.currencyExponent);
+      return formatMoney(value.minor, currencyMinorUnitDigits(value.currencyCode));
     case "date":
     case "dateTime":
       return value.value;
