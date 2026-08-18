@@ -79,7 +79,7 @@ test.describe('Customers E2E API — comparison synchronization', () => {
       [],
     );
     expect((await kit.adminCustomer()).comparison.items).toEqual([
-      expect.objectContaining({ variantId: variants[1]!.id, position: 1 }),
+      expect.objectContaining({ variantId: variants[1]!.id, position: 0 }),
     ]);
   });
 

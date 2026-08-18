@@ -100,13 +100,23 @@ test.describe('Customers E2E API — account enrollment', () => {
     );
   });
 
-  test('an email already linked to another principal cannot be claimed again', async () => {
+  test('an email already linked to another principal returns a generic response without creating another principal', async () => {
     const email = `linked-${crypto.randomUUID()}@playwright.dev`;
     const guest = await kit.adminCreate({ email });
     await kit.enrollAdminCustomer(guest, email);
     const principal = (await kit.adminCustomer(guest.id)).iamPrincipalId;
     const second = await kit.signUpWithPassword(email, { name: 'Second principal' });
-    expect(second.ok()).toBe(false);
+    const secondBody = await second.json();
+    expect(second.ok(), JSON.stringify(secondBody)).toBe(true);
+    expect(secondBody).toEqual(
+      expect.objectContaining({ token: null, user: expect.objectContaining({ email }) }),
+    );
+    const [applicationUsers] = await kit.sql<{ count: number }[]>`
+      select count(*)::int as count
+      from iam.application_user
+      where application_id = ${kit.realm.applicationId} and email = ${email}
+    `;
+    expect(applicationUsers!.count).toBe(1);
     expect((await kit.adminCustomer(guest.id)).iamPrincipalId).toBe(principal);
   });
 

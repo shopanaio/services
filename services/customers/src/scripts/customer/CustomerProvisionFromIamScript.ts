@@ -130,7 +130,10 @@ export class CustomerProvisionFromIamScript extends BaseScript<
     const claimed = await this.repository.customer.claimIamPrincipal(
       customer.id,
       {
-        ...params,
+        iamPrincipalId: params.iamPrincipalId,
+        iamStatus: params.iamStatus,
+        email: params.email,
+        emailVerified: params.emailVerified,
         iamLifecycleDisabled:
           params.iamStatus === "blocked" &&
           customer.lifecycleStatus === "ACTIVE",
@@ -228,12 +231,6 @@ export class CustomerProvisionFromIamScript extends BaseScript<
         : {}),
       ...(customer.emailVerified !== params.emailVerified
         ? { emailVerified: params.emailVerified }
-        : {}),
-      ...(customer.firstName !== params.firstName
-        ? { firstName: params.firstName }
-        : {}),
-      ...(customer.lastName !== params.lastName
-        ? { lastName: params.lastName }
         : {}),
     };
     if (Object.keys(patch).length === 0) {

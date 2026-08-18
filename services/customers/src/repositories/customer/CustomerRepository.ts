@@ -386,8 +386,6 @@ export class CustomerRepository extends BaseRepository {
       iamLifecycleDisabled: boolean;
       email: string;
       emailVerified: boolean;
-      firstName: string | null;
-      lastName: string | null;
     },
   ): Promise<Customer | null> {
     const rows = await this.connection
@@ -402,8 +400,6 @@ export class CustomerRepository extends BaseRepository {
         normalizedEmail: normalizeEmail(data.email),
         emailDomainNormalized: normalizeEmailDomain(data.email),
         emailVerified: data.emailVerified,
-        firstName: data.firstName,
-        lastName: data.lastName,
         updatedAt: new Date().toISOString(),
         revision: sql`${customer.revision} + 1`,
       })

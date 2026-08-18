@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { createCustomer, getCustomer } from '../customers-admin-api/helpers';
 import {
   completeEmailOtpThroughHostedUi,
-  createStorefrontEmailOtpRealm,
+  createAdditionalStorefrontEmailOtpRealm,
   openOAuthTestApplication,
   setCustomerAuthMethods,
 } from '../application-auth-email-otp/application-auth-email-otp-test-kit';
@@ -64,7 +64,7 @@ test.describe('Customers E2E API — authentication policy', () => {
     request,
   }) => {
     test.setTimeout(210_000);
-    const realm = await createStorefrontEmailOtpRealm(api);
+    const realm = await createAdditionalStorefrontEmailOtpRealm(api);
     const email = `otp-policy-${crypto.randomUUID()}@playwright.dev`;
     const guest = await createCustomer(api, { email });
     await setCustomerAuthMethods(api, request, realm.revision, ['EMAIL_OTP']);
