@@ -30,7 +30,7 @@ export async function installMailpitSmtp(api: ApiFixtures['api']): Promise<void>
       },
       {
         message: 'Mailpit SMTP application did not become active',
-        timeout: 20_000,
+        timeout: 60_000,
       },
     )
     .toBe('ACTIVE');

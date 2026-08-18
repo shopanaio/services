@@ -112,7 +112,7 @@ test.describe('Loyalty checkout redemption end to end', () => {
     expect(await kit.reserve({ ...context, pricingQuoteRevision: crypto.randomUUID() }, quoted.quote))
       .toMatchObject({ status: 'REJECTED', code: 'QUOTE_MISMATCH' });
     await kit.adjustPoints(fixture.account, 'DEBIT', '100', fixture.balanceRevision);
-    expect(await kit.reserve(context, quoted.quote)).toMatchObject({
+    expect(await kit.reserve(context, quoted.quote, { requestHash: 'b'.repeat(64) })).toMatchObject({
       status: 'REJECTED',
       code: expect.stringMatching(/CONCURRENT_BALANCE_CHANGE|INSUFFICIENT_AVAILABLE_POINTS/),
     });

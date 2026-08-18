@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { decodeGlobalId } from '@utils/globalid';
+import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 import {
   baseRules, createProgram, expectUserError, requestVersionCreate, versionInput,
 } from '../loyality-admin-api/helpers';
@@ -74,7 +74,7 @@ test.describe('Loyalty product applies-to across Admin and Storefront', () => {
     const product = await kit.createProduct('1000');
     const program = await createProgram(kit.api);
     const rules = baseRules({ earning: { modifiers: [
-      modifier({ type: 'PRODUCT', ids: [crypto.randomUUID()] }),
+      modifier({ type: 'PRODUCT', ids: [composeGlobalId('Product', crypto.randomUUID())] }),
     ] } });
     const { payload, errors } = await requestVersionCreate(
       kit.api,

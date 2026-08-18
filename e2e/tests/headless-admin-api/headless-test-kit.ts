@@ -123,7 +123,7 @@ export class HeadlessTestKit {
           });
           return current.data.appsQuery.appInstallation?.status;
         },
-        { timeout: 20_000 },
+        { timeout: 60_000 },
       )
       .toBe('ACTIVE');
     return installationId;

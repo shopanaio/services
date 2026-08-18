@@ -258,7 +258,17 @@ export class RewardEntitlementService {
     }
     if (transition.type === "REDEEM") {
       if (current.status !== "RESERVED" && current.status !== "ISSUED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement cannot be redeemed");
-      return { eventType: "REDEEMED", fields: { status: "REDEEMED", redeemedOrderId: transition.orderId, redeemedAt: at, externalReference: transition.externalReference ?? current.externalReference } };
+      return {
+        eventType: "REDEEMED",
+        fields: {
+          status: "REDEEMED",
+          reservedForCheckoutId: null,
+          reservedAt: null,
+          redeemedOrderId: transition.orderId,
+          redeemedAt: at,
+          externalReference: transition.externalReference ?? current.externalReference,
+        },
+      };
     }
     if (transition.type === "EXPIRE") {
       if (current.status !== "ISSUED" && current.status !== "RESERVED") throw new LoyaltyDomainError("ENTITLEMENT_NOT_AVAILABLE", "Reward entitlement cannot be expired");
