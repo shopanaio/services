@@ -23,6 +23,7 @@ function draft(version = 3): CheckoutMutationDraft {
     externalSource: null,
     externalId: null,
     buyerIdentity: null,
+    billingAddress: null,
     cartIntent: {
       lines: [],
       discountCodes: [],

@@ -27,6 +27,7 @@ export { UpdateCustomerIdentityUseCase } from "./updateCustomerIdentityUseCase";
 export { UpdateCustomerNoteUseCase } from "./updateCustomerNoteUseCase";
 export { UpdateLanguageCodeUseCase } from "./updateLanguageCodeUseCase";
 export { UpdateCurrencyCodeUseCase } from "./updateCurrencyCodeUseCase";
+export { UpdateBillingAddressUseCase } from "./updateBillingAddressUseCase";
 export { UpdatePaymentMethodUseCase } from "./updatePaymentMethodUseCase";
 
 // Promo code use cases
@@ -50,6 +51,7 @@ export type {
   CheckoutCustomerNoteUpdateInput,
   CheckoutLanguageCodeUpdateInput,
   CheckoutCurrencyCodeUpdateInput,
+  CheckoutBillingAddressUpdateInput,
   CheckoutDeliveryMethodUpdateInput,
   CheckoutDeliveryAddressAddInput,
   CheckoutDeliveryAddressUpdateInput,

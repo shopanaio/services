@@ -35,7 +35,7 @@ export const checkoutLinesAdd = async (_parent: ApiMutation, args: ApiMutationCh
       customer: ctx.customer,
       user: ctx.user,
     });
-    return { checkout: mapCommittedCheckoutToApi(checkout), errors: [] };
+    return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (error) {
     logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "checkoutLinesAdd failed");
     throw await fromDomainError(error);

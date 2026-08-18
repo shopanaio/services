@@ -31,7 +31,7 @@ export const checkoutCustomerNoteUpdate = async (
       customer: ctx.customer,
       user: ctx.user,
     });
-    return mapCommittedCheckoutToApi(checkout);
+    return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     logger.error({ reason, checkoutId: dto.checkoutId }, "customerNoteUpdate error");

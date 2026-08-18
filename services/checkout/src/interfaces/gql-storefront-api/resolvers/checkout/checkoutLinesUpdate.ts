@@ -38,7 +38,7 @@ export const checkoutLinesUpdate = async (
     });
     return {
       checkout: mapCommittedCheckoutToApi(checkout),
-      errors: [],
+      userErrors: [],
     };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);

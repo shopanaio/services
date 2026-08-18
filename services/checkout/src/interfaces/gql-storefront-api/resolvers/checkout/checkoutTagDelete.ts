@@ -31,7 +31,7 @@ export const checkoutTagDelete = async (
       user: ctx.user,
     });
 
-    return mapCommittedCheckoutToApi(checkout);
+    return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
     logger.error({ reason }, "checkoutTagDelete domain error");

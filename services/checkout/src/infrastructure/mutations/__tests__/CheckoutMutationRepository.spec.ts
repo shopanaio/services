@@ -47,6 +47,7 @@ describe("CheckoutMutationRepository", () => {
         externalSource: null,
         externalId: null,
         buyerIdentity: null,
+        billingAddress: null,
         cartIntent: {
           lines: [],
           discountCodes: ["REJECTED"],
@@ -100,6 +101,7 @@ describe("CheckoutMutationRepository", () => {
         externalSource: null,
         externalId: null,
         buyerIdentity: null,
+        billingAddress: null,
         cartIntent: {
           lines: [],
           discountCodes: [],

@@ -379,12 +379,12 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         usageRequirements: finalQuote.data.usageRequirements,
         inventoryLines: inventoryLines(finalQuote.data.lines),
         selectedPayment,
-        customer: buyer
+        customer: buyer || checkout.draft.billingAddress
           ? {
-              customerReference: buyer.customerId,
-              email: buyer.email,
-              phone: buyer.phone,
-              billingAddress: null,
+              customerReference: buyer?.customerId ?? null,
+              email: buyer?.email ?? null,
+              phone: buyer?.phone ?? null,
+              billingAddress: toPaymentBillingAddress(checkout.draft.billingAddress),
             }
           : null,
         reservationExpiresAt: reservationDeadline(
@@ -1088,6 +1088,20 @@ function inventoryLines(
     },
     ...inventoryLines(line.children),
   ]);
+}
+
+function toPaymentBillingAddress(
+  address: CheckoutCommittedSnapshot["draft"]["billingAddress"],
+): Payments.PaymentProviderAddress | null {
+  if (!address?.countryCode) return null;
+  return {
+    countryCode: address.countryCode,
+    provinceCode: address.provinceCode,
+    postalCode: address.postalCode,
+    city: address.city,
+    addressLine1: address.address1,
+    addressLine2: address.address2,
+  };
 }
 
 export function createOrderRewardEligibilitySnapshot(

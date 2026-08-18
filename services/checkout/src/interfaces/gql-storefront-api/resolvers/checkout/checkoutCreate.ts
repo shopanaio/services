@@ -47,7 +47,7 @@ export const checkoutCreate = async (
       customer: ctx.customer,
       user: ctx.user,
     });
-    return mapCommittedCheckoutToApi(checkout);
+    return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     logger.error({ reason }, "Checkout creation failed");

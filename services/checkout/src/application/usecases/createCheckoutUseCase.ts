@@ -120,6 +120,7 @@ function createDraft(
           data: null,
         }
       : null,
+    billingAddress: null,
     cartIntent: {
       lines: [],
       discountCodes: [],

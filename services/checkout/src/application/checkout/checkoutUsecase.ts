@@ -10,6 +10,7 @@ import { RemoveDeliveryAddressUseCase } from "@src/application/usecases/removeDe
 import { RemovePromoCodeUseCase } from "@src/application/usecases/removePromoCodeUseCase";
 import { UpdateCheckoutLinesUseCase } from "@src/application/usecases/updateCheckoutLinesUseCase";
 import { UpdateCurrencyCodeUseCase } from "@src/application/usecases/updateCurrencyCodeUseCase";
+import { UpdateBillingAddressUseCase } from "@src/application/usecases/updateBillingAddressUseCase";
 import { UpdateCustomerIdentityUseCase } from "@src/application/usecases/updateCustomerIdentityUseCase";
 import { UpdateCustomerNoteUseCase } from "@src/application/usecases/updateCustomerNoteUseCase";
 import { UpdateDeliveryAddressUseCase } from "@src/application/usecases/updateDeliveryAddressUseCase";
@@ -45,6 +46,7 @@ export class CheckoutUsecase {
   public readonly updateCustomerNote: UpdateCustomerNoteUseCase;
   public readonly updateLanguageCode: UpdateLanguageCodeUseCase;
   public readonly updateCurrencyCode: UpdateCurrencyCodeUseCase;
+  public readonly updateBillingAddress: UpdateBillingAddressUseCase;
   public readonly updatePaymentMethod: UpdatePaymentMethodUseCase;
   public readonly addPromoCode: AddPromoCodeUseCase;
   public readonly removePromoCode: RemovePromoCodeUseCase;
@@ -95,6 +97,7 @@ export class CheckoutUsecase {
     this.updateCustomerNote = new UpdateCustomerNoteUseCase(baseDeps);
     this.updateLanguageCode = new UpdateLanguageCodeUseCase(baseDeps);
     this.updateCurrencyCode = new UpdateCurrencyCodeUseCase(baseDeps);
+    this.updateBillingAddress = new UpdateBillingAddressUseCase(baseDeps);
     this.updatePaymentMethod = new UpdatePaymentMethodUseCase(baseDeps);
 
     // Initialize promo use cases

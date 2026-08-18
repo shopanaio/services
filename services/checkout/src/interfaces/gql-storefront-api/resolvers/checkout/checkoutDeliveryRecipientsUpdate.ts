@@ -18,7 +18,7 @@ export const checkoutDeliveryRecipientsUpdate = async (_parent: ApiMutation, arg
       customer: ctx.customer,
       user: ctx.user,
     });
-    return mapCommittedCheckoutToApi(checkout);
+    return { checkout: mapCommittedCheckoutToApi(checkout), userErrors: [] };
   } catch (error) {
     logger.error({ reason: error instanceof Error ? error.message : String(error), checkoutId: dto.checkoutId }, "deliveryRecipientsUpdate error");
     throw await fromDomainError(error);

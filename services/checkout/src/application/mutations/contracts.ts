@@ -32,6 +32,20 @@ export interface CheckoutBuyerIdentityDraft {
   data: CheckoutPipelineJsonObject | null;
 }
 
+export interface CheckoutBillingAddressDraft {
+  firstName: string | null;
+  lastName: string | null;
+  company: string | null;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  countryCode: string | null;
+  provinceCode: string | null;
+  postalCode: string | null;
+  phone: string | null;
+  data: CheckoutPipelineJsonObject | null;
+}
+
 export interface CheckoutTagDefinition {
   id: string;
   slug: string;
@@ -53,6 +67,7 @@ export interface CheckoutMutationDraft {
   externalSource: string | null;
   externalId: string | null;
   buyerIdentity: CheckoutBuyerIdentityDraft | null;
+  billingAddress: CheckoutBillingAddressDraft | null;
   cartIntent: CheckoutCartIntent;
   customerNote: string | null;
   tags: readonly CheckoutTagDefinition[];

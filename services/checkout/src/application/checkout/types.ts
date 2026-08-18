@@ -128,6 +128,25 @@ export type CheckoutCurrencyCodeUpdateInput = {
   currencyCode: string;
 } & CheckoutContext;
 
+export type CheckoutBillingAddressFields = {
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
+  provinceCode?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+  data?: CheckoutPipelineJsonObject | null;
+};
+
+export type CheckoutBillingAddressUpdateInput = {
+  checkoutId: string;
+  billingAddress: CheckoutBillingAddressFields | null;
+} & CheckoutContext;
+
 export type CheckoutDeliveryMethodUpdateInput = {
   checkoutId: string;
   deliveryGroupId: string;

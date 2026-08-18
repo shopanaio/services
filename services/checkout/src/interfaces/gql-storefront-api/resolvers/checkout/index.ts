@@ -1,5 +1,6 @@
 // Query resolvers
 export { checkout } from "./checkoutQuery";
+export { checkoutPlacement } from "./checkoutPlacement";
 export { placeOrder } from "./placeOrder";
 
 // Mutation resolvers
@@ -13,6 +14,7 @@ export { checkoutCustomerIdentityUpdate } from "./checkoutCustomerIdentityUpdate
 export { checkoutCustomerNoteUpdate } from "./checkoutCustomerNoteUpdate";
 export { checkoutLanguageCodeUpdate } from "./checkoutLanguageCodeUpdate";
 export { checkoutCurrencyCodeUpdate } from "./checkoutCurrencyCodeUpdate";
+export { checkoutBillingAddressUpdate } from "./checkoutBillingAddressUpdate";
 export { checkoutDeliveryAddressesAdd } from "./checkoutDeliveryAddressesAdd";
 export { checkoutDeliveryAddressesRemove } from "./checkoutDeliveryAddressesRemove";
 export { checkoutDeliveryAddressesUpdate } from "./checkoutDeliveryAddressesUpdate";

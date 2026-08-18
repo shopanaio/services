@@ -23,6 +23,7 @@ import {
 import {
   CheckoutCreateIdempotencyRepository,
   CheckoutMutationRepository,
+  CheckoutPlacementRepository,
 } from "@src/infrastructure/mutations/index.js";
 import {
   CheckoutMutationCoordinator,
@@ -37,6 +38,7 @@ export class App {
   public broker!: ServiceBroker;
   public checkoutMutationRepository!: CheckoutMutationRepository;
   public checkoutCreateIdempotencyRepository!: CheckoutCreateIdempotencyRepository;
+  public checkoutPlacementRepository!: CheckoutPlacementRepository;
   public checkoutPipeline!: CheckoutPipeline;
   public checkoutMutationCoordinator!: CheckoutMutationCoordinator;
   public checkoutUsecase!: CheckoutUsecase;
@@ -57,6 +59,7 @@ export class App {
     app.checkoutMutationRepository = new CheckoutMutationRepository();
     app.checkoutCreateIdempotencyRepository =
       new CheckoutCreateIdempotencyRepository();
+    app.checkoutPlacementRepository = new CheckoutPlacementRepository();
     const functionRunner = new CommerceFunctionRunner(
       new FunctionTargetRegistry([
         CHECKOUT_VALIDATION_FUNCTION_TARGET_DEFINITION,

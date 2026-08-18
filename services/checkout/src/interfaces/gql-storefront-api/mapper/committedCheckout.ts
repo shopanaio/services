@@ -272,7 +272,7 @@ export function mapCommittedCheckoutToApi(
   return {
     __typename: "Checkout",
     id: encodeGlobalIdByType(checkout.checkoutId, GlobalIdEntity.Checkout),
-    billingAddress: null,
+    billingAddress: mapBillingAddress(draft.billingAddress),
     channelCode: draft.channelCode,
     currencyCode: draft.currencyCode as ApiCurrencyCode,
     localeCode: (draft.localeCode ?? "en") as ApiLocaleCode,
@@ -376,6 +376,45 @@ export function mapCommittedCheckoutToApi(
     loyaltyRewardEntitlementId: loyaltyReward
       ? encodeGlobalIdByType(loyaltyReward.entitlementId, GlobalIdEntity.LoyaltyRewardEntitlement)
       : null,
+  };
+}
+
+function mapBillingAddress(
+  address: CheckoutCommittedSnapshot["draft"]["billingAddress"],
+): ApiCheckout["billingAddress"] {
+  if (!address) return null;
+  const name = [address.firstName, address.lastName].filter(Boolean).join(" ") ||
+    address.company || "";
+  const formatted = [
+    name || null,
+    address.company && address.company !== name ? address.company : null,
+    address.address1,
+    address.address2,
+    [address.city, address.provinceCode, address.postalCode]
+      .filter(Boolean)
+      .join(" ") || null,
+    address.countryCode,
+  ].filter((line): line is string => Boolean(line));
+  return {
+    __typename: "CheckoutBillingAddress",
+    firstName: address.firstName,
+    lastName: address.lastName,
+    name,
+    company: address.company,
+    address1: address.address1,
+    address2: address.address2,
+    city: address.city,
+    province: address.provinceCode,
+    provinceCode: address.provinceCode,
+    country: address.countryCode,
+    countryCode: address.countryCode as ApiCountryCode | null,
+    zip: address.postalCode,
+    phone: address.phone,
+    data: address.data,
+    formatted,
+    formattedArea: [address.city, address.provinceCode, address.countryCode]
+      .filter(Boolean)
+      .join(", ") || null,
   };
 }
 

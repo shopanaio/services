@@ -1,5 +1,4 @@
 import { v7 as uuidv7 } from "uuid";
-import { GlobalIdEntity, encodeGlobalIdByType } from "@shopana/shared-graphql-guid";
 import { App } from "@src/ioc/container";
 import { PlaceOrderDto } from "@src/application/dto/placeOrder.dto";
 import type {
@@ -14,6 +13,7 @@ import type {
 } from "@src/interfaces/gql-storefront-api/types";
 import { fromDomainError } from "@src/interfaces/gql-storefront-api/errors";
 import { createValidated } from "@src/utils/validation";
+import { mapPlaceOrderPayload } from "@src/interfaces/gql-storefront-api/mapper/placeOrderPayload";
 
 export const placeOrder = async (
   _parent: ApiMutation,
@@ -49,28 +49,11 @@ export const placeOrder = async (
       },
     );
 
-    return {
-      ...result,
-      orderId: encodeGlobalIdByType(result.orderId, GlobalIdEntity.Order),
-      customerAction: result.customerAction
-        ? {
-            type: result.customerAction.type,
-            url: result.customerAction.type === "REDIRECT"
-              ? result.customerAction.url
-              : null,
-            title: result.customerAction.type === "INSTRUCTIONS"
-              ? result.customerAction.title
-              : null,
-            instructions: result.customerAction.type === "INSTRUCTIONS"
-              ? result.customerAction.instructions
-              : null,
-            expiresAt: result.customerAction.expiresAt,
-            data: result.customerAction.type === "INSTRUCTIONS"
-              ? result.customerAction.data
-              : null,
-          }
-        : null,
-    };
+    return mapPlaceOrderPayload(result, {
+      placementId: result.placementId,
+      checkoutId: input.checkoutId,
+      resultRevision: input.expectedResultRevision,
+    });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     logger.error(

@@ -2,6 +2,7 @@
 import {
   // Query resolvers
   checkout,
+  checkoutPlacement,
   // Mutation resolvers
   checkoutCreate,
   checkoutLinesAdd,
@@ -12,6 +13,7 @@ import {
   checkoutCustomerNoteUpdate,
   checkoutLanguageCodeUpdate,
   checkoutCurrencyCodeUpdate,
+  checkoutBillingAddressUpdate,
   checkoutDeliveryAddressesAdd,
   checkoutDeliveryAddressesRemove,
   checkoutPromoCodeAdd,
@@ -39,6 +41,10 @@ import type { GraphQLContext } from "../context";
 const checkoutResolvers = {
   Query: {
     checkout: withPermission(STOREFRONT_PERMISSIONS.CHECKOUT_READ, checkout),
+    checkoutPlacement: withPermission(
+      STOREFRONT_PERMISSIONS.CHECKOUT_READ,
+      checkoutPlacement,
+    ),
   },
   Mutation: {
     checkoutCreate: withCheckoutWrite(checkoutCreate),
@@ -53,6 +59,7 @@ const checkoutResolvers = {
     checkoutCustomerNoteUpdate: withCheckoutWrite(checkoutCustomerNoteUpdate),
     checkoutLanguageCodeUpdate: withCheckoutWrite(checkoutLanguageCodeUpdate),
     checkoutCurrencyCodeUpdate: withCheckoutWrite(checkoutCurrencyCodeUpdate),
+    checkoutBillingAddressUpdate: withCheckoutWrite(checkoutBillingAddressUpdate),
     checkoutDeliveryAddressesAdd: withCheckoutWrite(
       checkoutDeliveryAddressesAdd,
     ),

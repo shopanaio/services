@@ -175,6 +175,23 @@ export class CheckoutPlacementRepository {
     return row ? mapPlacement(row) as CheckoutPlacementRecord<TResult> : null;
   }
 
+  async findByIdForStore<TResult = unknown>(
+    placementId: string,
+    storeId: string,
+  ): Promise<CheckoutPlacementRecord<TResult> | null> {
+    const query = knex
+      .withSchema("checkout")
+      .table("checkout_placements")
+      .select("*")
+      .where({ id: placementId, store_id: storeId })
+      .limit(1)
+      .toString();
+    const row = await singleOrNull(
+      this.execute.query<PlacementRow>(rawSql(query)),
+    );
+    return row ? mapPlacement(row) as CheckoutPlacementRecord<TResult> : null;
+  }
+
   private async findByCheckout(
     storeId: string,
     checkoutId: string,
