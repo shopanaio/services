@@ -1,4 +1,4 @@
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, sql } from "drizzle-orm";
 import type { Delivery, Pricing } from "@shopana/broker-types";
 import type { DeliveryOptionBindingCandidate, DeliveryOptionBindingResolution, DeliveryOptionBindingsPort } from "../contracts/ports.js";
 import { BaseRepository } from "./BaseRepository.js";
@@ -118,6 +118,21 @@ export class CheckoutOptionBindingRepository extends BaseRepository implements D
       });
       return { status: "COMMITTED" as const, commitment, duplicate: false };
     });
+  }
+
+  async releaseCommitments(input: { storeId: string; checkoutId: string; checkoutVersion: number; groupIds: readonly string[]; releasedAt: string }): Promise<readonly string[]> {
+    if (input.groupIds.length === 0) return [];
+    const rows = await this.connection.update(checkoutSelectionCommitments)
+      .set({ releasedAt: input.releasedAt })
+      .where(and(
+        eq(checkoutSelectionCommitments.storeId, input.storeId),
+        eq(checkoutSelectionCommitments.checkoutId, input.checkoutId),
+        eq(checkoutSelectionCommitments.checkoutVersion, input.checkoutVersion),
+        inArray(checkoutSelectionCommitments.groupId, input.groupIds),
+        isNull(checkoutSelectionCommitments.releasedAt),
+      ))
+      .returning({ groupId: checkoutSelectionCommitments.groupId });
+    return rows.map((row) => row.groupId);
   }
 
   async deleteExpired(now: string): Promise<number> {

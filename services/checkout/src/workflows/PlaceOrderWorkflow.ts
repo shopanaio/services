@@ -250,13 +250,23 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       throw error;
     }
 
-    await this.markResourcesReserved(
-      snapshot.placementId,
-      discounts,
-      loyalty,
-      requestedOrderId,
-      committedDiscounts,
-    );
+    try {
+      await this.markResourcesReserved(
+        snapshot.placementId,
+        discounts,
+        loyalty,
+        requestedOrderId,
+        committedDiscounts,
+      );
+    } catch (error) {
+      await this.compensateAndFail(snapshot.placementId, error, [
+        ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
+        ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
+        ["releaseLoyalty:ORDER_FAILED", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+        ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
+      ]);
+      throw error;
+    }
 
     let orderId: string;
     try {
@@ -266,18 +276,39 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
         ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
         ["releaseLoyalty:ORDER_FAILED", () => this.releaseLoyalty(input, loyalty, "ORDER_FAILED")],
+        ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
       ]);
       throw error;
     }
-    await this.markOrderCreated(snapshot.placementId, orderId);
+    try {
+      await this.markOrderCreated(snapshot.placementId, orderId);
+    } catch (error) {
+      // The order already exists at this point (createOrder above succeeded), so a
+      // bookkeeping failure here must not trigger resource compensation — that would
+      // release inventory/discounts/loyalty out from under a real, already-created order.
+      // Record it for reconciliation and keep going; the transition itself is idempotent
+      // and safe to leave for a later retry to catch up.
+      await this.recordCompensationFailures(snapshot.placementId, [
+        {
+          operation: "markOrderCreated",
+          message: errorMessage(error),
+          recordedAt: new Date(await DBOS.now()).toISOString(),
+        },
+      ]);
+    }
 
     let result: PlaceOrderWorkflowResult;
     let paymentOutcome: PaymentOutcome | null = null;
     if (BigInt(snapshot.amount.amountMinor) === 0n) {
       const eligibleAt = new Date(await DBOS.now()).toISOString();
-      await this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt);
-      await this.confirmInventory(input.storeId, orderId);
-      await this.publishOrderRewardEligible(input, orderId, eligibleAt);
+      const finalizationFailures = await this.runCompensations([
+        ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt)],
+        ["confirmInventory", () => this.confirmInventory(input.storeId, orderId)],
+        ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, orderId, eligibleAt)],
+      ]);
+      if (finalizationFailures.length > 0) {
+        await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
+      }
       result = {
         placementId: snapshot.placementId,
         orderId,
@@ -295,6 +326,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           ["releaseInventory", () => this.releaseInventory(input, orderId)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
           ["releaseLoyalty:PAYMENT_FAILED", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+          ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
         ]);
         throw error;
       }
@@ -306,11 +338,12 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           ["releaseInventory", () => this.releaseInventory(input, orderId)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
           ["releaseLoyalty:PAYMENT_FAILED", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+          ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
         ]);
         throw error;
       }
       const monitorInput = paymentOutcome && isPendingPaymentResult(result)
-        ? paymentMonitorInput(input, snapshot, result, paymentOutcome.sessionParams, committedDiscounts, loyalty)
+        ? paymentMonitorInput(input, snapshot, result, paymentOutcome.sessionParams, committedDiscounts, loyalty, deliveryCommitments)
         : null;
       await this.markPaymentCreated(snapshot.placementId, result, monitorInput);
       if (result.status === "PAYMENT_FAILED") {
@@ -318,13 +351,19 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           ["releaseInventory", () => this.releaseInventory(input, orderId)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input.storeId, committedDiscounts)],
           ["releaseLoyalty:PAYMENT_FAILED", () => this.releaseLoyalty(input, loyalty, "PAYMENT_FAILED")],
+          ["releaseDelivery", () => this.releaseDelivery(input, snapshot, deliveryCommitments)],
         ]);
         await this.recordCompensationFailures(snapshot.placementId, failures);
       } else if (result.status === "AUTHORIZED" || result.status === "PAID") {
         const eligibleAt = new Date(await DBOS.now()).toISOString();
-        await this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt);
-        await this.confirmInventory(input.storeId, orderId);
-        await this.publishOrderRewardEligible(input, orderId, eligibleAt);
+        const finalizationFailures = await this.runCompensations([
+          ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, snapshot, loyalty, orderId, eligibleAt)],
+          ["confirmInventory", () => this.confirmInventory(input.storeId, orderId)],
+          ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, orderId, eligibleAt)],
+        ]);
+        if (finalizationFailures.length > 0) {
+          await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
+        }
       }
     }
 
@@ -336,6 +375,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         paymentOutcome.sessionParams,
         committedDiscounts,
         loyalty,
+        deliveryCommitments,
       );
       const monitor = await this.startPaymentMonitor(monitorInput, input.organizationId);
       await this.markPaymentMonitorStarted(snapshot.placementId, monitor.workflowId);
@@ -775,6 +815,27 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
+  private async releaseDelivery(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+    commitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
+  ): Promise<void> {
+    if (commitments.length === 0) return;
+    await this.broker.call<
+      Delivery.ReleaseCheckoutDeliverySelectionsResult,
+      Delivery.ReleaseCheckoutDeliverySelectionsParams
+    >(DeliveryActions.releaseSelections, {
+      storeId: input.storeId,
+      checkoutId: input.checkoutId,
+      checkoutVersion: snapshot.checkoutVersion,
+      groupIds: commitments.map((commitment) => commitment.groupId),
+      reason: "Checkout placement did not reach a payable order state.",
+      releasedAt: new Date(await DBOS.now()).toISOString(),
+      idempotencyKey: `${input.idempotencyKey}:delivery-release`,
+    });
+  }
+
+  @WorkflowStep()
   private createOrder(
     input: PlaceOrderWorkflowInput,
     snapshot: PlaceOrderSnapshot,
@@ -904,7 +965,13 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         latest.paymentSessionId,
       );
       const operation = operations.operations.at(-1);
-      if (!operation) throw error;
+      // Only treat this as a lost-response replay if the latest operation on the latest
+      // session was actually created by this exact request's idempotency key. Otherwise
+      // the error is genuine (nothing was created for this attempt) and reporting an
+      // unrelated prior session's state here would silently mask a real failure.
+      if (!operation || operation.idempotency.key !== sessionParams.idempotencyKey) {
+        throw error;
+      }
       session = {
         paymentCollectionId: collection.paymentCollectionId,
         paymentSessionId: latest.paymentSessionId,
@@ -1043,7 +1110,11 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     placementId: string,
     result: PlaceOrderWorkflowResult,
   ): Promise<PlaceOrderWorkflowResult> {
-    const completed = await this.placements.complete(placementId, result);
+    const completed = await this.placements.complete(
+      placementId,
+      result,
+      result.status === "PAYMENT_FAILED" ? "ABANDONED" : "PLACED",
+    );
     return completed.result!;
   }
 
@@ -1261,6 +1332,7 @@ function paymentMonitorInput(
   sessionParams: Payments.CreatePaymentSessionParams,
   committedDiscounts: CommittedDiscountUsage,
   loyalty: LoyaltyReservation | null,
+  deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
 ): import("./MonitorPlacedPaymentWorkflow.js").MonitorPlacedPaymentInput {
   return {
     organizationId: input.organizationId,
@@ -1271,6 +1343,7 @@ function paymentMonitorInput(
     sessionParams,
     redemptionIds: committedDiscounts.redemptionIds,
     loyaltyReservation: loyalty,
+    deliveryGroupIds: deliveryCommitments.map((commitment) => commitment.groupId),
     idempotencyKey: input.idempotencyKey,
     correlationId: input.correlationId,
   };

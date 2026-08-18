@@ -135,6 +135,7 @@ export const DeliveryActionNames = {
   setProviderCapabilityStatus: "setDeliveryProviderCapabilityStatus",
   getProviderAccount: "getDeliveryProviderAccount",
   commitSelections: "commitCheckoutDeliverySelections",
+  releaseSelections: "releaseCheckoutDeliverySelections",
   createShipment: "createDeliveryShipment",
   cancelShipment: "cancelDeliveryShipment",
   getShipment: "getDeliveryShipment",
@@ -150,6 +151,7 @@ export const DeliveryActions = {
     `delivery.${DeliveryActionNames.setProviderCapabilityStatus}`,
   getProviderAccount: `delivery.${DeliveryActionNames.getProviderAccount}`,
   commitSelections: `delivery.${DeliveryActionNames.commitSelections}`,
+  releaseSelections: `delivery.${DeliveryActionNames.releaseSelections}`,
   createShipment: `delivery.${DeliveryActionNames.createShipment}`,
   cancelShipment: `delivery.${DeliveryActionNames.cancelShipment}`,
   getShipment: `delivery.${DeliveryActionNames.getShipment}`,
@@ -1099,6 +1101,20 @@ export interface DeliveryCommittedGroupSnapshot {
 export interface CommitCheckoutDeliverySelectionsResult {
   commitments: readonly DeliveryCommittedGroupSnapshot[];
   duplicate: boolean;
+}
+
+export interface ReleaseCheckoutDeliverySelectionsParams {
+  storeId: string;
+  checkoutId: string;
+  checkoutVersion: number;
+  groupIds: readonly string[];
+  reason: string;
+  releasedAt: string;
+  idempotencyKey: string;
+}
+
+export interface ReleaseCheckoutDeliverySelectionsResult {
+  releasedGroupIds: readonly string[];
 }
 
 export interface CreateDeliveryShipmentParams {

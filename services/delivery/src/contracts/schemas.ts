@@ -1578,6 +1578,21 @@ export const DeliveryLifecycleActionSchemas = {
       path: ["selections"],
       message: "Committed delivery groups must be unique",
     }),
+  releaseSelections: z
+    .object({
+      storeId: identifierSchema,
+      checkoutId: identifierSchema,
+      checkoutVersion: nonNegativeIntegerSchema,
+      groupIds: z.array(identifierSchema).min(1).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
+      reason: z.string().trim().min(1).max(1_000),
+      releasedAt: timestampSchema,
+      idempotencyKey: idempotencyKeySchema,
+    })
+    .strict()
+    .refine((value) => new Set(value.groupIds).size === value.groupIds.length, {
+      path: ["groupIds"],
+      message: "Released delivery groups must be unique",
+    }),
   createShipment: z
     .object({
       storeId: identifierSchema,

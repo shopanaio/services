@@ -32,6 +32,7 @@ export const checkoutSelectionCommitments = deliverySchema.table("checkout_selec
   requestHash: text("request_hash").notNull(),
   snapshot: jsonb("snapshot").$type<Delivery.DeliveryCommittedGroupSnapshot>().notNull(),
   committedAt: timestamp("committed_at", { withTimezone: true, mode: "string" }).notNull(),
+  releasedAt: timestamp("released_at", { withTimezone: true, mode: "string" }),
 }, (table) => [
   unique("checkout_selection_commitments_group_key").on(table.storeId, table.checkoutId, table.checkoutVersion, table.groupId),
   unique("checkout_selection_commitments_idempotency_key").on(table.storeId, table.idempotencyKey, table.groupId),

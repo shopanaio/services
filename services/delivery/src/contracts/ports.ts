@@ -446,6 +446,15 @@ export interface DeliveryOptionBindingsPort {
     effectiveAt: string;
     idempotencyKey: string;
   }>): Promise<DeliveryCommittedSelectionResolution>;
+
+  /** Marks previously committed groups released; already-released groups are skipped. */
+  releaseCommitments(input: Readonly<{
+    storeId: string;
+    checkoutId: string;
+    checkoutVersion: number;
+    groupIds: readonly string[];
+    releasedAt: string;
+  }>): Promise<readonly string[]>;
 }
 
 export interface DeliveryIdempotencyPort {

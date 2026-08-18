@@ -43,4 +43,11 @@ export class DeliveryCheckoutActions extends BrokerActions {
     if (context.caller.kind !== "action" || context.caller.service !== "checkout" || context.app) throw new Error("Only Checkout may commit delivery selections");
     return this.commitments.commit(params);
   }
+
+  @Action(DeliveryActionNames.releaseSelections)
+  @ZodSchema(DeliveryLifecycleActionSchemas.releaseSelections)
+  releaseCheckoutDeliverySelections(params: Delivery.ReleaseCheckoutDeliverySelectionsParams, context: BrokerCallContext) {
+    if (context.caller.kind !== "action" || context.caller.service !== "checkout" || context.app) throw new Error("Only Checkout may release delivery selections");
+    return this.commitments.release(params);
+  }
 }

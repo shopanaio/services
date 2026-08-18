@@ -80,4 +80,15 @@ export class DeliverySelectionCommitService {
     }
     return { commitments, duplicate };
   }
+
+  async release(params: Delivery.ReleaseCheckoutDeliverySelectionsParams): Promise<Delivery.ReleaseCheckoutDeliverySelectionsResult> {
+    const releasedGroupIds = await this.dependencies.bindings.releaseCommitments({
+      storeId: params.storeId,
+      checkoutId: params.checkoutId,
+      checkoutVersion: params.checkoutVersion,
+      groupIds: params.groupIds,
+      releasedAt: params.releasedAt,
+    });
+    return { releasedGroupIds };
+  }
 }

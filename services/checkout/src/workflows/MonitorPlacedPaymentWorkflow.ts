@@ -1,9 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import {
+  DeliveryActions,
   InventoryCheckoutActions,
   OrderLoyaltyActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
+  type Delivery,
   type Inventory,
   type Payments,
   type Pricing,
@@ -35,6 +37,7 @@ export interface MonitorPlacedPaymentInput {
   sessionParams: Payments.CreatePaymentSessionParams;
   redemptionIds: readonly string[];
   loyaltyReservation: LoyaltyReservation | null;
+  deliveryGroupIds: readonly string[];
   idempotencyKey: string;
   correlationId: string;
 }
@@ -70,9 +73,14 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
 
       if (isSettled(session.state)) {
         const eligibleAt = new Date(await DBOS.now()).toISOString();
-        await this.commitLoyaltyAt(input, eligibleAt);
-        await this.confirmInventory(input.storeId, input.orderId);
-        await this.publishOrderRewardEligible(input, eligibleAt);
+        const finalizationFailures = await this.runCompensations([
+          ["commitLoyaltyAt", () => this.commitLoyaltyAt(input, eligibleAt)],
+          ["confirmInventory", () => this.confirmInventory(input.storeId, input.orderId)],
+          ["publishOrderRewardEligible", () => this.publishOrderRewardEligible(input, eligibleAt)],
+        ]);
+        if (finalizationFailures.length > 0) {
+          await this.recordCompensationFailures(input.placementId, finalizationFailures);
+        }
         return this.replacePlacementResult(
           input.placementId,
           paymentResult(input.initialResult, session, operation.operationId),
@@ -83,6 +91,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
           ["releaseInventory", () => this.releaseInventory(input)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input)],
           ["releaseLoyalty:PAYMENT_FAILED", () => this.releaseLoyalty(input)],
+          ["releaseDelivery", () => this.releaseDelivery(input)],
         ]);
         await this.recordCompensationFailures(input.placementId, failures);
         return this.replacePlacementResult(
@@ -92,15 +101,18 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       }
 
       if (session.state === "PROCESSING") {
+        providerRetry += 1;
         try {
-          providerRetry += 1;
           await this.retryCreatePaymentSession(input, workflowId, session.paymentSessionId, providerRetry);
         } catch {
           const now = await DBOS.now();
           const retryAt = new Date(now + providerRetryDelay(providerRetry)).toISOString();
           await this.renewInventory(input.storeId, input.orderId, retryAt);
-          await DBOS.sleep(providerRetryDelay(providerRetry));
         }
+        // Always back off, even when the provider call above succeeded: the session can
+        // stay PROCESSING across many polls, and without a delay here this would hot-loop
+        // calling the payment provider on every iteration until the state changes.
+        await DBOS.sleep(providerRetryDelay(providerRetry));
         continue;
       }
 
@@ -244,6 +256,23 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       orderId: input.orderId,
       idempotencyKey: `${input.idempotencyKey}:inventory-release`,
       correlationId: input.correlationId,
+    });
+  }
+
+  @WorkflowStep()
+  private async releaseDelivery(input: MonitorPlacedPaymentInput): Promise<void> {
+    if (input.deliveryGroupIds.length === 0) return;
+    await this.broker.call<
+      Delivery.ReleaseCheckoutDeliverySelectionsResult,
+      Delivery.ReleaseCheckoutDeliverySelectionsParams
+    >(DeliveryActions.releaseSelections, {
+      storeId: input.storeId,
+      checkoutId: input.sessionParams.checkoutId,
+      checkoutVersion: input.sessionParams.expectedCheckoutVersion,
+      groupIds: input.deliveryGroupIds,
+      reason: "Checkout payment expired or failed before settlement.",
+      releasedAt: new Date(await DBOS.now()).toISOString(),
+      idempotencyKey: `${input.idempotencyKey}:delivery-release`,
     });
   }
 
@@ -406,7 +435,11 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     placementId: string,
     result: PlaceOrderWorkflowResult,
   ): Promise<PlaceOrderWorkflowResult> {
-    const placement = await this.placements.replaceResult(placementId, result);
+    const placement = await this.placements.replaceResult(
+      placementId,
+      result,
+      result.status === "PAYMENT_FAILED" ? "ABANDONED" : "PLACED",
+    );
     return placement.result!;
   }
 }
@@ -431,13 +464,18 @@ function earliestTimestamp(platformDeadline: string, providerDeadline?: string |
     : platformDeadline;
 }
 
+// REFUNDED/PARTIALLY_REFUNDED necessarily followed a real capture, so they must be
+// finalized (loyalty committed, inventory confirmed) like any other settled session —
+// treating them as terminal failures would incorrectly release/reverse resources for
+// an order that was actually paid.
 function isSettled(state: Payments.PaymentSessionState): boolean {
-  return state === "AUTHORIZED" || state === "PARTIALLY_CAPTURED" || state === "CAPTURED";
+  return state === "AUTHORIZED" || state === "PARTIALLY_CAPTURED" || state === "CAPTURED" ||
+    state === "REFUNDED" || state === "PARTIALLY_REFUNDED";
 }
 
 function isTerminalFailure(state: Payments.PaymentSessionState): boolean {
   return state === "FAILED" || state === "EXPIRED" || state === "CANCELLED" ||
-    state === "VOIDED" || state === "REFUNDED" || state === "PARTIALLY_REFUNDED";
+    state === "VOIDED";
 }
 
 function paymentResult(
@@ -445,9 +483,10 @@ function paymentResult(
   session: Payments.PaymentSessionSnapshot,
   operationId: string,
 ): PlaceOrderWorkflowResult {
-  const status = session.state === "CAPTURED"
+  const status = session.state === "CAPTURED" || session.state === "REFUNDED"
     ? "PAID"
-    : session.state === "AUTHORIZED" || session.state === "PARTIALLY_CAPTURED"
+    : session.state === "AUTHORIZED" || session.state === "PARTIALLY_CAPTURED" ||
+        session.state === "PARTIALLY_REFUNDED"
       ? "AUTHORIZED"
       : "PAYMENT_FAILED";
   return {

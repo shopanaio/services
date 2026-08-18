@@ -245,6 +245,7 @@ export class CheckoutPlacementRepository {
   async complete<TResult>(
     placementId: string,
     result: TResult,
+    checkoutLifecycleStatus: "PLACED" | "ABANDONED",
   ): Promise<CheckoutPlacementRecord<TResult>> {
     const query = knex
       .withSchema("checkout")
@@ -262,13 +263,13 @@ export class CheckoutPlacementRepository {
       this.execute.query<PlacementRow>(rawSql(query)),
     );
     if (updated) {
-      await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, "PLACED");
+      await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, checkoutLifecycleStatus);
       return mapPlacement(updated) as CheckoutPlacementRecord<TResult>;
     }
 
     const existing = await this.findById<TResult>(placementId);
     if (existing?.status === "PLACED") {
-      await this.setCheckoutLifecycle(existing.storeId, existing.checkoutId, "PLACED");
+      await this.setCheckoutLifecycle(existing.storeId, existing.checkoutId, checkoutLifecycleStatus);
       return existing;
     }
     throw new Error("CHECKOUT_PLACEMENT_COMPLETION_CONFLICT");
@@ -330,7 +331,12 @@ export class CheckoutPlacementRepository {
     const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
     if (updated) return mapPlacement(updated);
     const existing = await this.findById(placementId);
-    if (existing && hasReachedPlacementState(existing.status, input.to)) return existing;
+    if (existing && hasReachedPlacementState(existing.status, input.to)) {
+      if (!placementMatchesTransition(existing, input)) {
+        throw new Error("CHECKOUT_PLACEMENT_TRANSITION_MISMATCH");
+      }
+      return existing;
+    }
     throw new Error("CHECKOUT_PLACEMENT_TRANSITION_CONFLICT");
   }
 
@@ -407,6 +413,7 @@ export class CheckoutPlacementRepository {
   async replaceResult<TResult>(
     placementId: string,
     result: TResult,
+    checkoutLifecycleStatus: "PLACED" | "ABANDONED",
   ): Promise<CheckoutPlacementRecord<TResult>> {
     const query = knex
       .withSchema("checkout")
@@ -424,7 +431,7 @@ export class CheckoutPlacementRepository {
       this.execute.query<PlacementRow>(rawSql(query)),
     );
     if (updated) {
-      await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, "PLACED");
+      await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, checkoutLifecycleStatus);
       return mapPlacement(updated) as CheckoutPlacementRecord<TResult>;
     }
 
@@ -674,6 +681,28 @@ export class CheckoutPlacementRepository {
     if (existing) return;
     throw new Error(conflictCode);
   }
+}
+
+function placementMatchesTransition(
+  existing: CheckoutPlacementRecord,
+  input: Parameters<CheckoutPlacementRepository["transition"]>[1],
+): boolean {
+  if (input.to === "RESOURCES_RESERVED") {
+    return existing.requestedOrderId === input.requestedOrderId &&
+      sameStringArray(existing.discountReservationIds, input.discountReservationIds) &&
+      sameStringArray(existing.discountRedemptionIds, input.discountRedemptionIds) &&
+      JSON.stringify(existing.loyaltyReservation) === JSON.stringify(input.loyaltyReservation);
+  }
+  if (input.to === "ORDER_CREATED") {
+    return existing.orderId === input.orderId;
+  }
+  return existing.paymentCollectionId === input.paymentCollectionId &&
+    existing.paymentSessionId === input.paymentSessionId &&
+    existing.paymentOperationId === input.paymentOperationId;
+}
+
+function sameStringArray(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 export function hasReachedPlacementState(
