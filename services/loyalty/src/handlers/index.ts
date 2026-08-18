@@ -70,6 +70,7 @@ export class LoyaltyEventHandlers extends EventHandlers {
         payload: { ...event.payload, eventType: event.eventType },
         triggerType: triggerForEvent(event.eventType),
         channelCode: optionalString(event.payload.channelCode) ?? undefined,
+        paymentMethodCode: optionalString(event.payload.paymentMethodCode) ?? undefined,
         segmentIds: stringArray(event.payload.segmentIds),
         currencyCode: optionalString(event.payload.currencyCode) ?? undefined,
       }, {

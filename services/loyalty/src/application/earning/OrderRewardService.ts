@@ -40,6 +40,7 @@ export interface ExternalRewardInput {
   payload: Record<string, unknown>;
   triggerType: "SIGNUP" | "REVIEW" | "REFERRAL" | "BIRTHDAY" | "ANNIVERSARY" | "LOGIN" | "SUBSCRIPTION_RENEWAL" | "CUSTOM_EVENT";
   channelCode?: string;
+  paymentMethodCode?: string;
   segmentIds?: readonly string[];
   currencyCode?: string;
 }
@@ -265,6 +266,7 @@ export class OrderRewardService {
         account,
         context: {
           channelCode: input.channelCode,
+          paymentMethodCode: input.paymentMethodCode,
           segmentIds: input.segmentIds ?? [],
           currencyCode: input.currencyCode,
           eligibleAmountMinor: input.payload.eligibleAmountMinor === undefined

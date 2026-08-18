@@ -181,6 +181,254 @@ test.describe('Loyalty Admin API tier evaluation and benefits', () => {
     expect(entitlements.data.loyaltyQuery.rewardEntitlements).toHaveLength(1);
   });
 
+  test('qualifies and downgrades from spend order referral and custom event metrics', async () => {
+    const netSpend = {
+      type: 'METRIC', metric: 'NET_SPEND_MINOR', customMetricCode: null,
+      operator: 'GTE', threshold: '1000', currencyCode: 'USD',
+    };
+    const goldQualification = {
+      type: 'ALL',
+      expressions: [
+        netSpend,
+        { type: 'METRIC', metric: 'ORDER_COUNT', customMetricCode: null, operator: 'GTE', threshold: '1', currencyCode: null },
+        { type: 'METRIC', metric: 'REFERRAL_COUNT', customMetricCode: null, operator: 'GTE', threshold: '1', currencyCode: null },
+        { type: 'METRIC', metric: 'CUSTOM', customMetricCode: 'vip', operator: 'GTE', threshold: '3', currencyCode: null },
+      ],
+    };
+    const fixture = await kit.createActiveAccount({
+      tierPolicy: {
+        windowType: 'LIFETIME', membershipDurationDays: 365,
+        downgradePolicy: 'IMMEDIATE', requalificationPolicy: 'AUTOMATIC',
+      },
+      tiers: [
+        tier('bronze', 1, '0'),
+        {
+          code: 'gold', name: 'GOLD', rank: 10,
+          qualification: goldQualification,
+          maintenance: goldQualification,
+        },
+      ],
+    });
+    const order = kit.orderRewardEvent();
+    await kit.deliverEvent(order);
+    const referralEventId = crypto.randomUUID();
+    await kit.callAction('loyalty.*', {
+      event: {
+        eventId: referralEventId,
+        eventType: 'customer.referral.completed',
+        timestamp: new Date().toISOString(),
+        source: 'customers',
+        emitKey: `referral:${referralEventId}`,
+        context: {
+          organizationId: kit.realm.organizationId,
+          correlationId: crypto.randomUUID(),
+        },
+        subject: { type: 'customer', id: kit.customer.rawId },
+        payload: {
+          customerId: kit.customer.rawId,
+          storeId: kit.realm.storeId,
+          channelCode: 'WEB',
+          segmentIds: [],
+          metrics: { vip: '3' },
+        },
+      },
+      delivery: {
+        jobId: crypto.randomUUID(), attempt: 1, maxAttempts: 10,
+        idempotencyKey: `event:${referralEventId}`,
+      },
+    });
+    const qualified = await evaluate(fixture.account.id, fixture.version.id);
+    expectNoUserErrors(qualified.data.loyaltyMutation.tierEvaluate);
+    expect(qualified.data.loyaltyMutation.tierEvaluate.tierMembership.tier.code).toBe('gold');
+
+    const now = new Date().toISOString();
+    await kit.deliverEvent({
+      eventId: crypto.randomUUID(),
+      eventType: 'orderRewardReversed',
+      timestamp: now,
+      source: 'orders',
+      emitKey: crypto.randomUUID(),
+      context: {
+        organizationId: kit.realm.organizationId,
+        correlationId: crypto.randomUUID(),
+      },
+      subject: order.subject,
+      payload: {
+        schemaVersion: 1,
+        orderId: order.payload.orderId,
+        orderRevision: 2,
+        storeId: kit.realm.storeId,
+        customerId: kit.customer.rawId,
+        currencyCode: 'USD',
+        sourceType: 'REFUND',
+        sourceId: crypto.randomUUID(),
+        sourceRevision: 1,
+        eligibleAmountAfterProductDiscountsMinor: '1000',
+        eligibleAmountAfterAllDiscountsMinor: '1000',
+        reversedAt: now,
+        lines: [{
+          orderLineId: order.payload.lines[0].orderLineId,
+          quantity: 1,
+          eligibleAmountAfterProductDiscountsMinor: '1000',
+          eligibleAmountAfterAllDiscountsMinor: '1000',
+        }],
+      },
+    });
+    const downgraded = await evaluate(fixture.account.id, fixture.version.id);
+    expectNoUserErrors(downgraded.data.loyaltyMutation.tierEvaluate);
+    expect(downgraded.data.loyaltyMutation.tierEvaluate.tierMembership.tier.code).toBe('bronze');
+  });
+
+  test('renews automatic membership and grants only recurring benefits again', async () => {
+    const { program, version } = await createDraft(kit.api, { isDefault: true }, {
+      tierPolicy: {
+        windowType: 'LIFETIME', membershipDurationDays: 1,
+        downgradePolicy: 'IMMEDIATE', requalificationPolicy: 'AUTOMATIC',
+      },
+      tiers: [tier('renewing', 1, '0')],
+      rewardDefinitions: [
+        { code: 'once-benefit', name: 'Once benefit', rewardType: 'POINTS', configuration: { points: '10' } },
+        { code: 'recurring-benefit', name: 'Recurring benefit', rewardType: 'POINTS', configuration: { points: '20' } },
+      ],
+    });
+    for (const [index, policy] of ['ON_QUALIFICATION', 'ON_EVERY_QUALIFICATION'].entries()) {
+      const created = await kit.api.admin.mutation<any>('loyality-admin-api/TierRewardBenefitCreate', {
+        variables: { input: {
+          tierId: version.tiers[0].id,
+          rewardDefinitionId: version.rewardDefinitions[index].id,
+          grantPolicy: { type: policy },
+          idempotencyKey: idempotencyKey(`tier-${policy.toLowerCase()}`),
+        } },
+      });
+      expectNoUserErrors(created.data.loyaltyMutation.tierRewardBenefitCreate);
+    }
+    await publishVersion(kit.api, version);
+    const account = await seedAccount(kit.api, program, { customerId: kit.customer.rawId });
+    const effectiveAt = new Date().toISOString();
+    const initial = await evaluate(account.id, version.id, { effectiveAt });
+    expectNoUserErrors(initial.data.loyaltyMutation.tierEvaluate);
+    const renewed = await evaluate(account.id, version.id, {
+      effectiveAt: new Date(Date.parse(effectiveAt) + 2 * 86_400_000).toISOString(),
+    });
+    expectNoUserErrors(renewed.data.loyaltyMutation.tierEvaluate);
+    expect(renewed.data.loyaltyMutation.tierEvaluate.tierMembership.events).toEqual([
+      expect.objectContaining({ eventType: 'RENEWED', reasonCode: 'TIER_RENEWED' }),
+    ]);
+
+    const entitlements = await kit.api.admin.query<any>('loyality-admin-api/RewardEntitlements', {
+      variables: { first: 20, where: { accountIds: [account.id] } },
+    });
+    expect(entitlements.data.loyaltyQuery.rewardEntitlements.map(
+      ({ rewardDefinition }: any) => rewardDefinition.code,
+    ).sort()).toEqual(['once-benefit', 'recurring-benefit', 'recurring-benefit']);
+  });
+
+  test('excludes facts outside a rolling qualification window', async () => {
+    const orderCount = {
+      type: 'METRIC', metric: 'ORDER_COUNT', customMetricCode: null,
+      operator: 'GTE', threshold: '1', currencyCode: null,
+    };
+    const fixture = await kit.createActiveAccount({
+      tierPolicy: {
+        windowType: 'ROLLING', rollingWindowDays: 1,
+        membershipDurationDays: 365, downgradePolicy: 'IMMEDIATE',
+        requalificationPolicy: 'AUTOMATIC',
+      },
+      tiers: [{
+        code: 'recent-buyer', name: 'Recent buyer', rank: 1,
+        qualification: orderCount, maintenance: orderCount,
+      }],
+    });
+    const occurredAt = new Date(Date.now() + 60_000).toISOString();
+    await kit.deliverEvent(kit.orderRewardEvent({ payload: { eligibleAt: occurredAt } }));
+    const active = await evaluate(fixture.account.id, fixture.version.id, { effectiveAt: occurredAt });
+    expectNoUserErrors(active.data.loyaltyMutation.tierEvaluate);
+    expect(active.data.loyaltyMutation.tierEvaluate.tierMembership.tier.code).toBe('recent-buyer');
+
+    const expired = await evaluate(fixture.account.id, fixture.version.id, {
+      effectiveAt: new Date(Date.parse(occurredAt) + 2 * 86_400_000).toISOString(),
+    });
+    expectNoUserErrors(expired.data.loyaltyMutation.tierEvaluate);
+    expect(expired.data.loyaltyMutation.tierEvaluate.tierMembership).toBeNull();
+  });
+
+  for (const calendar of [
+    {
+      period: 'MONTH',
+      start() {
+        const now = new Date();
+        return Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+      },
+      next(start: number) {
+        const date = new Date(start);
+        return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1);
+      },
+    },
+    {
+      period: 'QUARTER',
+      start() {
+        const now = new Date();
+        const nextQuarterMonth = (Math.floor(now.getUTCMonth() / 3) + 1) * 3;
+        return Date.UTC(now.getUTCFullYear(), nextQuarterMonth, 1);
+      },
+      next(start: number) {
+        const date = new Date(start);
+        return Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 3, 1);
+      },
+    },
+    {
+      period: 'YEAR',
+      start() {
+        return Date.UTC(new Date().getUTCFullYear() + 1, 0, 1);
+      },
+      next(start: number) {
+        return Date.UTC(new Date(start).getUTCFullYear() + 1, 0, 1);
+      },
+    },
+    {
+      period: 'PROGRAM_YEAR',
+      start() {
+        const now = new Date();
+        const year = now.getUTCMonth() < 3 ? now.getUTCFullYear() : now.getUTCFullYear() + 1;
+        return Date.UTC(year, 3, 1);
+      },
+      next(start: number) {
+        return Date.UTC(new Date(start).getUTCFullYear() + 1, 3, 1);
+      },
+    },
+  ] as const) {
+    test(`resets ${calendar.period} qualification metrics at the calendar boundary`, async () => {
+      const orderCount = {
+        type: 'METRIC', metric: 'ORDER_COUNT', customMetricCode: null,
+        operator: 'GTE', threshold: '1', currencyCode: null,
+      };
+      const fixture = await kit.createActiveAccount({
+        tierPolicy: {
+          windowType: 'CALENDAR', calendarPeriod: calendar.period,
+          ...(calendar.period === 'PROGRAM_YEAR' ? { programYearStartsMonth: 4 } : {}),
+          membershipDurationDays: 730, downgradePolicy: 'IMMEDIATE',
+          requalificationPolicy: 'AUTOMATIC',
+        },
+        tiers: [{
+          code: `calendar-${calendar.period.toLowerCase()}`,
+          name: `${calendar.period} buyer`, rank: 1,
+          qualification: orderCount, maintenance: orderCount,
+        }],
+      });
+      const occurredAt = new Date(calendar.start() + 60_000).toISOString();
+      await kit.deliverEvent(kit.orderRewardEvent({ payload: { eligibleAt: occurredAt } }));
+      const active = await evaluate(fixture.account.id, fixture.version.id, { effectiveAt: occurredAt });
+      expectNoUserErrors(active.data.loyaltyMutation.tierEvaluate);
+      expect(active.data.loyaltyMutation.tierEvaluate.tierMembership).not.toBeNull();
+
+      const expired = await evaluate(fixture.account.id, fixture.version.id, {
+        effectiveAt: new Date(calendar.next(calendar.start()) + 60_000).toISOString(),
+      });
+      expectNoUserErrors(expired.data.loyaltyMutation.tierEvaluate);
+      expect(expired.data.loyaltyMutation.tierEvaluate.tierMembership).toBeNull();
+    });
+  }
+
   test('deletes draft benefits tiers and policies but protects published configuration', async () => {
     const { version } = await createDraft(kit.api, {}, {
       tierPolicy: { windowType: 'LIFETIME', downgradePolicy: 'IMMEDIATE', requalificationPolicy: 'AUTOMATIC' },
