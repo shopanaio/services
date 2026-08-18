@@ -131,7 +131,6 @@ BEGIN
     NEW."store_id",
     NEW."version",
     NEW."effective_from",
-    NEW."effective_to",
     NEW."earning_enabled",
     NEW."redemption_enabled",
     NEW."activation_delay_seconds",
@@ -157,7 +156,6 @@ BEGIN
     OLD."store_id",
     OLD."version",
     OLD."effective_from",
-    OLD."effective_to",
     OLD."earning_enabled",
     OLD."redemption_enabled",
     OLD."activation_delay_seconds",
@@ -180,6 +178,18 @@ BEGIN
     OLD."published_at"
   ) THEN
     RAISE EXCEPTION 'Published loyalty program versions are immutable';
+  END IF;
+
+  IF OLD."status" <> 'DRAFT'
+    AND NEW."effective_to" IS DISTINCT FROM OLD."effective_to"
+    AND NOT (
+      OLD."status" = 'ACTIVE'
+      AND NEW."status" = 'RETIRED'
+      AND NEW."effective_to" IS NOT NULL
+      AND NEW."effective_to" > OLD."effective_from"
+      AND (OLD."effective_to" IS NULL OR NEW."effective_to" <= OLD."effective_to")
+    ) THEN
+    RAISE EXCEPTION 'Published loyalty program version effectiveTo may change only during retirement';
   END IF;
 
   IF OLD."status" = 'SCHEDULED' AND NEW."status" NOT IN ('SCHEDULED', 'ACTIVE', 'RETIRED') THEN

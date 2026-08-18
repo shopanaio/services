@@ -380,9 +380,9 @@ BEGIN
 
   IF entry_store_id IS DISTINCT FROM NEW."store_id"
     OR entry_wallet_id IS DISTINCT FROM NEW."wallet_id"
-    OR entry_bucket <> 'AVAILABLE'
+    OR entry_bucket NOT IN ('PENDING', 'AVAILABLE')
     OR entry_amount <> NEW."amount_issued_minor" THEN
-    RAISE EXCEPTION 'Monetary credit lot must exactly match a positive AVAILABLE entry';
+    RAISE EXCEPTION 'Monetary credit lot must exactly match a positive credit entry';
   END IF;
 
   RETURN NEW;

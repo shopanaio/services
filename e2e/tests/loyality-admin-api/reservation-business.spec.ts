@@ -40,7 +40,9 @@ test.describe('Loyalty Admin API reservation business transitions', () => {
       ],
     });
     expect(payload.transaction).toMatchObject({ kind: 'RELEASE', reasonCode: 'ADMIN_CUSTOMER_REQUEST' });
-    expect(payload.transaction.entries.reduce((sum: bigint, entry: any) => sum + BigInt(entry.pointsDelta), 0n)).toBe(300n);
+    expect(Object.fromEntries(
+      payload.transaction.entries.map(({ bucket, pointsDelta }: any) => [bucket, pointsDelta]),
+    )).toMatchObject({ AVAILABLE: '300', RESERVED: '-300' });
     expect(await kit.accountBalance(fixture.account.id)).toMatchObject({ availablePoints: '1000', reservedPoints: '0' });
     expect(await kit.transactionCount(fixture.account.id, ['RESERVE', 'RELEASE'])).toBe(2);
   });

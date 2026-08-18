@@ -1,0 +1,14 @@
+mutation DiscountCreate($input: DiscountCreateInput!) {
+  pricingMutation {
+    discountCreate(input: $input) {
+      discount {
+        id
+      }
+      userErrors {
+        code
+        field
+        message
+      }
+    }
+  }
+}

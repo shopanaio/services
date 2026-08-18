@@ -45,24 +45,27 @@ test.describe('Loyalty Admin API publication and configuration invariants', () =
     expect(active.status).toBe('ACTIVE');
   });
 
-  test('retires the previous active version at the exact successor boundary', async ({ api }) => {
+  test('retires the previous active version at the exact immediate successor boundary', async ({ api }) => {
     const program = await createProgram(api, { isDefault: true });
     const firstDraft = await createVersion(api, program);
     const active = await publishVersion(api, firstDraft);
     const current = (await api.admin.query<any>('loyality-admin-api/Program', { variables: { id: program.id } }))
       .data.loyaltyQuery.program;
     const successorDraft = await createVersion(api, current);
-    const boundary = future(30);
-    const successor = await publishVersion(api, successorDraft, { effectiveFrom: boundary });
-    const run = await api.admin.mutation<any>('loyality-admin-api/MaintenanceRun', {
-      variables: { input: { effectiveAt: boundary, limit: 100, idempotencyKey: idempotencyKey('successor-boundary') } },
+    const successor = await publishVersion(api, successorDraft, {
+      effectiveFrom: new Date().toISOString(),
     });
-    expectNoUserErrors(run.data.loyaltyMutation.maintenanceRun);
     const after = (await api.admin.query<any>('loyality-admin-api/Program', { variables: { id: program.id } }))
       .data.loyaltyQuery.program;
     expect(after.activeVersion.id).toBe(successor.id);
-    expect(after.versions.find(({ id }: any) => id === active.id)).toMatchObject({ status: 'RETIRED', effectiveTo: boundary });
-    expect(after.versions.find(({ id }: any) => id === successor.id)).toMatchObject({ status: 'ACTIVE', effectiveFrom: boundary });
+    expect(after.versions.find(({ id }: any) => id === active.id)).toMatchObject({
+      status: 'RETIRED',
+      effectiveTo: successor.effectiveFrom,
+    });
+    expect(after.versions.find(({ id }: any) => id === successor.id)).toMatchObject({
+      status: 'ACTIVE',
+      effectiveFrom: successor.effectiveFrom,
+    });
   });
 
   test('serializes concurrent publication of the same draft', async ({ api }) => {

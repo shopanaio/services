@@ -49,8 +49,8 @@ test.describe('Loyalty product applies-to across Admin and Storefront', () => {
     const selected = await kit.createProduct('1000');
     const other = await kit.createProduct('1000');
     await kit.createActiveAccount({ rules: baseRules({ earning: { modifiers: [
-      modifier({ type: 'PRODUCT', ids: [decodeGlobalId(selected.productId).id] }),
-      modifier({ type: 'VARIANT', ids: [decodeGlobalId(selected.variantId).id] }),
+      modifier({ type: 'PRODUCT', ids: [selected.productId] }),
+      modifier({ type: 'VARIANT', ids: [selected.variantId] }),
     ] } }) });
     expect((await points('Product', selected.productId))?.minimum).toBe('20');
     expect((await points('ProductVariant', selected.variantId))?.minimum).toBe('20');
@@ -61,8 +61,8 @@ test.describe('Loyalty product applies-to across Admin and Storefront', () => {
     const first = await kit.createProduct('1000');
     const second = await kit.createProduct('1000');
     await kit.createActiveAccount({ rules: baseRules({ earning: { excludedSelectors: [
-      { type: 'PRODUCT', ids: [decodeGlobalId(first.productId).id] },
-      { type: 'VARIANT', ids: [decodeGlobalId(second.variantId).id] },
+      { type: 'PRODUCT', ids: [first.productId] },
+      { type: 'VARIANT', ids: [second.variantId] },
     ] } }) });
     expect(await points('Product', first.productId)).toBeNull();
     expect(await points('ProductVariant', second.variantId)).toBeNull();

@@ -100,7 +100,11 @@ test.describe('Loyalty Admin API earning rules runtime semantics', () => {
       variables: { first: 20, where: { accountId: fixture.account.id } },
     });
     expect(evaluations.data.loyaltyQuery.eventEvaluations).toEqual([
-      expect.objectContaining({ decision: 'AWARDED', earningRule: { code: 'first-runtime' }, pointsAwarded: '10' }),
+      expect.objectContaining({
+        decision: 'AWARDED',
+        earningRule: expect.objectContaining({ code: 'first-runtime' }),
+        pointsAwarded: '10',
+      }),
     ]);
   });
 

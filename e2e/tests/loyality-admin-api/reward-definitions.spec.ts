@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
+import { decodeGlobalId } from '@utils/globalid';
 import { createDraft, expectNoUserErrors, expectUserError, future, idempotencyKey, publishVersion, setupStore, unique } from './helpers';
 
 test.describe('Loyalty Admin API reward definitions', () => {
@@ -8,13 +9,26 @@ test.describe('Loyalty Admin API reward definitions', () => {
 
   test('creates every supported reward definition with exact configuration snapshots', async ({ api }) => {
     const { version } = await createDraft(api);
+    const discountResult = await api.admin.mutation<any>('pricing-admin-api/DiscountCreate', {
+      variables: {
+        input: {
+          method: 'AUTOMATIC',
+          kind: 'AMOUNT_OFF_ORDER',
+          title: 'Loyalty reward reference',
+          currency: 'USD',
+        },
+      },
+    });
+    const discountPayload = discountResult.data.pricingMutation.discountCreate;
+    expect(discountPayload.userErrors).toEqual([]);
+    const discountId = decodeGlobalId(discountPayload.discount.id).id;
     const definitions = [
       ['POINTS', { points: '9007199254740993' }],
-      ['VOUCHER', { externalDiscountId: 'voucher-e2e' }],
-      ['FIXED_DISCOUNT', { externalDiscountId: 'fixed-e2e' }],
-      ['PERCENTAGE_DISCOUNT', { externalDiscountId: 'percentage-e2e' }],
-      ['FREE_SHIPPING', { externalDiscountId: 'shipping-e2e' }],
-      ['FREE_PRODUCT', { externalDiscountId: 'product-e2e' }],
+      ['VOUCHER', { externalDiscountId: discountId }],
+      ['FIXED_DISCOUNT', { externalDiscountId: discountId }],
+      ['PERCENTAGE_DISCOUNT', { externalDiscountId: discountId }],
+      ['FREE_SHIPPING', { externalDiscountId: discountId }],
+      ['FREE_PRODUCT', { externalDiscountId: discountId }],
       ['MEMBER_BENEFIT', { benefitCode: 'priority-support' }],
       ['MONETARY_CREDIT', { amountMinor: '500', currencyCode: 'USD', walletType: 'STORE_CREDIT' }],
     ] as const;

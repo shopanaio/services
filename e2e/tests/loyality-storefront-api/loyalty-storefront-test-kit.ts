@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect } from '@playwright/test';
-import { decodeGlobalId } from '@utils/globalid';
+import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
 import {
   createProgram,
   createVersion,
@@ -403,19 +403,127 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
     return { productId: product.id as string, variantId: variant.id as string, revision };
   }
 
+  async attachCategory(productId: string): Promise<string> {
+    const suffix = crypto.randomUUID().slice(0, 10);
+    const created = await this.api.admin.mutation<Json>('category-api/CategoryCreate', {
+      variables: {
+        input: {
+          handle: `loyalty-category-${suffix}`,
+          name: `Loyalty category ${suffix}`,
+          publish: false,
+        },
+      },
+    });
+    const payload = created.data.catalogMutation.categoryCreate;
+    expect(payload.userErrors).toEqual([]);
+    const categoryId = payload.category.id as string;
+    await this.sql`
+      insert into catalog.product_category (
+        store_id, product_id, category_id, is_primary, lexo_rank
+      ) values (
+        ${this.realm.storeId}, ${decodeGlobalId(productId).id},
+        ${decodeGlobalId(categoryId).id}, false, 'a'
+      )
+    `;
+    return categoryId;
+  }
+
+  async attachTag(productId: string): Promise<string> {
+    const suffix = crypto.randomUUID().slice(0, 10);
+    const created = await this.api.admin.mutation<Json>('inventory-api/TagCreate', {
+      variables: {
+        input: {
+          handle: `loyalty-tag-${suffix}`,
+          name: `Loyalty tag ${suffix}`,
+        },
+      },
+    });
+    const payload = created.data.catalogMutation.tagCreate;
+    expect(payload.userErrors).toEqual([]);
+    const tagId = payload.tag.id as string;
+    await this.sql`
+      insert into catalog.product_tag (store_id, product_id, tag_id)
+      values (
+        ${this.realm.storeId}, ${decodeGlobalId(productId).id},
+        ${decodeGlobalId(tagId).id}
+      )
+    `;
+    return tagId;
+  }
+
+  async attachFeature(productId: string): Promise<string> {
+    const suffix = crypto.randomUUID().slice(0, 10);
+    const [feature] = await this.sql<{ id: string }[]>`
+      insert into catalog.product_feature (
+        id, store_id, product_id, slug, index, is_group, featured
+      ) values (
+        uuidv7(), ${this.realm.storeId}, ${decodeGlobalId(productId).id},
+        ${`loyalty-feature-${suffix}`}, array[0]::integer[], false, false
+      )
+      returning id
+    `;
+    expect(feature).toBeTruthy();
+    return composeGlobalId('Feature', feature!.id);
+  }
+
+  async attachOptionValue(productId: string, variantId: string): Promise<string> {
+    const suffix = crypto.randomUUID().slice(0, 10);
+    const [category] = await this.sql<{ id: string }[]>`
+      insert into catalog.product_option_category (id, store_id, name, slug)
+      values (
+        uuidv7(), ${this.realm.storeId}, ${`Loyalty option ${suffix}`},
+        ${`loyalty-option-${suffix}`}
+      )
+      returning id
+    `;
+    expect(category).toBeTruthy();
+    const [option] = await this.sql<{ id: string }[]>`
+      insert into catalog.product_option (
+        id, store_id, product_id, category_id, slug, sort_index
+      ) values (
+        uuidv7(), ${this.realm.storeId}, ${decodeGlobalId(productId).id},
+        ${category!.id}, ${`loyalty-option-${suffix}`}, 0
+      )
+      returning id
+    `;
+    expect(option).toBeTruthy();
+    const [value] = await this.sql<{ id: string }[]>`
+      insert into catalog.product_option_value (
+        id, store_id, option_id, slug, sort_index
+      ) values (
+        uuidv7(), ${this.realm.storeId}, ${option!.id},
+        ${`loyalty-value-${suffix}`}, 0
+      )
+      returning id
+    `;
+    expect(value).toBeTruthy();
+    await this.sql`
+      insert into catalog.product_option_variant_link (
+        store_id, variant_id, option_id, option_value_id
+      ) values (
+        ${this.realm.storeId}, ${decodeGlobalId(variantId).id},
+        ${option!.id}, ${value!.id}
+      )
+    `;
+    return composeGlobalId('OptionValue', value!.id);
+  }
+
   entityQuery<T>(
     typename: 'Product' | 'ProductVariant',
     id: string,
     selection: string,
     options: Parameters<CustomersStorefrontTestKit['graphql']>[2] = {},
   ): Promise<GraphQLResponse<{ entities: Array<T | null> }>> {
+    const storefrontId = typename === 'ProductVariant'
+      ? composeGlobalId('ProductVariant', decodeGlobalId(id).id)
+      : id;
     return this.graphql<{ entities: Array<T | null> }>(
       `query LoyaltyEntity($ids: [ID!]!) {
         entities: nodes(ids: $ids) {
           ... on ${typename} { id ${selection} }
         }
       }`,
-      { ids: [id] },
+      { ids: [storefrontId] },
       options,
     );
   }

@@ -94,11 +94,11 @@ export const loyaltyTierExpressionSchema: z.ZodTypeAny = z.lazy(() =>
 
 const rewardConfigurations = {
   POINTS: z.object({ points: positiveDecimal }).strict(),
-  VOUCHER: z.object({ externalDiscountId: nonBlank }).strict(),
-  FIXED_DISCOUNT: z.object({ externalDiscountId: nonBlank }).strict(),
-  PERCENTAGE_DISCOUNT: z.object({ externalDiscountId: nonBlank }).strict(),
-  FREE_SHIPPING: z.object({ externalDiscountId: nonBlank }).strict(),
-  FREE_PRODUCT: z.object({ externalDiscountId: nonBlank }).strict(),
+  VOUCHER: z.object({ externalDiscountId: z.string().uuid() }).strict(),
+  FIXED_DISCOUNT: z.object({ externalDiscountId: z.string().uuid() }).strict(),
+  PERCENTAGE_DISCOUNT: z.object({ externalDiscountId: z.string().uuid() }).strict(),
+  FREE_SHIPPING: z.object({ externalDiscountId: z.string().uuid() }).strict(),
+  FREE_PRODUCT: z.object({ externalDiscountId: z.string().uuid() }).strict(),
   MEMBER_BENEFIT: z.object({ benefitCode: nonBlank }).strict(),
   MONETARY_CREDIT: z.object({ amountMinor: positiveDecimal, currencyCode: z.string().regex(/^[A-Z]{3}$/), walletType: z.enum(["CASHBACK", "STORE_CREDIT"]) }).strict(),
 } satisfies Record<LoyaltyRewardType, z.ZodTypeAny>;

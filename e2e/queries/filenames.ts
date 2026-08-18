@@ -267,6 +267,7 @@ export type GraphQLFileName =
   | 'media-api/FileUploadFromUrl'
   | 'media-api/NodeFindOne'
   | 'media-api/NodesFindMany'
+  | 'pricing-admin-api/DiscountCreate'
   | 'project-api/LocaleCreate'
   | 'project-api/LocaleDelete'
   | 'project-api/LocaleSetDefault'

@@ -61,7 +61,9 @@ test.describe('Loyalty Admin API complete maintenance pipeline', () => {
       activationDelaySeconds: 3600,
       earningRules: [{
         code: 'delayed-cashback', name: 'Delayed cashback', priority: 10,
-        triggerType: 'ORDER', triggerConfig: {}, conditions,
+        triggerType: 'CUSTOM_EVENT',
+        triggerConfig: { eventType: 'order.cashback-eligible' },
+        conditions,
         actionType: 'AWARD_CASHBACK',
         action: { type: 'AWARD_CASHBACK', basisPoints: 1000, settlement: 'MONETARY', currencyCode: 'USD' },
         limits: {
@@ -73,15 +75,44 @@ test.describe('Loyalty Admin API complete maintenance pipeline', () => {
         },
       }],
     });
-    const event = kit.orderRewardEvent();
-    await kit.deliverEvent(event);
+    const occurredAt = new Date().toISOString();
+    const externalEventId = crypto.randomUUID();
+    const delivered = await kit.callAction<any>('loyalty.*', {
+      event: {
+        eventId: externalEventId,
+        eventType: 'order.cashback-eligible',
+        timestamp: occurredAt,
+        source: 'loyalty-admin-e2e',
+        emitKey: `loyalty-admin-e2e:${externalEventId}`,
+        context: {
+          organizationId: kit.realm.organizationId,
+          correlationId: crypto.randomUUID(),
+        },
+        subject: { type: 'order', id: crypto.randomUUID() },
+        payload: {
+          customerId: kit.customer.rawId,
+          storeId: kit.realm.storeId,
+          channelCode: 'WEB',
+          segmentIds: [],
+          currencyCode: 'USD',
+          eligibleAmountMinor: '1000',
+        },
+      },
+      delivery: {
+        jobId: crypto.randomUUID(),
+        attempt: 1,
+        maxAttempts: 10,
+        idempotencyKey: `event:${externalEventId}`,
+      },
+    });
+    expect(delivered).toEqual({ success: true });
     let wallets = await kit.api.admin.query<any>('loyality-admin-api/MonetaryWallets', {
       variables: { first: 20, where: { accountIds: [fixture.account.id], walletTypes: ['CASHBACK'] } },
     });
     expect(wallets.data.loyaltyQuery.monetaryWallets[0].balance).toMatchObject({
       pending: { amountMinor: '100' }, available: { amountMinor: '0' },
     });
-    const run = await maintenance({ effectiveAt: new Date(Date.parse(event.payload.eligibleAt) + 3_600_000).toISOString() });
+    const run = await maintenance({ effectiveAt: new Date(Date.parse(occurredAt) + 3_600_000).toISOString() });
     expect(run.data.loyaltyMutation.maintenanceRun.result.activatedMonetaryLots).toBe(1);
     wallets = await kit.api.admin.query<any>('loyality-admin-api/MonetaryWallets', {
       variables: { first: 20, where: { accountIds: [fixture.account.id], walletTypes: ['CASHBACK'] } },
