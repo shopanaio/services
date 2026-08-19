@@ -111,9 +111,10 @@ store_popularity
 
 - business validation и optimistic concurrency возвращаются как `UserError[]`
   и не retry-ятся;
-- deterministic integrity failures (`EVENT_PAYLOAD_CONFLICT`,
-  `STALE_INPUT`, `UNSUPPORTED_MODEL_VERSION`, `CANDIDATE_LIMIT_EXCEEDED`,
-  `INVALID_SNAPSHOT_CONTENT`) являются non-retryable;
+- deterministic integrity failures (`INVALID_EVENT_PAYLOAD`,
+  `EVENT_PAYLOAD_CONFLICT`, `STALE_INPUT`, `UNSUPPORTED_MODEL_VERSION`,
+  `CANDIDATE_LIMIT_EXCEEDED`, `INVALID_SNAPSHOT_CONTENT`,
+  `LIFECYCLE_PLAN_LIMIT_EXCEEDED`) являются non-retryable;
 - временные broker, database connection, serialization и timeout failures
   являются retryable;
 - неизвестная database constraint или неизвестная ошибка не преобразуется в
@@ -221,6 +222,10 @@ ALTER TABLE listing.recommendation_calculation_run
   ADD COLUMN pair_progress_anchor_after uuid,
   ADD COLUMN pair_progress_target_after uuid;
 
+ALTER TABLE listing.recommendation_snapshot
+  ALTER COLUMN policy_id SET NOT NULL,
+  ADD COLUMN content_hash varchar(64);
+
 CREATE TABLE listing.recommendation_product_accumulator (
   run_id uuid NOT NULL,
   product_id uuid NOT NULL,
@@ -273,11 +278,14 @@ CREATE TABLE listing.recommendation_build_request (
 
 - progress UUID являются UUIDv7;
 - оба pair cursor columns либо null, либо non-null;
-- значение phase входит в зарегистрированный enum.
+- значение phase входит в зарегистрированный enum;
 - accumulator counts положительны, pair не содержит self-reference;
 - maintenance status входит в `BOOTSTRAPPING|ACTIVE`;
 - `last_manual_boundary_at IS NULL` только для `BOOTSTRAPPING`, а для `ACTIVE`
-  он равен или больше `bootstrap_cutoff_at`.
+  он равен или больше `bootstrap_cutoff_at`;
+- `content_hash` либо null, либо lowercase SHA-256; для
+  `READY|ACTIVE|SUPERSEDED` он обязателен;
+- `policy_id` snapshot всегда non-null на уровне database.
 
 Repository state machine переводит
 `ACCUMULATE -> PRODUCTS -> PAIRS -> COMPLETE` только вперёд. Переход
@@ -291,8 +299,10 @@ Migration также добавляет UUIDv7 checks, проверку active
 counts. Maintenance cursor нужен для resumable обработки `starts_at`/`ends_at`;
 новые calculation columns нужны для crash-safe bounded accumulation и
 materialization. Build request хранит latest desired generation каждого anchor
-и placement; `generation > 0`, а `trigger_key` non-empty. Это schema evolution
-на clean database, а не backfill существующих данных.
+и placement; `generation > 0`, а `trigger_key` non-empty. Snapshot
+`content_hash` хранит canonical hash фактически записанных items и используется
+для проверки повторного входа durable populate step. Это schema evolution на
+clean database, а не backfill существующих данных.
 
 На первом запуске store workflow:
 
@@ -314,12 +324,16 @@ reconciliation.
 ```text
 packages/events/src/types.ts
 packages/broker-types/src/actions/project.ts
+packages/shared-graphql-guid/src/core.ts
 
 services/orders/src/...
   authoritative sale transition integration
 
 services/project/src/actions/...
   listActiveStores action
+
+services/bootstrap/src/main.ts
+  recommendation workflow queue registration
 
 services/listing/migrations/domains/9100_recommendations/
   9104_recommendations__maintenance.sql
@@ -442,6 +456,22 @@ export interface OrderSaleReversedEvent
 
 Оба интерфейса добавить в `ShopanaEvent` union.
 
+Числовые границы `schemaVersion: 1`:
+
+```text
+orderRevision: safe integer, 1..2147483647
+lines.length:  1..100
+quantity:      safe integer, 1..2147483647
+aggregated quantity одного product: 1..2147483647
+```
+
+Producer агрегирует duplicate product lines либо проверяет aggregate до emit.
+Listing повторяет те же проверки до записи в PostgreSQL `integer`; overflow не
+преобразуется в database error и классифицируется как
+`INVALID_EVENT_PAYLOAD`. Повтор stable event/revision с другим canonical
+payload остаётся `EVENT_PAYLOAD_CONFLICT`. Изменение этих границ требует новой
+`schemaVersion`.
+
 `committedAt` присутствует и в reversal event: это timestamp исходной sale
 generation, необходимый для non-null `recommendation_order_fact.committed_at`.
 `reversedAt` становится `occurred_at`. Listing не восстанавливает этот timestamp
@@ -550,22 +580,25 @@ FOR UPDATE;
 
 `RecommendationOrderFactIngestScript`:
 
-1. валидирует UUIDs, positive revision, non-empty committed lines, quantities и
-   не более 100 distinct products в одной committed revision;
+1. валидирует UUIDs, safe integer `orderRevision` в `1..2147483647`,
+   committed `lines.length` в `1..100`, safe integer quantities в
+   `1..2147483647`;
 2. агрегирует duplicate product lines;
-3. сортирует агрегированные lines по raw product ID и вычисляет SHA-256 от
+3. отклоняет aggregate quantity product выше `2147483647` и более 100 distinct
+   products;
+4. сортирует агрегированные lines по raw product ID и вычисляет SHA-256 от
    canonical `{ eventType, payload }`;
-4. блокирует cursor row;
-5. проверяет существующий `event_id`;
-6. проверяет `(order_id, order_revision)`;
-7. при существовании любой revision order проверяет равенство `committedAt`
+5. блокирует cursor row;
+6. проверяет существующий `event_id`;
+7. проверяет `(order_id, order_revision)`;
+8. при существовании любой revision order проверяет равенство `committedAt`
    исходной sale generation;
-8. same hash возвращает `duplicate`;
-9. different hash или изменившийся `committedAt` выбрасывает non-retryable
+9. same hash возвращает `duplicate`;
+10. different hash или изменившийся `committedAt` выбрасывает non-retryable
    integrity error;
-10. выделяет `last_position + 1`;
-11. вставляет fact и product facts;
-12. обновляет cursor в той же транзакции.
+11. выделяет `last_position + 1`;
+12. вставляет fact и product facts;
+13. обновляет cursor в той же транзакции.
 
 Mapping timestamps:
 
@@ -1052,6 +1085,27 @@ durable step. Bounded candidate array не возвращается из step и
 DBOS. Step возвращает только `{ itemCount, contentHash }`; snapshot items
 вставляются одной transaction после closed-schema/byte-limit validation.
 
+Populate step является идемпотентным относительно отдельной DBOS persistence:
+
+1. transaction блокирует tenant-scoped snapshot row `FOR UPDATE`;
+2. разрешён только snapshot со status `BUILDING`;
+3. если `content_hash IS NULL`, repository требует отсутствие items, строит
+   bounded result, вставляет все items и в той же transaction записывает
+   `item_count + content_hash`;
+4. canonical content hash вычисляется по items в rank order и включает
+   `targetProductId`, `rank`, canonical decimal `score`, `primarySource`,
+   `pinned`, closed `features` и `sourceBreakdown`;
+5. если `content_hash` уже записан, step не вставляет items повторно: он читает
+   persisted items, повторно проверяет count/hash и возвращает сохранённые
+   `{ itemCount, contentHash }`;
+6. items при null hash или несовпадение persisted count/hash являются
+   `INVALID_SNAPSHOT_CONTENT`, а не поводом удалить или перезаписать generation.
+
+Поэтому crash после commit Listing transaction, но до сохранения DBOS step
+result, безопасно приводит к read-and-verify, а не к повторному insert и unique
+violation. Переход `BUILDING -> READY` разрешён только при non-null
+`content_hash`.
+
 Перед activation проверяются:
 
 - item count;
@@ -1121,7 +1175,12 @@ Fan-out и builds используют generation coalescing:
   lifecycle sync либо calculation run ID для run activation;
 - fan-out page в одной transaction вызывает
   `RecommendationBuildRequestRepository.request()` для каждого anchor:
-  блокирует/upsert-ит row, увеличивает generation и сохраняет trigger key;
+  блокирует/upsert-ит row; новый `trigger_key` увеличивает generation и
+  сохраняется, а повтор того же `trigger_key` возвращает существующую generation
+  без update;
+- после commit request page тот же durable step enqueue-ит children по
+  возвращённым generations; crash до завершения step повторяет request с тем же
+  trigger key, получает те же generations и повторяет deterministic enqueue;
 - orchestration child workflow ID детерминирован по store + anchor + placement +
   requested generation; child читает полный `RecommendationBuildInputs` и
   запускает build по окончательному `buildKey`;
@@ -1129,8 +1188,8 @@ Fan-out и builds используют generation coalescing:
   trigger key, policy/run lineage и manual hash с current values; устаревшая
   queued generation завершается как successful stale no-op без создания
   snapshot;
-- queue `recommendation_snapshot_build` является partitioned queue с
-  `workerConcurrency = 20`;
+- bootstrap регистрирует queue `recommendation_snapshot_build` с
+  `partitionQueue = true`, `concurrency = 1` и `workerConcurrency = 20`;
 - для каждого anchor вычисляется deterministic lane
   `hash(anchorProductId + placement) mod 2`, а queue partition key равен
   `<storeId>:<lane>`;
@@ -1156,6 +1215,9 @@ Queue:
 
 ```text
 name: recommendation_snapshot_build
+partitionQueue: true
+concurrency: 1
+workerConcurrency: 20
 partition: <storeId>:<lane-0-or-1>
 ```
 
@@ -1283,10 +1345,15 @@ Done when:
 ```typescript
 GlobalIdEntity.RecommendationPlacementPolicy
 GlobalIdEntity.ManualProductRecommendation
+GlobalIdEntity.RecommendationCalculationRun
 ```
 
-Оба GraphQL types реализуют `Node`; admin Node/nodes resolvers и loaders
-поддерживают новые entities.
+Policy и manual recommendation GraphQL types реализуют `Node`; admin Node/nodes
+resolvers и loaders поддерживают эти две entities.
+`RecommendationCalculationRun` используется только для типизированного
+Global ID в `RecommendationPreviewSourceBreakdown.fbtRunId` и не добавляется в
+`Node`, пока отдельный calculation-run GraphQL type отсутствует. Resolver
+никогда не возвращает raw run UUID.
 
 ### Policy mutation
 
@@ -1637,24 +1704,35 @@ Store-scoped workflow:
 2. для `BOOTSTRAPPING` cursor возвращает successful no-op: только bootstrap
    workflow может перевести его в `ACTIVE`;
 3. для `ACTIVE` cursor в короткой transaction блокирует store row через
-   `SELECT ... FOR UPDATE`;
-4. находит distinct anchor + placement boundaries в
-   `(lastManualBoundaryAt, currentMinute]`;
-5. enqueue-ит deterministic snapshot builds;
-6. после успешного enqueue всех pages compare-and-set advance-ит cursor с
-   ожидаемого старого watermark;
-7. при retry duplicate child workflows являются no-op.
+   `SELECT ... FOR UPDATE`, фиксирует immutable interval
+   `(fromBoundary, toBoundary]`, где `fromBoundary = lastManualBoundaryAt`, а
+   `toBoundary = currentMinute`, и завершает transaction до любых broker calls;
+4. отдельные durable page steps keyset-paginated находят distinct
+   anchor + placement boundaries только внутри fixed interval;
+5. каждый page step сначала идемпотентно получает build-request generations,
+   затем после commit enqueue-ит children с deterministic workflow IDs,
+   включающими store, anchor, placement и generation;
+6. после успешного enqueue всех pages отдельная короткая transaction выполняет
+   compare-and-set advance `fromBoundary -> toBoundary`;
+7. retry page использует тот же trigger key и получает ту же generation;
+   duplicate child starts являются successful no-op;
+8. если CAS не прошёл и current watermark уже `>= toBoundary`, workflow
+   завершается successful no-op; иначе повторно начинает fixed interval от
+   нового watermark.
 
 Cursor нельзя advance-ить до child enqueue: crash не должен терять boundary.
+PostgreSQL transaction и row lock никогда не удерживаются во время DBOS/broker
+enqueue или между pages.
 Store workflow ID:
 
 ```text
 recommendation-manual-boundary:<storeId>:<utc-minute>
 ```
 
-Следующая minute generation может начаться до завершения предыдущей, поэтому
-lock/CAS обязателен даже при deterministic IDs. Если CAS не прошёл, workflow
-повторно читает новый interval и не перезаписывает более свежий watermark.
+Следующая minute generation может начаться до завершения предыдущей. Они могут
+безопасно обработать overlapping fixed intervals: idempotent trigger keys и
+deterministic child IDs coalesce duplicate work, а CAS не позволяет
+перезаписать более свежий watermark.
 
 Done when:
 
@@ -1676,6 +1754,15 @@ projection, а не параллельно с ним.
 3. строит bounded lifecycle plan из locked old state и фактически записанного
    new state;
 4. возвращает plan только после commit.
+
+Versioned lifecycle contract задаёт
+`MAX_PRODUCT_CATEGORY_MEMBERSHIPS = 1000` для old и new state и
+`MAX_LIFECYCLE_PLAN_BYTES = 131072`. Category IDs deduplicate-ятся и сортируются
+по raw UUID до сериализации. Listing write transaction валидирует оба лимита до
+commit; превышение является deterministic `LIFECYCLE_PLAN_LIMIT_EXCEEDED` и
+откатывает index write, поэтому durable boundary никогда не получает
+неограниченный массив и recommendation reconciliation не расходится с Listing
+projection. Изменение лимитов требует новой lifecycle plan version.
 
 Следующий durable step передаёт committed plan recommendation sync. Plan не
 строится до write transaction: это исключает race между pre-read и Listing
@@ -1760,6 +1847,7 @@ Logs не содержат customer identity или order lines.
 
 - canonical payload hash;
 - maximum distinct products sale contract;
+- order revision, line count, quantity и aggregated quantity integer bounds;
 - immutable `committedAt` across order revisions;
 - schedule half-open intervals;
 - manual configuration hash before/after boundary;
@@ -1784,6 +1872,7 @@ Logs не содержат customer identity или order lines.
 - resume из `ACCUMULATE`, `PRODUCTS`, `PAIRS` и `COMPLETE`;
 - accumulators удаляются только при successful `COMPLETE`;
 - concurrent build requests монотонно увеличивают anchor generation;
+- repeated build request с тем же trigger key сохраняет generation;
 - one ACTIVE run/snapshot under concurrent activation;
 - tenant isolation;
 - exclusion constraint mapping;
@@ -1797,6 +1886,10 @@ Logs не содержат customer identity или order lines.
 - paginated fan-out resume;
 - stale fan-out generation завершается до candidate collection;
 - snapshot build durable result не содержит candidate array;
+- snapshot populate retry после Listing commit и до DBOS result persistence
+  выполняет read-and-verify без повторного insert;
+- persisted snapshot content hash mismatch приводит к
+  `INVALID_SNAPSHOT_CONTENT`;
 - snapshot content byte limit приводит к `INVALID_SNAPSHOT_CONTENT`;
 - schedule boundary между fixed-input step и activation приводит к
   `STALE_INPUT` и rebuild с новым `asOf`;
@@ -1805,11 +1898,13 @@ Logs не содержат customer identity или order lines.
   anchor-specific builds;
 - scheduler multi-replica idempotency;
 - overlapping manual minute workflows and maintenance cursor CAS;
+- manual scheduler не удерживает PostgreSQL transaction во время child enqueue;
 - bootstrap cursor не становится `ACTIVE` до enqueue всех reconciliation pages;
 - manual boundary retry before/after cursor advance;
 - product sync lifecycle plan строится из locked old/new state внутри write
   transaction;
 - category/store-popularity fan-out for a newly eligible target.
+- lifecycle plan count/byte limits и rollback при их превышении.
 
 ### GraphQL/e2e
 
@@ -1823,6 +1918,7 @@ Logs не содержат customer identity или order lines.
 - write permission не может вызвать policy disable;
 - draft preview;
 - preview `INSUFFICIENT_SUPPORT` соблюдает FBT source budget;
+- preview `fbtRunId` является typed Global ID, а не raw UUID;
 - cross-store IDs.
 
 Для implementation verification используются только `shopana-cli` MCP tools и
@@ -1871,6 +1967,8 @@ Orders producer integration ←────────────────�
 - Ни один snapshot build не превышает `globalCandidateLimit`.
 - Candidate arrays не пересекают durable boundary, а snapshot content имеет
   count и byte limits.
+- Snapshot populate безопасно повторяется после ambiguous commit и проверяет
+  persisted `content_hash`.
 - Calculation один раз проходит effective orders в keyset pages и не повторяет
   полный 90-дневный aggregate для каждой output page.
 - Calculation materialization resume-ится по persisted phase/cursors.
@@ -1879,8 +1977,9 @@ Orders producer integration ←────────────────�
 - Policy update rebuild-ит все anchors placement'а.
 - Popularity update rebuild-ит anchors без pair stats.
 - Stale fan-out generations отбрасываются до expensive candidate collection.
+- Повтор build request с тем же trigger key не увеличивает generation.
 - Snapshot queue обеспечивает не более двух concurrent builds одного store
-  через deterministic partition lanes.
+  через зарегистрированную partitioned queue и deterministic lanes.
 - Product lifecycle fan-out охватывает новые category/store-popularity
   candidates без существующих reverse references.
 - Scheduled manual actions активируются и истекают без mutation.
@@ -1888,15 +1987,17 @@ Orders producer integration ←────────────────�
   если до неё изменился active manual set.
 - Initial manual reconciliation завершается до activation maintenance cursor.
 - Maintenance cursor защищён lock/CAS от overlapping minute workflows.
+- PostgreSQL locks не удерживаются во время DBOS/broker enqueue.
 - Ranking formula полностью определяется model version.
 - Category popularity использует Listing category postings.
 - Publication и availability проверяются при build и serving.
 - Product lifecycle plan строится внутри Listing write transaction из locked
-  old state и committed new state.
+  old state и committed new state и имеет explicit count/byte limits.
 - Storefront list queries используют batch DataLoader path.
 - Current ACTIVE snapshot lookup не использует process-local cross-request
   cache.
 - Admin preview поддерживает unsaved draft overlay.
+- Preview не раскрывает raw calculation run UUID.
 - Cross-store reads/writes не раскрывают чужие entities.
 - Новый ACTIVE run/snapshot публикуется одной transaction.
 - Пустой recommendation result является нормальным результатом.

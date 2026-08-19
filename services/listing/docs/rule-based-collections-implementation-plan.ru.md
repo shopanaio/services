@@ -223,6 +223,10 @@ Catalog raw facts
 - Порядок rules влияет только на admin presentation, но не на результат.
 - `RULE` collection без rules разрешена как draft, даёт preview count `0` и не
   может быть опубликована.
+- Пустой rule set компилируется в explicit empty product bitmap. Нейтральный
+  элемент `AND` к нему не применяется: admin connection, preview и любой
+  internal read возвращают `0`, а storefront до compiler не допускается
+  publication invariant'ом.
 - Missing/stale reference компилируется в empty bitmap. Predicate нельзя
   пропускать, иначе collection станет шире.
 - `MANUAL` collection не принимает rules.
@@ -328,6 +332,24 @@ Catalog source identity, который существует до создани
 Tag, category и vendor имеют store-global identities, поэтому rules хранят их
 UUID, а не mutable handles.
 
+Reference semantics различаются по типу rule:
+
+- `CATEGORY`, `TAG`, `VENDOR` являются entity references. При mutation Catalog
+  проверяет Global ID type, существование, текущий store и non-deleted status.
+  После последующего удаления entity их admin `referenceStatus` становится
+  `STALE`, а Listing predicate даёт empty bitmap;
+- `FEATURE` и `OPTION` не являются ссылками на store-global definition.
+  Catalog проверяет только canonical syntax и limits пары handles. Наличие пары
+  хотя бы у одного текущего product не является validation invariant: pair
+  может появиться позже и исчезнуть со всех products;
+- `PRICE`, `IN_STOCK`, `CREATED_AT` также не имеют entity reference.
+
+Admin `CollectionRuleReferenceStatus` имеет значения
+`VALID | STALE | NOT_APPLICABLE`. `VALID | STALE` используются только для
+entity-reference rules; handle и scalar rules возвращают `NOT_APPLICABLE`.
+Пустой posting для `NOT_APPLICABLE` означает обычный empty match, а не stale
+reference.
+
 ### Limits
 
 Первая версия вводит hard limits:
@@ -383,14 +405,54 @@ Validation обязана проверять:
 - допустимость operator для field;
 - exact value shape и отсутствие лишних keys;
 - Global ID type;
-- существование referenced entities;
-- принадлежность store;
-- non-deleted status;
+- для `CATEGORY`, `TAG`, `VENDOR` — существование referenced entities,
+  принадлежность store и non-deleted status;
+- для `FEATURE`, `OPTION` — canonical syntax handles без требования
+  существования store-global definition или текущего matching product;
 - currency code;
 - range ordering;
 - timestamp timezone;
 - duplicate rules и duplicate values;
 - limits.
+
+### Canonical serialization и hashes
+
+В `@shopana/broker-types` зафиксировать shared executable contract:
+
+```typescript
+const COLLECTION_RULE_HASH_VERSION = "v1" as const;
+
+serializeCanonicalCollectionRulesV1(rules): string;
+hashCanonicalCollectionRulesV1(rules): string;
+hashCollectionListingPayloadV1(payload): string;
+```
+
+Catalog и Listing импортируют эти helpers; service-local реализации
+serialization/hash запрещены. Contract `v1`:
+
+- UTF-8 JSON без whitespace;
+- object keys записываются в фиксированном порядке, заданном shared DTO codec;
+- enums сериализуются canonical lowercase wire values;
+- UUID — lowercase canonical form;
+- currency code — uppercase ISO code;
+- minor amounts — canonical base-10 strings без `+` и leading zeros, кроме
+  самого `0`;
+- timestamps нормализуются в UTC ISO-8601 с миллисекундами и suffix `Z`;
+- values внутри rule deduplicate-ятся и сортируются по encoded tuple;
+- rules для Listing projection сортируются по полному canonical encoded rule,
+  потому что presentation `sortIndex` не влияет на membership.
+
+`rulesHash` имеет wire format `sha256:v1:<lowercase hex>` и считается по
+результату `serializeCanonicalCollectionRulesV1()`. `payloadHash` имеет тот же
+format и считается по explicit ordered tuple всех live snapshot fields, включая
+`rulesHash` и canonical `listingUpdatedAt`, но не по произвольному
+`JSON.stringify(object)`. Listing при ingestion пересчитывает оба hash и
+сравнивает constant-time. Неизвестная hash version является terminal contract
+error.
+
+Reorder semantically identical rules меняет aggregate `revision`, но не
+`listing_revision`, `rulesHash` или Listing payload. Добавление, удаление либо
+изменение canonical rule меняет обе revisions.
 
 ## Catalog persistence
 
@@ -416,7 +478,7 @@ semantic mutation делает atomic compare-and-swap по `expectedRevision` �
 `listing_revision` меняется только вместе с состоянием, которое влияет на
 Listing definition/read contract:
 
-- rules;
+- semantic rules payload; presentation-only reorder rules не входит;
 - publication/effective window;
 - default sort/direction;
 - soft delete.
@@ -481,7 +543,8 @@ Create defaults:
 3. canonicalize и validate весь rule set;
 4. заменить rules;
 5. проверить publication invariant;
-6. increment revision и listing revision;
+6. всегда increment aggregate revision; increment listing revision и
+   `listing_updated_at` только если canonical semantic `rulesHash` изменился;
 7. вернуть collection snapshot для event step.
 
 Нельзя удалить старые rules до полной validation новых.
@@ -498,10 +561,10 @@ Storefront-visible collection одновременно:
 
 Effective interval полуоткрытый: `[effective_from, effective_to)`.
 
-Rule reference, который был валиден при записи, но позже удалён, не делает
+Entity reference, который был валиден при записи, но позже удалён, не делает
 predicate ignored. Listing получает canonical rule как есть, missing posting
-даёт empty set. Admin resolver дополнительно вычисляет `referenceStatus` для
-rules (`VALID | STALE`), чтобы merchant видел причину empty result.
+даёт empty set. Admin resolver вычисляет `VALID | STALE` только для
+`CATEGORY`, `TAG`, `VENDOR`; остальные rules получают `NOT_APPLICABLE`.
 
 ## Catalog product snapshot
 
@@ -691,9 +754,14 @@ metadata
 rules
 publication
 schedule
+sort
 items
 rank
 ```
+
+`sort` используется для `defaultSort/defaultSortDirection` и всегда означает
+изменение Listing definition. `metadata` относится только к display metadata,
+translations, SEO и media и не меняет `listingRevision`.
 
 Deleted payload дополнительно несёт `deletedAt`.
 
@@ -754,7 +822,8 @@ Created/updated algorithm:
 1. получить event sequence;
 2. hydrate current authoritative Catalog live snapshot или tombstone;
 3. validate version, store, listing revision и canonical rules hash;
-4. lock projection row;
+4. взять tenant-scoped transaction advisory lock по
+   `(storeId, collectionId)`, затем прочитать live state и tombstone;
 5. если hydrated `listingRevision < event.listingRevision`, вернуть retryable
    source inconsistency: Catalog snapshot не может отставать от committed event;
 6. если hydration вернул tombstone, применить delete algorithm по tombstone
@@ -778,13 +847,16 @@ event с той же listing revision.
 
 Delete algorithm:
 
-1. lock projection;
+1. взять тот же tenant-scoped transaction advisory lock и прочитать live state
+   и tombstone;
 2. игнорировать stale delete;
-3. заменить live projection tombstone row с delete listing revision и max
-   observed event sequence;
-4. удалить manual collection posting по collection ID;
-5. удалить `sort_kind = manual` rows по `manual_scope_id`;
-6. commit tombstone и cleanup одной transaction, чтобы late update не
+3. upsert отдельный tombstone с delete listing revision и max observed event
+   sequence;
+4. удалить live `collection_state` row;
+5. удалить manual collection posting по collection ID;
+6. удалить `sort_kind = manual` rows по `manual_scope_id`;
+7. commit tombstone, live-state delete и cleanup одной transaction, чтобы late
+   update не
    восстановил collection.
 
 Retryable broker/database failures retry-ятся. Invalid version, store mismatch,
@@ -792,10 +864,10 @@ same-listing-revision conflict и invalid canonical rules — non-retryable.
 
 ## Listing persistence
 
-### Collection state
+### Live collection state
 
-Создать domain `services/listing/migrations/domains/9200_collections/` и таблицу
-`listing.collection_state`:
+Создать domain `services/listing/migrations/domains/9200_collections/` и
+таблицу только для live definitions `listing.collection_state`:
 
 ```text
 store_id               uuid        NOT NULL
@@ -813,7 +885,6 @@ payload_hash           text        NOT NULL
 event_sequence         bigint      NOT NULL
 source_updated_at      timestamptz NOT NULL
 projected_at           timestamptz NOT NULL
-deleted_at             timestamptz NULL
 PRIMARY KEY (store_id, collection_id)
 ```
 
@@ -824,6 +895,33 @@ Constraints:
 - `rule → default_sort <> manual`;
 - `manual → rules_json = []`;
 - rules hash/payload hash non-empty.
+
+Deleted state хранится отдельно в `listing.collection_tombstone`:
+
+```text
+store_id          uuid        NOT NULL
+collection_id     uuid        NOT NULL
+listing_revision  integer     NOT NULL
+event_sequence    bigint      NOT NULL
+deleted_at        timestamptz NOT NULL
+projected_at      timestamptz NOT NULL
+PRIMARY KEY (store_id, collection_id)
+```
+
+Tombstone содержит только поля authoritative deleted snapshot и не использует
+sentinel type/sort/rules/hash values. Все live/delete apply scripts сначала
+берут transaction-scoped PostgreSQL advisory lock по stable shared 64-bit hash
+tuple `(storeId, collectionId)`. Hash collision допускает только лишнюю
+сериализацию и не влияет на correctness. После lock repositories читают обе
+таблицы:
+
+- tombstone revision `>` incoming live revision → stale live snapshot;
+- tombstone revision `=` incoming live revision → terminal live/delete
+  conflict;
+- live revision `>` tombstone revision допустима только если Catalog lifecycle
+  когда-либо явно введёт restore operation; в первой версии restore отсутствует,
+  поэтому это terminal integrity failure;
+- delete upsert монотонно сохраняет max listing revision и event sequence.
 
 Repository наследуется от `BaseRepository`; public methods не принимают
 `storeId`.
@@ -904,6 +1002,7 @@ interface CompileCollectionRulesInput {
 interface CollectionRulePlan {
   listingRevision: number;
   rulesHash: string;
+  matchesNothing: boolean;
   productPostingGroups: ProductPostingGroup[];
   productRangePredicates: ProductRangePredicate[];
   variantPostingGroups: VariantPostingGroup[];
@@ -920,7 +1019,10 @@ Compiler:
 - выдаёт parameterized Drizzle `sql` fragments на следующем layer;
 - не принимает client-provided SQL field/value;
 - компилирует exact physical key; отсутствие posting row при выполнении даёт
-  empty bitmap.
+  empty bitmap;
+- для пустого rule set возвращает `matchesNothing = true` и пустые predicate
+  arrays; repository short-circuit-ит page/count/facets в explicit empty
+  product scope.
 
 Projection row валидируется при ingestion, поэтому invalid persisted rule
 или invalid physical key считаются integrity failure, а не storefront user
@@ -947,7 +1049,8 @@ Universe является execution policy, а не частью rule plan:
 Rule collection membership без пользовательских filters:
 
 ```text
-C = U_p ∩ R_p ∩ π(R_v)
+rules = []  -> C = ∅
+rules != [] -> C = U_p ∩ R_p ∩ π(R_v)
 ```
 
 Если variant rules отсутствуют, `π(R_v)` не добавляется.
@@ -955,11 +1058,13 @@ C = U_p ∩ R_p ∩ π(R_v)
 Финальный storefront result:
 
 ```text
-M = U_p ∩ R_p ∩ F_p ∩ π(R_v ∩ F_v)
+rules = []  -> M = ∅
+rules != [] -> M = U_p ∩ R_p ∩ F_p ∩ π(R_v ∩ F_v)
 ```
 
-Если нет ни rule, ни user variant predicates, variant projection не
-добавляется.
+Для non-empty rule set без collection/user variant predicates variant
+projection не добавляется. Empty RULE никогда не использует neutral `AND`
+identity и не может быть расширен пользовательскими filters.
 
 Manual collection:
 
@@ -1201,12 +1306,30 @@ type Collection implements Node @key(fields: "id") {
   description: RichText
   excerpt: RichText
   seo: SEO!
-  media: [CollectionMedia!]!
+  media(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CollectionMediaConnection!
+  featuredMedia: Media
   publishedAt: DateTime!
   activeFrom: DateTime
   activeTo: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+type CollectionMediaConnection implements Connection {
+  edges: [CollectionMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionMediaEdge {
+  cursor: Cursor!
+  node: Media!
 }
 
 extend type Query {
@@ -1215,7 +1338,9 @@ extend type Query {
 ```
 
 Storefront Catalog resolver возвращает только visible collection по правилам
-lifecycle. Rules storefront клиенту не раскрываются.
+lifecycle. Rules storefront клиенту не раскрываются. Media shape повторяет
+существующий Product/Category Relay contract; отдельный неопределённый
+`CollectionMedia` type не вводится.
 
 ### Listing storefront
 
@@ -1299,7 +1424,9 @@ Preview:
 - не индексирует products;
 - не зависит от facets;
 - использует current Listing eventual-consistent state;
-- имеет те же limits и semantics, что persisted rules.
+- имеет те же limits и semantics, что persisted rules;
+- для пустого transient rule set возвращает `0` через
+  `CollectionRulePlan.matchesNothing`.
 
 ## Consistency и lifecycle
 
@@ -1479,7 +1606,9 @@ Tracing связывает:
 - rules hash соответствует canonical rules JSON;
 - orphan collection postings/sort rows без live state выявляются и удаляются
   bounded repair action;
-- stale tombstone не может быть overwritten меньшей listing revision.
+- live state и tombstone не существуют одновременно;
+- stale tombstone не может быть overwritten меньшей listing revision;
+- tombstone содержит только delete contract fields и не требует live sentinels.
 
 Audit scan paginated/bounded. Repair не загружает весь store в память и только
 удаляет orphan derived rows; он не выполняет backfill/rebuild.
@@ -1525,14 +1654,17 @@ test/CI logs; отдельный report-файл в repository не создаё
 ### Фаза 0. Зафиксировать contracts
 
 1. Добавить enums и canonical DTO rules в `@shopana/broker-types`.
-2. Добавить collection snapshot/action contracts.
-3. Добавить collection events и `ProductUpdatedReason.collection`.
-4. Bump Catalog Product Snapshot и Listing Update contract versions.
-5. Обновить generated GraphQL contracts после schema changes.
+2. Добавить shared canonical serialization и versioned SHA-256 hash helpers.
+3. Добавить collection snapshot/action contracts.
+4. Добавить collection events, reason `sort` и
+   `ProductUpdatedReason.collection`.
+5. Bump Catalog Product Snapshot и Listing Update contract versions.
+6. Обновить generated GraphQL contracts после schema changes.
 
 Acceptance:
 
 - один canonical rule type используется Catalog projection и Listing compiler;
+- Catalog и Listing дают одинаковые `rulesHash/payloadHash` на shared vectors;
 - JSON `unknown` не пересекает service boundary;
 - contracts не импортируют service-local models.
 
@@ -1721,6 +1853,9 @@ Acceptance:
 - missing posting = empty;
 - BETWEEN inclusive;
 - canonical plan deterministic for reordered equivalent values;
+- empty rule set compiles to `matchesNothing` и даёт count `0`;
+- shared rule/payload hash vectors одинаковы в Catalog и Listing;
+- unknown hash version rejected;
 - invalid projection terminal;
 - SQL values bound, not interpolated.
 
@@ -1753,6 +1888,7 @@ Acceptance:
 - same-listing-revision/different-payload conflict;
 - older event с более новым hydrated snapshot coalesces to current state;
 - transient hydration retry;
+- tombstone без предшествующего live state сохраняется без sentinel fields;
 - delete tombstone blocks late update;
 - rules event updates projection without product reindex;
 - manual add/remove/move emits affected product events;
@@ -1778,8 +1914,10 @@ Acceptance:
 14. Manual/default/price/title/newest sorts deterministic.
 15. Cursor старой listing revision после rule update отклоняется.
 16. Empty RULE не публикуется.
-17. Cross-store IDs не раскрывают данные.
-18. Collection delete закрывает read и очищает projection.
+17. Empty RULE preview и admin connection возвращают `0`.
+18. Cross-store IDs не раскрывают данные.
+19. Collection delete закрывает read и очищает projection.
+20. Collection media использует Relay connection и schema composition проходит.
 
 ## Definition of done
 
