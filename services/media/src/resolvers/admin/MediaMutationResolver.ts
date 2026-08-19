@@ -836,6 +836,7 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       FILE_BEING_DELETED: "File is currently being deleted",
       INVALID_STATE: "Invalid file state for this operation",
       INVALID_ID: "Invalid file ID",
+      VALIDATION_ERROR: "Invalid input",
       INTERNAL_ERROR: "Internal error",
     };
     return messages[code] ?? "Unknown error";

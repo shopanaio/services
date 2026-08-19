@@ -114,6 +114,111 @@ Example provider-neutral profile shape:
 }
 ```
 
+### Reference provider profiles
+
+These five providers are reachable with the built-in adapters
+(`hmac-v1`, `composed-options-v1`, `bunny-v1`) and configuration alone — no
+provider-specific code branch in `CdnDeliveryService`. Query the
+`cdnAdapterCapabilities` admin query to confirm which adapter keys are
+actually registered in a given environment.
+
+**imgix** — flat query string, `transformStrategy: "NONE"`:
+
+```json
+{
+  "provider": "imgix",
+  "baseUrl": "https://your-source.imgix.net",
+  "transformStrategy": "NONE",
+  "transformConfig": {
+    "parameterMap": { "width": "w", "height": "h", "fit": "fit", "gravity": "crop", "format": "fm", "quality": "q" },
+    "valueMap": {
+      "fit": { "COVER": "fill", "CONTAIN": "clip", "FILL": "scale", "INSIDE": "fit", "OUTSIDE": "min" },
+      "gravity": { "TOP_LEFT": "top,left", "AUTO": "entropy" }
+    }
+  }
+}
+```
+
+**Cloudflare Images** — options encoded as a path segment, keys pass through as-is:
+
+```json
+{
+  "provider": "cloudflare-images",
+  "baseUrl": "https://example.com",
+  "transformStrategy": "composed-options-v1",
+  "transformConfig": {
+    "compose": {
+      "placement": "path",
+      "itemSeparator": ",",
+      "pairSeparator": "=",
+      "keyMap": { "width": "width", "height": "height", "fit": "fit", "gravity": "gravity", "format": "format", "quality": "quality" }
+    },
+    "valueMap": { "fit": { "COVER": "cover" } }
+  }
+}
+```
+
+**Cloudinary** — options encoded as a path segment with Cloudinary's short keys:
+
+```json
+{
+  "provider": "cloudinary",
+  "baseUrl": "https://res.cloudinary.com/your-cloud/image/upload",
+  "transformStrategy": "composed-options-v1",
+  "transformConfig": {
+    "compose": {
+      "placement": "path",
+      "itemSeparator": ",",
+      "pairSeparator": "_",
+      "keyMap": { "width": "w", "height": "h", "fit": "c", "gravity": "g", "format": "f", "quality": "q" }
+    },
+    "valueMap": { "fit": { "COVER": "fill", "CONTAIN": "fit" } }
+  }
+}
+```
+
+**ImageKit** — options encoded into a single `tr=` query parameter:
+
+```json
+{
+  "provider": "imagekit",
+  "baseUrl": "https://ik.imagekit.io/your-id",
+  "transformStrategy": "composed-options-v1",
+  "transformConfig": {
+    "compose": {
+      "placement": "query",
+      "queryParamName": "tr",
+      "itemSeparator": ",",
+      "pairSeparator": "-",
+      "keyMap": { "width": "w", "height": "h", "fit": "fo", "format": "f", "quality": "q" }
+    }
+  }
+}
+```
+
+**Bunny.net Optimizer** — plain query string, but `fit` maps to a boolean
+`crop` flag rather than a keyword; uses the dedicated `bunny-v1` adapter:
+
+```json
+{
+  "provider": "bunny",
+  "baseUrl": "https://your-zone.b-cdn.net",
+  "transformStrategy": "bunny-v1",
+  "transformConfig": {
+    "parameterMap": { "width": "width", "height": "height", "quality": "quality" }
+  }
+}
+```
+
+Signed delivery (any provider) uses the generic HMAC adapter:
+
+```json
+{
+  "signingMode": "hmac-v1",
+  "secretRef": "cdn-imgix-hmac"
+}
+```
+
 ## CDN routing rules
 
 `media.cdn_routing_rules` selects a CDN profile. Enabled rules are evaluated by

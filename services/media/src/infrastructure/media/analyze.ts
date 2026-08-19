@@ -12,6 +12,22 @@ export interface MediaMetadata {
   height?: number;
 }
 
+// MIME types with no reliable magic-byte signature for file-type to sniff
+// (glTF's JSON variant is plain text). The caller-declared type is only
+// trusted for these, and only after an additional content check — never
+// for types file-type normally *can* sniff, or a spoofed Content-Type on an
+// unrecognized payload would sail straight through the upload allowlist.
+const UNSNIFFABLE_TEXTUAL_MIME_TYPES = new Set(["model/gltf+json"]);
+
+function isJsonBuffer(buffer: Buffer): boolean {
+  try {
+    JSON.parse(buffer.toString("utf8"));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Extension mapping for common types that file-type might not detect
 const FALLBACK_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -27,6 +43,9 @@ const FALLBACK_EXT: Record<string, string> = {
   "audio/wav": "wav",
   "audio/ogg": "ogg",
   "application/pdf": "pdf",
+  "model/gltf+json": "gltf",
+  "model/gltf-binary": "glb",
+  "model/vnd.usdz+zip": "usdz",
 };
 
 /**
@@ -40,8 +59,31 @@ export async function analyzeMedia(
   // 1. Detect MIME type from magic bytes
   const fileType = await fileTypeFromBuffer(buffer);
 
-  const mimeType = fileType?.mime ?? fallbackMimeType ?? "application/octet-stream";
-  const ext = fileType?.ext ?? FALLBACK_EXT[mimeType] ?? "bin";
+  let mimeType: string;
+  let sniffedExt = fileType?.ext;
+  if (fileType) {
+    // USDZ is a plain ZIP container with no magic bytes of its own beyond
+    // the generic ZIP signature; only promote it to the declared USDZ type
+    // once the container is confirmed to actually be a ZIP.
+    if (fileType.mime === "application/zip" && fallbackMimeType === "model/vnd.usdz+zip") {
+      mimeType = fallbackMimeType;
+      sniffedExt = "usdz";
+    } else {
+      mimeType = fileType.mime;
+    }
+  } else if (
+    fallbackMimeType &&
+    UNSNIFFABLE_TEXTUAL_MIME_TYPES.has(fallbackMimeType) &&
+    isJsonBuffer(buffer)
+  ) {
+    mimeType = fallbackMimeType;
+  } else {
+    // Sniffing failed for anything else — never trust a caller-declared
+    // type here, or the upload MIME allowlist becomes trivially spoofable
+    // by lying about Content-Type on an unrecognized payload.
+    mimeType = "application/octet-stream";
+  }
+  const ext = sniffedExt ?? FALLBACK_EXT[mimeType] ?? "bin";
 
   const result: MediaMetadata = {
     mimeType,

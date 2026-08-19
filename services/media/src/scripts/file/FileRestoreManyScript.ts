@@ -1,4 +1,4 @@
-import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError } from "../../kernel/BaseScript.js";
 import type { FileDeletionState } from "../../repositories/models/index.js";
 import {
   fileRestoreManySchema,
@@ -64,7 +64,10 @@ export class FileRestoreManyScript extends BaseScript<
     return { restoredIds, errors };
   }
 
-  protected handleError(_error: unknown): FileRestoreManyResult {
+  protected handleError(error: unknown): FileRestoreManyResult {
+    if (error instanceof ValidationError) {
+      return { restoredIds: [], errors: [{ id: "", code: "VALIDATION_ERROR" }] };
+    }
     return {
       restoredIds: [],
       errors: [{ id: "", code: "INTERNAL_ERROR" }],

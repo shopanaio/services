@@ -6,9 +6,7 @@ import fastifyApollo, {
 } from "@as-integrations/fastify";
 import fastify from "fastify";
 import { readFileSync } from "fs";
-import depthLimit from "graphql-depth-limit";
 import { gql } from "graphql-tag";
-import { createComplexityLimitRule } from "graphql-validation-complexity";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import {
@@ -18,16 +16,12 @@ import {
 } from "@shopana/shared-service-config";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { getBucketName } from "../../infrastructure/s3/index.js";
+import { buildQueryProtectionOptions } from "../../infrastructure/graphql/queryProtection.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
 
 const { service, global } = getServiceConfig("media");
 const storageConfig = service.s3 ? buildS3Config(service.s3) : null;
 
-const ComplexityLimitRule = createComplexityLimitRule(1000, {
-  scalarCost: 1,
-  objectCost: 2,
-  listFactor: 10, // each list field multiplies the cost of its subtree
-});
 import { resolvers } from "./resolvers/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
@@ -126,22 +120,13 @@ export async function startServer(serverConfig: ServerConfig) {
 
   // Create Apollo Server
   const apollo = new ApolloServer<ServiceContext>({
-    introspection: isDevelopment(global),
-    validationRules: [depthLimit(8), ComplexityLimitRule],
+    ...buildQueryProtectionOptions(global),
     // @ts-expect-error - buildSubgraphSchema expects ServiceContext but we pass ServiceContextOptions
     schema: buildSubgraphSchema(modules),
     plugins: [
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),
     ],
-    formatError: (formattedError) => {
-      if (isDevelopment(global)) return formattedError;
-      if (formattedError.extensions?.code) return formattedError;
-      return {
-        message: "Internal server error",
-        extensions: { code: "INTERNAL_SERVER_ERROR" },
-      };
-    },
   });
 
   await apollo.start();

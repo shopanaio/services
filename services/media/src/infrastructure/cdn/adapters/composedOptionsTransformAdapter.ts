@@ -38,8 +38,6 @@ export function composedOptionsTransformAdapter(
   }).filter((pair): pair is string => pair !== null);
 
   const optionsBlock = pairs.join(compose.itemSeparator);
-  const base = new URL(context.configuration.baseUrl);
-  const pathPrefix = context.configuration.pathPrefix.replace(/^\/+|\/+$/g, "");
 
   if (compose.placement === "query") {
     const url = new URL(context.url);
@@ -47,7 +45,15 @@ export function composedOptionsTransformAdapter(
     return url.toString();
   }
 
-  return `${base.origin}/${[pathPrefix, optionsBlock, context.objectPath]
+  const base = new URL(context.configuration.baseUrl);
+  const pathPrefix = context.configuration.pathPrefix.replace(/^\/+|\/+$/g, "");
+  const encodedObjectPath = context.objectPath
+    .split("/")
+    .filter(Boolean)
+    .map(encodeURIComponent)
+    .join("/");
+
+  return `${base.origin}/${[pathPrefix, optionsBlock, encodedObjectPath]
     .filter(Boolean)
     .join("/")}`;
 }

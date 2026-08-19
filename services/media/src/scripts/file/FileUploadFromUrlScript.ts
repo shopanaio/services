@@ -40,6 +40,7 @@ async function readWithCap(
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) {
+        await reader.cancel("max size exceeded");
         throw new Error("File exceeds the maximum allowed size");
       }
       chunks.push(value);
@@ -298,11 +299,12 @@ export class FileUploadFromUrlScript extends BaseScript<
       };
     }
 
+    const dispatcher = pinnedDispatcher(target.pinnedIp, target.pinnedFamily);
     try {
       const response = await fetch(target.url, {
         method: "GET",
         redirect: "manual", // do not silently follow to an unvalidated host
-        dispatcher: pinnedDispatcher(target.pinnedIp, target.pinnedFamily),
+        dispatcher,
         headers: {
           "User-Agent": "ShopanaMediaService/1.0",
         },
@@ -372,6 +374,8 @@ export class FileUploadFromUrlScript extends BaseScript<
         success: false,
         error: error instanceof Error ? error.message : "Unknown fetch error",
       };
+    } finally {
+      await dispatcher.close();
     }
   }
 

@@ -15,5 +15,6 @@ export interface FileClearErrorResult {
     | "FILE_NOT_FOUND"
     | "FILE_BEING_DELETED"
     | "INVALID_STATE"
+    | "VALIDATION_ERROR"
     | "INTERNAL_ERROR";
 }

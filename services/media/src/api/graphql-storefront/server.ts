@@ -10,25 +10,18 @@ import {
   isDevelopment,
 } from "@shopana/shared-service-config";
 import fastify from "fastify";
-import depthLimit from "graphql-depth-limit";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gql } from "graphql-tag";
-import { createComplexityLimitRule } from "graphql-validation-complexity";
 import { setContext, ServiceContext } from "../../context/index.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
+import { buildQueryProtectionOptions } from "../../infrastructure/graphql/queryProtection.js";
 import { buildStorefrontContextMiddleware } from "./contextMiddleware.js";
 import { resolvers } from "./resolvers/index.js";
 
 const { global } = getServiceConfig("media");
-
-const ComplexityLimitRule = createComplexityLimitRule(1000, {
-  scalarCost: 1,
-  objectCost: 2,
-  listFactor: 10, // each list field multiplies the cost of its subtree
-});
 
 export interface StorefrontServerConfig {
   port: number;
@@ -84,8 +77,7 @@ export async function startStorefrontServer(
   }));
 
   const apollo = new ApolloServer<ServiceContext>({
-    introspection: isDevelopment(global),
-    validationRules: [depthLimit(8), ComplexityLimitRule],
+    ...buildQueryProtectionOptions(global),
     schema: buildSubgraphSchema(
       modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
     ),
@@ -93,14 +85,6 @@ export async function startStorefrontServer(
       fastifyApolloDrainPlugin(app),
       ApolloServerPluginInlineTraceDisabled(),
     ],
-    formatError: (formattedError) => {
-      if (isDevelopment(global)) return formattedError;
-      if (formattedError.extensions?.code) return formattedError;
-      return {
-        message: "Internal server error",
-        extensions: { code: "INTERNAL_SERVER_ERROR" },
-      };
-    },
   });
   await apollo.start();
 

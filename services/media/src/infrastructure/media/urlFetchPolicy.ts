@@ -3,11 +3,27 @@ import dns from "node:dns/promises";
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
 
-// Strip the IPv4-mapped-IPv6 wrapper (::ffff:127.0.0.1) so the IPv4 checks
-// below can't be bypassed by asking for the same address in v6 notation.
+// Node's URL parser bracket-wraps IPv6 literals ("[::1]") in `hostname`, so
+// the IP checks below never see a value `isIP`/`dns.lookup` can parse unless
+// the brackets are stripped first.
+function stripBrackets(hostname: string): string {
+  const match = hostname.match(/^\[(.+)\]$/);
+  return match ? match[1] : hostname;
+}
+
+// Undo the IPv4-mapped-IPv6 wrapper so the IPv4 checks below can't be
+// bypassed by asking for the same address in v6 notation. Node's URL parser
+// canonicalizes the dotted-quad form (::ffff:127.0.0.1) into hex groups
+// (::ffff:7f00:1), so both representations need to be recognized.
 function normalizeIp(ip: string): string {
-  const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-  return mapped ? mapped[1] : ip;
+  const hexMapped = ip.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hexMapped) {
+    const hi = parseInt(hexMapped[1], 16);
+    const lo = parseInt(hexMapped[2], 16);
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+  const dotted = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  return dotted ? dotted[1] : ip;
 }
 
 function isPrivateOrReservedIp(rawIp: string): boolean {
@@ -15,7 +31,9 @@ function isPrivateOrReservedIp(rawIp: string): boolean {
   // 169.254.0.0/16, 100.64.0.0/10 (CGNAT), ::1, ::, fc00::/7, fe80::/10.
   // fc00::/7 covers BOTH fc00::/8 and fd00::/8 — real-world randomly
   // generated ULAs are fd00::/8, so matching only "fc" (not "fd") would
-  // silently let them through.
+  // silently let them through. fe80::/10 spans first-group values
+  // fe80-febf (first group = 1111111010xxxxxx in binary), not just the
+  // literal "fe80" prefix.
   const ip = normalizeIp(rawIp);
   return (
     /^0\./.test(ip) ||
@@ -28,7 +46,7 @@ function isPrivateOrReservedIp(rawIp: string): boolean {
     ip === "::1" ||
     ip === "::" ||
     /^f[cd][0-9a-f]{0,2}:/i.test(ip) ||
-    /^fe80:/i.test(ip)
+    /^fe[89ab][0-9a-f]:/i.test(ip)
   );
 }
 
@@ -48,18 +66,20 @@ export async function assertFetchAllowed(rawUrl: string): Promise<FetchTarget> {
     throw new Error("This host is not allowed");
   }
 
-  if (isIP(url.hostname)) {
-    if (isPrivateOrReservedIp(url.hostname)) {
+  const host = stripBrackets(url.hostname);
+
+  if (isIP(host)) {
+    if (isPrivateOrReservedIp(host)) {
       throw new Error("This host is not allowed");
     }
     return {
       url,
-      pinnedIp: url.hostname,
-      pinnedFamily: isIP(url.hostname) === 6 ? 6 : 4,
+      pinnedIp: host,
+      pinnedFamily: isIP(host) === 6 ? 6 : 4,
     };
   }
 
-  const records = await dns.lookup(url.hostname, { all: true, verbatim: true });
+  const records = await dns.lookup(host, { all: true, verbatim: true });
   const safe = records.find((r) => !isPrivateOrReservedIp(r.address));
   if (!safe) {
     throw new Error("This host resolves to a disallowed address");

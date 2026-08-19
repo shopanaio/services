@@ -1,4 +1,4 @@
-import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError } from "../../kernel/BaseScript.js";
 import {
   fileClearErrorSchema,
   type FileClearErrorParams,
@@ -44,7 +44,10 @@ export class FileClearErrorScript extends BaseScript<
     return { file };
   }
 
-  protected handleError(_error: unknown): FileClearErrorResult {
+  protected handleError(error: unknown): FileClearErrorResult {
+    if (error instanceof ValidationError) {
+      return { error: "VALIDATION_ERROR" };
+    }
     return { error: "INTERNAL_ERROR" };
   }
 }

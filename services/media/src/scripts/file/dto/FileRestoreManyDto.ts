@@ -12,6 +12,11 @@ export interface FileRestoreManyResult {
   restoredIds: string[];
   errors: Array<{
     id: string;
-    code: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" | "INVALID_STATE" | "INTERNAL_ERROR";
+    code:
+      | "FILE_NOT_FOUND"
+      | "FILE_BEING_DELETED"
+      | "INVALID_STATE"
+      | "VALIDATION_ERROR"
+      | "INTERNAL_ERROR";
   }>;
 }

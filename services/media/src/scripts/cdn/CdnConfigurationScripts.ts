@@ -83,70 +83,6 @@ function normalizeInput<T extends Partial<CdnConfigurationInput>>(input: T): T {
   return normalized as T;
 }
 
-function validateInput(
-  input: Partial<CdnConfigurationInput>,
-  partial = false
-): UserError[] {
-  const errors: UserError[] = [];
-  if (!partial || input.name !== undefined) {
-    if (!input.name?.trim()) {
-      errors.push({ field: ["name"], code: "REQUIRED", message: "Name is required" });
-    }
-  }
-  if (!partial || input.provider !== undefined) {
-    if (!input.provider?.trim()) {
-      errors.push({ field: ["provider"], code: "REQUIRED", message: "Provider is required" });
-    }
-  }
-  if (!partial || input.baseUrl !== undefined) {
-    try {
-      const url = new URL(input.baseUrl ?? "");
-      if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
-    } catch {
-      errors.push({
-        field: ["baseUrl"],
-        code: "INVALID_BASE_URL",
-        message: "baseUrl must be an absolute HTTP(S) URL",
-      });
-    }
-  }
-  for (const field of ["signingMode", "transformStrategy"] as const) {
-    if (input[field] !== undefined && !input[field]?.trim()) {
-      errors.push({
-        field: [field],
-        code: "REQUIRED",
-        message: `${field} cannot be empty`,
-      });
-    }
-  }
-  for (const field of ["providerConfig", "transformConfig"] as const) {
-    const value = input[field];
-    if (
-      value !== undefined &&
-      (value === null || typeof value !== "object" || Array.isArray(value))
-    ) {
-      errors.push({
-        field: [field],
-        code: "INVALID_CONFIG",
-        message: `${field} must be an object`,
-      });
-    }
-  }
-  if (
-    !partial &&
-    input.signingMode &&
-    input.signingMode !== "NONE" &&
-    !input.secretRef?.trim()
-  ) {
-    errors.push({
-      field: ["secretRef"],
-      code: "SECRET_REF_REQUIRED",
-      message: "secretRef is required when signing is enabled",
-    });
-  }
-  return errors;
-}
-
 export class CdnConfigurationCreateScript extends BaseScript<
   CdnConfigurationCreateParams,
   CdnConfigurationResult
@@ -156,7 +92,17 @@ export class CdnConfigurationCreateScript extends BaseScript<
     params: CdnConfigurationCreateParams
   ): Promise<CdnConfigurationResult> {
     const input = normalizeInput(params);
-    const userErrors = validateInput(input);
+    // Zod already enforced field shape/bounds; the remaining checks
+    // (baseUrl protocol, secretRef-required-when-signing) are business
+    // rules that live in CdnDeliveryService as the single source of truth,
+    // shared with the update/test scripts.
+    const userErrors = new CdnDeliveryService(this.repository).validateConfiguration({
+      baseUrl: input.baseUrl,
+      signingMode: input.signingMode ?? "NONE",
+      secretRef: input.secretRef ?? null,
+      transformStrategy: input.transformStrategy ?? "NONE",
+      urlTemplate: input.urlTemplate ?? null,
+    });
     if (userErrors.length > 0) return { configuration: null, userErrors };
 
     const assetGroup = await this.getOrCreateStoreAssetGroup();
@@ -212,10 +158,7 @@ export class CdnConfigurationUpdateScript extends BaseScript<
     }
 
     const merged = { ...existing, ...input };
-    const userErrors = [
-      ...validateInput(input, true),
-      ...new CdnDeliveryService(this.repository).validateConfiguration(merged),
-    ];
+    const userErrors = new CdnDeliveryService(this.repository).validateConfiguration(merged);
     if (userErrors.length > 0) return { configuration: null, userErrors };
 
     return {
@@ -326,17 +269,9 @@ export class CdnConfigurationTestScript extends BaseScript<
   ): Promise<CdnConfigurationTestResult> {
     const { objectPath, transform, ...configurationInput } = params;
     const input = normalizeInput(configurationInput);
-    const validationErrors = validateInput(input);
-    if (!objectPath.trim()) {
-      validationErrors.push({
-        field: ["objectPath"],
-        code: "REQUIRED",
-        message: "objectPath is required",
-      });
-    }
-    if (validationErrors.length > 0) {
-      return { preview: null, userErrors: validationErrors };
-    }
+    // Shape/bounds (including objectPath) are enforced by
+    // cdnConfigurationTestSchema; `preview()` below runs the same
+    // validateConfiguration business-rule check used by create/update.
 
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const now = new Date().toISOString();
@@ -360,7 +295,7 @@ export class CdnConfigurationTestScript extends BaseScript<
     };
     const delivery = await new CdnDeliveryService(this.repository).preview(
       configuration,
-      objectPath.trim(),
+      objectPath,
       transform
     );
 

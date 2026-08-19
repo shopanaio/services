@@ -39,87 +39,6 @@ export interface CdnRoutingRuleDeleteResult {
   userErrors: UserError[];
 }
 
-function validateName(name: string | undefined): UserError[] {
-  return name?.trim()
-    ? []
-    : [{ field: ["name"], code: "REQUIRED", message: "Name is required" }];
-}
-
-function validateConditions(conditions: unknown): UserError[] {
-  if (conditions === undefined) return [];
-  if (!conditions || typeof conditions !== "object" || Array.isArray(conditions)) {
-    return [{
-      field: ["conditions"],
-      code: "INVALID_CONDITIONS",
-      message: "conditions must be an object",
-    }];
-  }
-
-  const value = conditions as Record<string, unknown>;
-  const errors: UserError[] = [];
-  for (const key of [
-    "mediaTypes",
-    "mimeTypes",
-    "providers",
-    "extensions",
-    "countries",
-  ]) {
-    const condition = value[key];
-    if (
-      condition !== undefined &&
-      (!Array.isArray(condition) || condition.some((item) => typeof item !== "string"))
-    ) {
-      errors.push({
-        field: ["conditions", key],
-        code: "INVALID_CONDITION",
-        message: `${key} must be an array of strings`,
-      });
-    }
-  }
-
-  for (const key of ["minSizeBytes", "maxSizeBytes"]) {
-    const condition = value[key];
-    if (
-      condition !== undefined &&
-      (typeof condition !== "number" || !Number.isFinite(condition) || condition < 0)
-    ) {
-      errors.push({
-        field: ["conditions", key],
-        code: "INVALID_CONDITION",
-        message: `${key} must be a non-negative finite number`,
-      });
-    }
-  }
-
-  if (
-    typeof value.minSizeBytes === "number" &&
-    typeof value.maxSizeBytes === "number" &&
-    value.minSizeBytes > value.maxSizeBytes
-  ) {
-    errors.push({
-      field: ["conditions", "maxSizeBytes"],
-      code: "INVALID_CONDITION_RANGE",
-      message: "maxSizeBytes must be greater than or equal to minSizeBytes",
-    });
-  }
-  return errors;
-}
-
-function validateTransformOverrides(value: unknown): UserError[] {
-  if (
-    value === undefined ||
-    value === null ||
-    (typeof value === "object" && !Array.isArray(value))
-  ) {
-    return [];
-  }
-  return [{
-    field: ["transformOverrides"],
-    code: "INVALID_TRANSFORM_OVERRIDES",
-    message: "transformOverrides must be an object",
-  }];
-}
-
 export class CdnRoutingRuleCreateScript extends BaseScript<
   CdnRoutingRuleCreateParams,
   CdnRoutingRuleResult
@@ -128,13 +47,6 @@ export class CdnRoutingRuleCreateScript extends BaseScript<
   protected async execute(
     params: CdnRoutingRuleCreateParams
   ): Promise<CdnRoutingRuleResult> {
-    const userErrors = [
-      ...validateName(params.name),
-      ...validateConditions(params.conditions),
-      ...validateTransformOverrides(params.transformOverrides),
-    ];
-    if (userErrors.length > 0) return { routingRule: null, userErrors };
-
     const assetGroup = await this.getOrCreateStoreAssetGroup();
     const configuration = await this.repository.cdnConfiguration.findById(
       assetGroup.id,
@@ -154,10 +66,7 @@ export class CdnRoutingRuleCreateScript extends BaseScript<
     }
 
     return {
-      routingRule: await this.repository.cdnRoutingRule.create(assetGroup.id, {
-        ...params,
-        name: params.name.trim(),
-      }),
+      routingRule: await this.repository.cdnRoutingRule.create(assetGroup.id, params),
       userErrors: [],
     };
   }
@@ -184,26 +93,15 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
     params: CdnRoutingRuleUpdateParams
   ): Promise<CdnRoutingRuleResult> {
     const { id, ...changes } = params;
-    const conditionErrors = validateConditions(changes.conditions);
-    const transformErrors = validateTransformOverrides(
-      changes.transformOverrides
-    );
-    if (conditionErrors.length > 0 || transformErrors.length > 0) {
-      return {
-        routingRule: null,
-        userErrors: [...conditionErrors, ...transformErrors],
-      };
-    }
+    // DB columns are non-null jsonb; an explicit null means "clear it".
     if (
       "transformOverrides" in changes &&
       changes.transformOverrides === null
     ) {
       changes.transformOverrides = {};
     }
-    if (changes.name !== undefined) {
-      const errors = validateName(changes.name);
-      if (errors.length > 0) return { routingRule: null, userErrors: errors };
-      changes.name = changes.name.trim();
+    if ("conditions" in changes && changes.conditions === null) {
+      changes.conditions = {};
     }
 
     const assetGroup = await this.getOrCreateStoreAssetGroup();

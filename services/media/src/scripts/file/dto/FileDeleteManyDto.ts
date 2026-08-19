@@ -15,6 +15,6 @@ export interface FileDeleteManyResult {
   startedHardDeleteIds: string[];
   errors: Array<{
     id: string;
-    code: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" | "INTERNAL_ERROR";
+    code: "FILE_NOT_FOUND" | "FILE_BEING_DELETED" | "VALIDATION_ERROR" | "INTERNAL_ERROR";
   }>;
 }

@@ -1,4 +1,4 @@
-import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError } from "../../kernel/BaseScript.js";
 import {
   fileRestoreSchema,
   type FileRestoreParams,
@@ -35,7 +35,10 @@ export class FileRestoreScript extends BaseScript<
     return { file: restored };
   }
 
-  protected handleError(_error: unknown): FileRestoreResult {
+  protected handleError(error: unknown): FileRestoreResult {
+    if (error instanceof ValidationError) {
+      return { error: "VALIDATION_ERROR" };
+    }
     return { error: "INTERNAL_ERROR" };
   }
 }
