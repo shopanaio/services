@@ -437,7 +437,7 @@ export class ProgramRepository extends BaseRepository {
         ),
       )
       .orderBy(
-        asc(programVersions.referenceReconciliationCheckedAt),
+        sql`${programVersions.referenceReconciliationCheckedAt} ASC NULLS FIRST`,
         asc(programVersions.id),
       )
       .limit(limit);

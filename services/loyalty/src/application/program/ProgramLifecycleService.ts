@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import type { Repository } from "../../repositories/Repository.js";
 import type {
   NewProgram,
@@ -81,6 +82,8 @@ export interface ProgramVersionConfigurationInput {
 }
 
 export class ProgramLifecycleService {
+  private readonly logger = new Logger(ProgramLifecycleService.name);
+
   constructor(
     private readonly repository: Repository,
     private readonly references?: LoyaltyReferenceValidator,
@@ -589,8 +592,12 @@ export class ProgramLifecycleService {
         const status = issues.length > 0 ? "STALE" : "VALID";
         if (status === "STALE") stale += 1;
         await this.repository.program.updateReferenceReconciliation(version.id, status, checkedAt);
-      } catch {
+      } catch (error) {
         failed += 1;
+        this.logger.error(
+          `Reference reconciliation failed for program version ${version.id}`,
+          error,
+        );
       }
     }
     return { checked: versions.length, stale, failed };

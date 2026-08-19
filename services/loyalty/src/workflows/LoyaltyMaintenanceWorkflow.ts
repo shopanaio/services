@@ -44,6 +44,7 @@ export interface LoyaltyMaintenanceResult {
   rebuiltBalances: number;
   reconciledProgramVersions: number;
   staleProgramVersions: number;
+  failedProgramVersionReconciliations: number;
 }
 
 type GetStoreByIdResult = { store: ContextStore | null; userErrors: readonly { message: string }[] };
@@ -186,6 +187,7 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
           rebuiltBalances,
           reconciledProgramVersions: reconciliation.checked,
           staleProgramVersions: reconciliation.stale,
+          failedProgramVersionReconciliations: reconciliation.failed,
         },
         emissions,
       };
