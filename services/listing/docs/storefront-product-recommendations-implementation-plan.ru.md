@@ -17,10 +17,12 @@
 1. Orders должен иметь authoritative transition, из которого можно надёжно
    публиковать `orderSaleCommitted` и `orderSaleReversed`.
 2. Project должен предоставить защищённый paginated broker action для
-   перечисления active stores operational scheduler'ом.
+   перечисления trusted active-store contexts operational scheduler'ом. Каждый
+   context содержит как минимум `storeId` и `organizationId`.
 
-До выполнения первого prerequisite можно реализовать curated recommendations,
-storefront serving и ranking fallbacks. Behavioral FBT остаётся выключенным.
+До выполнения первого prerequisite можно реализовать manual curated
+recommendations и storefront serving. Behavioral FBT и основанные на ACTIVE
+sales run category/store popularity fallbacks остаются выключенными.
 
 Проект не имеет production/staging данных. Backfill, dual-read, dual-write и
 обратная совместимость не предусматриваются.
@@ -93,6 +95,7 @@ store_popularity
   calculation и snapshot build не имеют внешних compensatable side effects,
   а lifecycle failure должен фиксироваться явно.
 - Decimal values проходят TypeScript boundary как strings.
+- Bigint values проходят broker/workflow boundary как decimal strings.
 - Raw SQL использует `sql` fragments и typed row DTO.
 - Admin inputs не принимают `storeId`.
 - Product IDs принимаются как Relay Global IDs и проверяются в trusted store
@@ -347,8 +350,13 @@ interface ListActiveStoresParams {
   first: number;
 }
 
+interface ActiveStoreWorkflowContext {
+  storeId: string;
+  organizationId: string;
+}
+
 interface ListActiveStoresResult {
-  storeIds: string[];
+  stores: ActiveStoreWorkflowContext[];
   nextCursor: string | null;
 }
 ```
@@ -358,16 +366,22 @@ Action:
 - находится в Project service;
 - поддерживает `first` от 1 до 500;
 - сортирует по raw `store_id ASC`;
+- возвращает trusted пару `storeId + organizationId`, проверенную по current
+  Project state;
 - доступен только internal workflow identity;
 - не используется storefront/admin requests.
 
 Listing scheduler не выполняет cross-tenant SQL самостоятельно.
+Store-scoped workflow переносит оба identifiers в input и строит
+`RunScriptContext` только из результата этого trusted action. Один `storeId`
+без `organizationId` недостаточен для запуска Listing scripts.
 
 Done when:
 
 - event types экспортируются через `@shopana/events`;
 - producer integration point определён и покрывает commit/correction/reversal;
-- active stores доступны scheduler'у paginated broker call.
+- trusted `storeId + organizationId` contexts доступны scheduler'у paginated
+  broker call.
 
 ## Phase 1. Runtime models и repository wiring
 
@@ -410,9 +424,11 @@ FOR UPDATE;
 
 `RecommendationOrderFactIngestScript`:
 
-1. валидирует UUIDs, positive revision, non-empty committed lines и quantities;
+1. валидирует UUIDs, positive revision, non-empty committed lines, quantities и
+   не более 100 distinct products в одной committed revision;
 2. агрегирует duplicate product lines;
-3. вычисляет SHA-256 от canonical `{ eventType, payload }`;
+3. сортирует агрегированные lines по raw product ID и вычисляет SHA-256 от
+   canonical `{ eventType, payload }`;
 4. блокирует cursor row;
 5. проверяет существующий `event_id`;
 6. проверяет `(order_id, order_revision)`;
@@ -428,6 +444,11 @@ Mapping timestamps:
   `occurred_at = event.timestamp`;
 - reversed: `committed_at = payload.committedAt`,
   `occurred_at = payload.reversedAt`.
+
+Ограничение в 100 distinct products является частью `schemaVersion: 1` sale
+event contract. Producer не публикует неподдерживаемый payload. Это ограничивает
+квадратичное pair expansion максимумом 9 900 directed pairs на order revision;
+Listing не молча обрезает lines и не строит статистику из частичного заказа.
 
 Late revision сохраняется. Arrival order не обязан совпадать с
 `orderRevision`; effective state определяется calculation query.
@@ -545,7 +566,7 @@ Workflow steps не возвращают statistics arrays. Compute script во�
 ```typescript
 interface RecommendationCalculationCounts {
   productCount: number;
-  pairCount: bigint;
+  pairCount: string;
 }
 ```
 
@@ -557,7 +578,23 @@ Product/pair rows материализуются bounded batches:
 3. `INSERT ... SELECT` связывает IDs и ordered rows через ordinality;
 4. retry использует unique `(run_id, product_id)` /
    `(run_id, anchor_product_id, target_product_id)` и не создаёт duplicates;
-5. durable output хранит cursor/count, но не все rows.
+5. durable output хранит cursor и decimal-string count, но не все rows.
+
+Compute не является одним долгим durable step. Workflow детерминированно
+повторяет отдельные page steps:
+
+```text
+initialize aggregates
+  -> materialize next product page -> persist cursor/count
+  -> materialize next pair page    -> persist cursor/count
+  -> finalize counts
+```
+
+Каждый page insert и advance его persisted progress атомарны. Page retry после
+неопределённого результата повторяет ту же keyset page и классифицирует
+conflicts по run-scoped unique constraints. Workflow не удерживает transaction
+между pages и не возвращает через durable boundary rows или JavaScript
+`bigint`.
 
 ### Workflow lifecycle
 
@@ -609,7 +646,7 @@ JavaScript `number`.
 
 ### Sources
 
-Manual source читает все enabled, VALID rows, активные в `asOf`:
+Manual positive source читает enabled, VALID `PIN`/`BOOST`, активные в `asOf`:
 
 ```text
 starts_at IS NULL OR starts_at <= asOf
@@ -630,13 +667,53 @@ FBT source читает pair stats текущего ACTIVE run.
 
 `store_popularity` использует product stats ACTIVE run без category restriction.
 
-Каждый source читает не более:
+Для одного build:
 
 ```text
-min(maximumResults * 4, 400)
+sourceLimit = min(maximumResults * 4, 400)
+globalCandidateLimit = 1600
 ```
 
-rows на anchor. Это ограничивает memory одного snapshot build.
+- все active PIN читаются целиком; их количество не превышает
+  `maximumResults` благодаря mutation validation и schedule exclusion;
+- BOOST source читает не более `sourceLimit`, ordered by boost DESC и target ID;
+- каждый automated/fallback source читает не более `sourceLimit`;
+- sources применяются в фиксированном порядке, deduplicate по target ID и
+  никогда не увеличивают union выше `globalCandidateLimit`;
+- EXCLUDE rows не загружаются unbounded array: candidate queries применяют
+  schedule-aware anti-join, а после dedup выполняется один batch lookup только
+  для IDs bounded union;
+- превышение global limit является explicit build failure
+  `CANDIDATE_LIMIT_EXCEEDED`, а не молчаливым truncation.
+
+Так один snapshot build и его durable result имеют фиксированную верхнюю
+границу. Admin persisted manual list остаётся paginated.
+
+### Fallback execution
+
+Candidate source и score feature различаются. Product popularity ACTIVE run
+может обогащать уже найденный FBT candidate, не превращая
+`store_popularity` в автоматически запущенный candidate source.
+
+Fallback chain применяется так:
+
+1. собираются base candidates strategy: manual для curated strategies и FBT для
+   automated strategies;
+2. выполняются dedup, EXCLUDE и eligibility;
+3. `CURATED_ONLY` завершает pipeline без fallback независимо от
+   `minimumResults`;
+4. для остальных strategies registered codes из `fallbackChain` вызываются
+   строго по порядку, только пока eligible unique candidate count меньше
+   `minimumResults`;
+5. после каждого source снова выполняются dedup, EXCLUDE и eligibility;
+6. после достижения `minimumResults` оставшиеся fallback codes не вызываются;
+7. ranking применяется один раз к итоговому bounded union и ограничивает output
+   значением `maximumResults`.
+
+`minimumResults = 0` отключает запуск fallback chain. FBT, category popularity
+и store popularity требуют ACTIVE calculation run. До появления sales
+projection гарантирован только manual curated result; fallback codes без
+доступного run возвращают zero candidates и не делают synchronous calculation.
 
 ### Score normalization
 
@@ -728,6 +805,8 @@ Done when:
 - все source limits bounded;
 - category source использует Listing projection, а не несуществующее поле
   `product_listing_index.category`;
+- fallback chain вызывается строго до достижения `minimumResults`;
+- candidate union не превышает `globalCandidateLimit`;
 - strategy behavior покрыт unit tests.
 
 ## Phase 5. Snapshot build и fan-out
@@ -741,7 +820,7 @@ interface RecommendationBuildInputs {
   policyId: string;
   policyVersion: number;
   calculationRunId: string | null;
-  sourceIngestionWatermark: bigint | null;
+  sourceIngestionWatermark: string | null;
   manualConfigurationHash: string;
   modelVersion: string;
 }
@@ -764,8 +843,9 @@ read fixed inputs
   -> atomically activate
 ```
 
-Candidate collection и ranking являются одним durable step либо возвращают
-не более 400 candidates. Snapshot items вставляются одной transaction.
+Candidate collection и ranking являются одним durable step и возвращают не
+более `globalCandidateLimit` candidates. Snapshot items вставляются одной
+transaction.
 
 Перед activation проверяются:
 
@@ -804,7 +884,13 @@ Fan-out sources:
     или store popularity;
 - product lifecycle:
   - product как anchor;
-  - manual/snapshot references на product как target.
+  - manual/snapshot references на product как target;
+  - при изменении publication/category membership — published anchors,
+    принадлежащие union old/new categories, для policies с
+    `category_popularity`;
+  - при переходе publication/availability, способном добавить product в
+    candidate pool, — все published anchors placements, policies которых
+    используют `store_popularity`.
 
 `RecommendationSnapshotFanOutWorkflow` обрабатывает одну page raw product IDs,
 enqueue-ит child builds и запускает следующую page. Page size — 100. Durable
@@ -890,11 +976,18 @@ LATERAL page/count branches. Это предотвращает N+1, когда r
 ### Cache
 
 - request cache обеспечивает DataLoader;
-- active-snapshot lookup cache хранит positive/missing sentinel не более 30s;
-- activation/disable/lifecycle supersede явно инвалидируют lookup key;
+- current ACTIVE snapshot всегда выбирается из database; cross-request
+  positive/missing lookup cache не используется;
 - immutable raw item page может кэшироваться по snapshot ID;
 - live eligibility result между requests не кэшируется;
 - empty immutable snapshot кэшируется как raw empty page.
+
+Это обязательное consistency решение: текущий Listing cache process-local, а
+post-commit invalidation не может атомарно очистить все replicas. Поэтому
+disable после commit немедленно даёт empty connection, а cursor старой
+generation после activation получает explicit validation error. Добавление
+shared active-generation cache допускается только отдельной версией с
+generation validation, согласованной с database.
 
 ### Resolver
 
@@ -1001,6 +1094,9 @@ input RecommendationSnapshotPreviewInput {
 }
 ```
 
+Zod schema ограничивает `manualChanges` значением 400. Draft с большим числом
+changes возвращает `PREVIEW_LIMIT_EXCEEDED` и не выполняет partial preview.
+
 Preview:
 
 1. читает persisted policy/manual rows;
@@ -1010,6 +1106,9 @@ Preview:
 5. возвращает active, draft и excluded candidates.
 
 Без draft overlay preview показывает результат текущей persisted configuration.
+Draft и excluded lists строятся только из того же bounded candidate union, что
+и snapshot build. Превышение `globalCandidateLimit` возвращает user error, а не
+truncated result.
 
 Excluded reasons:
 
@@ -1042,9 +1141,10 @@ workflow ID: recommendation-calculation-trigger:<utc-hour>
 
 Все replicas получают одинаковый ID; duplicate start игнорируется.
 
-Trigger paginated вызывает Project active-store action. Для каждого store
-запускается store-scoped calculation trigger workflow. Store workflow сравнивает
-cursor/run state и запускает calculation только по правилам cadence.
+Trigger paginated вызывает Project active-store action. Для каждого trusted
+store context запускается store-scoped calculation trigger workflow. Store
+workflow переносит `storeId + organizationId`, сравнивает cursor/run state и
+запускает calculation только по правилам cadence.
 
 ### Manual schedule scheduler
 
@@ -1056,14 +1156,25 @@ workflow ID: recommendation-manual-boundary:<utc-minute>
 
 Store-scoped workflow:
 
-1. читает maintenance cursor;
+1. в короткой transaction создаёт cursor при отсутствии и блокирует store row
+   через `SELECT ... FOR UPDATE`;
 2. находит distinct anchor + placement boundaries в
    `(lastManualBoundaryAt, currentMinute]`;
 3. enqueue-ит deterministic snapshot builds;
-4. после успешного enqueue всех pages advance-ит cursor;
+4. после успешного enqueue всех pages compare-and-set advance-ит cursor с
+   ожидаемого старого watermark;
 5. при retry duplicate child workflows являются no-op.
 
 Cursor нельзя advance-ить до child enqueue: crash не должен терять boundary.
+Store workflow ID:
+
+```text
+recommendation-manual-boundary:<storeId>:<utc-minute>
+```
+
+Следующая minute generation может начаться до завершения предыдущей, поэтому
+lock/CAS обязателен даже при deterministic IDs. Если CAS не прошёл, workflow
+повторно читает новый interval и не перезаписывает более свежий watermark.
 
 Done when:
 
@@ -1076,6 +1187,11 @@ Done when:
 
 Recommendation reconciliation запускается после успешного update Listing
 projection, а не параллельно с ним.
+
+До write step существующий listing workflow фиксирует bounded lifecycle plan:
+old/new publication state, availability и old/new category IDs. После commit
+этот plan передаётся recommendation sync; workflow не пытается восстановить
+старые categories из уже обновлённой projection.
 
 Изменить listing index workflows:
 
@@ -1095,6 +1211,13 @@ Reference sync:
   - tenant ownership проверяется по `store_id`;
   - stale manual references → `VALID`;
   - affected anchors enqueue rebuild;
+- category membership change:
+  - paginated rebuild получает anchors из union old/new categories;
+  - затрагиваются только placements с `category_popularity` в policy;
+- unpublished/unavailable → published/available:
+  - reverse references rebuild-ятся как обычно;
+  - policies со `store_popularity` получают paginated store-level fan-out,
+    поскольку новый target ещё может не иметь reverse references;
 - unavailable target не переводит editorial reference в `STALE`, но live
   serving исключает его и async rebuild уплотняет ranks.
 
@@ -1105,7 +1228,9 @@ Done when:
 
 - recommendation workflow не читает stale pre-sync listing state;
 - deletion не удаляет editorial intent;
-- target disappearance немедленно скрывается live filter и затем rebuild'ом.
+- target disappearance немедленно скрывается live filter и затем rebuild'ом;
+- новый eligible target достигает category/store-popularity snapshots даже без
+  существующей reverse reference.
 
 ## Observability
 
@@ -1145,9 +1270,12 @@ Logs не содержат customer identity или order lines.
 ### Unit
 
 - canonical payload hash;
+- maximum distinct products sale contract;
 - schedule half-open intervals;
 - manual configuration hash before/after boundary;
 - FBT formulas and thresholds;
+- ordered fallback-chain stop at `minimumResults`;
+- global candidate limit;
 - all strategy/ranker cases;
 - PIN gap filling and deterministic ties;
 - cursor validation.
@@ -1171,8 +1299,10 @@ Logs не содержат customer identity или order lines.
 - duplicate workflow start;
 - paginated fan-out resume;
 - scheduler multi-replica idempotency;
+- overlapping manual minute workflows and maintenance cursor CAS;
 - manual boundary retry before/after cursor advance;
-- product sync ordering.
+- product sync ordering;
+- category/store-popularity fan-out for a newly eligible target.
 
 ### GraphQL/e2e
 
@@ -1180,6 +1310,7 @@ Logs не содержат customer identity или order lines.
 - `first` validation;
 - nodes/edges/pageInfo/totalCount;
 - cursor generation change;
+- disable/activation visibility across separate Listing replicas;
 - empty connection;
 - Admin optimistic concurrency;
 - draft preview;
@@ -1227,15 +1358,21 @@ Orders producer integration ←────────────────�
 - Calculation сначала выбирает effective revision, затем применяет window.
 - Watermark фиксируется под cursor lock.
 - Ни один durable step не возвращает unbounded statistics/anchor arrays.
+- Ни один snapshot build не превышает `globalCandidateLimit`.
 - Run/snapshot failures явно переходят в `FAILED`.
 - Policy disable немедленно прекращает serving.
 - Policy update rebuild-ит все anchors placement'а.
 - Popularity update rebuild-ит anchors без pair stats.
+- Product lifecycle fan-out охватывает новые category/store-popularity
+  candidates без существующих reverse references.
 - Scheduled manual actions активируются и истекают без mutation.
+- Maintenance cursor защищён lock/CAS от overlapping minute workflows.
 - Ranking formula полностью определяется model version.
 - Category popularity использует Listing category postings.
 - Publication и availability проверяются при build и serving.
 - Storefront list queries используют batch DataLoader path.
+- Current ACTIVE snapshot lookup не использует process-local cross-request
+  cache.
 - Admin preview поддерживает unsaved draft overlay.
 - Cross-store reads/writes не раскрывают чужие entities.
 - Новый ACTIVE run/snapshot публикуется одной transaction.
