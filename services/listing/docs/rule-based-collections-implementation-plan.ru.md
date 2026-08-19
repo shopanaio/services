@@ -320,14 +320,35 @@ UUID arrays и source/value pairs:
 - bounded by configured limits.
 
 Feature и option definitions сейчас product-local, поэтому их cross-product
-semantic identity — normalized pair `sourceHandle/valueHandle`. Это тот же
+semantic identity — canonical pair `sourceHandle/valueHandle`. Это тот же
 Catalog source identity, который существует до создания Facet, но rule не
-ссылается на Facet. Handles:
+ссылается на Facet.
 
-- приводятся к единому Unicode/trim/case policy Catalog;
+В `@shopana/broker-types` вводится executable
+`normalizeCollectionRuleHandleV1(raw)` с точным contract:
+
+1. применить Unicode `NFKC`;
+2. удалить leading/trailing ECMAScript whitespace через `trim()`;
+3. применить locale-independent `toLowerCase()`;
+4. проверить ASCII slug regex
+   `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`;
+5. проверить длину `1..255` Unicode code points после normalization.
+
+Helper возвращает canonical slug либо typed validation failure. Catalog
+Feature/Option create, update и sync inputs обязаны использовать этот helper,
+а не собственные regex. Это прямое исправление текущего расхождения: feature
+slug уже ограничен lowercase slug, option slug сейчас принимает произвольную
+непустую строку. Так как база clean и compatibility запрещена, старый option
+contract не сохраняется.
+
+Rules и Catalog Product Snapshot хранят/передают только результат этого helper.
+Mapper повторно проверяет persisted source/value slug и считает нарушение
+integrity failure; он не молча исправляет persisted данные. Handles:
+
 - не переводятся;
 - не заменяются display names;
-- считаются merchant-controlled semantic keys.
+- считаются merchant-controlled semantic keys;
+- сравниваются byte-for-byte после canonicalization.
 
 Tag, category и vendor имеют store-global identities, поэтому rules хранят их
 UUID, а не mutable handles.
@@ -350,6 +371,117 @@ entity-reference rules; handle и scalar rules возвращают `NOT_APPLICA
 Пустой posting для `NOT_APPLICABLE` означает обычный empty match, а не stale
 reference.
 
+### Executable canonical DTO
+
+В `@shopana/broker-types` хранится единственный discriminated union. Service
+models, GraphQL enums и raw JSON в этот тип не входят:
+
+```typescript
+type CanonicalCollectionRule =
+  | {
+      field: "category";
+      operator: "in" | "all";
+      value: { ids: readonly string[] };
+    }
+  | {
+      field: "tag";
+      operator: "in" | "all";
+      value: { ids: readonly string[] };
+    }
+  | {
+      field: "vendor";
+      operator: "in";
+      value: { ids: readonly string[] };
+    }
+  | {
+      field: "feature";
+      operator: "in" | "all";
+      value: {
+        values: readonly {
+          sourceHandle: string;
+          valueHandle: string;
+        }[];
+      };
+    }
+  | {
+      field: "option";
+      operator: "in" | "all";
+      value: {
+        values: readonly {
+          sourceHandle: string;
+          valueHandle: string;
+        }[];
+      };
+    }
+  | {
+      field: "price";
+      operator: "eq" | "gt" | "gte" | "lt" | "lte";
+      value: { currencyCode: string; amountMinor: string };
+    }
+  | {
+      field: "price";
+      operator: "between";
+      value: {
+        currencyCode: string;
+        minAmountMinor: string;
+        maxAmountMinor: string;
+      };
+    }
+  | {
+      field: "in_stock";
+      operator: "eq";
+      value: { value: boolean };
+    }
+  | {
+      field: "created_at";
+      operator: "eq" | "gt" | "gte" | "lt" | "lte";
+      value: { instant: string };
+    }
+  | {
+      field: "created_at";
+      operator: "between";
+      value: { from: string; to: string };
+    };
+```
+
+Canonical codecs используют `.strict()` Zod objects. `sortIndex`, database ID
+rule row и admin reference status не входят в semantic DTO.
+
+Scalar policy:
+
+- money amount — canonical non-negative base-10 string в диапазоне PostgreSQL
+  `bigint`, `0..9223372036854775807`; преобразование через JavaScript `number`
+  запрещено;
+- currency приводится к uppercase и обязана входить в
+  `CURRENCY_CODES` из `@shopana/shared-references`; валидность не зависит от
+  default currency store;
+- timestamp обязан содержать timezone offset, быть реально существующим
+  instant и после parsing сериализуется через `Date#toISOString()` в UTC с
+  миллисекундами;
+- `BETWEEN` допускает равные границы и требует `min <= max` / `from <= to`;
+- UUID декодируется из typed Global ID и сериализуется lowercase;
+- exact canonical duplicate values deduplicate-ятся до persistence;
+- две rules с одинаковым полным canonical encoding запрещены с
+  `DUPLICATE_RULE`; одинаковые field/operator с разными values остаются
+  отдельными AND predicates.
+
+Текущий code contract использует `number` в
+`CatalogProductVariantPriceSnapshot.amountMinor`,
+`ListingVariantPriceSnapshot.amountMinor` и Drizzle
+`variantListingPriceIndex.priceMinor`, что несовместимо с обещанным PostgreSQL
+`bigint` range. В phase 0 вместе с обязательным Listing Update version bump:
+
+- оба broker snapshot amount fields становятся canonical
+  `string | null`;
+- Catalog mapper сериализует DB bigint напрямую в base-10 string;
+- Listing writer проверяет string и преобразует его в `bigint` только на DB
+  boundary;
+- Drizzle `priceMinor` использует bigint-safe mode, не `mode: "number"`;
+- SQL result/cursor продолжает переносить price как decimal string;
+- GraphQL Money создаётся через `Money.fromMinor(BigInt(value), currency)`.
+
+Compatibility adapter `number -> string` не добавляется.
+
 ### Limits
 
 Первая версия вводит hard limits:
@@ -357,8 +489,20 @@ reference.
 - не более 32 rules в collection;
 - не более 100 values в одном set rule;
 - не более 256 total set values во всех rules;
-- source/value handle не более 255 Unicode code points после normalization;
+- source/value handle `1..255` Unicode code points после normalization;
 - rules JSON не более 64 KiB в canonical serialized form.
+
+Raw Catalog Product Snapshot дополнительно ограничен:
+
+- не более 4 096 deduplicated product rule facts;
+- не более 256 deduplicated option facts одной variant;
+- не более 16 384 rule facts во всём product snapshot.
+
+Превышение raw-fact limit не обрезает snapshot и не удаляет предыдущий Listing
+state. Catalog snapshot action возвращает terminal
+`CATALOG_LISTING_RULE_FACT_LIMIT_EXCEEDED`, product indexing retry не выполняет,
+а metric/log позволяют исправить source product. Эти limits являются частью
+versioned Listing Update contract.
 
 Превышение limit возвращает business `UserError`, а не обрезает rules.
 
@@ -410,6 +554,7 @@ Validation обязана проверять:
 - для `FEATURE`, `OPTION` — canonical syntax handles без требования
   существования store-global definition или текущего matching product;
 - currency code;
+- non-negative PostgreSQL-bigint money string без потери precision;
 - range ordering;
 - timestamp timezone;
 - duplicate rules и duplicate values;
@@ -424,7 +569,9 @@ const COLLECTION_RULE_HASH_VERSION = "v1" as const;
 
 serializeCanonicalCollectionRulesV1(rules): string;
 hashCanonicalCollectionRulesV1(rules): string;
+serializeCollectionListingPayloadV1(payload): string;
 hashCollectionListingPayloadV1(payload): string;
+normalizeCollectionRuleHandleV1(raw): string;
 ```
 
 Catalog и Listing импортируют эти helpers; service-local реализации
@@ -444,11 +591,34 @@ serialization/hash запрещены. Contract `v1`:
 
 `rulesHash` имеет wire format `sha256:v1:<lowercase hex>` и считается по
 результату `serializeCanonicalCollectionRulesV1()`. `payloadHash` имеет тот же
-format и считается по explicit ordered tuple всех live snapshot fields, включая
-`rulesHash` и canonical `listingUpdatedAt`, но не по произвольному
-`JSON.stringify(object)`. Listing при ingestion пересчитывает оба hash и
-сравнивает constant-time. Неизвестная hash version является terminal contract
-error.
+format. Hash input — не произвольный object и не `JSON.stringify(object)`, а
+следующий explicit ordered tuple:
+
+```text
+live:
+[
+  "2026-08-19", "live", id, storeId, listingRevision,
+  type, defaultSort, defaultSortDirection,
+  publishedAt, effectiveFrom, effectiveTo,
+  rulesHash, rules, listingUpdatedAt
+]
+
+deleted:
+[
+  "2026-08-19", "deleted", id, storeId, listingRevision, deletedAt
+]
+```
+
+Nullable timestamps представлены JSON `null`, timestamps canonical UTC.
+`payloadHash` не входит в собственный input. Listing при ingestion:
+
+1. проверяет wire regex hash;
+2. пересчитывает `rulesHash` для live payload;
+3. пересчитывает `payloadHash` для live или deleted payload;
+4. до `timingSafeEqual()` проверяет одинаковую длину decoded byte arrays;
+5. сравнивает hashes constant-time.
+
+Malformed hash и неизвестная hash version являются terminal contract errors.
 
 Reorder semantically identical rules меняет aggregate `revision`, но не
 `listing_revision`, `rulesHash` или Listing payload. Добавление, удаление либо
@@ -491,6 +661,12 @@ Admin GraphQL возвращает `revision: Int!`; mutation inputs прини�
 `expectedRevision: Int!`. Поле `listingRevision: Int! @inaccessible`
 передаётся только между subgraphs.
 
+Обе revisions остаются PostgreSQL `integer`, потому что GraphQL `Int` signed
+32-bit. CHECK разрешает диапазон `0..2147483646`; CAS increment содержит
+`revision < 2147483646`. Достижение ceiling возвращает terminal business error
+`REVISION_LIMIT_EXCEEDED`, а не database overflow. Revisions не сбрасываются и
+не переиспользуются.
+
 Одинаковая aggregate revision не может соответствовать двум payloads. Conflict
 возвращается как `REVISION_CONFLICT`.
 
@@ -502,8 +678,14 @@ transaction, когда mutation затрагивает Listing definition; то
 
 ### Constraints
 
-Добавить Catalog migration
-`0905_collections__rule_contract.sql`:
+Так как project использует clean DB и запрещает backfill/compatibility,
+существующие initial migrations меняются напрямую:
+
+- `0900_collections__tables.sql` — revisions, range/sort checks;
+- `0901_collections__items.sql` — tenant covering index и durable sync tables;
+- `0902_collections__rules.sql` — rule checks/uniqueness/indexes.
+
+Отдельная ALTER/backfill migration `0905` не создаётся.
 
 - allowed values CHECK для `collection.type`;
 - allowed fields CHECK для `collection_rule.field`;
@@ -514,11 +696,34 @@ transaction, когда mutation затрагивает Listing definition; то
 - CHECK, запрещающий `default_sort = 'manual'` для `type = 'rule'`;
 - CHECK допустимых sort/direction combinations:
   `manual/asc`, `newest/desc`, `price/asc|desc`, `name/asc|desc`;
-- revision и listing revision non-negative CHECK.
+- revision и listing revision range CHECK;
+- существующий effective interval CHECK
+  `effective_to IS NULL OR effective_from IS NULL OR effective_to >
+  effective_from` сохраняется как database invariant.
 
 Field-specific JSON validation остаётся в Zod/script layer. Cross-table
 condition «published RULE has at least one rule» проверяется mutation script
 в одной transaction.
+
+Все collection mutation GraphQL inputs получают обязательный
+`clientMutationId: String!` длиной `1..128` UTF-8 bytes. Update/delete/rules/
+manual-item inputs дополнительно получают `expectedRevision: Int!`. Resolver
+вызывает `broker.runWorkflow()` с действующим `ClientIdempotencyContext`:
+
+```text
+source          = "client"
+clientKey       = "<storeId>:<clientMutationId>"
+organizationId = admin context organization
+apiKeyId        = authenticated credential ID; для user session — user ID
+requestHash     = SHA-256 canonical semantic mutation input
+```
+
+`requestHash` исключает `clientMutationId`, request ID и timestamps, но включает
+operation kind, typed IDs, expected revision и canonical payload. Существующий
+`WorkflowRegistry` записывает `shopanaRequestHash` и выбрасывает
+`IdempotencyConflictError` при повторе key с другим hash; resolver maps его в
+`IDEMPOTENCY_KEY_REUSED`. Повтор того же input возвращает durable result. Это
+покрывает create retry, для которого optimistic revision ещё не существует.
 
 ### Scripts
 
@@ -536,6 +741,10 @@ Create defaults:
 - `MANUAL` → `manual/asc`;
 - `RULE` → `newest/desc`.
 
+Collection `type` immutable после create. Переход MANUAL ↔ RULE не
+поддерживается; он потребовал бы одновременно удалить membership/ranks или
+rules и имеет отдельную lifecycle semantics.
+
 `CollectionUpdateRulesScript` должен:
 
 1. lock collection;
@@ -549,6 +758,11 @@ Create defaults:
 
 Нельзя удалить старые rules до полной validation новых.
 
+Validation `effectiveFrom/effectiveTo` выполняется до CAS и требует canonical
+timezone-aware timestamps. Если обе границы заданы, `effectiveFrom <
+effectiveTo`; равный или обратный interval возвращает
+`INVALID_EFFECTIVE_INTERVAL`.
+
 ### Publication lifecycle
 
 Storefront-visible collection одновременно:
@@ -557,7 +771,13 @@ Storefront-visible collection одновременно:
 - `published_at <= database_clock`;
 - `effective_from IS NULL OR effective_from <= database_clock`;
 - `effective_to IS NULL OR database_clock < effective_to`;
+- имеет canonical non-empty handle;
+- имеет non-empty name translation для store default locale;
 - для `RULE` имеет non-empty valid canonical rule set.
+
+Publish mutation проверяет эти invariants в той же transaction. Update не может
+обнулить handle/default-locale name у published collection. MANUAL collection
+может быть опубликована без products.
 
 Effective interval полуоткрытый: `[effective_from, effective_to)`.
 
@@ -666,20 +886,7 @@ Contract versions Catalog Product Snapshot и Listing Update bump-ятся од�
 
 ### Broker snapshot
 
-В `@shopana/broker-types` добавить protected Catalog action:
-
-```text
-catalog.getCollectionListingSnapshot
-```
-
-Input:
-
-```typescript
-interface GetCollectionListingSnapshotParams {
-  storeId: string;
-  collectionId: string;
-}
-```
+В `@shopana/broker-types` добавить protected Catalog action и snapshot DTOs.
 
 Success snapshot:
 
@@ -699,6 +906,7 @@ interface CatalogCollectionListingSnapshot {
   rules: CanonicalCollectionRule[];
   rulesHash: string;
   listingUpdatedAt: string;
+  payloadHash: string;
 }
 ```
 
@@ -712,6 +920,7 @@ interface CatalogCollectionListingTombstone {
   storeId: string;
   listingRevision: number;
   deletedAt: string;
+  payloadHash: string;
 }
 ```
 
@@ -719,8 +928,48 @@ Cross-store и неизвестный ID возвращают `NOT_FOUND`; delet
 сворачивается в `NOT_FOUND`, потому что Listing нужен authoritative tombstone
 revision. Остальные failures — discriminated union с `code`, `retryable`,
 `message`.
-Authorization разрешает caller service `listing`; `storeId` берётся из trusted
-broker context и проверяется против snapshot.
+Authorization проверяет `BrokerCallContext`: caller обязан иметь
+`kind = "action"` и `service = "listing"`. Текущий broker context не несёт
+trusted store identity, поэтому `storeId` остаётся обязательным action input.
+Action загружает store через Project, создаёт tenant `ServiceContext`, а
+repository повторно фильтрует snapshot по `this.storeId`. Snapshot `storeId`
+обязан совпасть с input.
+
+Protected action contract:
+
+```typescript
+const CatalogCollectionActionNames = {
+  getListingSnapshot: "catalog.getCollectionListingSnapshot",
+} as const;
+
+interface GetCollectionListingSnapshotParams {
+  contractVersion: "2026-08-19";
+  storeId: string;
+  collectionId: string;
+}
+
+type GetCollectionListingSnapshotResult =
+  | {
+      ok: true;
+      snapshot:
+        | CatalogCollectionListingSnapshot
+        | CatalogCollectionListingTombstone;
+    }
+  | {
+      ok: false;
+      code:
+        | "NOT_FOUND"
+        | "UNSUPPORTED_COLLECTION_SNAPSHOT_VERSION"
+        | "COLLECTION_SNAPSHOT_INVALID"
+        | "COLLECTION_SNAPSHOT_UNAVAILABLE";
+      message: string;
+      retryable: boolean;
+    };
+```
+
+`NOT_FOUND`, unsupported version и invalid persisted payload non-retryable;
+Project/database/broker availability — `COLLECTION_SNAPSHOT_UNAVAILABLE` с
+`retryable = true`. Action method использует `@Action(..., { readOnly: true })`.
 
 Manual items не входят в collection snapshot: они синхронизируются через
 product snapshots и не раздувают definition event.
@@ -768,12 +1017,18 @@ Deleted payload дополнительно несёт `deletedAt`.
 Event остаётся thin: Listing hydrate-ит current snapshot через protected
 Catalog action. Full rules не копируются в event payload.
 
-Definition `payloadHash` строится только из полей listing snapshot, включая
-`listingUpdatedAt`; aggregate `updatedAt`, display metadata и aggregate
-`revision` в hash не входят.
+Collection events используют общий `DomainEvent.eventSequence`, который Events
+назначает монотонно для subject `{ type: "collection", id: collectionId }`.
+Handler требует positive safe integer. Отсутствующий, нулевой или unsafe
+`eventSequence` является terminal `INVALID_COLLECTION_EVENT_SEQUENCE`; payload
+не дублирует sequence.
 
-В `ProductUpdatedReason` добавить `collection`. Manual add/remove/move/rebalance
-публикует `productUpdated` для всех products, чьи membership/rank изменились.
+Definition `payloadHash` строится по explicit live/deleted tuple выше.
+Aggregate `updatedAt`, display metadata и aggregate `revision` в hash не входят.
+
+В `ProductUpdatedReason` добавить `collection`. Manual
+add/remove/move/rebalance/clear публикует `productUpdated` для всех products,
+чьи membership/rank изменились.
 
 ### Durable mutation flows
 
@@ -782,9 +1037,49 @@ Collection mutation вызывается через Catalog `BrokerWorkflow`, а
 
 Definition mutation:
 
-1. transactional mutation step;
+1. transactional idempotent mutation step;
 2. durable collection event step;
 3. return mutation result.
+
+Так как Catalog пишет в service DB, отдельную от DBOS system DB, initial
+Catalog migration добавляет receipt:
+
+```text
+catalog.collection_mutation_receipt
+  store_id       uuid        NOT NULL
+  workflow_id    text        NOT NULL
+  request_hash   text        NOT NULL
+  mutation_kind  varchar     NOT NULL
+  result_json    jsonb       NOT NULL
+  created_at     timestamptz NOT NULL
+  completed_at   timestamptz NOT NULL
+  PRIMARY KEY (store_id, workflow_id)
+```
+
+Mutation step в одной service-DB transaction:
+
+1. проверяет existing receipt по `DBOS.workflowID`;
+2. при наличии того же request hash возвращает stored result без повторного
+   write/event revision;
+3. при другом hash возвращает `IDEMPOTENCY_KEY_REUSED`;
+4. при отсутствии выполняет mutation и записывает final business result receipt
+   до commit.
+
+Receipt хранит только internal IDs/revisions/user errors, без translated display
+payload и secrets. Это закрывает crash-window «Catalog commit прошёл, DBOS step
+result ещё не persisted». Cleanup удаляет receipts старше 30 дней bounded
+pages; 30 дней — публичный срок idempotency mutation key.
+
+Collection event call identity:
+
+```text
+subject = { type: "collection", id: collectionId }
+emitKey = "collection:<collectionId>"
+callId  = "<collectionId>:<aggregateRevision>"
+```
+
+`eventType` определяется create/update/delete, payload reasons сортируются по
+закрытому order. Replay mutation workflow повторяет тот же durable event call.
 
 Rules/default sort/publication update не fan-out-ит products. Display metadata
 может публиковать domain event для других consumers, но не меняет
@@ -794,19 +1089,130 @@ hash/listing revision.
 Manual item/rank mutation:
 
 1. transactional mutation с increment aggregate `revision`;
-2. durable paginated/batched `productUpdated(collection)` fan-out;
-3. optional `collectionUpdated(items|rank)` для domain consumers;
-4. return mutation result после durable enqueue fan-out, но не после завершения
-   Listing indexing.
+2. в той же transaction создать durable sync operation и зафиксировать только
+   действительно changed product IDs;
+3. стартовать child fan-out workflow с deterministic operation ID;
+4. optional `collectionUpdated(items|rank)` для domain consumers;
+5. return mutation result после durable старта child workflow, но не после
+   завершения fan-out или Listing indexing.
+
+Каждая manual transaction сначала обрабатывает receipt, затем выполняет
+tenant-scoped
+`SELECT ... FOR UPDATE` collection row, проверяет manual type и exact
+`expectedRevision`, затем меняет items/outbox и увеличивает aggregate revision
+ровно один раз. Outbox operation использует UUIDv7 и сохраняет текущий
+`DBOS.workflowID`; повтор transaction step находит receipt/operation и не
+создаёт новый affected set. Concurrent add/remove/move/clear/rebalance с
+одним expected revision: одна operation commit-ится, остальные получают
+`REVISION_CONFLICT`; affected sets не смешиваются.
 
 Manual mutation не меняет `listingRevision`. Поэтому порядок collection и
 product events не используется как correctness barrier.
 
-Bulk manual operations имеют bounded input. Clear/bulk remove и rebalance
-больших collections перечисляют affected product IDs страницами и ставят
-fan-out в queue; workflow state не хранит весь список. Soft delete collection
-не fan-out-ит products: Listing закрывает state и удаляет posting/sort rows по
-collection ID.
+Add/remove inputs содержат не более 100 deduplicated product IDs. `move`
+принимает один product. `clear` и explicit/automatic rebalance могут затронуть
+всю collection и поэтому не возвращают массив affected IDs в application или
+DBOS state.
+
+Для durable fan-out добавить Catalog tables:
+
+```text
+catalog.collection_product_sync_operation
+  store_id          uuid        NOT NULL
+  operation_id      uuid        NOT NULL
+  workflow_id       text        NOT NULL
+  collection_id     uuid        NOT NULL
+  collection_revision integer   NOT NULL
+  reason            varchar     NOT NULL
+  status            varchar     NOT NULL
+  affected_count    integer     NOT NULL
+  emitted_count     integer     NOT NULL DEFAULT 0
+  created_at        timestamptz NOT NULL
+  completed_at      timestamptz NULL
+  PRIMARY KEY (store_id, operation_id)
+
+catalog.collection_product_sync_item
+  store_id       uuid        NOT NULL
+  operation_id   uuid        NOT NULL
+  product_id     uuid        NOT NULL
+  emitted_at     timestamptz NULL
+  PRIMARY KEY (store_id, operation_id, product_id)
+```
+
+DB constraints/indexes:
+
+- FK sync item `(store_id, operation_id)` → operation с `ON DELETE CASCADE`;
+- UNIQUE `(store_id, workflow_id)`;
+- operation `status IN ('pending', 'completed')`;
+- non-negative counts и `emitted_count <= affected_count`;
+- reason CHECK по закрытому enum;
+- partial pending index
+  `(store_id, operation_id, product_id) WHERE emitted_at IS NULL`;
+- cleanup index `(status, completed_at) WHERE status = 'completed'`.
+
+`reason` допускает `add | remove | move | rebalance | clear`. Operation и item
+rows создаются в mutation transaction:
+
+- add использует `INSERT ... ON CONFLICT DO NOTHING RETURNING product_id`;
+- remove использует `DELETE ... RETURNING product_id`;
+- move пишет target product; если move вызвал automatic rebalance, пишет все
+  rows, чей rank реально изменился;
+- explicit rebalance записывает changed IDs из set-based rank update;
+- clear использует один SQL CTE: `DELETE ... RETURNING product_id` передаётся в
+  `INSERT collection_product_sync_item`, поэтому удалённый membership не
+  теряется и IDs не загружаются в process memory.
+
+Admin API добавляет отдельные
+`collectionRebalance(input: CollectionRebalanceInput!)` и
+`collectionClearProducts(input: CollectionClearProductsInput!)`; оба input
+содержат `collectionId`, `expectedRevision`, `clientMutationId`. Clear не
+эмулируется клиентским чтением всех IDs и bulk remove.
+
+Текущий `LexoRankRepository.rebalance()` делает N sequential updates и
+загружает все items. Collection path заменяется set-based SQL:
+
+1. tenant-scoped ordered CTE вычисляет `row_number()` и `count(*)`;
+2. rank вычисляется как
+   `floor((10^20 - 1) / (count + 1)) * row_number`;
+3. значение форматируется zero-padded width 20;
+4. `UPDATE ... FROM` меняет только rows с отличающимся rank и делает
+   `RETURNING product_id`;
+5. returned IDs в том же statement пишутся в sync item table.
+
+Sort order в CTE — `(lexo_rank ASC, product_id ASC)`. Формула совпадает с
+текущим `rebalanceRanks(total)` и использует PostgreSQL `numeric`, чтобы не
+переполнить `bigint`.
+
+После items transaction вычисляет `affected_count`; операция с нулём changes
+помечается `completed` и не стартует child workflow.
+
+`CollectionProductSyncWorkflow` читает pending items keyset-страницами по
+`product_id`, максимум 100. Для каждого product он durable вызывает
+`events.emit(productUpdated)` с:
+
+```text
+subject  = { type: "product", id: productId }
+emitKey  = "collection:<operationId>:product:<productId>"
+callId   = "<operationId>:<productId>"
+reasons  = ["collection"]
+```
+
+После успешных calls страница одной transaction устанавливает `emitted_at` и
+увеличивает `emitted_count`. Crash после emit и до mark повторяет тот же DBOS
+call и получает тот же durable event result. Workflow output содержит только
+operation ID и counts, не массив event IDs. При отсутствии pending items status
+становится `completed`. Completed operations/items удаляются bounded cleanup
+после 7 дней; незавершённые не удаляются.
+
+Перед чтением/mark page repository lock-ит operation row. Одновременно может
+выполняться только workflow с identity
+`catalog.collectionProductSync:<storeId>:<operationId>`; explicit resume
+использует ту же identity. Невозможно запустить второй workflow с новым ID для
+той же operation.
+
+Soft delete collection не создаёт product fan-out: Listing закрывает state и
+удаляет posting/sort rows по collection ID. Поздний manual product event
+безопасен, потому что read требует live collection state.
 
 ### Listing projection workflow
 
@@ -819,9 +1225,10 @@ collection ID.
 
 Created/updated algorithm:
 
-1. получить event sequence;
+1. получить обязательный positive safe `event.eventSequence`;
 2. hydrate current authoritative Catalog live snapshot или tombstone;
-3. validate version, store, listing revision и canonical rules hash;
+3. validate version, store, listing revision, canonical rules hash и transmitted
+   payload hash;
 4. взять tenant-scoped transaction advisory lock по
    `(storeId, collectionId)`, затем прочитать live state и tombstone;
 5. если hydrated `listingRevision < event.listingRevision`, вернуть retryable
@@ -850,8 +1257,8 @@ Delete algorithm:
 1. взять тот же tenant-scoped transaction advisory lock и прочитать live state
    и tombstone;
 2. игнорировать stale delete;
-3. upsert отдельный tombstone с delete listing revision и max observed event
-   sequence;
+3. upsert отдельный tombstone с delete listing revision, payload hash и max
+   observed event sequence;
 4. удалить live `collection_state` row;
 5. удалить manual collection posting по collection ID;
 6. удалить `sort_kind = manual` rows по `manual_scope_id`;
@@ -891,10 +1298,12 @@ PRIMARY KEY (store_id, collection_id)
 Constraints:
 
 - allowed collection type/default sort/direction;
-- non-negative listing revision/event sequence;
+- listing revision в диапазоне GraphQL Int, event sequence — positive safe
+  integer;
 - `rule → default_sort <> manual`;
 - `manual → rules_json = []`;
-- rules hash/payload hash non-empty.
+- rules hash/payload hash соответствуют
+  `^sha256:v1:[0-9a-f]{64}$`.
 
 Deleted state хранится отдельно в `listing.collection_tombstone`:
 
@@ -902,14 +1311,16 @@ Deleted state хранится отдельно в `listing.collection_tombstone
 store_id          uuid        NOT NULL
 collection_id     uuid        NOT NULL
 listing_revision  integer     NOT NULL
+payload_hash      text        NOT NULL
 event_sequence    bigint      NOT NULL
 deleted_at        timestamptz NOT NULL
 projected_at      timestamptz NOT NULL
 PRIMARY KEY (store_id, collection_id)
 ```
 
-Tombstone содержит только поля authoritative deleted snapshot и не использует
-sentinel type/sort/rules/hash values. Все live/delete apply scripts сначала
+Tombstone содержит только поля authoritative deleted snapshot, включая
+`payload_hash`, и не использует sentinel type/sort/rules/rules-hash values.
+Все live/delete apply scripts сначала
 берут transaction-scoped PostgreSQL advisory lock по stable shared 64-bit hash
 tuple `(storeId, collectionId)`. Hash collision допускает только лишнюю
 сериализацию и не влияет на correctness. После lock repositories читают обе
@@ -917,10 +1328,14 @@ tuple `(storeId, collectionId)`. Hash collision допускает только 
 
 - tombstone revision `>` incoming live revision → stale live snapshot;
 - tombstone revision `=` incoming live revision → terminal live/delete
-  conflict;
+  conflict независимо от hash, потому что `state` различается;
 - live revision `>` tombstone revision допустима только если Catalog lifecycle
   когда-либо явно введёт restore operation; в первой версии restore отсутствует,
   поэтому это terminal integrity failure;
+- incoming delete с equal tombstone revision + equal payload hash → no-op с
+  max event sequence;
+- incoming delete с equal tombstone revision + different payload hash →
+  terminal conflict;
 - delete upsert монотонно сохраняет max listing revision и event sequence.
 
 Repository наследуется от `BaseRepository`; public methods не принимают
@@ -989,9 +1404,19 @@ Listing не компилирует raw JSON напрямую. `CollectionRuleCo
 validated immutable input:
 
 ```typescript
+type CollectionRuleDefinitionKey =
+  | {
+      kind: "persisted";
+      listingRevision: number;
+      rulesHash: string;
+    }
+  | {
+      kind: "transient";
+      rulesHash: string;
+    };
+
 interface CompileCollectionRulesInput {
-  listingRevision: number;
-  rulesHash: string;
+  definitionKey: CollectionRuleDefinitionKey;
   rules: readonly CanonicalCollectionRule[];
 }
 ```
@@ -1000,8 +1425,7 @@ interface CompileCollectionRulesInput {
 
 ```typescript
 interface CollectionRulePlan {
-  listingRevision: number;
-  rulesHash: string;
+  definitionKey: CollectionRuleDefinitionKey;
   matchesNothing: boolean;
   productPostingGroups: ProductPostingGroup[];
   productRangePredicates: ProductRangePredicate[];
@@ -1027,6 +1451,11 @@ Compiler:
 Projection row валидируется при ingestion, поэтому invalid persisted rule
 или invalid physical key считаются integrity failure, а не storefront user
 error.
+
+Persisted storefront/admin collection передаёт `kind = "persisted"`. Preview
+передаёт `kind = "transient"` и не подделывает `listingRevision = 0`. Compiler
+не использует definition key в algebra; key нужен для diagnostics, cache и
+защиты от смешивания persisted/transient plans.
 
 ### Bitmap algebra
 
@@ -1102,6 +1531,12 @@ Range scans:
 - empty rowset превращается в explicit empty bitmap;
 - price currency берётся из rule, не из storefront context.
 
+Money bounds передаются в Drizzle как canonical strings и явно cast-ятся в
+PostgreSQL `bigint`; compiler/repository не вызывает `Number(amountMinor)`.
+Timestamp bounds передаются как canonical strings и cast-ятся в `timestamptz`.
+Имена columns выбираются только из закрытого registry field/operator, client
+value никогда не становится SQL identifier или raw SQL fragment.
+
 Fixed rule currency делает collection membership стабильным между storefront
 currency contexts. User price filter и price sort продолжают использовать
 storefront currency. Когда присутствуют оба условия, одна variant должна иметь
@@ -1140,11 +1575,17 @@ Collection projection:
 - проверяется на visibility по database clock;
 - используется одновременно page/count/facet queries;
 - входит в request/cursor hash как
-  `collectionId + listingRevision + rulesHash`.
+  `collectionId + listingRevision + rulesHash`;
+- входит в существующий `buildListingFilterHash()` как canonical scope object,
+  а не добавляется отдельный cursor codec.
 
 Cursor от старой listing revision после rule change отклоняется с
 `CURSOR_REQUEST_MISMATCH`; Listing не продолжает pagination по изменившемуся
 rule set.
+
+Текущий cursor contract version `3` bump-ится до `4`, потому что shape scope
+hash расширяется. Decode принимает только version `4`; compatibility branch для
+version `3` не добавляется.
 
 ### Query compiler integration
 
@@ -1247,6 +1688,21 @@ enum FacetScopeType {
 `COLLECTION` применяется ко всем collections. Per-collection allowlist не
 добавляется.
 
+`FACET_SCOPE_TYPES` становится
+`["SEARCH", "CATEGORY", "COLLECTION"] as const`.
+`compileEligibleFacetIdsSql()` maps:
+
+```text
+global/search -> SEARCH
+category      -> CATEGORY
+collection    -> COLLECTION
+```
+
+Create default — все три scopes. Update без `scopes` не меняет rows; переданный
+список полностью заменяет scopes, deduplicate-ится и не может быть пустым.
+Проект использует clean DB, поэтому data backfill существующих facets не
+добавляется: initial facet scope DDL и test fixtures меняются напрямую.
+
 ### Eligibility и independence
 
 Facet показывается/принимается как user filter в collection listing, только
@@ -1289,6 +1745,11 @@ Rule на тот же raw source не удаляется. Например, coll
 
 Price range и availability counts используют тот же combined variant base.
 Все counts считаются по products, а не по количеству matching variants.
+
+Selected configured Facet value остаётся в response с count `0`; unselected
+zero скрывается. Availability продолжает возвращать оба declared states,
+включая `0`. PRICE возвращает `null` range, если после immutable collection
+scope и остальных filters нет priced witness variants.
 
 ## GraphQL Federation
 
@@ -1333,7 +1794,8 @@ type CollectionMediaEdge {
 }
 
 extend type Query {
-  collection(handle: String!): Collection
+  collection(id: ID!): Collection
+  collectionByHandle(handle: String!): Collection
 }
 ```
 
@@ -1341,6 +1803,11 @@ Storefront Catalog resolver возвращает только visible collection
 lifecycle. Rules storefront клиенту не раскрываются. Media shape повторяет
 существующий Product/Category Relay contract; отдельный неопределённый
 `CollectionMedia` type не вводится.
+
+Имена entry points повторяют действующий Category contract (`category(id)` и
+`categoryByHandle(handle)`), а не перегружают `collection(handle)`. `id`
+декодируется строго как `GlobalIdEntity.Collection`. Cross-store, deleted,
+draft, future и expired collection возвращают `null`.
 
 ### Listing storefront
 
@@ -1372,6 +1839,11 @@ extend type Collection @key(fields: "id") {
 - logs с `collectionId`, но без rules payload;
 - schema docs об independent rules и facets.
 
+Listing `typeResolvers.Collection.__resolveReference` декодирует Global ID и
+передаёт resolver props `{ id, listingRevision }`. Он не загружает Catalog
+entity. `listingRevision` валидируется как non-negative GraphQL Int до
+repository call.
+
 `ProductConnection` переиспользуется без второго connection contract.
 
 Если Listing projection отсутствует или её listing revision не равна listing
@@ -1388,17 +1860,28 @@ Catalog сохраняет:
 - manual add/remove/move/rebalance;
 - rule reference statuses.
 
-Listing становится владельцем admin `Collection.products` и
-`productsCount`, чтобы убрать текущие TODO и второй read engine. Поле
-возвращает Listing-owned connection и поддерживает collection scope, filters,
-search и sort.
+Listing становится владельцем admin `Collection.products`, чтобы убрать
+текущие TODO и второй read engine. Отдельный `productsCount` удаляется:
+count доступен как `Collection.products(...).totalCount`. Connection
+поддерживает collection scope, filters, search и sort.
 
-Одновременно поля и старый `CollectionProductConnection` удаляются из Catalog
-admin schema до добавления Listing extension, чтобы Federation composition не
-получила двух owners одного field. Public admin `revision` используется
-Listing extension через inaccessible `listingRevision @requires`. Public admin
-`revision` остаётся Catalog aggregate revision и используется только для
-optimistic concurrency.
+Schema cutover выполняется одной branch/release boundary:
+
+1. Catalog admin `Collection` получает
+   `listingRevision: Int! @inaccessible`;
+2. Catalog удаляет `products`, `productsCount`,
+   `CollectionProductConnection/Edge` и resolver TODO;
+3. Listing admin добавляет `extend type Collection`, external
+   `id/listingRevision` и Listing-owned `products`;
+4. `productsCount` не становится отдельным field: canonical count —
+   `products(...).totalCount`;
+5. admin/storefront schemas и generated resolver types обновляются;
+6. compose выполняется только после обеих сторон cutover.
+
+В repository не сохраняется промежуточная composed schema с двумя owners или
+без owner. Public admin `revision` остаётся Catalog aggregate revision и
+используется только для optimistic concurrency; Listing получает только
+inaccessible `listingRevision @requires`.
 
 Admin connection:
 
@@ -1417,6 +1900,47 @@ Admin connection:
 4. repository считает published product count;
 5. Catalog возвращает count и user errors.
 
+Protected broker contract:
+
+```typescript
+const ListingCollectionActionNames = {
+  previewRules: "listing.previewCollectionRules",
+} as const;
+
+interface PreviewCollectionRulesParams {
+  contractVersion: "2026-08-19";
+  storeId: string;
+  rules: readonly CanonicalCollectionRule[];
+  rulesHash: string;
+}
+
+type PreviewCollectionRulesResult =
+  | {
+      ok: true;
+      count: number;
+      rulesHash: string;
+      indexObservedAt: string;
+    }
+  | {
+      ok: false;
+      code:
+        | "INVALID_COLLECTION_RULES"
+        | "COLLECTION_RULE_HASH_MISMATCH"
+        | "UNSUPPORTED_COLLECTION_PREVIEW_VERSION"
+        | "COLLECTION_PREVIEW_TIMEOUT"
+        | "COLLECTION_PREVIEW_UNAVAILABLE";
+      message: string;
+      retryable: boolean;
+      field?: string[];
+    };
+```
+
+Action принимает только caller `{ kind: "action", service: "catalog" }`,
+создаёт Listing tenant context из `storeId`, повторно canonical-validates rules
+и constant-time проверяет `rulesHash`. Catalog workflow step имеет timeout
+5 секунд и retry только для `retryable = true`; Listing repository statements
+используют `SET LOCAL statement_timeout = '5s'`.
+
 Preview:
 
 - не создаёт temporary collection rows;
@@ -1425,6 +1949,7 @@ Preview:
 - не зависит от facets;
 - использует current Listing eventual-consistent state;
 - имеет те же limits и semantics, что persisted rules;
+- передаёт compiler `definitionKey = { kind: "transient", rulesHash }`;
 - для пустого transient rule set возвращает `0` через
   `CollectionRulePlan.matchesNothing`.
 
@@ -1503,7 +2028,8 @@ generation-staged postings и activation watermark; unversioned posting нель
 - Tenant repositories наследуются от `BaseRepository`.
 - GraphQL принимает Global IDs и проверяет entity type.
 - Admin inputs не принимают `storeId`.
-- Broker action проверяет caller service и trusted store context.
+- Broker actions проверяют caller service; store context создаётся сервером из
+  validated `storeId` input и повторно применяется repository layer.
 - Collection snapshot `storeId` обязан совпадать с requested store.
 - Rule references проверяются только внутри текущего store.
 - Handles и JSON никогда не вставляются в raw SQL identifiers.
@@ -1522,6 +2048,8 @@ Business errors:
 COLLECTION_NOT_FOUND
 INVALID_COLLECTION_TYPE
 REVISION_CONFLICT
+REVISION_LIMIT_EXCEEDED
+IDEMPOTENCY_KEY_REUSED
 RULES_NOT_ALLOWED
 RULES_REQUIRED_FOR_PUBLICATION
 MANUAL_PRODUCTS_NOT_ALLOWED
@@ -1531,19 +2059,25 @@ INVALID_RULE_VALUE
 INVALID_RULE_REFERENCE
 INVALID_RULE_CURRENCY
 INVALID_RULE_RANGE
+DUPLICATE_RULE
 RULE_LIMIT_EXCEEDED
 INVALID_DEFAULT_SORT
+INVALID_EFFECTIVE_INTERVAL
 ```
 
 Listing deterministic failures:
 
 ```text
 UNSUPPORTED_COLLECTION_SNAPSHOT_VERSION
+INVALID_COLLECTION_EVENT_SEQUENCE
 COLLECTION_STORE_MISMATCH
 COLLECTION_LISTING_REVISION_PAYLOAD_CONFLICT
 INVALID_COLLECTION_RULE_PROJECTION
 COLLECTION_INDEX_NOT_READY
 CURSOR_REQUEST_MISMATCH
+COLLECTION_RULE_HASH_MISMATCH
+COLLECTION_PREVIEW_TIMEOUT
+COLLECTION_PREVIEW_UNAVAILABLE
 ```
 
 Broker/database timeout, connection и serialization failures retryable.
@@ -1576,6 +2110,10 @@ listing_collection_rule_count{type}
 listing_collection_query_seconds{type,search,sort}
 listing_collection_preview_seconds{result}
 listing_collection_orphan_postings_total
+catalog_collection_product_sync_operations_total{reason,status}
+catalog_collection_product_sync_items_total{reason,status}
+catalog_collection_product_sync_lag_seconds{reason}
+catalog_collection_product_sync_stale_total{reason}
 ```
 
 Tracing связывает:
@@ -1604,11 +2142,22 @@ Tracing связывает:
 - live manual collection state не имеет rule JSON;
 - live rule collection state не имеет `default_sort = manual`;
 - rules hash соответствует canonical rules JSON;
+- live/deleted payload hash соответствует explicit canonical tuple;
 - orphan collection postings/sort rows без live state выявляются и удаляются
   bounded repair action;
 - live state и tombstone не существуют одновременно;
 - stale tombstone не может быть overwritten меньшей listing revision;
 - tombstone содержит только delete contract fields и не требует live sentinels.
+
+Catalog audit дополнительно проверяет:
+
+- mutation receipt request hash имеет canonical SHA-256 format;
+- pending sync operation имеет хотя бы один pending item;
+- `affected_count = emitted_count + pending item count`;
+- completed operation не имеет pending items;
+- stale pending operation старше 15 минут поднимает alert и может быть
+  безопасно resumed по operation ID;
+- cleanup не удаляет incomplete operation/items.
 
 Audit scan paginated/bounded. Repair не загружает весь store в память и только
 удаляет orphan derived rows; он не выполняет backfill/rebuild.
@@ -1628,8 +2177,8 @@ Audit scan paginated/bounded. Repair не загружает весь store в �
 
 Обязательный profiling dataset для scale characterization:
 
-- 1M products;
-- 3–5 variants на product;
+- 10k, 100k и 1M products;
+- две variant densities: 3–5 и 18 variants на product;
 - 32 rules;
 - mixed product/variant rules;
 - high- and low-cardinality terms;
@@ -1637,53 +2186,95 @@ Audit scan paginated/bounded. Repair не загружает весь store в �
 - facet counts с 0, 1 и несколькими active filters;
 - search внутри rule collection.
 
-Dataset 1M не является заранее обещанным supported scale текущего global bitmap
-contract. Перед phase 5 acceptance команда фиксирует численные budgets для p95
-latency, statement timeout, scanned rows/buffers и memory/temp spill на
-согласованном test hardware.
+Фиксированные acceptance budgets на согласованном CI performance hardware
+после warm-up, минимум 100 измеренных requests каждого shape:
 
-Перед завершением фазы read path проверить `EXPLAIN (ANALYZE, BUFFERS)` для
+```text
+10k products:
+  page branch p95                 <= 45 ms
+  total branch p95                <= 100 ms
+  facets-with-counts branch p95   <= 150 ms
+  complete collection request p95 <= 200 ms
+
+100k products:
+  page branch p95                 <= 100 ms
+  total branch p95                <= 250 ms
+  facets-with-counts branch p95   <= 500 ms
+  complete collection request p95 <= 600 ms
+
+all supported datasets:
+  storefront branch statement_timeout = 2 s
+  preview/admin count statement_timeout = 5 s
+  temp file spill = 0 bytes
+  unbounded global rb_iterate = 0
+  per-candidate-ID SQL queries = 0
+  full-store mapping scan for selective request = 0
+```
+
+`complete request` измеряется на сервере Listing без gateway/network latency и
+включает projection lookup, normalization и пять текущих parallel repository
+branches. Performance run фиксирует PostgreSQL version/extensions, CPU, RAM,
+storage class, `work_mem`, dataset seed и cardinalities в CI logs.
+
+Dataset 1M не является заранее обещанным supported scale текущего global bitmap
+contract. На 1M выполняются characterization и correctness parity. Scale
+объявляется supported только если все budgets выше пройдены и ни один broad
+plan не материализует O(all variants) intermediate rows.
+
+Перед завершением фазы 5 проверить `EXPLAIN (ANALYZE, BUFFERS, SETTINGS)` для
 representative queries в test environment. Если broad rule/facet queries
 выполняют unbounded `rb_iterate`, full-store mapping/price scan или не
 укладываются в budgets, segmented bitmap architecture становится prerequisite
-для объявления поддержки соответствующего масштаба. Результат остаётся в
-test/CI logs; отдельный report-файл в repository не создаётся.
+до Federation exposure соответствующего масштаба. Phase 5 не принимается с
+неограниченным plan под обещанный scale. Результат остаётся в test/CI logs;
+отдельный report-файл в repository не создаётся.
 
 ## Порядок реализации
 
 ### Фаза 0. Зафиксировать contracts
 
 1. Добавить enums и canonical DTO rules в `@shopana/broker-types`.
-2. Добавить shared canonical serialization и versioned SHA-256 hash helpers.
-3. Добавить collection snapshot/action contracts.
+2. Добавить shared handle normalization, canonical serialization и versioned
+   SHA-256 hash helpers.
+3. Добавить live/deleted collection snapshot/action contracts с `payloadHash`.
 4. Добавить collection events, reason `sort` и
    `ProductUpdatedReason.collection`.
 5. Bump Catalog Product Snapshot и Listing Update contract versions.
-6. Обновить generated GraphQL contracts после schema changes.
+6. Перевести broker/index price minor units с `number` на canonical string/
+   bigint-safe DB mode.
+7. Добавить shared hash/normalization compatibility vectors.
 
 Acceptance:
 
 - один canonical rule type используется Catalog projection и Listing compiler;
 - Catalog и Listing дают одинаковые `rulesHash/payloadHash` на shared vectors;
+- live и deleted payload hash пересчитывается и constant-time проверяется;
+- Feature/Option writes, rule validation и mapper используют один handle helper;
+- price snapshot/index не теряет precision выше `Number.MAX_SAFE_INTEGER`;
 - JSON `unknown` не пересекает service boundary;
 - contracts не импортируют service-local models.
 
 ### Фаза 1. Укрепить Catalog collection domain
 
 1. Добавить aggregate/listing revisions и DB constraints.
-2. Добавить expected aggregate revision в mutations.
-3. Реализовать field-specific Zod validation/canonicalization.
-4. Удалить `contains`.
-5. Добавить vendor rules.
-6. Ввести publish/type/default-sort invariants.
-7. Сделать rule replace полностью transactional.
-8. Добавить reference validation/status.
-9. Удалить generic internal-error swallowing.
+2. Добавить `expectedRevision` и mandatory `clientMutationId` в mutations.
+3. Добавить transaction receipt для service-DB crash-window.
+4. Реализовать field-specific Zod validation/canonicalization.
+5. Удалить `contains`.
+6. Добавить vendor rules.
+7. Ввести publish/type/default-sort invariants.
+8. Сделать rule replace полностью transactional.
+9. Добавить reference validation/status.
+10. Удалить generic internal-error swallowing.
 
 Acceptance:
 
 - invalid rule не записывает частичный state;
 - concurrent update не теряется;
+- повтор create/update с тем же client mutation ID идемпотентен;
+- replay после Catalog commit/до DBOS step result читает receipt и не увеличивает
+  revision повторно;
+- revision ceiling не вызывает database overflow;
 - display metadata update не закрывает Listing read и не инвалидирует cursor;
 - published empty RULE невозможна;
 - MANUAL/RULE operation boundaries enforced.
@@ -1701,8 +2292,10 @@ Acceptance:
 Acceptance:
 
 - create/update/delete сходятся при duplicate/out-of-order delivery;
+- event без positive safe `eventSequence` отклоняется terminal;
 - event `r1`, hydrated как current snapshot `r3`, применяет `r3` и не создаёт
   false conflict;
+- equal revision/different live или deleted payload hash даёт conflict;
 - rule update не создаёт product events;
 - projection failure observable и retryable.
 
@@ -1713,12 +2306,15 @@ Acceptance:
 3. Разрешить product/collection posting.
 4. Писать manual sort rows.
 5. Обновить single/batch/delete writers.
-6. Эмитить product events из manual collection workflows.
-7. Покрыть clear/bulk-remove/rebalance paginated fan-out.
+6. Добавить transactional collection product sync operation/item tables.
+7. Эмитить product events из paginated child workflow.
+8. Покрыть clear/bulk-remove/explicit и automatic rebalance fan-out.
 
 Acceptance:
 
-- add/remove/move/rebalance отражаются в Listing;
+- add/remove/move/rebalance/clear отражаются в Listing;
+- clear не теряет deleted product IDs и workflow state не хранит весь список;
+- crash между event emit и item mark не создаёт новый logical event;
 - manual mutations eventual-consistently сходятся без обещания atomic bulk
   visibility;
 - late product indexing восстанавливает membership из Catalog snapshot;
@@ -1738,7 +2334,8 @@ Acceptance:
 
 - unconfigured tag/feature/option всё равно имеет raw rule posting;
 - facet create/delete не меняет rule postings;
-- stale facts удаляются atomic product rewrite.
+- stale facts удаляются atomic product rewrite;
+- raw fact limit отклоняет snapshot без truncation и без удаления previous state.
 
 ### Фаза 5. Rule compiler и repository algebra
 
@@ -1750,13 +2347,18 @@ Acceptance:
 6. Добавить collection listing revision/rules hash в cursor request hash.
 7. Встроить collection search и sorts.
 8. Реализовать transient preview count через тот же compiler.
+9. Выполнить performance matrix и scale gate этой фазы.
 
 Acceptance:
 
 - storefront и preview parity;
 - missing term даёт empty result;
 - collection rule и user facet не создают cross-variant match;
-- old cursor rejected после rule listing revision.
+- old cursor rejected после rule listing revision;
+- cursor v3 не принимается после direct cutover на v4;
+- transient preview не использует fake persisted revision;
+- 10k/100k budgets выполнены; 1M либо проходит gates, либо требует segmented
+  bitmap prerequisite до заявления поддержки.
 
 ### Фаза 6. Facet COLLECTION scope
 
@@ -1772,7 +2374,9 @@ Acceptance:
 - rule membership работает без Facet;
 - configured COLLECTION Facet фильтрует обе collection types;
 - удаление Facet не меняет membership;
-- counts учитывают rules и остальные filters.
+- counts учитывают rules и остальные filters;
+- selected zero value retained, unselected zero hidden;
+- availability declared zero buckets retained.
 
 ### Фаза 7. Federation API
 
@@ -1782,21 +2386,25 @@ Acceptance:
 4. Реализовать collection default/available sorts.
 5. Перенести admin collection product read path в Listing.
 6. Реализовать `collectionRulesPreviewCount`.
-7. Удалить obsolete Catalog TODO/read DTOs.
+7. Выполнить atomic admin/storefront schema ownership cutover и codegen.
+8. Удалить obsolete Catalog TODO/read DTOs.
 
 Acceptance:
 
 - schema composition успешна;
 - Catalog не выполняет Listing SQL;
 - Listing не читает Catalog DB;
-- Collection products поддерживает search, facets, counts, sort и pagination.
+- Collection products поддерживает search, facets, counts, sort и pagination;
+- preview action принимает только Catalog caller и соблюдает 5s timeout;
+- admin count доступен только как `ProductConnection.totalCount`;
+- в composed schema ровно один owner каждого collection product field.
 
 ### Фаза 8. Tests, audits и cleanup
 
-1. Включить и переписать skipped collection tests под canonical API.
-2. Добавить unit/repository/integration/e2e matrix ниже.
+1. Проверить phase-local tests; фаза не переносит базовые unit tests из фаз 0–7.
+2. Включить и переписать skipped collection tests под canonical API.
 3. Добавить audits и bounded repair.
-4. Добавить performance profiling.
+4. Повторить финальную performance matrix.
 5. Удалить legacy string operators и незавершённый Catalog read path.
 6. Обновить architecture/DB contract docs после реализации отдельной
    согласованной documentation task.
@@ -1806,7 +2414,8 @@ Acceptance:
 - все invariants покрыты;
 - нет skipped core collection tests;
 - нет dual/legacy branch;
-- implementation соответствует knowledge base patterns.
+- implementation соответствует knowledge base patterns;
+- final scale claim совпадает с реально пройденным performance gate.
 
 ## Test matrix
 
@@ -1820,12 +2429,25 @@ Acceptance:
 - duplicate values/rules;
 - limits;
 - range and currency validation;
+- money `0`, PostgreSQL bigint max, negative и max+1;
+- timestamp without timezone, invalid instant и canonical UTC milliseconds;
+- NFKC/trim/lowercase handle normalization и invalid slug;
+- Feature/Option write validators используют тот же handle vectors;
+- effective interval equal/reversed rejected;
 - empty RULE draft;
 - publication empty RULE rejected;
+- publish without handle/default-locale name rejected;
+- published handle/default-locale name cannot be cleared;
+- collection type is immutable;
 - rules on MANUAL rejected;
 - manual items on RULE rejected;
 - manual sort on RULE rejected;
 - expected revision conflict;
+- revision ceiling rejected without overflow;
+- client mutation replay returns same result;
+- client mutation identity with different input rejected;
+- committed mutation receipt closes DBOS result crash-window;
+- receipt cleanup respects 30-day retention;
 - transaction rollback при invalid replacement.
 
 ### Mapper/write-model tests
@@ -1834,11 +2456,14 @@ Acceptance:
 - deterministic scope order;
 - raw tag facts by UUID;
 - raw feature/option facts by handles;
+- invalid persisted handle fails instead of silent mapper normalization;
 - raw facts survive absent Facet;
 - raw facts survive facet grouping;
 - raw facts unaffected by facet resolution;
 - stale product/variant terms removed;
 - write hash changes on rule facts/manual scopes;
+- raw fact limit rejects without truncation;
+- price minor unit round-trip выше `Number.MAX_SAFE_INTEGER` сохраняет значение;
 - product delete removes all collection rows.
 
 ### Compiler tests
@@ -1854,7 +2479,10 @@ Acceptance:
 - BETWEEN inclusive;
 - canonical plan deterministic for reordered equivalent values;
 - empty rule set compiles to `matchesNothing` и даёт count `0`;
+- transient plan has no fake listing revision;
 - shared rule/payload hash vectors одинаковы в Catalog и Listing;
+- live и deleted payload hash vectors;
+- malformed/unequal-length hash rejected before constant-time compare;
 - unknown hash version rejected;
 - invalid projection terminal;
 - SQL values bound, not interpolated.
@@ -1879,20 +2507,34 @@ Acceptance:
 - empty/missing projection fail-closed;
 - inactive/unpublished collection rejected;
 - cursor invalidated by listing revision;
+- cursor v3 rejected and v4 collection scope accepted;
+- selected configured zero retained, unselected zero hidden;
+- declared availability zero buckets retained;
 - tenant isolation.
 
 ### Event/workflow tests
 
 - duplicate collection event no-op;
+- missing/zero/unsafe event sequence terminal;
 - stale update ignored;
 - same-listing-revision/different-payload conflict;
+- same delete revision/different tombstone hash conflict;
 - older event с более новым hydrated snapshot coalesces to current state;
 - transient hydration retry;
 - tombstone без предшествующего live state сохраняется без sentinel fields;
 - delete tombstone blocks late update;
 - rules event updates projection without product reindex;
 - manual add/remove/move emits affected product events;
+- add conflict/no-op does not enqueue unchanged product;
+- remove enqueues only rows returned by delete;
+- clear CTE persists every deleted product ID before membership disappears;
+- set-based rebalance rank parity with `rebalanceRanks(total)`;
+- automatic rebalance fans out every changed rank;
 - clear/bulk-remove/rebalance fan-out resumes by page;
+- crash after emit/before mark reuses the same durable event call;
+- workflow output size remains constant as affected count grows;
+- completed outbox cleanup never deletes incomplete operation;
+- preview action rejects non-Catalog caller;
 - out-of-order collection/product events converge.
 
 ### Playwright e2e
@@ -1918,6 +2560,22 @@ Acceptance:
 18. Cross-store IDs не раскрывают данные.
 19. Collection delete закрывает read и очищает projection.
 20. Collection media использует Relay connection и schema composition проходит.
+21. `collection(id)` и `collectionByHandle(handle)` имеют одинаковую visibility.
+22. Admin count доступен через `products.totalCount`, obsolete `productsCount`
+    отсутствует.
+23. Clear большой manual collection eventual-consistently удаляет все members.
+24. Selected Facet value остаётся с count `0`.
+
+### Performance tests
+
+- datasets 10k/100k/1M и обе variant densities создаются deterministic seed;
+- минимум 100 measured requests после warm-up;
+- p95 каждой branch и complete request соответствует budgets;
+- `EXPLAIN (ANALYZE, BUFFERS, SETTINGS)` не показывает temp spill;
+- selective requests не делают full-store mapping/price scan;
+- broad path не использует unbounded global `rb_iterate`;
+- preview/admin statement timeout 5s, storefront branch timeout 2s;
+- 1M result parity проверяется независимо от решения о supported scale.
 
 ## Definition of done
 
@@ -1933,8 +2591,12 @@ Acceptance:
 - collection projection idempotent и защищена от stale events;
 - manual membership явно eventual-consistent и сходится по current product
   snapshots;
+- manual fan-out имеет transactional durable affected set и constant-size
+  workflow state;
 - cursor привязан к collection listing revision/rules hash;
 - preview и storefront используют один compiler;
+- live/deleted snapshot payload hash contract не имеет неявных fields;
+- заявленный supported scale прошёл численные performance gates;
 - backfill, dual-read и dual-write code отсутствуют;
 - core tests не skipped;
 - schema composition, migrations, codegen, tests и e2e проходят через
