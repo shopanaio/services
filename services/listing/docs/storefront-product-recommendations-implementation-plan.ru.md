@@ -100,6 +100,11 @@ store_popularity
 - Admin inputs не принимают `storeId`.
 - Product IDs принимаются как Relay Global IDs и проверяются в trusted store
   scope.
+- Для одного anchor + placement допускается не более
+  `MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT = 5000` persisted manual rows, включая
+  disabled, historical и future rows. Create проверяет лимит под тем же
+  anchor-placement lock, который сериализует manual mutations и snapshot
+  activation.
 - Bulk fan-out всегда paginated и queue-based. Workflow не хранит массив всех
   anchors в durable result.
 - Каждый workflow start использует deterministic idempotency context и
@@ -586,19 +591,23 @@ FOR UPDATE;
 2. агрегирует duplicate product lines;
 3. отклоняет aggregate quantity product выше `2147483647` и более 100 distinct
    products;
-4. сортирует агрегированные lines по raw product ID и вычисляет SHA-256 от
-   canonical `{ eventType, payload }`;
-5. блокирует cursor row;
-6. проверяет существующий `event_id`;
-7. проверяет `(order_id, order_revision)`;
-8. при существовании любой revision order проверяет равенство `committedAt`
+4. валидирует RFC 3339 timestamps и отклоняет
+   `effectiveOccurredAt < committedAt`, где для committed event
+   `effectiveOccurredAt = event.timestamp`, а для reversal —
+   `payload.reversedAt`;
+5. сортирует агрегированные lines по raw product ID и вычисляет SHA-256 от
+   canonical `{ eventType, payload, effectiveOccurredAt }`;
+6. блокирует cursor row;
+7. проверяет существующий `event_id`;
+8. проверяет `(order_id, order_revision)`;
+9. при существовании любой revision order проверяет равенство `committedAt`
    исходной sale generation;
-9. same hash возвращает `duplicate`;
-10. different hash или изменившийся `committedAt` выбрасывает non-retryable
+10. same hash возвращает `duplicate`;
+11. different hash или изменившийся `committedAt` выбрасывает non-retryable
    integrity error;
-11. выделяет `last_position + 1`;
-12. вставляет fact и product facts;
-13. обновляет cursor в той же транзакции.
+12. выделяет `last_position + 1`;
+13. вставляет fact и product facts;
+14. обновляет cursor в той же транзакции.
 
 Mapping timestamps:
 
@@ -854,6 +863,12 @@ schemas: arbitrary keys и arbitrary nested values запрещены. Пере�
 проверяются лимиты canonical JSON: не более 8 KiB на item и 512 KiB на весь
 snapshot. Нарушение является `INVALID_SNAPSHOT_CONTENT`.
 
+Отсутствующий numeric signal нормализуется в decimal zero. Все промежуточные
+операции выполняются с precision не ниже PostgreSQL `numeric`, а persisted
+score округляется PostgreSQL `round(value, 10)` до `numeric(20, 10)`. NaN,
+infinity и значение, не помещающееся в physical decimal column, являются
+`INVALID_SNAPSHOT_CONTENT`.
+
 ### Sources
 
 Manual positive source читает enabled, VALID `PIN`/`BOOST`, активные в `asOf`:
@@ -961,6 +976,22 @@ BLENDED final score
   = automatedScore + 0.50 * manualBoost
 ```
 
+Final score по strategy:
+
+```text
+PIN, любая strategy                     = 0
+CURATED_ONLY, BOOST                     = manualBoost
+CURATED_FIRST, manual BOOST candidate   = automatedScore + manualBoost
+CURATED_FIRST, non-manual candidate     = automatedScore
+BLENDED, non-PIN candidate              = automatedScore + 0.50 * manualBoost
+AUTOMATED_ONLY                          = automatedScore
+```
+
+Здесь отсутствующие `fbtNormalized`, `popularity` и `manualBoost` равны zero.
+Для `CURATED_FIRST` manual и non-manual являются отдельными ordering groups:
+любой manual BOOST находится перед любым non-manual candidate независимо от
+числового score; final score применяется только внутри соответствующей группы.
+
 Model versions:
 
 ```text
@@ -1006,7 +1037,8 @@ Primary source:
 
 ### Manual configuration hash
 
-Для anchor + placement вычисляется canonical SHA-256 от sorted rows:
+Для anchor + placement вычисляется canonical SHA-256 только от rows, effective
+в явный `asOf`, отсортированных по raw `recommendation_id`:
 
 ```text
 recommendationId
@@ -1020,16 +1052,25 @@ startsAt
 endsAt
 anchorReferenceStatus
 targetReferenceStatus
-activeAtAsOf
 ```
 
-Hash меняется при mutation и при пересечении schedule boundary. Он используется
-как manual watermark и stale-build guard без новой aggregate version table.
+Hash меняется при изменении effective manual set и при пересечении schedule
+boundary. Любая manual mutation всё равно создаёт causal build request, даже
+если current hash не изменился. Hash используется как manual watermark и
+stale-build guard без новой aggregate version table.
 `asOf` является обязательным явным аргументом hash function: repository не
 читает текущее время внутри вычисления. Для snapshot build значение `asOf`
 один раз фиксируется database clock в durable fixed-input step и затем
 используется без изменений при чтении manual rows, candidate generation и
 вычислении hash.
+
+Hash repository не загружает rows unbounded array: он читает deterministic
+keyset pages не более 500 rows и обновляет incremental SHA-256 state canonical
+bytes. Общее число rows ограничено
+`MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT`. Preview накладывает draft overlay на
+тот же bounded persisted set. Mutation, меняющая только future/inactive row,
+может инициировать build с неизменным current hash; нужный effective build
+гарантируется scheduler'ом при пересечении boundary.
 
 Done when:
 
@@ -1065,6 +1106,10 @@ interface RecommendationBuildInputs {
 placement. `source_watermarks` содержит typed object с теми же значениями.
 `asOf` берётся из database clock, а не из process clock. Результат fixed-input
 step сохраняется DBOS, поэтому replay одного build не получает новое время.
+`triggerKey` является namespaced causal key запроса, а не ordered source
+watermark и не authoritative desired-state version. Актуальность результата
+определяют `requestedGeneration` и повторно прочитанные policy/manual/run
+lineage.
 
 ### Build workflow
 
@@ -1121,16 +1166,36 @@ violation. Переход `BUILDING -> READY` разрешён только пр
 - manual configuration hash, повторно вычисленный для `activationAsOf`, равен
   зафиксированному build hash;
 - calculation run всё ещё ACTIVE;
-- build request generation и trigger key всё ещё current;
+- build request generation всё ещё current, а сохранённый trigger key
+  соответствует этой generation;
 - runtime поддерживает model version.
+
+Activation transaction использует единый lock order:
+
+```text
+placement policy
+-> anchor-placement build request
+-> referenced calculation run
+-> snapshot
+```
+
+Policy configure/disable берёт policy lock до изменения. Manual mutation сначала
+блокирует policy, затем anchor-placement build-request row как mutex до чтения
+count, изменения manual rows и generation request; mutation и generation update
+commit-ятся атомарно.
+Calculation activation блокирует старый и новый run в raw `run_id` order.
+Snapshot activation читает перечисленные rows через `FOR UPDATE`. Поэтому
+concurrent disable, manual mutation, run supersede или новый build request не
+может commit-иться между lineage check и snapshot activation. Все paths
+соблюдают одинаковый lock order.
 
 Activation guard намеренно не вычисляет manual hash повторно для исходного
 build `asOf`: это не обнаружило бы schedule boundary, пересечённую во время
 build. Если active manual set изменился между `asOf` и `activationAsOf`,
-snapshot не активируется. Наблюдаемый activation hash становится trigger key
-нового build request, а новый workflow фиксирует собственный более поздний
-`asOf`. Все проверки и переход `READY -> ACTIVE` выполняются в одной
-transaction с единым `activationAsOf`.
+snapshot не активируется. Новый build request получает deterministic causal key
+`schedule-rebuild:<activationHash>`, а новый workflow фиксирует собственный
+более поздний `asOf`. Все проверки и переход `READY -> ACTIVE` выполняются в
+одной transaction с единым `activationAsOf`.
 
 Queued generation, устаревшая до `create BUILDING`, завершается successful stale
 no-op без snapshot row. Stale input после создания snapshot:
@@ -1170,24 +1235,35 @@ result хранит counts и next cursor, но не все workflow IDs.
 
 Fan-out и builds используют generation coalescing:
 
-- trigger key является version/hash изменившего источник значения:
-  manual configuration hash для manual mutation, product lifecycle sequence для
-  lifecycle sync либо calculation run ID для run activation;
+- trigger key является namespaced causal identifier:
+  `manual:<mutationId>`, `lifecycle:<productId>:<sequence>`,
+  `calculation:<runId>`, `policy:<policyId>:<version>` или
+  `schedule:<fromBoundary>:<toBoundary>`;
 - fan-out page в одной transaction вызывает
   `RecommendationBuildRequestRepository.request()` для каждого anchor:
   блокирует/upsert-ит row; новый `trigger_key` увеличивает generation и
-  сохраняется, а повтор того же `trigger_key` возвращает существующую generation
-  без update;
+  сохраняется, а повтор текущего `trigger_key` возвращает существующую
+  generation без update;
 - после commit request page тот же durable step enqueue-ит children по
   возвращённым generations; crash до завершения step повторяет request с тем же
-  trigger key, получает те же generations и повторяет deterministic enqueue;
+  trigger key. Если он всё ещё current, возвращаются те же generations; если
+  intervening signal уже увеличил generation, retry может создать ещё одну
+  coalesced generation, но её child также строит current authoritative state.
+  В обоих случаях enqueue использует deterministic workflow ID и не теряет
+  актуальный build;
 - orchestration child workflow ID детерминирован по store + anchor + placement +
   requested generation; child читает полный `RecommendationBuildInputs` и
   запускает build по окончательному `buildKey`;
-- перед expensive candidate collection child сравнивает requested generation,
-  trigger key, policy/run lineage и manual hash с current values; устаревшая
-  queued generation завершается как successful stale no-op без создания
-  snapshot;
+- causal keys не сравниваются по freshness и не используются как source
+  ordering: lifecycle/manual/calculation signals могут прийти out of order;
+- перед expensive candidate collection child сравнивает только requested
+  generation с current generation. Current generation child заново читает
+  authoritative policy/manual/run state и строит именно его, даже если
+  generation была создана поздно доставленным старым causal signal;
+- queued generation ниже current завершается как successful stale no-op без
+  snapshot row. Если старый signal повысил generation после нового signal, его
+  child всё равно строит current authoritative state, поэтому актуальный build
+  не теряется;
 - bootstrap регистрирует queue `recommendation_snapshot_build` с
   `partitionQueue = true`, `concurrency = 1` и `workerConcurrency = 20`;
 - для каждого anchor вычисляется deterministic lane
@@ -1714,8 +1790,10 @@ Store-scoped workflow:
    включающими store, anchor, placement и generation;
 6. после успешного enqueue всех pages отдельная короткая transaction выполняет
    compare-and-set advance `fromBoundary -> toBoundary`;
-7. retry page использует тот же trigger key и получает ту же generation;
-   duplicate child starts являются successful no-op;
+7. retry page использует тот же trigger key: если он остаётся current, получает
+   ту же generation; после intervening request он может coalesce новую
+   generation, которая строит current authoritative state; duplicate child
+   starts являются successful no-op;
 8. если CAS не прошёл и current watermark уже `>= toBoundary`, workflow
    завершается successful no-op; иначе повторно начинает fixed interval от
    нового watermark.
@@ -1846,6 +1924,8 @@ Logs не содержат customer identity или order lines.
 ### Unit
 
 - canonical payload hash;
+- committed event timestamp входит в hash, malformed timestamp и
+  `effectiveOccurredAt < committedAt` отклоняются как event validation;
 - maximum distinct products sale contract;
 - order revision, line count, quantity и aggregated quantity integer bounds;
 - immutable `committedAt` across order revisions;
@@ -1855,6 +1935,7 @@ Logs не содержат customer identity или order lines.
 - ordered fallback-chain stop at `minimumResults`;
 - global candidate limit;
 - all strategy/ranker cases;
+- missing numeric signals, decimal rounding и final score каждой strategy;
 - PIN gap filling and deterministic ties;
 - cursor validation.
 
@@ -1873,6 +1954,11 @@ Logs не содержат customer identity или order lines.
 - accumulators удаляются только при successful `COMPLETE`;
 - concurrent build requests монотонно увеличивают anchor generation;
 - repeated build request с тем же trigger key сохраняет generation;
+- out-of-order causal signal, ставший current generation, строит повторно
+  прочитанное authoritative state;
+- concurrent policy disable/manual mutation/run activation сериализуются с
+  snapshot activation в фиксированном lock order;
+- manual row limit проверяется под anchor-placement mutex;
 - one ACTIVE run/snapshot under concurrent activation;
 - tenant isolation;
 - exclusion constraint mapping;
@@ -1885,6 +1971,7 @@ Logs не содержат customer identity или order lines.
 - duplicate workflow start;
 - paginated fan-out resume;
 - stale fan-out generation завершается до candidate collection;
+- retry causal request после intervening generation не теряет current build;
 - snapshot build durable result не содержит candidate array;
 - snapshot populate retry после Listing commit и до DBOS result persistence
   выполняет read-and-verify без повторного insert;
@@ -1963,6 +2050,8 @@ Orders producer integration ←────────────────�
 - Calculation сначала выбирает effective revision, затем применяет window.
 - Watermark фиксируется под cursor lock.
 - `committedAt` неизменен между revisions одного order.
+- Event hash включает persisted effective occurrence timestamp, а timestamp
+  constraints валидируются до database write.
 - Ни один durable step не возвращает unbounded statistics/anchor arrays.
 - Ни один snapshot build не превышает `globalCandidateLimit`.
 - Candidate arrays не пересекают durable boundary, а snapshot content имеет
@@ -1976,8 +2065,9 @@ Orders producer integration ←────────────────�
 - Policy disable немедленно прекращает serving.
 - Policy update rebuild-ит все anchors placement'а.
 - Popularity update rebuild-ит anchors без pair stats.
-- Stale fan-out generations отбрасываются до expensive candidate collection.
-- Повтор build request с тем же trigger key не увеличивает generation.
+- Stale fan-out generations отбрасываются до expensive candidate collection,
+  а current generation всегда строит повторно прочитанное authoritative state.
+- Повтор build request с тем же current trigger key не увеличивает generation.
 - Snapshot queue обеспечивает не более двух concurrent builds одного store
   через зарегистрированную partitioned queue и deterministic lanes.
 - Product lifecycle fan-out охватывает новые category/store-popularity
@@ -1985,6 +2075,8 @@ Orders producer integration ←────────────────�
 - Scheduled manual actions активируются и истекают без mutation.
 - Snapshot build фиксирует единый `asOf`, а activation отклоняет результат,
   если до неё изменился active manual set.
+- Policy, build request, calculation run и snapshot activation используют
+  единый lock order; manual configuration имеет explicit per-anchor limit.
 - Initial manual reconciliation завершается до activation maintenance cursor.
 - Maintenance cursor защищён lock/CAS от overlapping minute workflows.
 - PostgreSQL locks не удерживаются во время DBOS/broker enqueue.
