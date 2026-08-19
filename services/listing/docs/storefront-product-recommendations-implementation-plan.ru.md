@@ -992,6 +992,11 @@ activeAtAsOf
 
 Hash меняется при mutation и при пересечении schedule boundary. Он используется
 как manual watermark и stale-build guard без новой aggregate version table.
+`asOf` является обязательным явным аргументом hash function: repository не
+читает текущее время внутри вычисления. Для snapshot build значение `asOf`
+один раз фиксируется database clock в durable fixed-input step и затем
+используется без изменений при чтении manual rows, candidate generation и
+вычислении hash.
 
 Done when:
 
@@ -1011,6 +1016,7 @@ Done when:
 
 ```typescript
 interface RecommendationBuildInputs {
+  asOf: string;
   policyId: string;
   policyVersion: number;
   calculationRunId: string | null;
@@ -1024,6 +1030,8 @@ interface RecommendationBuildInputs {
 
 `buildKey` — SHA-256 canonical representation этих inputs плюс anchor и
 placement. `source_watermarks` содержит typed object с теми же значениями.
+`asOf` берётся из database clock, а не из process clock. Результат fixed-input
+step сохраняется DBOS, поэтому replay одного build не получает новое время.
 
 ### Build workflow
 
@@ -1054,10 +1062,21 @@ DBOS. Step возвращает только `{ itemCount, contentHash }`; snaps
 - target store ownership и live eligibility;
 - policy и run принадлежат store;
 - policy всё ещё enabled и version не изменилась;
-- manual configuration hash не изменился;
+- внутри activation transaction один раз фиксируется database
+  `activationAsOf`;
+- manual configuration hash, повторно вычисленный для `activationAsOf`, равен
+  зафиксированному build hash;
 - calculation run всё ещё ACTIVE;
 - build request generation и trigger key всё ещё current;
 - runtime поддерживает model version.
+
+Activation guard намеренно не вычисляет manual hash повторно для исходного
+build `asOf`: это не обнаружило бы schedule boundary, пересечённую во время
+build. Если active manual set изменился между `asOf` и `activationAsOf`,
+snapshot не активируется. Наблюдаемый activation hash становится trigger key
+нового build request, а новый workflow фиксирует собственный более поздний
+`asOf`. Все проверки и переход `READY -> ACTIVE` выполняются в одной
+transaction с единым `activationAsOf`.
 
 Queued generation, устаревшая до `create BUILDING`, завершается successful stale
 no-op без snapshot row. Stale input после создания snapshot:
@@ -1406,6 +1425,48 @@ Manual list использует forward pagination, а не unbounded array.
 Preview принимает draft overlay:
 
 ```graphql
+input RecommendationPlacementPolicyDraftInput {
+  expectedVersion: Int
+  enabled: Boolean!
+  strategy: RecommendationStrategy!
+  minimumResults: Int!
+  maximumResults: Int!
+  fallbackChain: [String!]!
+}
+
+input ManualRecommendationDraftCreateInput {
+  targetProductId: ID!
+  action: ManualRecommendationAction!
+  position: Int
+  boost: String
+  enabled: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualRecommendationDraftUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  targetProductId: ID
+  action: ManualRecommendationAction
+  position: Int
+  boost: String
+  enabled: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+}
+
+input ManualRecommendationDraftDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+}
+
+input ManualRecommendationDraftChangeInput {
+  create: ManualRecommendationDraftCreateInput
+  update: ManualRecommendationDraftUpdateInput
+  delete: ManualRecommendationDraftDeleteInput
+}
+
 input RecommendationSnapshotPreviewInput {
   anchorProductId: ID!
   placement: RecommendationPlacement!
@@ -1471,15 +1532,47 @@ Zod schema является strict, ограничивает `manualChanges` з�
 canonical input размер значением 256 KiB. Draft с превышением count/byte limit
 возвращает `PREVIEW_LIMIT_EXCEEDED` и не выполняет partial preview.
 
+`policy`, если передан, является полной replacement-конфигурацией placement,
+а не partial patch. `expectedVersion = null` разрешён только для preview ещё не
+созданной policy; существующая policy требует точного current version.
+`placement` берётся из outer input и не дублируется в draft.
+
+Каждый `ManualRecommendationDraftChangeInput` обязан содержать ровно одно
+non-null поле из `create`, `update`, `delete`; zero или несколько operations
+возвращают `INVALID_DRAFT_CHANGE`. Anchor и placement наследуются из outer
+input. `create` задаёт полную новую row. `update` является patch существующей
+row: omitted поле сохраняет persisted value, а explicit `null` очищает nullable
+`position`, `boost`, `startsAt` или `endsAt`. `delete` удаляет row только из
+draft overlay. Update/delete IDs должны принадлежать trusted store и exact
+anchor + placement; иначе возвращается `NOT_FOUND`. Две changes одного
+persisted ID запрещены и возвращают `DUPLICATE_DRAFT_CHANGE`; порядок массива
+не меняет семантику overlay. `expectedVersion` mismatch возвращает
+`VERSION_CONFLICT`.
+
 Preview:
 
-1. читает persisted policy/manual rows;
-2. накладывает draft policy и manual upsert/delete changes in memory;
-3. вызывает тот же `buildRecommendation()` с fixed `asOf`;
-4. ничего не записывает;
-5. возвращает active, draft и excluded candidates.
+1. фиксирует единый `asOf` из database clock;
+2. читает текущий ACTIVE snapshot отдельно от draft calculation;
+3. строит `active` только из persisted snapshot/items, не пересчитывая его из
+   текущей policy или manual rows;
+4. читает persisted policy/manual rows и накладывает validated draft policy и
+   manual changes in memory;
+5. вызывает тот же `buildRecommendation()` с fixed `asOf` для `draft`;
+6. ничего не записывает.
 
-Без draft overlay preview показывает результат текущей persisted configuration.
+`active` равен `null`, если ACTIVE snapshot отсутствует. Его candidates,
+scores, source breakdown, `modelVersion` и source `asOf` читаются из immutable
+snapshot; текущая live eligibility повторно применяется, а отфильтрованные
+snapshot items попадают в `active.excluded` с `UNPUBLISHED` или `UNAVAILABLE`.
+Полный набор исторически исключённых во время snapshot build candidates для
+`active` не реконструируется.
+
+`draft` является результатом нового bounded calculation. Если overlay пуст,
+он пересчитывает текущую persisted configuration и поэтому может отличаться от
+`active`, пока rebuild ожидает выполнения. При отсутствии persisted policy и
+draft policy `draft = null`; это нормальное состояние без `UserError`.
+Переданный policy draft позволяет preview ещё не созданной policy.
+
 Draft и excluded lists строятся только из того же bounded candidate union, что
 и snapshot build. Превышение `globalCandidateLimit` возвращает user error, а не
 truncated result.
@@ -1503,6 +1596,10 @@ LIMIT_EXCEEDED
 Done when:
 
 - unsaved preview действительно возможен через input;
+- active preview читает опубликованный snapshot, а draft preview использует
+  persisted configuration с in-memory overlay;
+- create/update/delete draft contracts однозначны и duplicate changes
+  отклоняются;
 - policy/manual concurrency защищена;
 - cross-store Product ID не раскрывает существование объекта;
 - mutation response не содержит raw PostgreSQL errors.
@@ -1701,6 +1798,8 @@ Logs не содержат customer identity или order lines.
 - stale fan-out generation завершается до candidate collection;
 - snapshot build durable result не содержит candidate array;
 - snapshot content byte limit приводит к `INVALID_SNAPSHOT_CONTENT`;
+- schedule boundary между fixed-input step и activation приводит к
+  `STALE_INPUT` и rebuild с новым `asOf`;
 - две deterministic store lanes не допускают более двух concurrent builds;
 - повторные manual mutations при неизменных policy/run создают разные
   anchor-specific builds;
@@ -1785,6 +1884,8 @@ Orders producer integration ←────────────────�
 - Product lifecycle fan-out охватывает новые category/store-popularity
   candidates без существующих reverse references.
 - Scheduled manual actions активируются и истекают без mutation.
+- Snapshot build фиксирует единый `asOf`, а activation отклоняет результат,
+  если до неё изменился active manual set.
 - Initial manual reconciliation завершается до activation maintenance cursor.
 - Maintenance cursor защищён lock/CAS от overlapping minute workflows.
 - Ranking formula полностью определяется model version.
