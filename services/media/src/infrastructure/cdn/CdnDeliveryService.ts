@@ -20,6 +20,7 @@ export interface ImageTransformOptions {
   maxWidth?: number | null;
   preferredContentType?: string | null;
   scale?: number | null;
+  quality?: number | null;
 }
 
 export interface CdnDeliveryOptions {
@@ -378,7 +379,9 @@ export class CdnDeliveryService {
         numberValue(overrides.scale) ??
         numberValue(configured.defaultScale),
       quality:
-        numberValue(overrides.quality) ?? numberValue(configured.defaultQuality),
+        numberValue(requested?.quality) ??
+        numberValue(overrides.quality) ??
+        numberValue(configured.defaultQuality),
     };
   }
 

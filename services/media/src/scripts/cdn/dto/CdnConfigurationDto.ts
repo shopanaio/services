@@ -47,6 +47,7 @@ export const cdnConfigurationTestSchema = cdnConfigurationCreateSchema.extend({
       maxWidth: z.number().int().positive().optional().nullable(),
       preferredContentType: z.string().optional().nullable(),
       scale: z.number().int().positive().optional().nullable(),
+      quality: z.number().int().min(1).max(100).optional().nullable(),
     })
     .optional()
     .nullable(),

@@ -750,6 +750,7 @@ export type IdFilter = {
 };
 
 export enum ImageContentType {
+  Avif = 'AVIF',
   Jpg = 'JPG',
   Png = 'PNG',
   Webp = 'WEBP'
@@ -784,6 +785,8 @@ export type ImageTransformInput = {
   maxHeight?: InputMaybe<Scalars['Int']['input']>;
   maxWidth?: InputMaybe<Scalars['Int']['input']>;
   preferredContentType?: InputMaybe<ImageContentType>;
+  /** Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured. */
+  quality?: InputMaybe<Scalars['Int']['input']>;
   scale?: InputMaybe<Scalars['Int']['input']>;
 };
 

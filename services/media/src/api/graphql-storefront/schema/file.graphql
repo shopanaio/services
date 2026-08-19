@@ -26,6 +26,7 @@ enum ImageContentType {
   JPG
   PNG
   WEBP
+  AVIF
 }
 
 """The available options for transforming an image."""
@@ -36,6 +37,9 @@ input ImageTransformInput {
   maxWidth: Int
   preferredContentType: ImageContentType
   scale: Int = 1
+
+  """Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured."""
+  quality: Int
 }
 
 """An image resource with URL, dimensions, and transformation options."""

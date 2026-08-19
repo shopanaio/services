@@ -38,7 +38,9 @@ The following values are dynamic:
 - fit mode and gravity anchor;
 - maximum width and height;
 - output scale;
-- preferred JPG, PNG, or WebP content type;
+- preferred JPG, PNG, WebP, or AVIF content type;
+- output quality, bounded by the selected `CdnConfiguration`'s
+  `minQuality`/`maxQuality` when configured;
 - the transformed public URL;
 - CDN signature and expiration, when signing is enabled;
 
