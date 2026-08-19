@@ -180,6 +180,10 @@ Expiry policy добавляется отдельной версией моде�
   - active/building/ready run для текущего UTC day отсутствует; или
   - после watermark новейшего current-day run появились facts с
     `committed_at` внутри его закрытого `[windowStartedAt, windowEndedAt)` окна.
+- `committedAt` является immutable timestamp исходной confirmed sale для всех
+  revisions одного order. Correction меняет lines/state, но не переносит sale
+  между calculation windows. Ingestion отклоняет revision с отличающимся
+  `committedAt` как `EVENT_PAYLOAD_CONFLICT`.
 - Advance watermark только из-за продаж текущего UTC day не запускает
   same-window calculation: они впервые войдут в run после следующей daily
   boundary.
@@ -189,7 +193,8 @@ Expiry policy добавляется отдельной версией моде�
 ## Physical schema
 
 Существующие десять domain tables сохраняются. Migration `9104` добавляет
-operational progress columns в calculation run и две operational tables:
+operational progress columns в calculation run, две calculation accumulator
+tables и две operational tables:
 
 ```text
 recommendation_placement_policy
@@ -209,15 +214,43 @@ recommendation_snapshot_item
 
 ```sql
 ALTER TABLE listing.recommendation_calculation_run
-  ADD COLUMN materialization_phase varchar(16) NOT NULL DEFAULT 'PRODUCTS',
+  ADD COLUMN materialization_phase varchar(16) NOT NULL DEFAULT 'ACCUMULATE',
+  ADD COLUMN order_progress_after uuid,
+  ADD COLUMN order_count bigint NOT NULL DEFAULT 0,
   ADD COLUMN product_progress_after uuid,
   ADD COLUMN pair_progress_anchor_after uuid,
   ADD COLUMN pair_progress_target_after uuid;
 
+CREATE TABLE listing.recommendation_product_accumulator (
+  run_id uuid NOT NULL,
+  product_id uuid NOT NULL,
+  orders_count bigint NOT NULL,
+  quantity bigint NOT NULL,
+  last_purchased_at timestamptz NOT NULL,
+  PRIMARY KEY (run_id, product_id),
+  FOREIGN KEY (run_id)
+    REFERENCES listing.recommendation_calculation_run(run_id)
+    ON DELETE CASCADE
+);
+
+CREATE TABLE listing.recommendation_pair_accumulator (
+  run_id uuid NOT NULL,
+  anchor_product_id uuid NOT NULL,
+  target_product_id uuid NOT NULL,
+  orders_together bigint NOT NULL,
+  last_purchased_together_at timestamptz NOT NULL,
+  PRIMARY KEY (run_id, anchor_product_id, target_product_id),
+  FOREIGN KEY (run_id)
+    REFERENCES listing.recommendation_calculation_run(run_id)
+    ON DELETE CASCADE
+);
+
 CREATE TABLE listing.recommendation_maintenance_cursor (
   cursor_id uuid PRIMARY KEY,
   store_id uuid NOT NULL UNIQUE,
-  last_manual_boundary_at timestamptz NOT NULL,
+  status varchar(16) NOT NULL DEFAULT 'BOOTSTRAPPING',
+  bootstrap_cutoff_at timestamptz NOT NULL,
+  last_manual_boundary_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -235,30 +268,46 @@ CREATE TABLE listing.recommendation_build_request (
 );
 ```
 
-`materialization_phase` принимает `PRODUCTS`, `PAIRS`, `COMPLETE`. Migration
-добавляет checks:
+`materialization_phase` принимает `ACCUMULATE`, `PRODUCTS`, `PAIRS`,
+`COMPLETE`. Migration добавляет checks:
 
 - progress UUID являются UUIDv7;
 - оба pair cursor columns либо null, либо non-null;
 - значение phase входит в зарегистрированный enum.
+- accumulator counts положительны, pair не содержит self-reference;
+- maintenance status входит в `BOOTSTRAPPING|ACTIVE`;
+- `last_manual_boundary_at IS NULL` только для `BOOTSTRAPPING`, а для `ACTIVE`
+  он равен или больше `bootstrap_cutoff_at`.
 
-Repository state machine переводит `PRODUCTS -> PAIRS -> COMPLETE` только
-вперёд. Переход выполняется в transaction после подтверждения пустой следующей
-page; после `COMPLETE` repository отклоняет дальнейшие изменения progress.
+Repository state machine переводит
+`ACCUMULATE -> PRODUCTS -> PAIRS -> COMPLETE` только вперёд. Переход
+выполняется в transaction после подтверждения пустой следующей page; после
+`COMPLETE` repository отклоняет дальнейшие изменения progress.
 
-Migration также добавляет UUIDv7 checks, проверку
-`last_manual_boundary_at <= updated_at` и store lookup index. Maintenance cursor
-нужен для resumable обработки `starts_at`/`ends_at`; новые calculation columns
-нужны для crash-safe bounded materialization. Build request хранит latest
-desired generation каждого anchor + placement; `generation > 0`, а
-`trigger_key` non-empty. Это schema evolution на clean database, а не backfill
-существующих данных.
+Migration также добавляет UUIDv7 checks, проверку active
+`last_manual_boundary_at <= updated_at` и store lookup index. Accumulators
+являются внутренним resumable write model конкретного run и удаляются после
+успешного перехода в `COMPLETE` в той же transaction, где фиксируются final
+counts. Maintenance cursor нужен для resumable обработки `starts_at`/`ends_at`;
+новые calculation columns нужны для crash-safe bounded accumulation и
+materialization. Build request хранит latest desired generation каждого anchor
+и placement; `generation > 0`, а `trigger_key` non-empty. Это schema evolution
+на clean database, а не backfill существующих данных.
 
 На первом запуске store workflow:
 
-1. выполняет full reconciliation всех anchors с scheduled manual rows;
-2. устанавливает watermark на текущую завершённую minute boundary;
-3. далее читает только новые boundaries.
+1. в короткой transaction создаёт `BOOTSTRAPPING` cursor с immutable
+   `bootstrap_cutoff_at`, равным текущей завершённой minute boundary;
+2. отдельный deterministic bootstrap workflow paginated reconcile-ит все
+   anchors с manual rows по состоянию на этот cutoff;
+3. только после успешного enqueue всех pages CAS-переходом устанавливает
+   `status = ACTIVE` и `last_manual_boundary_at = bootstrap_cutoff_at`;
+4. interval workflows не обрабатывают store, пока cursor не стал `ACTIVE`;
+5. после activation читаются boundaries строго после сохранённого watermark.
+
+Повтор bootstrap workflow использует тот же cutoff и page cursors. Crash не
+может оставить store с продвинутым active watermark и незапущенной initial
+reconciliation.
 
 ## Целевая структура
 
@@ -285,6 +334,7 @@ services/listing/src/repositories/recommendation/
   RecommendationIngestionCursorRepository.ts
   RecommendationOrderFactRepository.ts
   RecommendationCalculationRunRepository.ts
+  RecommendationCalculationAccumulatorRepository.ts
   RecommendationSnapshotRepository.ts
   RecommendationMaintenanceRepository.ts
   RecommendationBuildRequestRepository.ts
@@ -402,6 +452,7 @@ Orders producer обязан:
 - публиковать `COMMITTED` только после authoritative confirmed-sale transition;
 - публиковать новую revision при correction с полным corrected line snapshot;
 - публиковать `REVERSED` при полной отмене/полном возврате effective sale;
+- сохранять исходный `committedAt` неизменным во всех revisions одного order;
 - монотонно увеличивать `orderRevision`;
 - использовать durable `events.emit`;
 - использовать deterministic emit key:
@@ -471,7 +522,7 @@ timestamps — `{ mode: "string" }`.
 
 Done when:
 
-- все двенадцать tables представлены runtime models;
+- все четырнадцать tables представлены runtime models;
 - tenant filters присутствуют во всех root queries;
 - generated IDs проходят через BaseRepository UUIDv7 helpers.
 
@@ -507,11 +558,14 @@ FOR UPDATE;
 4. блокирует cursor row;
 5. проверяет существующий `event_id`;
 6. проверяет `(order_id, order_revision)`;
-7. same hash возвращает `duplicate`;
-8. different hash выбрасывает non-retryable integrity error;
-9. выделяет `last_position + 1`;
-10. вставляет fact и product facts;
-11. обновляет cursor в той же транзакции.
+7. при существовании любой revision order проверяет равенство `committedAt`
+   исходной sale generation;
+8. same hash возвращает `duplicate`;
+9. different hash или изменившийся `committedAt` выбрасывает non-retryable
+   integrity error;
+10. выделяет `last_position + 1`;
+11. вставляет fact и product facts;
+12. обновляет cursor в той же транзакции.
 
 Mapping timestamps:
 
@@ -645,30 +699,56 @@ interface RecommendationCalculationCounts {
 }
 ```
 
-Product/pair rows материализуются bounded batches:
+Calculation не пересчитывает 90-дневный aggregate для каждой output page.
+Сначала effective orders один раз проходят в raw `order_id ASC` и накапливают
+bounded intermediate state:
 
-1. SQL выбирает следующую deterministic page по product ID или
+1. по `(store_id, order_id, ingestion_position, order_revision DESC)` выбирается
+   следующая page distinct order IDs после `order_progress_after`, ограниченная
+   watermark;
+2. для этих IDs выбирается maximum revision, и только после этого применяется
+   calculation window/state filter;
+3. из не более чем 25 следующих orders выбирается deterministic longest prefix
+   с суммой не более 50 000 directed pair expansions; один order с максимумом
+   100 distinct products всегда помещается целиком;
+4. product и directed-pair page aggregates additive upsert-ятся в
+   `recommendation_product_accumulator` и
+   `recommendation_pair_accumulator`: counts/quantity суммируются, timestamps
+   обновляются через `GREATEST`;
+5. `order_count` увеличивается на число effective committed orders page, а
+   `order_progress_after` переводится на последний рассмотренный order ID в той
+   же transaction;
+6. cursor продвигается и для reversed/out-of-window orders, чтобы scan
+   гарантированно завершался;
+7. migration добавляет supporting index
+   `(store_id, order_id, order_revision DESC, ingestion_position DESC)`.
+
+После исчерпания orders phase переходит в `PRODUCTS`. Final statistics
+материализуются только из уже ограниченных accumulator tables:
+
+1. следующая product page выбирается по `product_id`;
+2. следующая pair page выбирается по
    `(anchor_product_id, target_product_id)`;
-2. repository генерирует UUIDv7 batch через `generateUuidV7s(pageSize)`;
-3. `INSERT ... SELECT` связывает IDs и ordered rows через ordinality;
-4. та же transaction обновляет `product_progress_after` или пару
-   `pair_progress_*_after`, соответствующий count и `materialization_phase`;
-5. retry сначала читает persisted phase/cursor; commit страницы означает, что
-   rows и cursor продвинулись вместе, rollback означает, что не сохранилось ни
-   то, ни другое;
-6. unique `(run_id, product_id)` /
+3. repository генерирует UUIDv7 batch через `generateUuidV7s(pageSize)`;
+4. `INSERT ... SELECT` связывает IDs и ordered rows через ordinality;
+5. pair features вычисляются из accumulator counts, `order_count`,
+   `windowEndedAt` и `last_purchased_together_at`;
+6. та же transaction обновляет progress cursor, count и phase;
+7. retry сначала читает persisted phase/cursor; rows и cursor либо commit-ятся
+   вместе, либо вместе откатываются;
+8. unique `(run_id, product_id)` /
    `(run_id, anchor_product_id, target_product_id)` остаются defense in depth;
-7. durable output хранит только phase, cursor и decimal-string count, но не все
-   rows.
+9. durable output хранит только phase, cursor и decimal-string counts.
 
 Compute не является одним долгим durable step. Workflow детерминированно
 повторяет отдельные page steps:
 
 ```text
-initialize aggregates
+accumulate next effective-order page -> persist order cursor/accumulators
+  -> repeat until order scan complete
   -> materialize next product page -> persist cursor/count
   -> materialize next pair page    -> persist cursor/count
-  -> finalize counts
+  -> finalize counts and delete accumulators
 ```
 
 Каждый page insert и advance persisted progress атомарны. После неопределённого
@@ -676,6 +756,10 @@ initialize aggregates
 со следующей page; иначе повторяет ту же keyset page. Workflow не удерживает
 transaction между pages и не возвращает через durable boundary rows или
 JavaScript `bigint`.
+
+Так стоимость accumulation линейна по числу effective orders и pair expansions,
+а output pagination читает уже сгруппированный persisted state вместо
+повторного полного aggregation scan.
 
 ### Workflow lifecycle
 
@@ -718,12 +802,24 @@ interface RecommendationCandidate {
   fbtSourceScore: string | null;
   popularityScore: string | null;
   primarySource: ProductRecommendationSource;
-  sourceBreakdown: Record<string, unknown>;
+  sourceBreakdown: {
+    manual?: {
+      action: "PIN" | "BOOST";
+      position: number | null;
+      boost: string | null;
+    };
+    fbt?: { runId: string; sourceScore: string };
+    categoryPopularity?: { score: string };
+    storePopularity?: { score: string };
+  };
 }
 ```
 
 Decimal arithmetic выполняется PostgreSQL numeric или decimal library, не
-JavaScript `number`.
+JavaScript `number`. `features` и `sourceBreakdown` имеют versioned closed Zod
+schemas: arbitrary keys и arbitrary nested values запрещены. Перед insert
+проверяются лимиты canonical JSON: не более 8 KiB на item и 512 KiB на весь
+snapshot. Нарушение является `INVALID_SNAPSHOT_CONTENT`.
 
 ### Sources
 
@@ -772,8 +868,9 @@ globalCandidateLimit = 1700
 - добавление нового source требует новой model version и пересмотра общего
   budget.
 
-Так один snapshot build и его durable result имеют фиксированную верхнюю
-границу. Admin persisted manual list остаётся paginated.
+Так working set одного snapshot build имеет фиксированную count и byte
+границу. Candidate array существует только внутри transactional build step и не
+пересекает durable boundary. Admin persisted manual list остаётся paginated.
 
 ### Fallback execution
 
@@ -936,16 +1033,16 @@ placement. `source_watermarks` содержит typed object с теми же з
 read fixed inputs
   -> validate desired generation
   -> create BUILDING snapshot
-  -> collect/rank bounded candidates
-  -> insert items
+  -> transactionally collect/rank candidates and insert items
   -> validate READY
   -> re-read policy/manual/calculation lineage
   -> atomically activate
 ```
 
-Candidate collection и ranking являются одним durable step и возвращают не
-более `globalCandidateLimit` candidates. Snapshot items вставляются одной
-transaction.
+Candidate collection, ranking и item insert являются одним transactional
+durable step. Bounded candidate array не возвращается из step и не сохраняется
+DBOS. Step возвращает только `{ itemCount, contentHash }`; snapshot items
+вставляются одной transaction после closed-schema/byte-limit validation.
 
 Перед activation проверяются:
 
@@ -1013,9 +1110,15 @@ Fan-out и builds используют generation coalescing:
   trigger key, policy/run lineage и manual hash с current values; устаревшая
   queued generation завершается как successful stale no-op без создания
   snapshot;
-- одновременно выполняется не более `20` snapshot builds на Listing replica и
-  не более `2` builds одного store; значения являются runtime configuration с
-  этими safe defaults;
+- queue `recommendation_snapshot_build` является partitioned queue с
+  `workerConcurrency = 20`;
+- для каждого anchor вычисляется deterministic lane
+  `hash(anchorProductId + placement) mod 2`, а queue partition key равен
+  `<storeId>:<lane>`;
+- одна partition выполняет workflows последовательно, поэтому во всём cluster
+  одновременно выполняется не более двух builds одного store, а
+  `workerConcurrency` ограничивает replica двадцатью builds; изменение числа
+  lanes является versioned operational configuration;
 - fan-out step запускает не более одной page из 100 children и не ждёт
   завершения всех anchors;
 - новая activation не пытается отменить уже committed snapshot, но делает
@@ -1024,15 +1127,17 @@ Fan-out и builds используют generation coalescing:
 Calculation trigger запускает не более одного нового run одного store за
 completed UTC hour. Watermark-only recalculation выполняется, только если после
 watermark текущего run появились facts, способные изменить закрытое calculation
-window (`committed_at < windowEndedAt`). Продажи текущего UTC day сами по себе
-не создают бесполезный same-window run; daily boundary всё равно гарантирует
-новую generation.
+window (`committed_at < windowEndedAt`). Это корректно, потому что `committedAt`
+immutable для всех revisions order; correction/reversal ранее включённой sale
+сохраняет исходный timestamp. Продажи текущего UTC day сами по себе не создают
+бесполезный same-window run; daily boundary всё равно гарантирует новую
+generation.
 
 Queue:
 
 ```text
 name: recommendation_snapshot_build
-partition: <storeId>:<anchorProductId>:<placement>
+partition: <storeId>:<lane-0-or-1>
 ```
 
 Done when:
@@ -1041,7 +1146,7 @@ Done when:
 - popularity change rebuild-ит anchors без pair stats;
 - failed/stale build не повреждает active serving;
 - stale generations отбрасываются до candidate collection;
-- fan-out соблюдает per-replica и per-store concurrency limits.
+- fan-out соблюдает per-replica и cluster-wide per-store concurrency limits.
 
 ## Phase 6. Storefront serving
 
@@ -1055,6 +1160,11 @@ interface RecommendationCursorPayload {
   rank: number;
 }
 ```
+
+`eligibilityPolicyVersion` первой версии — зарегистрированная constant
+`storefront-eligibility-v1`. Она версионирует exact publication/availability
+predicates, используемые build и serving; изменение predicates требует нового
+значения и делает старые cursors невалидными.
 
 Hash строится из:
 
@@ -1176,6 +1286,20 @@ input RecommendationPlacementPolicySetEnabledInput {
   enabled: Boolean!
   expectedVersion: Int!
 }
+
+type RecommendationPlacementPolicyPayload {
+  policy: RecommendationPlacementPolicy
+  userErrors: [UserError!]!
+}
+
+extend type Mutation {
+  recommendationPlacementPolicyUpsert(
+    input: RecommendationPlacementPolicyUpsertInput!
+  ): RecommendationPlacementPolicyPayload!
+  recommendationPlacementPolicySetEnabled(
+    input: RecommendationPlacementPolicySetEnabledInput!
+  ): RecommendationPlacementPolicyPayload!
+}
 ```
 
 - `expectedVersion = null` разрешён только при create;
@@ -1191,16 +1315,62 @@ input RecommendationPlacementPolicySetEnabledInput {
 
 ### Manual mutations
 
-Create input содержит anchor/target IDs, placement, action, position/boost,
-enabled, startsAt/endsAt.
+```graphql
+input ManualProductRecommendationCreateInput {
+  anchorProductId: ID!
+  targetProductId: ID!
+  placement: RecommendationPlacement!
+  action: ManualRecommendationAction!
+  position: Int
+  boost: String
+  enabled: Boolean!
+  startsAt: DateTime
+  endsAt: DateTime
+}
 
-Update input содержит:
+input ManualProductRecommendationUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  targetProductId: ID
+  action: ManualRecommendationAction
+  position: Int
+  boost: String
+  enabled: Boolean
+  startsAt: DateTime
+  endsAt: DateTime
+}
 
-- recommendation Global ID;
-- `expectedVersion`;
-- изменяемые поля.
+input ManualProductRecommendationDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+}
 
-Delete input содержит recommendation Global ID и `expectedVersion`.
+type ManualProductRecommendationPayload {
+  recommendation: ManualProductRecommendation
+  userErrors: [UserError!]!
+}
+
+type ManualProductRecommendationDeletePayload {
+  deletedId: ID
+  userErrors: [UserError!]!
+}
+
+extend type Mutation {
+  manualProductRecommendationCreate(
+    input: ManualProductRecommendationCreateInput!
+  ): ManualProductRecommendationPayload!
+  manualProductRecommendationUpdate(
+    input: ManualProductRecommendationUpdateInput!
+  ): ManualProductRecommendationPayload!
+  manualProductRecommendationDelete(
+    input: ManualProductRecommendationDeleteInput!
+  ): ManualProductRecommendationDeletePayload!
+}
+```
+
+Anchor и placement после create immutable. Для nullable schedule fields update
+resolver различает omitted field и explicit `null`; `null` очищает границу.
+`boost` проходит GraphQL boundary decimal string и валидируется Zod schema.
 
 Validation:
 
@@ -1242,10 +1412,64 @@ input RecommendationSnapshotPreviewInput {
   policy: RecommendationPlacementPolicyDraftInput
   manualChanges: [ManualRecommendationDraftChangeInput!]!
 }
+
+type RecommendationSnapshotPreviewPayload {
+  active: RecommendationPreviewResult
+  draft: RecommendationPreviewResult
+  userErrors: [UserError!]!
+}
+
+type RecommendationPreviewResult {
+  candidates: [RecommendationPreviewCandidate!]!
+  excluded: [RecommendationPreviewExcludedCandidate!]!
+  asOf: DateTime!
+  modelVersion: String!
+}
+
+type RecommendationPreviewCandidate {
+  product: Product!
+  rank: Int!
+  score: String!
+  source: ProductRecommendationSource!
+  sourceBreakdown: RecommendationPreviewSourceBreakdown!
+}
+
+type RecommendationPreviewSourceBreakdown {
+  manualAction: ManualRecommendationAction
+  manualPosition: Int
+  manualBoost: String
+  fbtRunId: ID
+  fbtSourceScore: String
+  categoryPopularityScore: String
+  storePopularityScore: String
+}
+
+type RecommendationPreviewExcludedCandidate {
+  product: Product!
+  reason: RecommendationPreviewExcludedReason!
+}
+
+enum RecommendationPreviewExcludedReason {
+  STALE
+  UNPUBLISHED
+  UNAVAILABLE
+  EXCLUDED
+  INSUFFICIENT_SUPPORT
+  LIMIT_EXCEEDED
+}
+
+extend type Query {
+  recommendationSnapshotPreview(
+    input: RecommendationSnapshotPreviewInput!
+  ): RecommendationSnapshotPreviewPayload!
+}
 ```
 
-Zod schema ограничивает `manualChanges` значением 400. Draft с большим числом
-changes возвращает `PREVIEW_LIMIT_EXCEEDED` и не выполняет partial preview.
+Internal arbitrary JSON через GraphQL не возвращается.
+
+Zod schema является strict, ограничивает `manualChanges` значением 400 и общий
+canonical input размер значением 256 KiB. Draft с превышением count/byte limit
+возвращает `PREVIEW_LIMIT_EXCEEDED` и не выполняет partial preview.
 
 Preview:
 
@@ -1311,14 +1535,18 @@ workflow ID: recommendation-manual-boundary:<utc-minute>
 
 Store-scoped workflow:
 
-1. в короткой transaction создаёт cursor при отсутствии и блокирует store row
-   через `SELECT ... FOR UPDATE`;
-2. находит distinct anchor + placement boundaries в
+1. при отсутствии cursor запускает deterministic
+   `recommendation-manual-bootstrap:<storeId>` и не обрабатывает interval;
+2. для `BOOTSTRAPPING` cursor возвращает successful no-op: только bootstrap
+   workflow может перевести его в `ACTIVE`;
+3. для `ACTIVE` cursor в короткой transaction блокирует store row через
+   `SELECT ... FOR UPDATE`;
+4. находит distinct anchor + placement boundaries в
    `(lastManualBoundaryAt, currentMinute]`;
-3. enqueue-ит deterministic snapshot builds;
-4. после успешного enqueue всех pages compare-and-set advance-ит cursor с
+5. enqueue-ит deterministic snapshot builds;
+6. после успешного enqueue всех pages compare-and-set advance-ит cursor с
    ожидаемого старого watermark;
-5. при retry duplicate child workflows являются no-op.
+7. при retry duplicate child workflows являются no-op.
 
 Cursor нельзя advance-ить до child enqueue: crash не должен терять boundary.
 Store workflow ID:
@@ -1343,10 +1571,19 @@ Done when:
 Recommendation reconciliation запускается после успешного update Listing
 projection, а не параллельно с ним.
 
-До write step существующий listing workflow фиксирует bounded lifecycle plan:
-old/new publication state, availability и old/new category IDs. После commit
-этот plan передаётся recommendation sync; workflow не пытается восстановить
-старые categories из уже обновлённой projection.
+Существующий Listing write step под теми же product/item-state locks и внутри
+той же transaction:
+
+1. читает old publication state, availability и category IDs;
+2. применяет новый Listing write model;
+3. строит bounded lifecycle plan из locked old state и фактически записанного
+   new state;
+4. возвращает plan только после commit.
+
+Следующий durable step передаёт committed plan recommendation sync. Plan не
+строится до write transaction: это исключает race между pre-read и Listing
+write. Workflow также не пытается восстановить старые categories из уже
+обновлённой projection.
 
 Изменить listing index workflows:
 
@@ -1426,6 +1663,7 @@ Logs не содержат customer identity или order lines.
 
 - canonical payload hash;
 - maximum distinct products sale contract;
+- immutable `committedAt` across order revisions;
 - schedule half-open intervals;
 - manual configuration hash before/after boundary;
 - FBT formulas and thresholds;
@@ -1440,10 +1678,14 @@ Logs не содержат customer identity или order lines.
 - concurrent first cursor creation;
 - duplicate event and conflicting payload;
 - out-of-order revisions;
+- correction с изменённым `committedAt` отклоняется;
 - commit in window + reversal outside window;
 - fixed watermark excludes later ingestion;
+- accumulation page commit атомарен с accumulator upserts и order cursor;
+- accumulation scan не повторно агрегирует уже пройденные order IDs;
 - product/pair page commit атомарен с progress cursor;
-- resume из `PRODUCTS`, `PAIRS` и `COMPLETE`;
+- resume из `ACCUMULATE`, `PRODUCTS`, `PAIRS` и `COMPLETE`;
+- accumulators удаляются только при successful `COMPLETE`;
 - concurrent build requests монотонно увеличивают anchor generation;
 - one ACTIVE run/snapshot under concurrent activation;
 - tenant isolation;
@@ -1457,12 +1699,17 @@ Logs не содержат customer identity или order lines.
 - duplicate workflow start;
 - paginated fan-out resume;
 - stale fan-out generation завершается до candidate collection;
+- snapshot build durable result не содержит candidate array;
+- snapshot content byte limit приводит к `INVALID_SNAPSHOT_CONTENT`;
+- две deterministic store lanes не допускают более двух concurrent builds;
 - повторные manual mutations при неизменных policy/run создают разные
   anchor-specific builds;
 - scheduler multi-replica idempotency;
 - overlapping manual minute workflows and maintenance cursor CAS;
+- bootstrap cursor не становится `ACTIVE` до enqueue всех reconciliation pages;
 - manual boundary retry before/after cursor advance;
-- product sync ordering;
+- product sync lifecycle plan строится из locked old/new state внутри write
+  transaction;
 - category/store-popularity fan-out for a newly eligible target.
 
 ### GraphQL/e2e
@@ -1520,21 +1767,31 @@ Orders producer integration ←────────────────�
   events.
 - Calculation сначала выбирает effective revision, затем применяет window.
 - Watermark фиксируется под cursor lock.
+- `committedAt` неизменен между revisions одного order.
 - Ни один durable step не возвращает unbounded statistics/anchor arrays.
 - Ни один snapshot build не превышает `globalCandidateLimit`.
+- Candidate arrays не пересекают durable boundary, а snapshot content имеет
+  count и byte limits.
+- Calculation один раз проходит effective orders в keyset pages и не повторяет
+  полный 90-дневный aggregate для каждой output page.
 - Calculation materialization resume-ится по persisted phase/cursors.
 - Run/snapshot failures явно переходят в `FAILED`.
 - Policy disable немедленно прекращает serving.
 - Policy update rebuild-ит все anchors placement'а.
 - Popularity update rebuild-ит anchors без pair stats.
 - Stale fan-out generations отбрасываются до expensive candidate collection.
+- Snapshot queue обеспечивает не более двух concurrent builds одного store
+  через deterministic partition lanes.
 - Product lifecycle fan-out охватывает новые category/store-popularity
   candidates без существующих reverse references.
 - Scheduled manual actions активируются и истекают без mutation.
+- Initial manual reconciliation завершается до activation maintenance cursor.
 - Maintenance cursor защищён lock/CAS от overlapping minute workflows.
 - Ranking formula полностью определяется model version.
 - Category popularity использует Listing category postings.
 - Publication и availability проверяются при build и serving.
+- Product lifecycle plan строится внутри Listing write transaction из locked
+  old state и committed new state.
 - Storefront list queries используют batch DataLoader path.
 - Current ACTIVE snapshot lookup не использует process-local cross-request
   cache.
