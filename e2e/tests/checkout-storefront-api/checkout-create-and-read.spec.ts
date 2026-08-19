@@ -25,14 +25,6 @@ test.describe('Storefront checkout creation and reads', () => {
     // TODO: Cover ONE_TIME and SUBSCRIPTION validation.
   });
 
-  test('replays checkout creation idempotently for the same caller and request', () => {
-    // TODO: Verify checkout ID and revision stay identical.
-  });
-
-  test('rejects reuse of a checkout creation idempotency key with different input', () => {
-    // TODO: Verify the pipeline is not invoked again.
-  });
-
   test('reads the committed checkout snapshot after creation', () => {
     // TODO: Verify query and mutation projections match.
   });
@@ -43,10 +35,6 @@ test.describe('Storefront checkout creation and reads', () => {
 
   test('does not expose a checkout to a different storefront connection', () => {
     // TODO: Verify connection isolation.
-  });
-
-  test('does not replay a create idempotency key across storefront connections', () => {
-    // TODO: Verify connectionId is part of the create idempotency identity.
   });
 
   test('rejects malformed or wrong-type global IDs without disclosing checkout existence', () => {
