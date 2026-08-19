@@ -105,6 +105,41 @@ store_popularity
 - Каждый workflow start использует deterministic idempotency context и
   обрабатывает duplicate start как successful no-op.
 
+### Failure taxonomy
+
+Ошибки классифицируются до пересечения workflow boundary:
+
+- business validation и optimistic concurrency возвращаются как `UserError[]`
+  и не retry-ятся;
+- deterministic integrity failures (`EVENT_PAYLOAD_CONFLICT`,
+  `STALE_INPUT`, `UNSUPPORTED_MODEL_VERSION`, `CANDIDATE_LIMIT_EXCEEDED`,
+  `INVALID_SNAPSHOT_CONTENT`) являются non-retryable;
+- временные broker, database connection, serialization и timeout failures
+  являются retryable;
+- неизвестная database constraint или неизвестная ошибка не преобразуется в
+  business error и считается infrastructure failure.
+
+Terminal failure codes run:
+
+```text
+CALCULATION_FAILED
+INVALID_CALCULATION_RESULT
+```
+
+Terminal failure codes snapshot:
+
+```text
+STALE_INPUT
+UNSUPPORTED_MODEL_VERSION
+CANDIDATE_LIMIT_EXCEEDED
+INVALID_SNAPSHOT_CONTENT
+SNAPSHOT_BUILD_FAILED
+```
+
+Конкретная infrastructure cause сохраняется в structured log с workflow/run/
+snapshot identifiers, но не записывается в публичный `failure_code` и не
+возвращается GraphQL client.
+
 ## Фиксированные domain decisions
 
 ### Policy absence и disabled policy
@@ -142,14 +177,19 @@ Expiry policy добавляется отдельной версией моде�
 - Scheduler запускается hourly для recovery и обработки новых ingestion
   watermark.
 - Новый run нужен, когда:
-  - cursor watermark больше watermark последнего active/building/ready run; или
-  - active run относится к предыдущему UTC day.
+  - active/building/ready run для текущего UTC day отсутствует; или
+  - после watermark новейшего current-day run появились facts с
+    `committed_at` внутри его закрытого `[windowStartedAt, windowEndedAt)` окна.
+- Advance watermark только из-за продаж текущего UTC day не запускает
+  same-window calculation: они впервые войдут в run после следующей daily
+  boundary.
 - Поэтому time decay и rolling window пересчитываются минимум один раз в день
   даже при отсутствии новых events.
 
 ## Physical schema
 
-Существующие десять domain tables используются без изменения:
+Существующие десять domain tables сохраняются. Migration `9104` добавляет
+operational progress columns в calculation run и две operational tables:
 
 ```text
 recommendation_placement_policy
@@ -168,6 +208,12 @@ recommendation_snapshot_item
 `9104_recommendations__maintenance.sql` с operational cursor:
 
 ```sql
+ALTER TABLE listing.recommendation_calculation_run
+  ADD COLUMN materialization_phase varchar(16) NOT NULL DEFAULT 'PRODUCTS',
+  ADD COLUMN product_progress_after uuid,
+  ADD COLUMN pair_progress_anchor_after uuid,
+  ADD COLUMN pair_progress_target_after uuid;
+
 CREATE TABLE listing.recommendation_maintenance_cursor (
   cursor_id uuid PRIMARY KEY,
   store_id uuid NOT NULL UNIQUE,
@@ -175,11 +221,38 @@ CREATE TABLE listing.recommendation_maintenance_cursor (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE listing.recommendation_build_request (
+  request_id uuid PRIMARY KEY,
+  store_id uuid NOT NULL,
+  anchor_product_id uuid NOT NULL,
+  placement varchar(48) NOT NULL,
+  generation bigint NOT NULL,
+  trigger_key varchar(255) NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (store_id, anchor_product_id, placement)
+);
 ```
 
+`materialization_phase` принимает `PRODUCTS`, `PAIRS`, `COMPLETE`. Migration
+добавляет checks:
+
+- progress UUID являются UUIDv7;
+- оба pair cursor columns либо null, либо non-null;
+- значение phase входит в зарегистрированный enum.
+
+Repository state machine переводит `PRODUCTS -> PAIRS -> COMPLETE` только
+вперёд. Переход выполняется в transaction после подтверждения пустой следующей
+page; после `COMPLETE` repository отклоняет дальнейшие изменения progress.
+
 Migration также добавляет UUIDv7 checks, проверку
-`last_manual_boundary_at <= updated_at` и store lookup index. Cursor нужен для
-resumable обработки `starts_at`/`ends_at`; это не backfill существующих данных.
+`last_manual_boundary_at <= updated_at` и store lookup index. Maintenance cursor
+нужен для resumable обработки `starts_at`/`ends_at`; новые calculation columns
+нужны для crash-safe bounded materialization. Build request хранит latest
+desired generation каждого anchor + placement; `generation > 0`, а
+`trigger_key` non-empty. Это schema evolution на clean database, а не backfill
+существующих данных.
 
 На первом запуске store workflow:
 
@@ -214,6 +287,7 @@ services/listing/src/repositories/recommendation/
   RecommendationCalculationRunRepository.ts
   RecommendationSnapshotRepository.ts
   RecommendationMaintenanceRepository.ts
+  RecommendationBuildRequestRepository.ts
   RecommendationAnchorCollectorRepository.ts
   index.ts
 
@@ -239,7 +313,7 @@ services/listing/src/scripts/recommendation/
   RecommendationSnapshotPopulateScript.ts
   RecommendationSnapshotTransitionScript.ts
   RecommendationPlacementPolicyUpsertScript.ts
-  RecommendationPlacementPolicyDisableScript.ts
+  RecommendationPlacementPolicySetEnabledScript.ts
   ManualProductRecommendationCreateScript.ts
   ManualProductRecommendationUpdateScript.ts
   ManualProductRecommendationDeleteScript.ts
@@ -386,8 +460,9 @@ Done when:
 ## Phase 1. Runtime models и repository wiring
 
 `recommendationRuntime.ts` описывает physical schema один в один, включая
-maintenance cursor. Decimal columns используют `{ mode: "string" }`, bigint —
-`{ mode: "bigint" }`, timestamps — `{ mode: "string" }`.
+calculation progress columns, maintenance cursor и build request. Decimal
+columns используют `{ mode: "string" }`, bigint — `{ mode: "bigint" }`,
+timestamps — `{ mode: "string" }`.
 
 Экспортировать select/insert types. Models не импортируются GraphQL layer.
 
@@ -396,7 +471,7 @@ maintenance cursor. Decimal columns используют `{ mode: "string" }`, b
 
 Done when:
 
-- все одиннадцать tables представлены runtime models;
+- все двенадцать tables представлены runtime models;
 - tenant filters присутствуют во всех root queries;
 - generated IDs проходят через BaseRepository UUIDv7 helpers.
 
@@ -576,9 +651,15 @@ Product/pair rows материализуются bounded batches:
    `(anchor_product_id, target_product_id)`;
 2. repository генерирует UUIDv7 batch через `generateUuidV7s(pageSize)`;
 3. `INSERT ... SELECT` связывает IDs и ordered rows через ordinality;
-4. retry использует unique `(run_id, product_id)` /
-   `(run_id, anchor_product_id, target_product_id)` и не создаёт duplicates;
-5. durable output хранит cursor и decimal-string count, но не все rows.
+4. та же transaction обновляет `product_progress_after` или пару
+   `pair_progress_*_after`, соответствующий count и `materialization_phase`;
+5. retry сначала читает persisted phase/cursor; commit страницы означает, что
+   rows и cursor продвинулись вместе, rollback означает, что не сохранилось ни
+   то, ни другое;
+6. unique `(run_id, product_id)` /
+   `(run_id, anchor_product_id, target_product_id)` остаются defense in depth;
+7. durable output хранит только phase, cursor и decimal-string count, но не все
+   rows.
 
 Compute не является одним долгим durable step. Workflow детерминированно
 повторяет отдельные page steps:
@@ -590,11 +671,11 @@ initialize aggregates
   -> finalize counts
 ```
 
-Каждый page insert и advance его persisted progress атомарны. Page retry после
-неопределённого результата повторяет ту же keyset page и классифицирует
-conflicts по run-scoped unique constraints. Workflow не удерживает transaction
-между pages и не возвращает через durable boundary rows или JavaScript
-`bigint`.
+Каждый page insert и advance persisted progress атомарны. После неопределённого
+результата retry повторно читает run: если cursor продвинут, workflow продолжает
+со следующей page; иначе повторяет ту же keyset page. Workflow не удерживает
+transaction между pages и не возвращает через durable boundary rows или
+JavaScript `bigint`.
 
 ### Workflow lifecycle
 
@@ -671,20 +752,25 @@ FBT source читает pair stats текущего ACTIVE run.
 
 ```text
 sourceLimit = min(maximumResults * 4, 400)
-globalCandidateLimit = 1600
+globalCandidateLimit = 1700
 ```
 
 - все active PIN читаются целиком; их количество не превышает
   `maximumResults` благодаря mutation validation и schedule exclusion;
 - BOOST source читает не более `sourceLimit`, ordered by boost DESC и target ID;
 - каждый automated/fallback source читает не более `sourceLimit`;
-- sources применяются в фиксированном порядке, deduplicate по target ID и
-  никогда не увеличивают union выше `globalCandidateLimit`;
+- v1 имеет не более четырёх non-PIN sources: BOOST, FBT,
+  `category_popularity`, `store_popularity`; поэтому абсолютная верхняя граница
+  равна `100 + 4 * 400 = 1700`;
+- sources применяются в фиксированном порядке и deduplicate по target ID;
 - EXCLUDE rows не загружаются unbounded array: candidate queries применяют
   schedule-aware anti-join, а после dedup выполняется один batch lookup только
   для IDs bounded union;
-- превышение global limit является explicit build failure
-  `CANDIDATE_LIMIT_EXCEEDED`, а не молчаливым truncation.
+- каждый source repository проверяет собственный limit, а pipeline проверяет
+  общий union; превышение означает нарушение versioned source budget и
+  explicit build failure `CANDIDATE_LIMIT_EXCEEDED`, а не truncation;
+- добавление нового source требует новой model version и пересмотра общего
+  budget.
 
 Так один snapshot build и его durable result имеют фиксированную верхнюю
 границу. Admin persisted manual list остаётся paginated.
@@ -697,8 +783,11 @@ Candidate source и score feature различаются. Product popularity ACT
 
 Fallback chain применяется так:
 
-1. собираются base candidates strategy: manual для curated strategies и FBT для
-   automated strategies;
+1. собираются base candidates согласно strategy:
+   - `CURATED_ONLY`: PIN и BOOST;
+   - `CURATED_FIRST`: PIN, BOOST и FBT;
+   - `BLENDED`: PIN, BOOST и FBT;
+   - `AUTOMATED_ONLY`: FBT; PIN/BOOST не читаются;
 2. выполняются dedup, EXCLUDE и eligibility;
 3. `CURATED_ONLY` завершает pipeline без fallback независимо от
    `minimumResults`;
@@ -714,6 +803,12 @@ Fallback chain применяется так:
 и store popularity требуют ACTIVE calculation run. До появления sales
 projection гарантирован только manual curated result; fallback codes без
 доступного run возвращают zero candidates и не делают synchronous calculation.
+
+FBT repository для snapshot возвращает не более `sourceLimit` прошедших
+threshold candidates. Preview тем же bounded query mode может вернуть внутри
+того же FBT budget ближайшие пары, не прошедшие support/confidence/lift
+thresholds, с reason `INSUFFICIENT_SUPPORT`; они входят в bounded diagnostic
+union, но не участвуют в ranking. Preview не выполняет отдельный unbounded scan.
 
 ### Score normalization
 
@@ -759,6 +854,8 @@ EXCLUDE применяется до ranking при любой strategy.
 PIN:
 
 - не превращается в score;
+- persisted `recommendation_snapshot_item.score` для PIN равен decimal
+  `"0.0000000000"`; порядок PIN определяется только position;
 - positions уникальны благодаря exclusion constraint;
 - create/update отклоняет position выше current `maximumResults`;
 - policy update с меньшим maximum отклоняется, если существующий active/future
@@ -822,6 +919,8 @@ interface RecommendationBuildInputs {
   calculationRunId: string | null;
   sourceIngestionWatermark: string | null;
   manualConfigurationHash: string;
+  requestedGeneration: string;
+  triggerKey: string;
   modelVersion: string;
 }
 ```
@@ -835,6 +934,7 @@ placement. `source_watermarks` содержит typed object с теми же з
 
 ```text
 read fixed inputs
+  -> validate desired generation
   -> create BUILDING snapshot
   -> collect/rank bounded candidates
   -> insert items
@@ -859,9 +959,11 @@ transaction.
 - policy всё ещё enabled и version не изменилась;
 - manual configuration hash не изменился;
 - calculation run всё ещё ACTIVE;
+- build request generation и trigger key всё ещё current;
 - runtime поддерживает model version.
 
-Stale input:
+Queued generation, устаревшая до `create BUILDING`, завершается successful stale
+no-op без snapshot row. Stale input после создания snapshot:
 
 1. snapshot получает `FAILED` с `STALE_INPUT`;
 2. workflow enqueue-ит rebuild с новым deterministic key;
@@ -896,6 +998,36 @@ Fan-out sources:
 enqueue-ит child builds и запускает следующую page. Page size — 100. Durable
 result хранит counts и next cursor, но не все workflow IDs.
 
+Fan-out и builds используют generation coalescing:
+
+- trigger key является version/hash изменившего источник значения:
+  manual configuration hash для manual mutation, product lifecycle sequence для
+  lifecycle sync либо calculation run ID для run activation;
+- fan-out page в одной transaction вызывает
+  `RecommendationBuildRequestRepository.request()` для каждого anchor:
+  блокирует/upsert-ит row, увеличивает generation и сохраняет trigger key;
+- orchestration child workflow ID детерминирован по store + anchor + placement +
+  requested generation; child читает полный `RecommendationBuildInputs` и
+  запускает build по окончательному `buildKey`;
+- перед expensive candidate collection child сравнивает requested generation,
+  trigger key, policy/run lineage и manual hash с current values; устаревшая
+  queued generation завершается как successful stale no-op без создания
+  snapshot;
+- одновременно выполняется не более `20` snapshot builds на Listing replica и
+  не более `2` builds одного store; значения являются runtime configuration с
+  этими safe defaults;
+- fan-out step запускает не более одной page из 100 children и не ждёт
+  завершения всех anchors;
+- новая activation не пытается отменить уже committed snapshot, но делает
+  оставшуюся очередь старой generation дешёвой no-op.
+
+Calculation trigger запускает не более одного нового run одного store за
+completed UTC hour. Watermark-only recalculation выполняется, только если после
+watermark текущего run появились facts, способные изменить закрытое calculation
+window (`committed_at < windowEndedAt`). Продажи текущего UTC day сами по себе
+не создают бесполезный same-window run; daily boundary всё равно гарантирует
+новую generation.
+
 Queue:
 
 ```text
@@ -907,7 +1039,9 @@ Done when:
 
 - policy update не оставляет anchors на старой policy бесконечно;
 - popularity change rebuild-ит anchors без pair stats;
-- failed/stale build не повреждает active serving.
+- failed/stale build не повреждает active serving;
+- stale generations отбрасываются до candidate collection;
+- fan-out соблюдает per-replica и per-store concurrency limits.
 
 ## Phase 6. Storefront serving
 
@@ -1030,12 +1164,17 @@ GlobalIdEntity.ManualProductRecommendation
 ```graphql
 input RecommendationPlacementPolicyUpsertInput {
   placement: RecommendationPlacement!
-  enabled: Boolean!
   strategy: RecommendationStrategy!
   minimumResults: Int!
   maximumResults: Int!
   fallbackChain: [String!]!
   expectedVersion: Int
+}
+
+input RecommendationPlacementPolicySetEnabledInput {
+  placement: RecommendationPlacement!
+  enabled: Boolean!
+  expectedVersion: Int!
 }
 ```
 
@@ -1043,8 +1182,12 @@ input RecommendationPlacementPolicyUpsertInput {
 - update требует точного current version;
 - mismatch → `VERSION_CONFLICT`;
 - fallback chain содержит unique registered codes;
-- disable supersede-ит active snapshots в transaction;
-- successful enabled update запускает paginated placement fan-out.
+- create создаёт policy с `enabled = true`;
+- enable/disable выполняются только отдельной set-enabled mutation;
+- disable supersede-ит active snapshots в той же transaction;
+- enable запускает paginated placement fan-out;
+- successful configuration update enabled policy запускает paginated placement
+  fan-out.
 
 ### Manual mutations
 
@@ -1073,10 +1216,17 @@ Validation:
 Workflows защищены `@Policy`:
 
 ```text
-create/update: resource=store.data action=write
-delete/disable: resource=store.data action=admin
+policy create/configure: resource=store.data action=write
+policy set-enabled:     resource=store.data action=admin
+manual create/update:  resource=store.data action=write
+manual delete:         resource=store.data action=admin
 domain=store:<storeId>
 ```
+
+Policy configure script не принимает `enabled`, поэтому permission
+`store.data/write` не может обойти admin-only disable. Manual `enabled` является
+частью редактирования editorial row и остаётся write action; физическое delete
+требует admin.
 
 ### Queries
 
@@ -1109,6 +1259,11 @@ Preview:
 Draft и excluded lists строятся только из того же bounded candidate union, что
 и snapshot build. Превышение `globalCandidateLimit` возвращает user error, а не
 truncated result.
+
+Для FBT diagnostic mode rejected threshold candidates занимают тот же
+`sourceLimit` budget, что и accepted FBT candidates. Поэтому
+`INSUFFICIENT_SUPPORT` объясним без дополнительного unbounded query и без
+увеличения `globalCandidateLimit`.
 
 Excluded reasons:
 
@@ -1287,6 +1442,9 @@ Logs не содержат customer identity или order lines.
 - out-of-order revisions;
 - commit in window + reversal outside window;
 - fixed watermark excludes later ingestion;
+- product/pair page commit атомарен с progress cursor;
+- resume из `PRODUCTS`, `PAIRS` и `COMPLETE`;
+- concurrent build requests монотонно увеличивают anchor generation;
 - one ACTIVE run/snapshot under concurrent activation;
 - tenant isolation;
 - exclusion constraint mapping;
@@ -1298,6 +1456,9 @@ Logs не содержат customer identity или order lines.
 - failure of first calculation step marks run FAILED;
 - duplicate workflow start;
 - paginated fan-out resume;
+- stale fan-out generation завершается до candidate collection;
+- повторные manual mutations при неизменных policy/run создают разные
+  anchor-specific builds;
 - scheduler multi-replica idempotency;
 - overlapping manual minute workflows and maintenance cursor CAS;
 - manual boundary retry before/after cursor advance;
@@ -1313,7 +1474,9 @@ Logs не содержат customer identity или order lines.
 - disable/activation visibility across separate Listing replicas;
 - empty connection;
 - Admin optimistic concurrency;
+- write permission не может вызвать policy disable;
 - draft preview;
+- preview `INSUFFICIENT_SUPPORT` соблюдает FBT source budget;
 - cross-store IDs.
 
 Для implementation verification используются только `shopana-cli` MCP tools и
@@ -1343,8 +1506,8 @@ Orders producer integration ←────────────────�
 
 Рекомендуемые delivery slices:
 
-1. models + repositories + curated Admin CRUD;
-2. deterministic manual ranking + snapshots;
+1. models + repositories + curated scripts без GraphQL mutation wiring;
+2. deterministic manual ranking + snapshots + Admin CRUD wiring;
 3. storefront API + batch loader;
 4. schedule boundaries + lifecycle;
 5. sale event producer + projection;
@@ -1359,10 +1522,12 @@ Orders producer integration ←────────────────�
 - Watermark фиксируется под cursor lock.
 - Ни один durable step не возвращает unbounded statistics/anchor arrays.
 - Ни один snapshot build не превышает `globalCandidateLimit`.
+- Calculation materialization resume-ится по persisted phase/cursors.
 - Run/snapshot failures явно переходят в `FAILED`.
 - Policy disable немедленно прекращает serving.
 - Policy update rebuild-ит все anchors placement'а.
 - Popularity update rebuild-ит anchors без pair stats.
+- Stale fan-out generations отбрасываются до expensive candidate collection.
 - Product lifecycle fan-out охватывает новые category/store-popularity
   candidates без существующих reverse references.
 - Scheduled manual actions активируются и истекают без mutation.
