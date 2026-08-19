@@ -10,7 +10,7 @@
 - GraphQL admin (`schema/collection.graphql`) уже описывает `Collection.rules`, `CollectionUpdateRulesInput`, но `field`/`operator` — это `String!`, без enum. Preview-запроса ("какие товары попадут в коллекцию по этим правилам") нет.
 - **Более широкий разрыв:** `CollectionResolver.products()` и `productsCount()` — буквальные `// TODO: Implement ... with keyset pagination` / `// TODO: Implement ... with COUNT(*)`. Ни у manual, ни у rule коллекций сегодня нет рабочего чтения списка товаров. DTO `CollectionProductsQueryParams/Result` в `scripts/collection/dto/index.ts` существуют, но никем не используются (dead code) — эталонная реализация для этого пути уже есть у `Category` (см. ниже) и её нужно скопировать, а не оживлять мёртвые DTO.
 - В storefront (`graphql-storefront`) коллекции не представлены вообще — 0 упоминаний.
-- В `listing` коллекция упоминается один раз: CHECK-ограничение `chk_listing_posting_bitmap_no_collection_field` (`services/listing/src/repositories/models/listingIndex.ts:407-408`) явно **запрещает** `field = 'collection'` в общей posting-list/bitmap таблице фасетов (tag/option/feature/price и т.д.). Это осознанная резервация: членство в коллекции не должно жить в общем bitmap-механизме фасетов и требует отдельного решения, когда до этого дойдёт очередь.
+- В `listing` слово "коллекция" встречается один раз: CHECK-ограничение `chk_listing_posting_bitmap_no_collection_field` (`services/listing/src/repositories/models/listingIndex.ts:407-408`) явно **запрещает** `field = 'collection'` в общей posting-list/bitmap таблице фасетов. Но у listing уже есть готовая, протестированная под нагрузкой инфраструктура именно для той задачи, которую решают rule-коллекции — «дать множество товаров, подходящих под набор условий» (см. следующий раздел). Первая версия этого плана предлагала пересчитывать правила бесхитростным SQL внутри catalog, полностью игнорируя эту инфраструктуру — это было не так, и раздел «Матчинг: делегирование в listing» ниже описывает исправленный подход.
 
 Итог: схема и CRUD-обвязка для rule-коллекций были заложены заранее, но вся смысловая часть — сопоставление правил с товарами, публикация membership, чтение списка товаров, storefront и listing — не реализована. Это greenfield-задача поверх готового скелета.
 
@@ -18,18 +18,18 @@
 
 - Мерчант создаёт коллекцию типа `rule`, задаёт условия (`tag`, `feature`, `category`, `option`, `price`, `created_at`, `in_stock`), выбирает `matchType` (все условия / любое условие).
 - После сохранения правил коллекция автоматически наполняется подходящими товарами без участия мерчанта.
-- При изменении товара (тег, характеристика, категория, опция, цена, остаток, публикация, удаление) членство в затронутых rule-коллекциях пересчитывается автоматически и малой кровью — без полного пересчёта каталога на каждое изменение одного товара.
+- При изменении товара (тег, характеристика, категория, опция, цена, остаток, публикация, удаление) членство в затронутых rule-коллекциях пересчитывается автоматически.
 - Admin может увидеть предпросмотр совпадающих товаров до сохранения правил.
 - Admin может прочитать список товаров коллекции (manual и rule одинаково) с пагинацией и сортировкой — это же попутно закрывает существующий разрыв для `manual` коллекций.
 - Дальше (вне v1, но не блокируется им) — товары коллекции должны быть доступны на витрине и участвовать в поиске/фильтрации listing.
 
 ## Не входит в объём v1
 
-- Витрина (storefront) и интеграция с listing — выносятся в фазу B (раздел «Listing и storefront»), потому что сначала нужно, чтобы каталог сам умел вычислять и отдавать membership.
+- Витрина (storefront) — выносится в фазу 5, потому что сначала нужно, чтобы каталог сам умел вычислять и отдавать membership.
 - Вложенные группы условий (`(A И B) ИЛИ (C И D)`) — v1 ограничивается одним уровнем `matchType: ALL | ANY` над плоским списком правил, как в схеме `collection_rule` сегодня.
 - Мультивалютные price-правила — v1 оценивает `price` только в валюте магазина по умолчанию.
 - ML/поведенческие сигналы (аналог FBT из `product-recommendations.ru.md`) — rule-коллекции остаются декларативными и детерминированными.
-- Изменение общего facet bitmap-механизма listing — CHECK-ограничение, запрещающее `collection` в posting-list, не трогаем.
+- Изменение общего facet bitmap-механизма listing под `field = 'collection'` — CHECK-ограничение не трогаем; коллекции syncятся в listing отдельным путём (фаза 5).
 
 ## Термины
 
@@ -40,55 +40,88 @@
 | `membership` | Множество `productId`, которое коллекция должна содержать прямо сейчас |
 | `materialization` | Запись вычисленного membership в существующую таблицу `collection_item` |
 | `full recompute` | Пересчёт membership с нуля по всем товарам магазина (используется после правки правил) |
-| `incremental recompute` | Пересчёт membership только для товаров, затронутых конкретным изменением (тег, цена и т.д.) |
-| `affected product` | ProductId, для которого правки в каталоге могли изменить результат хотя бы одного правила |
+| `incremental recompute` | Пересчёт membership только для товаров, затронутых конкретным изменением |
+| `delegated field` | Поле правила, которое вычисляется через `listing` (`tag`/`feature`/`option`/`price`/`in_stock`) |
+| `local field` | Поле правила, которое вычисляется прямо в catalog (`category`/`created_at`) |
 
-## Архитектурные принципы
+## Матчинг: делегирование в listing, а не SQL внутри catalog
 
-1. **Сопоставление правил — это чистый SQL внутри БД catalog.** Все семь полей (`tag`, `feature`, `category`, `option`, `price`, `created_at`, `in_stock`) читаются из таблиц, которыми и так владеет catalog (`product_tag`, `product_feature`/`product_feature_value`, `product_category`, `product_option`/`product_option_value`/`product_option_variant_link`, `item_pricing`/`product_price_range`, `product.created_at`, `warehouse_stock`/`inventory_item`). Кросс-сервисные вызовы (`pricing`, отдельный inventory-сервис) не нужны — см. таблицу в разделе «Семантика правил».
-2. **Membership материализуется, а не вычисляется на каждое чтение.** Результат пишется в уже существующую `collection_item` — тот же путь чтения, что и для `manual` коллекций, переиспользуется без изменений. Это тот же принцип, что и в `dynamic-content-engine-architecture-plan.md` («материализация обязательна») и в recommendation-домене listing («storefront читает только опубликованный snapshot»).
-3. **Инвалидация — по образцу уже работающего facet resync.** В catalog уже есть `ListingFacetAffectedProductRepository` (`services/catalog/src/repositories/facet/ListingFacetAffectedProductRepository.ts`) — по изменённым ref'ам (tag/feature/option) находит affected productId постранично. В listing есть `FacetAffectedProductsResyncWorkflow` (`services/listing/src/workflows/FacetAffectedProductsResyncWorkflow.ts`) — DBOS workflow, который постранично вызывает `broker.call("catalog.findListingFacetAffectedProducts", ...)` и на каждый productId эмитит событие. Rule-коллекции копируют эту же форму: affected-product finder + постраничный workflow, только результат — не событие для listing, а diff `collection_item` внутри catalog.
-4. **Точечные правки штатных скриптов, а не отдельный параллельный pipeline.** Как и `DynamicContentInvalidationService`, инвалидация rule-коллекций вызывается из существующих product/tag/feature/category/option/price/stock-скриптов, а не полагается на отдельный поллинг.
-5. **Полный пересчёт — только когда меняется сама формула.** Правка `collection_rule` (сохранение новых условий) требует full recompute этой одной коллекции. Правка данных товара (тег, цена и т.д.) требует incremental recompute только затронутых товаров и только тех коллекций, чьи правила ссылаются на изменившийся ref.
-6. **Сначала catalog, потом listing.** `Collection.products()` в admin API должен работать на данных catalog так же, как `Category.products()` — без ожидания интеграции с listing. Интеграция с listing (влияние на витрину и фасетный поиск) — отдельная фаза, потому что для неё нужен отдельный от общего facet bitmap механизм (см. CHECK-ограничение).
+Ключевое архитектурное решение этого плана: **сопоставление правил с товарами не должно быть отдельным SQL-движком внутри catalog**, потому что почти всё, что нужно, уже построено в `listing` и уже проверено под нагрузкой.
 
-## Владение и границы
+### Что уже есть в listing и напрямую переиспользуется
+
+`services/listing/src/repositories/storefront/types.ts` уже описывает готовый фильтр-контракт `StorefrontListingFilterInput`:
+
+```typescript
+export type StorefrontListingFilterInput =
+  | { kind: "facet"; facetSlug: string; valueHandles: string[] }
+  | { kind: "vendor"; vendorIds: string[] }
+  | { kind: "price"; minPriceMinor?: number; maxPriceMinor?: number }
+  | { kind: "in_stock"; value: boolean };
+```
+
+Это закрывает 5 из 7 полей правила почти без работы:
+
+| `collection_rule.field` | Уже готово в listing | Как |
+| --- | --- | --- |
+| `tag` | да | `{kind:'facet', facetSlug, valueHandles}`, `FacetRuntimeType.TAG` |
+| `feature` | да | `{kind:'facet', facetSlug, valueHandles}`, `FacetRuntimeType.FEATURE` |
+| `option` | да | `{kind:'facet', facetSlug, valueHandles}`, `FacetRuntimeType.OPTION` |
+| `price` | да | `{kind:'price', minPriceMinor, maxPriceMinor}` — уже нагрузочно протестирован (`listing/docs/draft/listing-price-facet-10k-performance-report.ru.md`) |
+| `in_stock` | да | `{kind:'in_stock', value: boolean}` — availability уже вычисляется на этапе индексации (`ListingPageRow.inStock`), в catalog такого готового вычисления нет вообще |
+
+`tag`/`feature`/`option` в listing унифицированы одним и тем же примитивом (`facetSlug` + `valueHandles`) — это проще, чем три отдельных join'а, которые предлагала первая версия плана внутри catalog, и это тот же самый механизм посадочных bitmap-пересечений, которым уже пользуется storefront-поиск.
+
+### Что НЕ готово и остаётся в catalog
+
+- **`category`** — в listing это не фильтр, а `scope` верхнего уровня одного запроса (`StorefrontListingScope = {kind:'category'|'global'}`), и варианта `collection` там нет. Переиспользовать scope для множественного/комбинируемого условия «категория = A или B» неудобно и потребует отдельного изменения контракта listing. `product_category` — простая, дешёвая, хорошо проиндексированная M2M-таблица в самом catalog, поэтому в v1 **`category` вычисляется локально в catalog**, не через listing.
+- **`created_at`** — в listing вообще нет фильтра по дате создания, есть только сортировка (`newest`/`created`). Заводить ради одного простого числового сравнения новый фильтр в listing нецелесообразно — **`created_at` вычисляется локально в catalog** (`product.createdAt`, уже есть `idx_product_created_at`).
+
+### Новая граница ответственности
 
 | Сервис | Отвечает за |
 | --- | --- |
-| `catalog` | Определение коллекций и правил, вычисление membership, материализация в `collection_item`, admin API коллекций, инвалидация при изменении товаров |
-| `listing` | (Фаза B) Синхронизация membership в собственный индекс, фильтрация/сортировка товаров коллекции на витрине, участие коллекции в фасетном поиске |
-| `pricing` | Не участвует — базовая цена, используемая в правиле `price`, хранится в самом catalog (`item_pricing`/`product_price_range`), `pricing`-сервис отвечает только за промо/скидки, которые в membership не участвуют |
+| `catalog` | Определение правил, `category`/`created_at` matching, объединение результата с ответом listing, материализация в `collection_item`, admin API, orchestration recompute |
+| `listing` | Вычисление `tag`/`feature`/`option`/`price`/`in_stock` через уже существующий posting-list/bitmap движок, отдаёт **полное** множество `productId`, а не одну страницу |
+| `pricing` | Не участвует — базовая цена, используемая в правиле `price`, и так уже синхронизирована в listing (`priceRange`/facet `PRICE`), `pricing`-сервис отвечает только за промо/скидки |
+
+### Чего в listing сегодня не хватает для этой роли (нужно построить)
+
+1. **Лёгкий bulk-эндпоинт вместо `StorefrontListingQueryRepository.getStorefrontListing`.** Этот метод — обычный repository-метод (`@ReadOnly()`, не завязан на GraphQL/HTTP напрямую), но он тяжёлый: 5 параллельных SQL-веток на один вызов (`variantDiagnostics`, `page`, `totalCount`, `facetsWithCounts`, `virtualFacets`), рассчитан на одну страницу выдачи с курсорной пагинацией, ранжированием и facet-counts для UI витрины. Использовать его напрямую для «дай мне все productId, подходящие под фильтр» — дорого и ограничено `first`. Нужен новый, узкий метод (условно `ListingMembershipEvaluationService.evaluateMembership(filters): productId[]`), который переиспользует те же compiled SQL-примитивы фильтрации (facet → bitmap, price → range, in_stock → bitmap), но не считает facet-counts, не ранжирует и возвращает полное множество постранично (курсор по `productId`, как в `ListingFacetAffectedProductRepository`), а не одну страницу для рендера.
+2. **Новый broker-эндпоинт `listing.evaluateProductMembership`, вызываемый из catalog.** Сегодня межсервисные вызовы идут только в одну сторону: `listing` вызывает `catalog` (`FacetAffectedProductsResyncWorkflow` → `broker.call("catalog.findListingFacetAffectedProducts", ...)`). Обратного вызова `catalog → listing` не существует нигде в кодовой базе. Это новая связь, и её нужно вводить осознанно (см. «Риски»).
+3. **`matchType: ANY` через разнородные поля не покрывается фасетным поиском «из коробки».** Обычная фасетная навигация всегда AND между разными группами фасетов (и OR внутри значений одной группы — как раз `valueHandles: string[]`). `ALL` ложится на это ровно так, как есть. `ANY` (например, «tag=sale ИЛИ price<1000») — не то, что когда-либо требовалось витрине, и `listing` это не умеет. В v1 не расширяем сам SQL-движок listing под OR, а в catalog делаем N отдельных вызовов `evaluateProductMembership` (по одному на «делегированное» правило) и берём **union** productId — дороже по числу вызовов, но не требует трогать проверенный движок фасетов.
+
+### Как это работает вместе
+
+```text
+CollectionRuleMatcher (catalog)
+  ├── local rules (category, created_at)         -> прямой SQL в catalog, productId[]
+  └── delegated rules (tag/feature/option/price/in_stock)
+        -> CollectionRuleListingFilterMapper переводит правило(-а) в StorefrontListingFilterInput[]
+        -> broker.call("listing.evaluateProductMembership", { storeId, filters, matchType })
+        -> listing: тот же bitmap-движок, что и storefront-поиск, без facet-counts/ранжирования
+        -> productId[] (полное множество, постранично)
+  matchType ALL  -> пересечение local ∩ delegated
+  matchType ANY  -> объединение local ∪ delegated (delegated считается N отдельными вызовами и объединяется)
+```
+
+### Значение (`value`): handle, не id
+
+`value` в `collection_rule` должен хранить **handle/slug**, а не внутренний UUID. Это не только соответствует уже принятому в проекте паттерну `ListingFacetAffectedProductRef.sourceHandle`, но и совпадает буквально: `StorefrontListingFilterInput.facet.valueHandles` в listing тоже ожидает handle, а не id — значит `CollectionRuleListingFilterMapper` не должен резолвить handle → id вообще, он передаёт handle дальше, resolution происходит внутри listing тем же кодом, что уже резолвит фильтры витрины.
 
 ## Семантика правил
 
-### Поля и их данные (всё внутри БД catalog)
-
-| `field` | Источник данных | Замечания |
-| --- | --- | --- |
-| `tag` | `product_tag` → `tag` | M2M, значение — список handle тегов |
-| `feature` | `product_feature` (slug, дерево через `parentId`/`index[]`) + `product_feature_value` (slug) | нужно явно решить: правило матчит по slug характеристики или по slug конкретного значения — см. «Открытые решения» |
-| `category` | `product_category` (productId, categoryId, isPrimary) | нужно решить: только прямое присвоение или включая потомков через `CategoryHierarchyScope` — см. «Открытые решения» |
-| `option` | `product_option` + `product_option_value` + `product_option_variant_link` + `variant` | опция назначается на уровне варианта — «товар имеет значение опции X» означает «хотя бы один активный вариант имеет это значение» |
-| `price` | `item_pricing`/`variant_prices_current` (текущая цена) или `product_price_range` (min/max по товару) | v1: валюта — валюта магазина по умолчанию; `between` — `[min, max]` в минорных единицах |
-| `created_at` | `product.createdAt` (уже есть `idx_product_created_at`) | тривиально |
-| `in_stock` | `warehouse_stock` (quantity_on_hand − reserved_qty − unavailable_qty) + `inventory_item` (`trackInventory`, `continueSellingWhenOutOfStock`) | готового boolean/view нет, нужно выводить: товар «в наличии», если `trackInventory=false` ИЛИ `continueSellingWhenOutOfStock=true` ИЛИ сумма доступного количества по вариантам > 0 |
-
 ### Операторы `in` / `all` / `contains`
 
-Сегодня whitelist разрешает все три оператора для `tag/feature/category/option`, но семантика между `in`/`all`/`contains` нигде не зафиксирована и не проверяется на форму `value`. Предлагаемая семантика v1 (нужно подтвердить, см. «Открытые решения»):
+Whitelist сегодня разрешает `in`/`all`/`contains` для `tag/feature/category/option`, но их семантика нигде не зафиксирована и форма `value` не проверяется. Предлагаемая семантика v1 (нужно подтвердить, см. «Открытые решения»):
 
-- `in` — товар имеет **хотя бы одно** значение из `value` (массив handle);
-- `all` — товар имеет **все** значения из `value` (`GROUP BY productId HAVING COUNT(DISTINCT ...) = len(value)`);
-- `contains` — синоним `in` для одиночного значения (`value` — не массив, а один handle).
-
-### Значение (`value`): handle или id
-
-`value` должен хранить **handle/slug**, а не внутренний UUID: это соответствует уже принятому в проекте паттерну `ListingFacetAffectedProductRef.sourceHandle` (facet resync работает с handle, не с id), делает правило переносимым при экспорте/импорте и человекочитаемым в Admin UI. Резолюция handle → внутренний id происходит на этапе выполнения запроса, в рамках одного `storeId`.
+- `in` — товар имеет **хотя бы одно** значение из `value` (массив handle) — прямое соответствие `valueHandles` в listing для делегированных полей;
+- `all` — товар имеет **все** значения из `value` — для делегированных полей это не «один вызов с несколькими `valueHandles`» (это был бы `in`), а пересечение результатов нескольких отдельных facet-фильтров, по одному на значение;
+- `contains` — синоним `in` для одиночного значения.
 
 ### `matchType`
 
-В `collection` сегодня нет поля для «все условия / любое условие» — это единственная новая колонка, которая нужна схеме. Требуется миграция:
+В `collection` сегодня нет поля для «все условия / любое условие» — нужна миграция:
 
 ```text
 services/catalog/migrations/domains/0900_collections/0905_collections__rule_match_type.sql
@@ -101,73 +134,68 @@ ALTER TABLE "catalog"."collection"
   CHECK ("rule_match_type" IN ('all', 'any'));
 ```
 
-(генерировать через штатный tooling проекта, не писать changeset руками — см. `AGENTS.md`/knowledge base правила по миграциям).
+(генерировать через штатный tooling проекта, не писать changeset руками).
 
 ### Валидация формы `value`
 
-`CollectionUpdateRulesScript` сегодня проверяет только допустимость пары field/operator, но не форму `value` (массив против скаляра, `between` как двухэлементный кортеж, корректность handle). Это нужно закрыть до передачи в rule-matcher, иначе некорректные правила будут молча давать пустой/ошибочный результат при вычислении membership.
+`CollectionUpdateRulesScript` сегодня проверяет только допустимость пары field/operator, но не форму `value`. Нужно закрыть это до передачи в matcher.
 
 ## Компоненты
 
-### `CollectionRuleQueryBuilder` (catalog)
+### `CollectionRuleListingFilterMapper` (catalog)
 
-Чистая функция/класс: по массиву `CollectionRule` + `matchType` строит Drizzle-предикат(ы) против `product` с нужными join'ами (по одному join-блоку на `field`, см. таблицу выше) и возвращает постранично `productId[]`, отсортированные по `id` для устойчивой курсорной пагинации — по образцу `ListingFacetAffectedProductRepository.findAffectedProductIdsForRef`. Не занимается записью, только чтением.
+Чистая функция: `CollectionRule[] → StorefrontListingFilterInput[]` для делегированных полей (`tag/feature/option/price/in_stock`). Не ходит в БД, только трансформация формы.
+
+### `CollectionLocalRuleMatcher` (catalog)
+
+SQL против `product_category` (поле `category`) и `product.createdAt` (поле `created_at`) — единственные два поля, которые остаются локальными. Постраничный `productId[]`, тот же курсорный паттерн, что у `ListingFacetAffectedProductRepository.findAffectedProductIdsForRef`.
+
+### `CollectionRuleMatcher` (catalog, orchestrator)
+
+Комбинирует `CollectionLocalRuleMatcher` и результат `broker.call("listing.evaluateProductMembership", ...)` по `matchType` (пересечение для `ALL`, объединение для `ANY`, с постраничным объединением курсоров).
+
+### `ListingMembershipEvaluationService` + `listing.evaluateProductMembership` (listing, новое)
+
+Новый узкий read-путь поверх уже существующих compiled SQL-примитивов facet/price/in_stock фильтрации (используемых сегодня в `StorefrontListingQueryRepository`/`compilePageQuerySql`/`compileTotalCountQuerySql`), без facet-counts, без ранжирования, без ограничения на одну страницу — отдаёт полное множество `productId` постранично. Экспонируется как broker-метод, вызываемый из catalog (новое направление зависимости, отсутствующее сегодня).
 
 ### `CollectionMembershipMaterializer` (catalog)
 
-На вход — `collectionId`. Последовательность:
-
-1. Загрузить правила и `ruleMatchType` коллекции.
-2. Получить полное множество совпадающих `productId` через `CollectionRuleQueryBuilder` (постранично).
-3. Сравнить с текущими строками `collection_item` (`CollectionItemRepository.findByCollectionId`).
-4. Добавить недостающие через `CollectionItemRepository.addProducts` (переиспользует существующий lexoRank-механизм — ранг для rule-коллекций не участвует в дефолтной сортировке, так как `default_sort != 'manual'` уже гарантировано CHECK-ограничением `collection_rule_manual_sort_check`, но колонка `lexoRank` всё равно NOT NULL и должна быть заполнена).
-5. Удалить лишние через `CollectionItemRepository.removeProducts`.
-
-Идемпотентна: повторный запуск без изменений в каталоге — no-op diff.
+На вход — `collectionId`. Получает полное membership через `CollectionRuleMatcher`, сравнивает с текущими строками `collection_item` (`CollectionItemRepository.findByCollectionId`), добавляет/удаляет через уже существующие `CollectionItemRepository.addProducts`/`removeProducts` (переиспользует lexoRank-механизм; ранг для rule-коллекций не участвует в сортировке, но колонка `NOT NULL`, значение присваивается детерминированно по порядку получения). Идемпотентна.
 
 ### `CollectionRuleAffectedProductFinder` (catalog) — инкрементальная инвалидация
 
-По аналогии с `ListingFacetAffectedProductRepository`: на вход — изменившийся ref (`{ field: 'tag', handle: 'summer' }`, `{ field: 'price', productId }`, `{ field: 'category', handle }` и т.д.), на выход — список `productId`, на которые это изменение могло повлиять, и список `collectionId` rule-коллекций, чьи правила ссылаются на этот `field`+`handle`. Затем для каждой такой пары (`collectionId`, `productId`) выполняется точечная проверка «подходит ли именно этот товар под правила именно этой коллекции сейчас» и точечный `addProducts`/`removeProducts` на один productId — без пересчёта всей коллекции.
+Для **локальных** полей (`category`, `created_at`) — точечная проверка одного продукта против одной коллекции при изменении `product_category`/`product.createdAt`, без обращения к listing. Для **делегированных** полей инвалидация приходит с другой стороны — см. ниже.
 
 ### `CollectionMembershipRebuildWorkflow` (catalog, DBOS)
 
-Постраничный batch workflow по образцу `ListingBatchProductIndexWorkflow` (один шаг — один файл: `stepFetchRuleCollections`, `stepEvaluateRuleCollectionPage`, `stepDiffAndWriteCollectionItems`). Используется для:
+Постраничный batch workflow (по образцу `ListingBatchProductIndexWorkflow`, один шаг — один файл), запускает `CollectionRuleMatcher` целиком и делает диф с `collection_item`. Используется для:
 
-- full recompute одной коллекции сразу после сохранения новых правил (`collectionUpdateRules`);
-- полного пересчёта всех rule-коллекций магазина как safety-net реконсиляции (периодический job, чтобы компенсировать пропущенные точечные инвалидации);
-- миграции/бэкофилла при первом включении фичи.
+- full recompute одной коллекции после сохранения правил (`collectionUpdateRules`);
+- периодической реконсиляции всех rule-коллекций магазина;
+- бэкофилла при первом включении фичи.
 
 ### `CollectionProductConnectionResolver` + `CollectionRepository.getCollectionProductsConnection` (catalog, admin GraphQL)
 
-Закрывает разрыв, который сегодня существует и для `manual`, и для `rule` коллекций (`CollectionResolver.products()`/`productsCount()` — TODO). Копирует уже работающий паттерн `CategoryProductConnectionResolver` (`services/catalog/src/resolvers/admin/CategoryProductConnectionResolver.ts`) → `CategoryRepository.getCategoryProductsConnection` (`services/catalog/src/repositories/category/CategoryRepository.ts:887`):
+Не связано с матчингом — закрывает разрыв, который сегодня есть и у `manual` коллекций (`CollectionResolver.products()`/`productsCount()` — TODO). Копирует уже работающий `CategoryProductConnectionResolver` → `CategoryRepository.getCategoryProductsConnection` (`services/catalog/src/repositories/category/CategoryRepository.ts:887`): базовое условие `collection.collectionId = X`, те же ключи сортировки (`MANUAL`/`NEWEST`/`PRICE`/`NAME`), тот же generic Relay query builder. Читает уже материализованный `collection_item`, не отличает `manual` от `rule`.
 
-- базовое условие `collection.collectionId = X` вместо `category.categoryId = X`;
-- те же ключи сортировки: `MANUAL` → `collection.lexoRank` (для `manual` коллекций), `NEWEST` → `createdAt`, `PRICE` → `priceRange.min/maxAmountMinor`, `NAME` → `translation.name`;
-- переиспользует тот же generic Relay query builder, что и `categoryProductsRelayQuery` (см. `admin-products-drizzle-query-relay-refactor-plan.md`, `drizzle-query-filter-field-mapper-plan.md`), а не поднимает заново мёртвые DTO из `scripts/collection/dto/index.ts`.
+## Инвалидация: делегированные поля vs локальные
 
-Для rule-коллекций этот резолвер просто читает уже материализованный `collection_item` — никакой отдельной логики не требуется, он не отличает `manual` от `rule`.
-
-## Точки инвалидации (что дописать в существующие скрипты)
-
-По аналогии с invalidation matrix из `dynamic-content-engine-architecture-plan.md`:
+Для делегированных полей (`tag/feature/option/price/in_stock`) rule-коллекции инвалидируются **той же волной событий**, что уже двигает `FacetAffectedProductsResyncWorkflow` и `listingFacetMembershipChanged` — когда listing узнаёт, что товар мог измениться относительно facet/price/stock, это тот же самый момент, когда могло измениться и rule-membership. Вместо того чтобы catalog заново находил "affected products" для тега/цены/остатка (это уже делает `ListingFacetAffectedProductRepository`), достаточно, чтобы **catalog подписался на событие `listingFacetMembershipChanged`** (которое сегодня публикуется только "в один конец", для внутреннего использования listing) и на каждый затронутый `productId` пересчитал только rule-коллекции, чьи правила ссылаются на изменившийся `facetType`/`sourceHandle`.
 
 | Изменение | Что пересчитать |
 | --- | --- |
-| Создание/публикация/удаление товара | incremental: товар проверяется против всех rule-коллекций магазина, ссылающихся на любое из его полей |
-| Назначение/снятие тега | incremental: `CollectionRuleAffectedProductFinder({field:'tag', handle})` → точечная проверка |
-| Изменение/удаление/merge feature или feature value | incremental, аналогично facet resync reason'ам (`facet_value_updated`, `facet_value_merged` и т.д.) |
-| Назначение/снятие категории | incremental; учитывать решение по иерархии (см. «Открытые решения») |
-| Изменение option/option value у варианта | incremental по `productId` варианта |
-| Новая цена в `item_pricing` | incremental по `productId` |
-| Изменение `warehouse_stock`/`inventory_item` | incremental по `productId` (через связку variant → product) |
+| Тег/feature/option/цена/остаток товара | catalog реагирует на `listingFacetMembershipChanged` (уже существующее событие) → точечная проверка affected productId против rule-коллекций, ссылающихся на этот facetType/handle |
+| Категория товара (`product_category`) | incremental, локально в catalog, без listing |
+| `product.createdAt` — практически не меняется после создания | точечная проверка при создании товара |
+| Создание/удаление/публикация товара | incremental по всем rule-коллекциям магазина |
 | Сохранение `collectionUpdateRules` | **full recompute** только этой коллекции |
-| Массовое изменение таксономии (удаление тега/категории/feature-value, затрагивающее много товаров) | full recompute только коллекций, ссылающихся на удалённый ref, постранично через `CollectionMembershipRebuildWorkflow` |
+| Массовое изменение таксономии | full recompute только затронутых коллекций, постранично через `CollectionMembershipRebuildWorkflow` |
 
-Скрипты, в которые нужно добавить вызов инвалидации (по аналогии со списком в dynamic-content плане, но применительно к rule-коллекциям): product create/update/delete/publish scripts, tag assignment scripts, feature/feature-value scripts, category assignment scripts, option/option-value scripts, pricing scripts (`item_pricing` insert), stock scripts (`warehouse_stock` update).
+Скрипты, в которые нужно добавить локальную инвалидацию: category assignment scripts, product create/update/delete/publish scripts. Делегированные поля инвалидируются через подписку на уже существующее событие, а не через новые хуки в скриптах tag/feature/option/pricing/stock — это меньше точек интеграции, чем в первой версии плана.
 
 ## GraphQL Admin API
 
-Изменения в `services/catalog/src/api/graphql-admin/schema/collection.graphql` (проект в режиме "backward compatibility запрещён", поэтому меняем контракт напрямую, без dual-write/dual-read):
+Изменения в `services/catalog/src/api/graphql-admin/schema/collection.graphql` (проект в режиме "backward compatibility запрещён", контракт меняем напрямую):
 
 ```graphql
 enum CollectionRuleField {
@@ -240,82 +268,81 @@ type CollectionRecomputeMembershipPayload {
 }
 ```
 
-`collectionUpdateRules` после сохранения синхронно (для маленьких магазинов) или асинхронно через `CollectionMembershipRebuildWorkflow` (по порогу числа товаров/правил) запускает full recompute и возвращает актуальный `Collection` с уже пересчитанным `productsCount`.
+`collectionPreviewRuleMatches` и `collectionUpdateRules` идут по одному и тому же пути `CollectionRuleMatcher`, то есть предпросмотр черновых правил уже включает вызов `listing.evaluateProductMembership` — предпросмотр отражает текущее состояние индекса listing, а не гипотетическое "живое" состояние catalog (см. «Риски»).
 
 ## Admin UI (кратко, не основной фокус плана)
 
 - Конструктор правил на основе `CollectionRuleField`/`CollectionRuleOperator` enum вместо свободного текста.
 - Переключатель `ruleMatchType` (все/любое).
-- Живой предпросмотр через `collectionPreviewRuleMatches` при редактировании условий, до сохранения.
-- Кнопка "Recompute" на карточке коллекции, вызывающая `collectionRecomputeMembership` (диагностика/ручное восстановление).
+- Живой предпросмотр через `collectionPreviewRuleMatches`.
+- Кнопка "Recompute" на карточке коллекции.
 
-## Listing и storefront (фаза B, после стабилизации catalog-части)
+## Listing и storefront (фаза 5, после стабилизации фаз 1–4)
 
-Сегодня storefront вообще не знает о коллекциях, а `categoryId`-скоупинг в listing работает потому, что членство в категории синхронизируется в собственный денормализованный индекс listing на этапе ingestion (через `ListingBatchProductIndexWorkflow`/`catalogListingSnapshotMapper`), а не через прямой join в БД catalog — `listing` никогда не читает схему `catalog` напрямую.
+Сегодня storefront вообще не знает о коллекциях. `categoryId`-скоупинг в listing работает потому, что членство в категории синхронизируется в собственный денормализованный индекс listing на этапе ingestion — `listing` никогда не читает схему `catalog` напрямую. Для показа коллекций на витрине нужно повторить этот же путь (не через общий facet bitmap — CHECK-ограничение это явно запрещает):
 
-Для коллекций нужно повторить этот же путь, но **не** через общий facet bitmap (явно запрещено `chk_listing_posting_bitmap_no_collection_field`):
-
-1. Storefront `catalog`: добавить federation-сущность `Collection` (id, handle, name, description, seo, media) по образцу storefront `Category` (`services/catalog/src/api/graphql-storefront/schema/navigation/category.graphql`) — **без** поля `products`, ровно как у `Category` (листинг товаров категории уже сегодня отдаёт `listing`, не `catalog`).
-2. Расширить снапшот, который catalog отдаёт в listing при синхронизации товара (`catalogListingSnapshotMapper.ts`), списком `collectionIds` текущего товара (из материализованного `collection_item`), аналогично тому, как туда уже попадает информация о категориях.
-3. В listing завести отдельный, не bitmap-based механизm хранения принадлежности к коллекции (открытое решение — либо отдельная posting-list таблица без CHECK-ограничения, либо денормализованный `collectionIds uuid[]` с GIN-индексом на строке индекса товара — коллекционные страницы обычно фильтруют по одному `collectionId`, а не комбинируют по И/ИЛИ как фасеты).
-4. Добавить `collectionId`/`collectionHandle` аргумент в storefront search/listing query listing'а, аналогичный существующему `categoryId`.
-5. Сортировка на странице коллекции (`defaultSort`/`defaultSortDirection` из catalog) транслируется в параметры сортировки listing search.
-
-Эта фаза не блокирует фазу A (admin CRUD + вычисление membership внутри catalog) и должна начинаться только после того, как materializer и инвалидация в catalog стабильны — иначе listing будет синхронизировать заведомо неполные/некорректные данные.
+1. Storefront `catalog`: federation-сущность `Collection` (id, handle, name, description, seo, media), по образцу storefront `Category` (`services/catalog/src/api/graphql-storefront/schema/navigation/category.graphql`) — **без** поля `products`, ровно как у `Category`.
+2. Расширить снапшот, который catalog отдаёт в listing при синхронизации товара, списком `collectionIds` текущего товара (из материализованного `collection_item`).
+3. В listing — отдельный, не bitmap-based механизм хранения принадлежности к коллекции (posting-list таблица без CHECK-ограничения либо денормализованный `collectionIds uuid[]` с GIN-индексом).
+4. `collectionId`/`collectionHandle` аргумент в storefront search/listing query.
+5. Сортировка страницы коллекции (`defaultSort`/`defaultSortDirection` из catalog) транслируется в параметры сортировки listing search.
 
 ## Риски
 
-- **Дорогой full recompute на популярных таксономических изменениях.** Удаление тега, на который завязаны десятки rule-коллекций, требует пересчёта каждой — обязательно постранично через DBOS workflow, не синхронно в рамках одного запроса (тот же риск уже отмечен инлайн-комментарием в `FacetAffectedProductsResyncWorkflow` про DBOS, персистящий полный output).
-- **Рассинхронизация incremental-инвалидации.** Если забыть добавить хук в один из скриптов изменения товара, membership тихо устареет. Нужен периодический full reconciliation job как safety net (см. `CollectionMembershipRebuildWorkflow`).
-- **Неоднозначная семантика `all`/`in`/`contains` и категорийной иерархии** может разойтись с ожиданиями мерчанта, если не зафиксировать её явно до реализации (см. «Открытые решения»).
-- **`lexoRank` для rule-коллекций** — колонка обязательна (`NOT NULL`), но не используется для сортировки (`default_sort != 'manual'` гарантирован CHECK). Материализатор должен присваивать значение детерминированно (например, по порядку обнаружения в query), чтобы не плодить смысловой шум.
-- **Listing-интеграция потребует нового индексного механизма**, а не переиспользования facet bitmap — это отдельный кусок работы с собственными рисками производительности (см. `listing/docs/draft/listing-price-facet-10k-performance-report.ru.md` как прецедент для оценки нагрузки на posting-list подход).
+- **Новое направление межсервисной зависимости.** Сегодня `catalog` никогда не вызывает `listing` синхронно; только наоборот. `listing.evaluateProductMembership` вводит обратную связь: базовая admin-функциональность catalog (сохранение правил, предпросмотр, recompute) начинает зависеть от доступности `listing`. Если `listing` недоступен или сильно отстаёт, делегированные поля (`tag/feature/option/price/in_stock`) не могут быть вычислены — `category`/`created_at` при этом продолжают работать, потому что остаются локальными в catalog. Это осознанный компромисс: альтернатива — дублировать в catalog уже написанную и протестированную под нагрузкой бизнес-логику (bucketing цены, вывод availability) — более рискованна с точки зрения расхождения двух определений одного и того же факта.
+- **Eventual consistency.** `listing` синхронизируется с catalog асинхронно (события + DBOS workflow). Между правкой тега/цены/остатка на товаре и тем, что `listing.evaluateProductMembership` увидит это изменение, есть окно задержки — то же самое окно, которое уже существует для появления товара в facet-поиске на витрине. Предпросмотр черновых правил будет отражать текущее состояние индекса listing, а не абсолютно самое свежее состояние catalog. Для recompute после сохранения правил это компенсируется периодической реконсиляцией (`CollectionMembershipRebuildWorkflow`).
+- **`matchType: ANY` через разнородные делегированные поля** реализуется N отдельными вызовами `listing.evaluateProductMembership` и объединением в catalog — дороже по числу вызовов, чем `ALL` (один вызов с несколькими фильтрами). Если merchant активно использует `ANY` на больших магазинах, может понадобиться батчинг вызовов или расширение listing под нативный OR.
+- **Дорогой full recompute на массовых таксономических изменениях** — постранично через DBOS workflow, не синхронно (тот же риск уже отмечен инлайн-комментарием в `FacetAffectedProductsResyncWorkflow`).
+- **`lexoRank` для rule-коллекций** обязателен (`NOT NULL`), но не участвует в сортировке — материализатор присваивает его детерминированно по порядку получения, чтобы не плодить смысловой шум.
+- **Новый узкий bulk-эндпоинт в listing** (`ListingMembershipEvaluationService`) — это новый код поверх существующих SQL-примитивов, а не бесплатное переиспользование; его нужно спроектировать так, чтобы не отъедать производительность у storefront-запросов, если оба используют одни и те же posting-list таблицы одновременно.
 
 ## Открытые решения
 
-1. Правило `feature` матчит по slug характеристики целиком или по slug конкретного значения характеристики? От этого зависит форма `value` и join.
-2. Правило `category` включает потомков категории (через `CategoryHierarchyScope`) или только прямое присвоение `product_category`?
-3. Точная семантика `contains` относительно `in` — синонимы или разное поведение (например, `contains` — subset check в другую сторону)?
-4. Нужна ли явная валюта в правиле `price` в v1, или фиксируем валюту магазина по умолчанию и не даём мерчанту выбор?
-5. Порог (число товаров/правил), при котором `collectionUpdateRules` уходит в синхронный recompute против асинхронного workflow?
-6. Формат posting-механизма для коллекций в listing (фаза B) — отдельная posting-list таблица или денормализованный массив `collectionIds` на строке индекса?
+1. Точная семантика `contains` относительно `in`.
+2. Нужна ли явная валюта в правиле `price` в v1, или фиксируем валюту магазина по умолчанию?
+3. `category` — включает ли потомков категории (через `CategoryHierarchyScope`) или только прямое присвоение `product_category`?
+4. Порог (число товаров/правил), при котором `collectionUpdateRules` уходит в синхронный recompute против асинхронного workflow.
+5. Нужно ли в v1 гарантировать, что предпросмотр/recompute дожидаются "догонки" индекса listing после недавней правки товара, или eventual consistency принимается как есть (см. «Риски»)?
+6. Формат posting-механизма для коллекций в listing (фаза 5) — отдельная posting-list таблица или денормализованный массив `collectionIds`.
 
 ## Поэтапное внедрение
 
-### Фаза 1 — Rule matching и материализация (catalog, без GraphQL-изменений)
+### Фаза 1 — Локальный matcher + контракт с listing
 
 - Миграция `0905_collections__rule_match_type.sql` + Drizzle-модель.
-- Ужесточить `CollectionUpdateRulesScript`: валидация формы `value` под оператор.
-- `CollectionRuleQueryBuilder` с join-блоками на все семь полей.
-- `CollectionMembershipMaterializer` поверх существующего `CollectionItemRepository`.
-- Юнит-покрытие сопоставления правил на фикстурах без похода в GraphQL.
+- Ужесточить `CollectionUpdateRulesScript`: валидация формы `value`.
+- `CollectionLocalRuleMatcher` (`category`, `created_at`).
+- `CollectionRuleListingFilterMapper` (чистая трансформация, без сети).
+- Согласовать и построить `listing.evaluateProductMembership` + `ListingMembershipEvaluationService` в listing.
+- `CollectionRuleMatcher`-оркестратор, объединяющий local + delegated по `matchType`.
 
 ### Фаза 2 — Admin API: чтение товаров коллекции (закрывает разрыв и для manual)
 
 - `CollectionRepository.getCollectionProductsConnection` по образцу `CategoryRepository.getCategoryProductsConnection`.
-- `CollectionProductConnectionResolver` по образцу `CategoryProductConnectionResolver`, регистрация в `ResolverRegistry`.
-- Удалить мёртвые `CollectionProductsQueryParams/Result` DTO либо явно пометить как unused.
+- `CollectionProductConnectionResolver`, регистрация в `ResolverRegistry`.
+- Удалить мёртвые `CollectionProductsQueryParams/Result` DTO.
 
-### Фаза 3 — Полный пересчёт по требованию
+### Фаза 3 — Материализация и полный пересчёт по требованию
 
+- `CollectionMembershipMaterializer`.
 - `CollectionMembershipRebuildWorkflow` (DBOS, постраничный).
-- `collectionUpdateRules` вызывает full recompute после сохранения (порог синхронно/асинхронно — открытое решение).
-- Мутация `collectionRecomputeMembership` + enum'ы `CollectionRuleField/Operator/MatchType` в GraphQL.
+- `collectionUpdateRules` запускает full recompute после сохранения.
+- Мутация `collectionRecomputeMembership` + enum'ы в GraphQL.
 - `collectionPreviewRuleMatches` query.
 
 ### Фаза 4 — Инкрементальная инвалидация
 
-- `CollectionRuleAffectedProductFinder`.
-- Точечные хуки в product/tag/feature/category/option/pricing/stock скриптах (таблица инвалидации выше).
+- Подписка catalog на `listingFacetMembershipChanged` для делегированных полей.
+- Точечные хуки в category assignment / product lifecycle скриптах для локальных полей.
 - Периодический full reconciliation job как safety net.
 
 ### Фаза 5 — Listing и storefront
 
 - Storefront `Collection` federation entity в catalog (без `products`).
-- Расширение снапшота `catalogListingSnapshotMapper` полем `collectionIds`.
+- Расширение снапшота catalog→listing полем `collectionIds`.
 - Новый (не bitmap) posting-механизм в listing.
 - `collectionId`/`collectionHandle` аргумент в storefront search listing.
 
 ## Рекомендуемый v1
 
-Для первого релиза достаточно фаз 1–3: рабочий rule-matching, материализация в `collection_item`, admin-чтение товаров коллекции (manual и rule одинаково), full recompute по требованию и предпросмотр. Инкрементальная инвалидация (фаза 4) может первое время подменяться ручной кнопкой "Recompute" в Admin UI и периодической ресинхронизацией, если нужно сократить v1 ещё сильнее. Listing/storefront (фаза 5) сознательно выносится за периметр v1 — без него коллекции уже полезны в Admin (мерчант видит и проверяет состав), но не видны покупателю.
+Фазы 1–3: matcher (local + delegated в listing), материализация в `collection_item`, admin-чтение товаров коллекции, full recompute по требованию, предпросмотр. Фаза 4 (инкрементальная инвалидация) может первое время подменяться ручной кнопкой "Recompute" и периодической реконсиляцией. Listing/storefront (фаза 5) вне периметра v1.
