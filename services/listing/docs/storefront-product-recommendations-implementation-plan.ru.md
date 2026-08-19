@@ -1,127 +1,206 @@
-# План implementation-ready: Storefront Recommendations API и business logic
+# Storefront Product Recommendations: implementation plan
 
-## Статус
+## Статус документа
 
-Implementation-ready план. Реализует полностью: `Product.relatedProducts`,
-`Product.frequentlyBoughtTogether` и весь backing pipeline (order fact
-projection, FBT calculation, ranking, snapshot activation, admin curation).
+План описывает реализацию:
 
-Обратная совместимость не требуется и не предусматривается: домен ещё не имеет
-кода, миграции `9100_recommendations` уже в main, staging/production данных не
-существует (`AGENTS.md`: "Project is at 25% readiness... Backward
-compatibility and backfilling are strictly forbidden"). План не вводит
-optional/nullable флаги для миграции существующих читателей — их нет.
+- `Product.relatedProducts`;
+- `Product.frequentlyBoughtTogether`;
+- manual recommendations и placement policies;
+- проекцию подтверждённых продаж;
+- FBT statistics;
+- candidate generation, ranking и immutable snapshots;
+- Admin API, scheduling, lifecycle и observability.
 
-## Назначение
+План готов к реализации по фазам, но имеет два внешних prerequisite:
 
-Документ переводит canonical architecture
-(`knowledge/vault/architecture/product-recommendations.ru.md`) и GraphQL
-contract (`services/listing/docs/storefront-product-recommendations-api.ru.md`)
-в конкретный implementation plan поверх уже существующих миграций
-`services/listing/migrations/domains/9100_recommendations/*.sql`.
+1. Orders должен иметь authoritative transition, из которого можно надёжно
+   публиковать `orderSaleCommitted` и `orderSaleReversed`.
+2. Project должен предоставить защищённый paginated broker action для
+   перечисления active stores operational scheduler'ом.
 
-Ни резолверов, ни репозиториев, ни workflow для recommendation domain на
-момент написания плана не существует (см. аудит: `grep -rli "recommendation"
-services/listing/src` не находит ни одного файла).
+До выполнения первого prerequisite можно реализовать curated recommendations,
+storefront serving и ranking fallbacks. Behavioral FBT остаётся выключенным.
 
-## Источники и ограничения
+Проект не имеет production/staging данных. Backfill, dual-read, dual-write и
+обратная совместимость не предусматриваются.
 
-Учтены документы:
+## Источники
 
-- `AGENTS.md` (root) — DBOS workflows, "no backward compatibility";
+Обязательные источники решений:
+
+- `AGENTS.md`;
 - `knowledge/AGENTS.md`;
-- `knowledge/vault/architecture/product-recommendations.ru.md` — canonical
-  architecture, single source of truth для доменных правил;
+- `knowledge/vault/architecture/product-recommendations.ru.md`;
 - `knowledge/vault/architecture/multi-tenancy.md`;
 - `knowledge/vault/patterns/repository.md`;
+- `knowledge/vault/patterns/script.md`;
 - `knowledge/vault/packages/dbos/workflows.md`;
-- `knowledge/vault/packages/dbos/sagas.md`;
-- `services/listing/docs/storefront-product-recommendations-api.ru.md` —
-  storefront Relay contract;
-- `services/listing/migrations/domains/9100_recommendations/*.sql` — physical
-  schema (уже смержено, не меняется этим планом);
-- `services/listing/docs/listing-storefront-repository-layer-implementation-plan.ru.md`
-  — эталон формата repository layer plan и raw SQL policy для этого сервиса;
-- `services/listing/src/workflows/FacetMutationWorkflows.ts`,
-  `FacetAffectedProductsResyncWorkflow.ts` — эталон mutation workflow +
-  affected-entity resync pattern, переиспользуется для manual recommendation
-  CRUD и snapshot rebuild fan-out;
-- `services/customers/src/handlers/CustomerStatisticsEventHandlers.ts` —
-  эталон order event handler pattern.
+- `services/listing/docs/storefront-product-recommendations-api.ru.md`;
+- `services/listing/migrations/domains/9100_recommendations/*.sql`;
+- существующие Listing workflows, repositories, loaders и storefront cursor.
 
-Проектные правила (обязательны для каждой фазы):
+Canonical architecture остаётся source of truth. Этот документ фиксирует
+конкретный порядок реализации и устраняет неоднозначности, необходимые для
+написания кода.
 
-- все repositories наследуются от `BaseRepository`, используют
-  `this.connection`, не принимают `storeId` в публичных методах — только
-  `this.storeId`;
-- каждый async read-метод помечен `@ReadOnly()` из `@shopana/shared-kernel`;
-- все persisted id — UUIDv7 через `this.generateUuidV7()` /
-  `generateUuidV7s(n)`;
-- workflows — DBOS SDK (`@shopana/dbos` через `@shopana/shared-kernel`
-  обёртки `BrokerWorkflows` / `BrokerSaga`), не Temporal;
-- mutation-затрагивающие GraphQL операции проходят через
-  `BaseScript<TParams, TResult>` (`@Transactional()`, `ValidationError`,
-  `UserError[]`), вызываемый из workflow через `Kernel.getInstance().runScript(...)`;
-- admin mutation не принимает `store_id` — он берётся из
-  `this.$ctx.store.id` / `RunScriptContext.storeId`;
-- Product/Category id — Relay Global ID, кодируется/декодируется через
-  `@shopana/shared-graphql-guid` (`GlobalIdEntity.Product` уже существует в
-  `packages/shared-graphql-guid/src/core.ts`);
-- raw SQL — только через `sql` fragments с типизированным row DTO, без
-  project-owned SQL helper functions (см. `Raw SQL policy` в repository-layer
-  плане);
-- tests/tsc для проверки этого плана в рамках его согласования не запускать;
-  changeset не редактировать (правило унаследовано из storefront
-  repository-layer плана и остаётся в силе для новых repository/schema
-  файлов).
+## Scope
 
-## Явные границы (что не входит в этот план)
+Входит:
 
-Canonical doc фиксирует "Implementation order" из 10 шагов; этот план
-покрывает шаги 1–8 полностью. Явно вне рамок (шаги 9–10 и нереализуемые без
-отдельного ADR источники):
+- placements `PRODUCT_RELATED` и `FREQUENTLY_BOUGHT_TOGETHER`;
+- strategies `CURATED_ONLY`, `CURATED_FIRST`, `BLENDED`,
+  `AUTOMATED_ONLY`;
+- manual actions `PIN`, `BOOST`, `EXCLUDE`;
+- FBT, category popularity и store popularity sources;
+- atomic run/snapshot activation;
+- forward-only Relay pagination;
+- persisted-policy и draft preview;
+- schedule boundaries manual actions;
+- product lifecycle reconciliation.
 
-- ML ranker (`ranker_type = 'ML'`) — схема и `model_version` уже
-  поддерживают этот путь, реализация ranker'а не входит;
-- impression/click/add-to-cart attribution events — отдельный план;
-- `ProductRecommendationSource.CONTENT_SIMILARITY` как **candidate source**
-  (не просто enum-значение) — требует product embeddings/taxonomy scoring,
-  которых в проекте нет; enum-значение остаётся в контракте на будущее, но
-  `fallback_chain` в этом плане не регистрирует source code
-  `content_similarity` (unregistered source code — write error по правилам
-  policy, поэтому merchant не сможет включить недоступный источник);
-- реализованные в этом плане fallback source codes: `category_popularity`,
-  `store_popularity`.
+Не входит:
 
-Это осознанное сужение MVP cold-start chain относительно "рекомендованных"
-цепочек из canonical doc (`manual -> content similarity -> category
-popularity -> store popularity`); content similarity добавляется отдельным
-планом без изменения storefront/admin contract (ranker version меняется, а
-`ProductRecommendation.source` уже поддерживает это значение).
+- ML ranker;
+- content embeddings и `content_similarity` candidate source;
+- impression/click/add-to-cart attribution;
+- cart/checkout placements;
+- pricing, promotions и cart mutations;
+- retention удаления historical facts/statistics.
 
-## Термины
+`CONTENT_SIMILARITY` остаётся GraphQL/DB enum value, но source code
+`content_similarity` не регистрируется. Разрешённые fallback codes первой
+версии:
 
-См. полное определение в
-`knowledge/vault/architecture/product-recommendations.ru.md#термины`.
-Кратко: `anchor` — товар-контекст, `target` — товар-кандидат, `placement` —
-продуктовый контекст (`PRODUCT_RELATED`, `FREQUENTLY_BOUGHT_TOGETHER`, ...),
-`policy` — merchant/system конфигурация объединения источников,
-`calculation run` — версионированный расчёт behavioral statistics,
-`snapshot` — immutable опубликованный ranked list для anchor + placement.
+```text
+category_popularity
+store_popularity
+```
 
-## Целевая структура файлов
+## Общие правила реализации
+
+- Все tenant repositories наследуются от `BaseRepository`.
+- Публичные методы tenant repositories не принимают `storeId`; используется
+  только `this.storeId`.
+- Все запросы выполняются через `this.connection`.
+- Все async read methods помечаются `@ReadOnly()`.
+- Persisted IDs генерируются через `generateUuidV7()` /
+  `generateUuidV7s()`.
+- Mutation business logic находится в `BaseScript` с `@Transactional()`.
+- Business conflicts возвращаются как `UserError[]`; infrastructure failures
+  выбрасываются.
+- Durable orchestration использует `BrokerWorkflows`. Sagas не применяются:
+  calculation и snapshot build не имеют внешних compensatable side effects,
+  а lifecycle failure должен фиксироваться явно.
+- Decimal values проходят TypeScript boundary как strings.
+- Raw SQL использует `sql` fragments и typed row DTO.
+- Admin inputs не принимают `storeId`.
+- Product IDs принимаются как Relay Global IDs и проверяются в trusted store
+  scope.
+- Bulk fan-out всегда paginated и queue-based. Workflow не хранит массив всех
+  anchors в durable result.
+- Каждый workflow start использует deterministic idempotency context и
+  обрабатывает duplicate start как successful no-op.
+
+## Фиксированные domain decisions
+
+### Policy absence и disabled policy
+
+- Snapshot строится только при существующей enabled policy.
+- Отсутствующая policy означает empty connection.
+- `enabled = false` в той же транзакции supersede-ит все active snapshots
+  placement'а. После commit storefront сразу возвращает empty connection.
+- Повторное включение запускает rebuild всех eligible anchors placement'а.
+- Snapshot первой версии всегда имеет non-null `policy_id`.
+
+### Availability
+
+Eligible target обязан:
+
+- существовать в `product_listing_index` того же store;
+- иметь `status = 'published'`;
+- иметь current availability projection
+  `listing_posting_product_sort.sort_kind = 'availability'` с
+  `bool_value = true`.
+
+`product_listing_index.total_stock` не используется как единственный источник
+availability: canonical storefront projection уже материализует availability
+с учётом indexable variants.
+
+### Snapshot expiry
+
+Первая версия пишет `expires_at = NULL`. Stale-serve window не вводится.
+Expiry policy добавляется отдельной версией модели. Read path всё равно
+отклоняет случайно появившийся expired snapshot.
+
+### Calculation cadence
+
+- Calculation bucket — UTC day.
+- Scheduler запускается hourly для recovery и обработки новых ingestion
+  watermark.
+- Новый run нужен, когда:
+  - cursor watermark больше watermark последнего active/building/ready run; или
+  - active run относится к предыдущему UTC day.
+- Поэтому time decay и rolling window пересчитываются минимум один раз в день
+  даже при отсутствии новых events.
+
+## Physical schema
+
+Существующие десять domain tables используются без изменения:
+
+```text
+recommendation_placement_policy
+manual_product_recommendation
+recommendation_ingestion_cursor
+recommendation_order_fact
+recommendation_order_product_fact
+recommendation_calculation_run
+recommendation_product_stat
+recommendation_product_pair_stat
+recommendation_snapshot
+recommendation_snapshot_item
+```
+
+Добавить migration
+`9104_recommendations__maintenance.sql` с operational cursor:
+
+```sql
+CREATE TABLE listing.recommendation_maintenance_cursor (
+  cursor_id uuid PRIMARY KEY,
+  store_id uuid NOT NULL UNIQUE,
+  last_manual_boundary_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+Migration также добавляет UUIDv7 checks, проверку
+`last_manual_boundary_at <= updated_at` и store lookup index. Cursor нужен для
+resumable обработки `starts_at`/`ends_at`; это не backfill существующих данных.
+
+На первом запуске store workflow:
+
+1. выполняет full reconciliation всех anchors с scheduled manual rows;
+2. устанавливает watermark на текущую завершённую minute boundary;
+3. далее читает только новые boundaries.
+
+## Целевая структура
 
 ```text
 packages/events/src/types.ts
-  + OrderSaleCommittedEvent
-  + OrderSaleReversedEvent
-  + DomainEvent union: добавить оба типа
+packages/broker-types/src/actions/project.ts
 
 services/orders/src/...
-  (cross-service, см. "Phase 0. Order sale event contract")
+  authoritative sale transition integration
+
+services/project/src/actions/...
+  listActiveStores action
+
+services/listing/migrations/domains/9100_recommendations/
+  9104_recommendations__maintenance.sql
 
 services/listing/src/repositories/models/
-  recommendationRuntime.ts        # Drizzle read models для всех 10 таблиц
+  recommendationRuntime.ts
 
 services/listing/src/repositories/recommendation/
   types.ts
@@ -131,76 +210,77 @@ services/listing/src/repositories/recommendation/
   RecommendationOrderFactRepository.ts
   RecommendationCalculationRunRepository.ts
   RecommendationSnapshotRepository.ts
+  RecommendationMaintenanceRepository.ts
+  RecommendationAnchorCollectorRepository.ts
   index.ts
 
 services/listing/src/repositories/storefront/
-  StorefrontRecommendationQueryRepository.ts   # read-only serving path
+  StorefrontRecommendationQueryRepository.ts
+  recommendationCursor.ts
+
+services/listing/src/recommendation/
+  constants.ts
+  candidateTypes.ts
+  manualConfigurationHash.ts
+  candidateSources.ts
+  rankRulesV1.ts
+  buildRecommendation.ts
 
 services/listing/src/scripts/recommendation/
   dto/index.ts
   RecommendationOrderFactIngestScript.ts
+  RecommendationCalculationRunCreateScript.ts
+  RecommendationCalculationRunComputeScript.ts
+  RecommendationCalculationRunTransitionScript.ts
+  RecommendationSnapshotCreateScript.ts
+  RecommendationSnapshotPopulateScript.ts
+  RecommendationSnapshotTransitionScript.ts
   RecommendationPlacementPolicyUpsertScript.ts
+  RecommendationPlacementPolicyDisableScript.ts
   ManualProductRecommendationCreateScript.ts
   ManualProductRecommendationUpdateScript.ts
   ManualProductRecommendationDeleteScript.ts
-  RecommendationCalculationRunCreateScript.ts
-  RecommendationCalculationRunComputeStatsScript.ts
-  RecommendationCalculationRunActivateScript.ts
-  RecommendationCalculationRunFailScript.ts
-  RecommendationSnapshotBuildScript.ts
-  RecommendationSnapshotActivateScript.ts
-  RecommendationAffectedAnchorCollectorScript.ts
+  RecommendationReferenceStateSyncScript.ts
   index.ts
 
 services/listing/src/workflows/
   RecommendationOrderFactIngestWorkflow.ts
-  RecommendationCalculationRunWorkflow.ts        # Saga
-  RecommendationSnapshotBuildWorkflow.ts         # Saga
-  RecommendationMutationWorkflows.ts             # policy/manual CRUD
-  RecommendationCalculationTriggerWorkflow.ts    # per-store fan-out
+  RecommendationCalculationRunWorkflow.ts
+  RecommendationCalculationTriggerWorkflow.ts
+  RecommendationSnapshotBuildWorkflow.ts
+  RecommendationSnapshotFanOutWorkflow.ts
+  RecommendationMutationWorkflows.ts
+  RecommendationManualScheduleWorkflow.ts
+  RecommendationReferenceStateSyncWorkflow.ts
 
 services/listing/src/scheduled/
-  RecommendationCalculationScheduler.ts          # @Cron trigger
+  RecommendationScheduler.ts
 
 services/listing/src/handlers/
   RecommendationOrderEventHandlers.ts
-  (расширение) ListingProductEventHandlers.ts    # stale/valid transitions
+
+services/listing/src/loaders/
+  RecommendationLoader.ts
+  Loader.ts
 
 services/listing/src/resolvers/storefront/
   ProductRecommendationConnectionResolver.ts
-  recommendationReferences.ts                    # source enum mapping helper
+  recommendationReferences.ts
 
 services/listing/src/resolvers/admin/
   RecommendationPlacementPolicyResolver.ts
   ManualProductRecommendationResolver.ts
   RecommendationSnapshotPreviewResolver.ts
-  (расширение) MutationResolver.ts
-
-services/listing/src/api/graphql-storefront/resolvers/types.ts
-  (расширение) typeResolvers.Product: relatedProducts, frequentlyBoughtTogether
-
-services/listing/src/resolvers/storefront/ResolverRegistry.ts
-  (расширение) + productRecommendationConnection(input)
 
 services/listing/src/api/graphql-admin/schema/
-  recommendation.graphql                          # policy + manual CRUD + preview
-
-services/listing/listing.module.ts
-  (расширение) providers: новые workflows, handlers, scheduler
-  imports: + ScheduleModule.forRoot() (сейчас отсутствует)
+  recommendation.graphql
 ```
 
-## Phase 0. Order sale event contract (cross-service, orders + events)
+## Phase 0. Cross-service prerequisites
 
-Recommendation domain не владеет заказом; `orders` обязан публиковать
-самодостаточный факт продажи. На момент написания плана `orderCompleted`
-(`packages/events/src/types.ts:688-692`) не содержит `lines`, а место его
-эмиссии в `services/orders/src` не найдено (`grep -rn "\"orderCompleted\""
-services/orders/src` — 0 результатов) — эмиссия ещё не реализована вообще.
-Нужен отдельный контракт, не переиспользование `orderCompleted`.
+### 0.1 Sale event contracts
 
-Добавить в `packages/events/src/types.ts` (по образцу существующих
-`OrderXxxEvent`, рядом со строками 680-718):
+Добавить в `packages/events/src/types.ts`:
 
 ```typescript
 export interface OrderSaleCommittedEvent
@@ -212,7 +292,10 @@ export interface OrderSaleCommittedEvent
       storeId: string;
       orderRevision: number;
       committedAt: string;
-      lines: readonly { productId: string; quantity: number }[];
+      lines: readonly {
+        productId: string;
+        quantity: number;
+      }[];
     }
   > {}
 
@@ -224,961 +307,936 @@ export interface OrderSaleReversedEvent
       orderId: string;
       storeId: string;
       orderRevision: number;
+      committedAt: string;
       reversedAt: string;
     }
   > {}
 ```
 
-Добавить оба типа в `DomainEvent` union (рядом со строками 969-972).
+Оба интерфейса добавить в `ShopanaEvent` union.
 
-`OrderSaleReversedEvent` не описан дословно в canonical doc (там дан только
-snippet для commit), но текст явно требует "Reversal/correction должен
-содержать те же stable identifiers, новую orderRevision и effective
-timestamp" — этот интерфейс формализует то же требование. Он не содержит
-`lines`, потому что revision-aware projection (Phase 2) не хранит product
-lines для `REVERSED` revision — только сам факт state перехода.
+`committedAt` присутствует и в reversal event: это timestamp исходной sale
+generation, необходимый для non-null `recommendation_order_fact.committed_at`.
+`reversedAt` становится `occurred_at`. Listing не восстанавливает этот timestamp
+или состав заказа запросом в Orders.
 
-Emission point в `services/orders/src` не входит в этот план буква в букву
-(orders owns это решение — см. таблицу владения в canonical doc), но должен
-удовлетворять инвариантам:
+Orders producer обязан:
 
-- публикуется один раз на каждую **новую** `orderRevision`, только когда
-  order revision становится either terminal `COMMITTED` (например, оплата
-  списана и заказ не подлежит немедленной отмене) либо `REVERSED`
-  (полная отмена/полный возврат этой revision);
-- `orderRevision` монотонно возрастает внутри `orderId`;
-- payload не содержит customer identity, адреса, оплату, цену строки — по
-  правилу "Privacy и retention" из canonical doc.
+- публиковать `COMMITTED` только после authoritative confirmed-sale transition;
+- публиковать новую revision при correction с полным corrected line snapshot;
+- публиковать `REVERSED` при полной отмене/полном возврате effective sale;
+- монотонно увеличивать `orderRevision`;
+- использовать durable `events.emit`;
+- использовать deterministic emit key:
+  `orders:sale:<orderId>:<orderRevision>:<state>`;
+- не включать customer identity, address, payment data и prices.
 
-Согласование точки эмиссии с командой orders — обязательное условие перед
-началом Phase 2; без него `recommendation_order_fact` не наполняется, и FBT
-остаётся пустым (fallback chain продолжает работать через
-`category_popularity` / `store_popularity`, которые эту зависимость не
-имеют — см. Phase 4).
+Точный producer нельзя добавлять к несуществующему terminal transition.
+Сначала Orders owner реализует или указывает authoritative transition workflow,
+после чего emission становится его durable step. До этого Phase 2 можно
+реализовать и протестировать contract fixtures, но нельзя считать production
+pipeline завершённым.
 
-## Phase 1. Drizzle runtime models
+### 0.2 Active-store enumeration
 
-Один файл `services/listing/src/repositories/models/recommendationRuntime.ts`
-(по аналогии с уже существующим `repositories/models/listingIndex.ts`,
-объединяющим несколько таблиц одного домена) с read/write моделями для всех
-10 таблиц `9100_recommendations`. Модели описывают физическую схему один в
-один с миграциями (типы `uuid`, `varchar(n)`, `smallint`, `numeric(20,10)`,
-`jsonb`, `timestamptz`) — без дополнительных вычисляемых полей.
+Добавить internal broker contract:
 
-Done when: сервис собирается, модели экспортированы и используются только
-repository-слоем (Phase 2), не GraphQL-слоем напрямую.
+```typescript
+interface ListActiveStoresParams {
+  afterStoreId?: string;
+  first: number;
+}
 
-## Phase 2. Order fact projection (write path)
-
-### RecommendationIngestionCursorRepository
-
-```ts
-async getOrCreateForUpdate(): Promise<{ cursorId: string; lastPosition: bigint }>;
-async advance(input: { cursorId: string; nextPosition: bigint }): Promise<void>;
-```
-
-`getOrCreateForUpdate()` — `SELECT ... FOR UPDATE` внутри вызывающей
-транзакции; если строки для `this.storeId` нет — создаёт с
-`last_position = 0`. Метод не должен запускать collateral запись без
-активной транзакции — вызывается только из
-`RecommendationOrderFactIngestScript`.
-
-### RecommendationOrderFactRepository
-
-```ts
-async findByEventId(input: { eventId: string }): Promise<OrderFactRow | null>;
-async findByOrderRevision(input: {
-  orderId: string;
-  orderRevision: number;
-}): Promise<OrderFactRow | null>;
-async insertCommitted(input: {
-  orderFactId: string;
-  eventId: string;
-  ingestionPosition: bigint;
-  orderId: string;
-  orderRevision: number;
-  committedAt: Date;
-  occurredAt: Date;
-  payloadHash: string;
-  lines: readonly { productId: string; quantity: number }[];
-}): Promise<void>;
-async insertReversed(input: {
-  orderFactId: string;
-  eventId: string;
-  ingestionPosition: bigint;
-  orderId: string;
-  orderRevision: number;
-  committedAt: Date;
-  occurredAt: Date;
-  payloadHash: string;
-}): Promise<void>;
-```
-
-`insertCommitted` пишет строку `recommendation_order_fact` (`state =
-'COMMITTED'`) и агрегированные по `product_id` строки
-`recommendation_order_product_fact` в одной транзакции (агрегация повторов
-`productId` в `lines` — на уровне script, не repository, чтобы repository
-оставался тонким SQL-слоем). `insertReversed` пишет только
-`recommendation_order_fact` со `state = 'REVERSED'`, без product facts.
-
-### RecommendationOrderFactIngestScript
-
-```ts
-class RecommendationOrderFactIngestScript extends BaseScript<
-  RecommendationOrderFactIngestParams,
-  RecommendationOrderFactIngestResult
-> {
-  @Transactional()
-  async execute(params): Promise<RecommendationOrderFactIngestResult> {
-    // 1. cursor = ingestionCursor.getOrCreateForUpdate()   -- SELECT ... FOR UPDATE
-    // 2. existing = orderFact.findByEventId({eventId})
-    //    - existing && existing.payloadHash === payloadHash -> return {status: "duplicate"} (no-op)
-    //    - existing && existing.payloadHash !== payloadHash -> throw IntegrityError
-    // 3. existingRevision = orderFact.findByOrderRevision({orderId, orderRevision})
-    //    - same integrity check by payloadHash
-    // 4. nextPosition = cursor.lastPosition + 1n
-    // 5. insertCommitted(...) | insertReversed(...) с ingestionPosition = nextPosition
-    // 6. ingestionCursor.advance({cursorId, nextPosition})
-    // 7. return {status: "ingested", ingestionPosition: nextPosition}
-  }
+interface ListActiveStoresResult {
+  storeIds: string[];
+  nextCursor: string | null;
 }
 ```
 
-`payloadHash` — sha256 канонической сериализации event payload (совпадает по
-формату с constraint `chk_recommendation_order_fact_payload_hash` —
-`^[0-9a-f]{64}$`); использовать `hashContent` из `@shopana/shared-kernel`,
-приводя результат к hex sha256, либо явный `crypto.createHash("sha256")`,
-если `hashContent` не даёт совместимый формат — проверить сигнатуру перед
-реализацией шага.
+Action:
 
-Идемпотентность: `event_id` unique constraint и `(order_id, order_revision)`
-unique constraint защищают от дублей на уровне БД; script проверяет их
-заранее только для того, чтобы вернуть чистый "duplicate" статус вместо
-падения на unique violation.
+- находится в Project service;
+- поддерживает `first` от 1 до 500;
+- сортирует по raw `store_id ASC`;
+- доступен только internal workflow identity;
+- не используется storefront/admin requests.
 
-### RecommendationOrderFactIngestWorkflow
+Listing scheduler не выполняет cross-tenant SQL самостоятельно.
 
-Простой `BrokerWorkflows` (не Saga — ингест атомарен одной транзакцией, без
-компенсации):
+Done when:
 
-```ts
-@Injectable()
-export class RecommendationOrderFactIngestWorkflow extends BrokerWorkflows<
-  RecommendationOrderFactIngestWorkflowInput,
-  RecommendationOrderFactIngestResult
-> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+- event types экспортируются через `@shopana/events`;
+- producer integration point определён и покрывает commit/correction/reversal;
+- active stores доступны scheduler'у paginated broker call.
 
-  @Workflow("recommendationOrderFactIngest")
-  async run(input): Promise<RecommendationOrderFactIngestResult> {
-    return this.stepIngest(input);
-  }
+## Phase 1. Runtime models и repository wiring
 
-  @WorkflowStep({ name: "ingestOrderFact", timeoutMs: 30_000 })
-  private async stepIngest(input) {
-    return Kernel.getInstance().runScript(
-      RecommendationOrderFactIngestScript,
-      input.params,
-      buildRunScriptContext(input.context)
-    );
-  }
-}
-```
+`recommendationRuntime.ts` описывает physical schema один в один, включая
+maintenance cursor. Decimal columns используют `{ mode: "string" }`, bigint —
+`{ mode: "bigint" }`, timestamps — `{ mode: "string" }`.
 
-### RecommendationOrderEventHandlers
+Экспортировать select/insert types. Models не импортируются GraphQL layer.
 
-```ts
-@Injectable()
-export class RecommendationOrderEventHandlers extends EventHandlers {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+`Repository.ts` получает новые repositories. Constructor wiring сохраняет
+единый `TransactionManager`.
 
-  @EventHandler("orderSaleCommitted", { retry: { maxAttempts: 10 } })
-  handleOrderSaleCommitted(params: {
-    event: OrderSaleCommittedEvent;
-    delivery: EventHandlerDelivery;
-  }) {
-    return this.ingest(params.event, "COMMITTED");
-  }
+Done when:
 
-  @EventHandler("orderSaleReversed", { retry: { maxAttempts: 10 } })
-  handleOrderSaleReversed(params: {
-    event: OrderSaleReversedEvent;
-    delivery: EventHandlerDelivery;
-  }) {
-    return this.ingest(params.event, "REVERSED");
-  }
+- все одиннадцать tables представлены runtime models;
+- tenant filters присутствуют во всех root queries;
+- generated IDs проходят через BaseRepository UUIDv7 helpers.
 
-  private async ingest(event, state) {
-    return this.broker.startWorkflow(
-      "listing.recommendationOrderFactIngest",
-      { params: { event, state }, context: { storeId: event.payload.storeId, ... } },
-      {
-        source: "content",
-        resourceId: `${event.payload.storeId}:${event.payload.orderId}:${event.payload.orderRevision}`,
-        operation: "recommendationOrderFactIngest",
-        contentHash: hashContent(event),
-      },
-      {
-        queueName: "recommendation_order_fact_ingestion",
-        enqueueOptions: {
-          queuePartitionKey: `${event.payload.storeId}:${event.payload.orderId}`,
-        },
-      }
-    );
-  }
-}
-```
+## Phase 2. Revision-aware order fact projection
 
-`queuePartitionKey` по `storeId:orderId` гарантирует, что revisions одного
-заказа обрабатываются последовательно (важно, потому что cursor advance
-внутри одной транзакции сериализует запись, но порядок доставки broker не
-гарантирован сам по себе — partition key даёт FIFO по заказу).
+### Cursor locking
 
-Done when: любой `orderSaleCommitted`/`orderSaleReversed` event детерминированно
-и идемпотентно превращается в append-only `recommendation_order_fact` +
-`recommendation_order_product_fact`, cursor монотонно растёт per store.
-
-## Phase 3. FBT calculation run (Saga)
-
-### RecommendationCalculationRunRepository
-
-```ts
-async findActive(input: { calculationType: "FREQUENTLY_BOUGHT_TOGETHER" }): Promise<RunRow | null>;
-async findByIdempotencyKey(input: { calculationType: string; idempotencyKey: string }): Promise<RunRow | null>;
-async createBuilding(input: {
-  runId: string;
-  calculationType: "FREQUENTLY_BOUGHT_TOGETHER";
-  algorithmVersion: string;
-  windowStartedAt: Date;
-  windowEndedAt: Date;
-  sourceIngestionWatermark: bigint;
-  sourceEventTimeWatermark?: Date | null;
-  idempotencyKey: string;
-}): Promise<void>;
-async insertProductStats(input: { runId: string; stats: readonly ProductStatRow[] }): Promise<void>;
-async insertPairStats(input: { runId: string; pairs: readonly PairStatRow[] }): Promise<void>;
-async markReady(input: { runId: string; productCount: number; pairCount: bigint }): Promise<void>;
-async activate(input: { runId: string; calculationType: string }): Promise<void>; // superseded old + activate new, одна транзакция
-async markFailed(input: { runId: string; failureCode: string }): Promise<void>;
-```
-
-`activate` выполняет ровно то, что требует `recommendation_calculation_run_one_active_idx`
-(unique partial index `WHERE status = 'ACTIVE'`): в одной транзакции
-переводит текущий `ACTIVE` run того же `store_id + calculation_type` в
-`SUPERSEDED`, затем текущий run — в `ACTIVE`, устанавливая `activated_at`.
-Если старого `ACTIVE` run нет — просто активирует новый.
-
-### Расчёт статистики (без repository, чисто SQL агрегация)
-
-Источник данных — `recommendation_order_fact` (`ingestion_position <=
-sourceIngestionWatermark`, максимальная `order_revision` на `order_id`,
-итоговый `state = 'COMMITTED'`) join `recommendation_order_product_fact`.
-Реализуется как одна или несколько `sql` агрегирующих queries внутри
-repository (не в JavaScript, чтобы не гонять миллионы строк в память):
+`RecommendationIngestionCursorRepository.lockOrCreate()` выполняет внутри
+активной транзакции:
 
 ```sql
--- product stats
-WITH effective_orders AS (
-  SELECT DISTINCT ON (order_id) order_fact_id, order_id, committed_at, state
+INSERT INTO listing.recommendation_ingestion_cursor (...)
+VALUES (...)
+ON CONFLICT (store_id) DO NOTHING;
+
+SELECT cursor_id, last_position
+FROM listing.recommendation_ingestion_cursor
+WHERE store_id = :trustedStoreId
+FOR UPDATE;
+```
+
+Так устраняется race двух первых events разных orders одного store.
+
+### Ingestion script
+
+`RecommendationOrderFactIngestScript`:
+
+1. валидирует UUIDs, positive revision, non-empty committed lines и quantities;
+2. агрегирует duplicate product lines;
+3. вычисляет SHA-256 от canonical `{ eventType, payload }`;
+4. блокирует cursor row;
+5. проверяет существующий `event_id`;
+6. проверяет `(order_id, order_revision)`;
+7. same hash возвращает `duplicate`;
+8. different hash выбрасывает non-retryable integrity error;
+9. выделяет `last_position + 1`;
+10. вставляет fact и product facts;
+11. обновляет cursor в той же транзакции.
+
+Mapping timestamps:
+
+- committed: `committed_at = payload.committedAt`,
+  `occurred_at = event.timestamp`;
+- reversed: `committed_at = payload.committedAt`,
+  `occurred_at = payload.reversedAt`.
+
+Late revision сохраняется. Arrival order не обязан совпадать с
+`orderRevision`; effective state определяется calculation query.
+
+Unique violation после pre-check повторно классифицируется:
+
+- совпавший persisted hash — duplicate;
+- другой hash — integrity error;
+- неизвестная constraint — infrastructure error.
+
+### Handler и workflow
+
+Handler возвращает `EventHandlerResponse`, а не raw workflow result. Queue:
+
+```text
+name: recommendation_order_fact_ingestion
+partition: <storeId>:<orderId>
+```
+
+Workflow содержит один durable step, вызывающий ingestion script с полным
+`RunScriptContext`. `organizationId` берётся из event context.
+
+Done when:
+
+- fact insert и cursor advance атомарны;
+- repeated delivery является no-op;
+- stale revision не меняет effective order state;
+- customer PII отсутствует.
+
+## Phase 3. Deterministic FBT calculation
+
+### Run creation и watermark
+
+`RecommendationCalculationRunCreateScript` в одной транзакции:
+
+1. вызывает `lockOrCreate()` ingestion cursor;
+2. фиксирует `source_ingestion_watermark = last_position`;
+3. вычисляет UTC calculation window;
+4. строит idempotency key;
+5. возвращает existing run либо создаёт `BUILDING`.
+
+```text
+windowEndedAt   = start of current UTC day
+windowStartedAt = windowEndedAt - 90 days
+algorithmVersion = fbt-rules-v1
+```
+
+Для same-day recalculation с новым watermark `windowEndedAt` остаётся тем же,
+а idempotency key меняется из-за watermark.
+
+### Effective revisions
+
+Окно применяется только после выбора effective revision:
+
+```sql
+WITH bounded_facts AS (
+  SELECT *
   FROM listing.recommendation_order_fact
   WHERE store_id = :storeId
     AND ingestion_position <= :watermark
-    AND committed_at >= :windowStartedAt AND committed_at < :windowEndedAt
-  ORDER BY order_id, order_revision DESC
+),
+effective_orders AS (
+  SELECT DISTINCT ON (order_id) *
+  FROM bounded_facts
+  ORDER BY order_id, order_revision DESC, ingestion_position DESC
+),
+committed_orders AS (
+  SELECT *
+  FROM effective_orders
+  WHERE state = 'COMMITTED'
+    AND committed_at >= :windowStartedAt
+    AND committed_at < :windowEndedAt
 )
-SELECT opf.product_id, count(DISTINCT eo.order_id) AS orders_count, sum(opf.quantity) AS quantity,
-       max(eo.committed_at) AS last_purchased_at
-FROM effective_orders eo
-JOIN listing.recommendation_order_product_fact opf ON opf.order_fact_id = eo.order_fact_id
-WHERE eo.state = 'COMMITTED'
-GROUP BY opf.product_id;
 ```
 
-Pair stats — self-join `recommendation_order_product_fact` внутри одного
-`order_fact_id` (эффективный заказ), направленно (`A -> B` и `B -> A`
-отдельными строками), с последующим вычислением
-`support/confidence/lift/recency_score/source_score` по формулам из
-canonical doc:
+Запрещено фильтровать `committed_at` внутри `bounded_facts`: иначе reversal
+может быть отброшен до выбора maximum revision.
+
+### Versioned constants
+
+`fbt-rules-v1` фиксирует:
+
+```typescript
+export const FBT_RULES_V1 = {
+  windowDays: 90,
+  recencyHalfLifeDays: 30,
+  minimumPairOrders: 3n,
+  minimumConfidence: "0.0500000000",
+  minimumLift: "1.0000000000",
+  liftCap: "5.0000000000",
+} as const;
+```
+
+Изменение любого значения требует новой `algorithmVersion`.
+
+Формулы:
 
 ```text
-support(A, B) = orders(A and B) / storeOrders
-confidence(A -> B) = orders(A and B) / orders(A)
-lift(A -> B) = confidence(A -> B) / (orders(B) / storeOrders)
-source_score = confidence * log(1 + ordersTogether) * min(lift, liftCap) * recencyScore
+support    = ordersTogether / storeOrders
+confidence = ordersTogether / anchorOrders
+lift       = confidence / (targetOrders / storeOrders)
+recency    = exp(-ln(2) * ageDays / 30)
+source     = confidence * ln(1 + ordersTogether) * min(lift, 5) * recency
 ```
 
-Все decimal-вычисления — в SQL (`numeric`), не в JS floating point (по
-правилу canonical doc "Decimal features передаются строками на boundary").
-`recency_score` — экспоненциальный time decay от `last_purchased_at`
-(например `exp(-lambda * extract(epoch from (:windowEndedAt - last_purchased_at)) / 86400)`),
-`lambda` и `liftCap` — константы `algorithm_version = "fbt-rules-v1"`.
-Минимальные пороги перед сохранением строки: `orders_together >=
-MIN_PAIR_ORDERS` (например 3), `confidence >= MIN_CONFIDENCE`, `lift >
-MIN_LIFT` — кандидат ниже порога не попадает в `recommendation_product_pair_stat`
-вообще (это делает `source_score` вычисление детерминированным и не требует
-отдельного soft-delete).
+`ageDays` считается от `windowEndedAt` до последней совместной покупки пары.
+Все деления выполняются как PostgreSQL `numeric`; division by zero исключается
+counts predicates.
 
-### RecommendationCalculationRunWorkflow (Saga)
+### Set-based materialization
 
-```ts
-@Injectable()
-export class RecommendationCalculationRunWorkflow extends BrokerSaga<
-  RecommendationCalculationRunInput,
-  RecommendationCalculationRunResult
-> {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+Workflow steps не возвращают statistics arrays. Compute script возвращает
+только:
 
-  @Saga("recommendationCalculationRun")
-  async run(input): Promise<RecommendationCalculationRunResult> {
-    const run = await this.createRun(input);
-    if (run.status === "duplicate") return run; // idempotency key hit, no-op
-    const productStats = await this.computeProductStats(input, run);
-    const pairStats = await this.computePairStats(input, run);
-    await this.markReady(input, run, productStats, pairStats);
-    await this.activateRun(input, run);
-    return { runId: run.runId, status: "ACTIVE" };
-  }
-
-  @SagaStep()
-  private async createRun(input) { /* RecommendationCalculationRunCreateScript */ }
-  // no compensateCreateRun: если саму строку run создать не удалось, компенсировать нечего
-
-  @SagaStep({ timeoutMs: 120_000 })
-  private async computeProductStats(input, run) { /* RecommendationCalculationRunComputeStatsScript, product part */ }
-
-  private async compensateComputeProductStats(input, run) {
-    await this.markFailed(input, run, "PRODUCT_STATS_FAILED");
-  }
-
-  @SagaStep({ timeoutMs: 300_000 })
-  private async computePairStats(input, run) { /* pair part */ }
-
-  private async compensateComputePairStats(input, run) {
-    await this.markFailed(input, run, "PAIR_STATS_FAILED");
-  }
-
-  @SagaStep()
-  private async markReady(input, run, productStats, pairStats) { /* RecommendationCalculationRunRepository.markReady */ }
-
-  private async compensateMarkReady(input, run) {
-    await this.markFailed(input, run, "READY_TRANSITION_FAILED");
-  }
-
-  @SagaStep()
-  private async activateRun(input, run) { /* RecommendationCalculationRunRepository.activate */ }
-
-  private async compensateActivateRun(input, run) {
-    // старый ACTIVE не тронут (activate — одна транзакция, либо всё, либо ничего);
-    // если сам activate упал до commit — run остаётся READY, помечаем FAILED вручную
-    await this.markFailed(input, run, "ACTIVATION_FAILED");
-  }
-
-  private async markFailed(input, run, failureCode: string) {
-    return Kernel.getInstance().runScript(RecommendationCalculationRunFailScript, { runId: run.runId, failureCode }, ...);
-  }
+```typescript
+interface RecommendationCalculationCounts {
+  productCount: number;
+  pairCount: bigint;
 }
 ```
 
-Компенсация здесь не "откатывает" бизнес-данные (product/pair stats — это
-history одного run, не нужно физически удалять), а переводит run lifecycle в
-`FAILED` — что и требует constraint `chk_recommendation_calculation_run_lifecycle`
-и canonical doc: "Calculation упал -> Run становится FAILED; предыдущий
-ACTIVE продолжает обслуживаться". `activate()` сам по себе атомарен на
-уровне SQL-транзакции — Saga-компенсация здесь защищает только от crash
-между шагами workflow, не от частичной записи внутри одной SQL-транзакции.
+Product/pair rows материализуются bounded batches:
 
-Idempotency key = `hash({storeId, calculationType, algorithmVersion,
-windowStartedAt, windowEndedAt, sourceIngestionWatermark})`; повторный run с
-тем же ключом должен вернуть уже существующий run без пересчёта (`createRun`
-проверяет `findByIdempotencyKey` до вставки — соответствует constraint
-`recommendation_calculation_run_idempotency_unique`).
+1. SQL выбирает следующую deterministic page по product ID или
+   `(anchor_product_id, target_product_id)`;
+2. repository генерирует UUIDv7 batch через `generateUuidV7s(pageSize)`;
+3. `INSERT ... SELECT` связывает IDs и ordered rows через ordinality;
+4. retry использует unique `(run_id, product_id)` /
+   `(run_id, anchor_product_id, target_product_id)` и не создаёт duplicates;
+5. durable output хранит cursor/count, но не все rows.
 
-Done when: на store + `FREQUENTLY_BOUGHT_TOGETHER` в любой момент времени
-существует не более одного `ACTIVE` run, `FAILED` run не влияет на serving,
-повторный запуск с тем же watermark не создаёт вторую generation.
+### Workflow lifecycle
 
-## Phase 4. Candidate merge, ranking и snapshot activation (Saga)
-
-### Кандидаты и ranking (rules-based, `ranker_type = 'RULES'`, `model_version = "fbt-rules-v1"` / `"related-rules-v1"`)
-
-Единый application service, вызываемый с разными placement (как в canonical
-doc):
-
-```ts
-interface RecommendPipelineInput {
-  storeId: string;
-  anchorProductId: string;
-  placement: RecommendationPlacement;
-}
-```
-
-Pipeline строго по шагам из canonical doc:
+Используется `BrokerWorkflows`, не `BrokerSaga`:
 
 ```text
-active placement policy
-  -> active scheduled manual actions (PIN/BOOST/EXCLUDE, [starts_at, ends_at))
-  -> active FBT run pair stats (только для FREQUENTLY_BOUGHT_TOGETHER; для
-     PRODUCT_RELATED — тот же FBT run как один из candidate sources, не
-     единственный)
-  -> registered fallback sources (category_popularity, store_popularity —
-     см. "Явные границы")
-  -> dedup by target product (первое найденное provenance сохраняется в
-     source_breakdown, остальные добавляются туда же)
-  -> apply EXCLUDE (hard filter, независимо от strategy)
-  -> apply publication/availability eligibility (join к
-     product_listing_index: status = 'published')
-  -> apply strategy (CURATED_ONLY | CURATED_FIRST | BLENDED | AUTOMATED_ONLY)
-  -> rank: score DESC, target_product_id ASC (deterministic tie-breaker);
-     PIN не эмулируется score — PIN-кандидаты занимают заявленные positions
-     до ranking остальных, остальные ranks сдвигаются после них
-  -> truncate to policy.maximum_results
-  -> build immutable snapshot rows (BUILDING)
+create BUILDING
+  -> compute statistics
+  -> mark READY
   -> atomically activate
 ```
 
-`RecommendationFeatures` — интерфейс из canonical doc, собирается in-memory
-на шаге ranking (не персистится отдельно, кроме как в `features` jsonb
-snapshot item).
+`run()` оборачивает post-create steps в `try/catch`. При ошибке вызывает
+отдельный durable `markFailed` step. `markFailed` идемпотентен:
 
-Strategy application:
+- `BUILDING|READY -> FAILED`;
+- `FAILED -> no-op`;
+- `ACTIVE|SUPERSEDED -> integrity error`.
 
-- `CURATED_ONLY`: только active manual `PIN`/`BOOST` candidates; если после
-  EXCLUDE/eligibility меньше `minimum_results` — snapshot публикуется как
-  есть, fallback не вызывается (буквально по canonical doc);
-- `CURATED_FIRST`: PIN → BOOST → остальные ranks заполняются
-  automated/fallback candidates до `maximum_results`;
-- `BLENDED`: manual `BOOST` becomes a ranking feature вместе с
-  FBT/popularity features в одном score; `PIN` всё равно резервирует
-  position отдельной фазой (canonical doc: "PIN обрабатывается отдельной
-  policy phase и не эмулируется искусственно огромным score" — это
-  инвариант, а не особенность одной strategy);
-- `AUTOMATED_ONLY`: manual `PIN`/`BOOST` игнорируются, `EXCLUDE` остаётся
-  active (safety rule, не отключаемая ни одной strategy).
+Activation в одной transaction блокирует runs одного
+`store + calculation_type`, supersede-ит старый ACTIVE и активирует READY run.
 
-Fallback вызывается последовательно по `fallback_chain` до достижения
-`minimum_results`; каждый источник добавляет только новые (ещё не
-включённые) targets; source, вернувший 0 кандидатов, пропускается без
-ошибки.
+Done when:
 
-`category_popularity` источник: top-N по `recommendation_product_stat`
-(текущего ACTIVE run) products, ограниченных той же category, что и anchor
-(категория читается через существующий `productListingIndex` read model, не
-через canonical Catalog). `store_popularity`: тот же top-N без ограничения
-по category. Если ACTIVE FBT run отсутствует (ещё ни разу не считался) —
-оба fallback возвращают пустой список; это валидный результат (canonical
-doc: "Пустой snapshot является корректным результатом").
+- run воспроизводим по window + watermark + algorithm version;
+- failed first compute не оставляет вечный `BUILDING`;
+- workflow payload/result не содержит statistics arrays;
+- старый ACTIVE обслуживается до commit новой activation.
 
-### RecommendationSnapshotRepository
+## Phase 4. Candidate sources и rules ranker
 
-```ts
-async findActive(input: { anchorProductId: string; placement: string }): Promise<SnapshotRow | null>;
-async findByBuildKey(input: { anchorProductId: string; placement: string; buildKey: string }): Promise<SnapshotRow | null>;
-async createBuilding(input: {
-  snapshotId: string;
-  anchorProductId: string;
-  placement: string;
-  strategy: string;
-  policyId: string | null;
-  policyVersion: number;
-  calculationRunId: string | null;
-  rankerType: "RULES" | "ML";
-  modelVersion: string;
-  buildKey: string;
-  sourceWatermarks: Record<string, unknown>;
-  itemCount: number;
-}): Promise<void>;
-async insertItems(input: { snapshotId: string; items: readonly SnapshotItemRow[] }): Promise<void>;
-async markReady(input: { snapshotId: string }): Promise<void>;
-async activate(input: { snapshotId: string; anchorProductId: string; placement: string }): Promise<void>;
-async markFailed(input: { snapshotId: string; failureCode: string }): Promise<void>;
-```
+### Candidate representation
 
-`activate` — атомарная транзакция: текущий `ACTIVE` snapshot того же
-`(store_id, anchor_product_id, placement)` → `SUPERSEDED`, новый → `ACTIVE`,
-`activated_at = now()`. Перед активацией repository (или вызывающий script)
-обязан проверить инварианты из canonical doc ("Активация выполняется... после
-проверки"):
-
-- число items == `item_count`;
-- ranks уникальны и образуют диапазон `1..item_count`;
-- targets уникальны, не содержат anchor;
-- `item_count <= policy.maximum_results`;
-- каждый target принадлежит тому же `store_id` (application-level check —
-  `store_id` не входит в FK/PK, БД сама это не проверит).
-
-### RecommendationSnapshotBuildWorkflow (Saga)
-
-Аналогичная FBT calculation run структура: `buildSnapshot` (BUILDING) →
-`collectCandidates` → `rankAndTruncate` → `insertSnapshotItems` →
-`markReady` → `activateSnapshot`, с компенсацией каждого шага в `markFailed`
-(старый ACTIVE snapshot не трогается — тот же принцип, что и в calculation
-run).
-
-`build_key` — hash от `{policyVersion, calculationRunId, manual
-configuration version snapshot, algorithmVersion}` — используется для
-идемпотентности (`recommendation_snapshot_build_key_unique`) и как часть
-"Policy version изменилась во время build -> Build отклоняется как stale и
-запускается заново" (canonical doc, таблица Failure semantics): если на шаге
-`activateSnapshot` замечено, что `policy.version` изменилась с момента
-`collectCandidates`, workflow должен завершиться без активации и
-инициировать новый build (не активировать заведомо устаревший результат).
-
-### RecommendationSnapshotBuildTriggerWorkflow (fan-out, по образцу `FacetAffectedProductsResyncWorkflow`)
-
-Запускается (а) после активации calculation run — для всех anchors, у
-которых есть pair stats в новом run; (б) после manual recommendation
-CRUD/policy update — для затронутого anchor+placement; (в) после product
-lifecycle событий (см. Phase 7) — для anchors, ссылающихся на изменившийся
-product как target.
-
-```ts
-await this.broker.startWorkflow(
-  "listing.recommendationSnapshotBuild",
-  { storeId, anchorProductId, placement, reason },
-  idempotencyCtx,
-  {
-    queueName: "recommendation_snapshot_build",
-    enqueueOptions: { queuePartitionKey: `${storeId}:${anchorProductId}:${placement}` },
-  }
-);
-```
-
-Массовая активация run может затронуть тысячи anchors — запуск через queue
-(не await в цикле) обязателен, аналогично тому, как `FacetAffectedProductsResyncWorkflow`
-обрабатывает bulk resync через `LISTING_INDEX_ACTIONS_QUEUE`.
-
-Done when: любое изменение policy/manual recommendation/calculation run
-детерминированно приводит к rebuild только затронутых snapshot, старый
-ACTIVE snapshot не разрушается при неудачном build.
-
-## Phase 5. Storefront serving
-
-### StorefrontRecommendationQueryRepository
-
-```ts
-export class StorefrontRecommendationQueryRepository extends BaseRepository {
-  @ReadOnly()
-  async getActiveSnapshotPage(input: {
-    anchorProductId: string;
-    placement: "PRODUCT_RELATED" | "FREQUENTLY_BOUGHT_TOGETHER";
-    first: number;
-    after?: DecodedRecommendationCursor | null;
-  }): Promise<RecommendationPageResult>;
+```typescript
+interface RecommendationCandidate {
+  targetProductId: string;
+  manualAction: "PIN" | "BOOST" | null;
+  manualPosition: number | null;
+  manualBoost: string | null;
+  fbtSourceScore: string | null;
+  popularityScore: string | null;
+  primarySource: ProductRecommendationSource;
+  sourceBreakdown: Record<string, unknown>;
 }
 ```
 
-Read path (буквально по canonical doc "Storefront serving"):
+Decimal arithmetic выполняется PostgreSQL numeric или decimal library, не
+JavaScript `number`.
 
-1. читает `recommendation_snapshot` где `status = 'ACTIVE'` для
-   `(store_id, anchor_product_id, placement)`; нет active snapshot -> пустой
-   connection (`totalCount = 0`, не ошибка);
-2. читает `recommendation_snapshot_item` по `rank ASC`, keyset пагинация
-   после `after` (rank > decoded cursor rank);
-3. live-фильтрует targets по `product_listing_index` (`status =
-   'published'`) — join, не отдельный N+1 запрос;
-4. если после live-фильтра и `first` строк недостаточно — читает следующую
-   already-computed страницу items того же snapshot (`rank` дальше), но
-   **не** триггерит синхронный calculation/build;
-5. `totalCount` — количество currently storefront-eligible items во всём
-   snapshot (отдельный count-запрос с тем же live-фильтром, не только по
-   текущей странице — так же, как storefront listing repository считает
-   `totalCount` отдельной веткой, а не по page rows).
+### Sources
 
-Cursor — отдельный формат от `ListingCursorPayload` (другой domain), но тот
-же подход, что в `src/repositories/storefront/cursor.ts`: version + hash +
-строгая валидация:
+Manual source читает все enabled, VALID rows, активные в `asOf`:
 
-```ts
+```text
+starts_at IS NULL OR starts_at <= asOf
+ends_at   IS NULL OR asOf < ends_at
+```
+
+FBT source читает pair stats текущего ACTIVE run.
+
+`category_popularity`:
+
+- категории anchor определяются через
+  `listing_posting_bitmap(entity_type='product', field='category')`;
+- используются все категории anchor;
+- candidates — union published/available products этих categories;
+- при нескольких общих categories берётся maximum popularity score;
+- anchor исключается;
+- tie-breaker — target product ID.
+
+`store_popularity` использует product stats ACTIVE run без category restriction.
+
+Каждый source читает не более:
+
+```text
+min(maximumResults * 4, 400)
+```
+
+rows на anchor. Это ограничивает memory одного snapshot build.
+
+### Score normalization
+
+```text
+fbtNormalized = fbtSourceScore / (1 + fbtSourceScore)
+popularity    = ln(1 + productOrders) / ln(1 + maxStoreProductOrders)
+manualBoost  = min(boost / 1000, 1)
+```
+
+Versioned ranker:
+
+```text
+FREQUENTLY_BOUGHT_TOGETHER automated score
+  = 0.90 * fbtNormalized + 0.10 * popularity
+
+PRODUCT_RELATED automated score
+  = 0.70 * fbtNormalized + 0.30 * popularity
+
+BLENDED final score
+  = automatedScore + 0.50 * manualBoost
+```
+
+Model versions:
+
+```text
+fbt-rules-v1
+related-rules-v1
+```
+
+Любое изменение weights/normalization создаёт новую model version.
+
+### Strategy semantics
+
+- `CURATED_ONLY`: только active manual PIN/BOOST. Non-pinned order:
+  manual boost DESC, target ID ASC.
+- `CURATED_FIRST`: PIN positions резервируются первыми; manual BOOST candidates
+  идут перед non-manual candidates; внутри групп score DESC, target ID ASC.
+- `BLENDED`: PIN отдельно; остальные candidates сортируются по blended score.
+- `AUTOMATED_ONLY`: PIN/BOOST игнорируются; EXCLUDE применяется.
+
+EXCLUDE применяется до ranking при любой strategy.
+
+PIN:
+
+- не превращается в score;
+- positions уникальны благодаря exclusion constraint;
+- create/update отклоняет position выше current `maximumResults`;
+- policy update с меньшим maximum отклоняется, если существующий active/future
+  PIN выходит за предел;
+- после filters оставшиеся PIN размещаются по position ASC;
+- gaps заполняются ranked candidates;
+- итоговый rank всегда `1..itemCount`.
+
+Primary source:
+
+1. active PIN/BOOST, участвующий в strategy → `MANUAL`;
+2. FBT contribution → `FREQUENTLY_BOUGHT_TOGETHER`;
+3. category/store popularity → `POPULARITY`;
+4. generic future fallback → `FALLBACK`.
+
+Все contributions сохраняются в `source_breakdown`, даже если primary source
+выбран по precedence.
+
+### Manual configuration hash
+
+Для anchor + placement вычисляется canonical SHA-256 от sorted rows:
+
+```text
+recommendationId
+version
+targetProductId
+action
+position
+boost
+enabled
+startsAt
+endsAt
+anchorReferenceStatus
+targetReferenceStatus
+activeAtAsOf
+```
+
+Hash меняется при mutation и при пересечении schedule boundary. Он используется
+как manual watermark и stale-build guard без новой aggregate version table.
+
+Done when:
+
+- одинаковые inputs дают одинаковые candidates, scores и ranks;
+- все source limits bounded;
+- category source использует Listing projection, а не несуществующее поле
+  `product_listing_index.category`;
+- strategy behavior покрыт unit tests.
+
+## Phase 5. Snapshot build и fan-out
+
+### Build key
+
+Перед созданием snapshot фиксируются:
+
+```typescript
+interface RecommendationBuildInputs {
+  policyId: string;
+  policyVersion: number;
+  calculationRunId: string | null;
+  sourceIngestionWatermark: bigint | null;
+  manualConfigurationHash: string;
+  modelVersion: string;
+}
+```
+
+`buildKey` — SHA-256 canonical representation этих inputs плюс anchor и
+placement. `source_watermarks` содержит typed object с теми же значениями.
+
+### Build workflow
+
+Используется `BrokerWorkflows`:
+
+```text
+read fixed inputs
+  -> create BUILDING snapshot
+  -> collect/rank bounded candidates
+  -> insert items
+  -> validate READY
+  -> re-read policy/manual/calculation lineage
+  -> atomically activate
+```
+
+Candidate collection и ranking являются одним durable step либо возвращают
+не более 400 candidates. Snapshot items вставляются одной transaction.
+
+Перед activation проверяются:
+
+- item count;
+- continuous unique ranks;
+- unique targets;
+- target != anchor;
+- `item_count <= maximum_results`;
+- target store ownership и live eligibility;
+- policy и run принадлежат store;
+- policy всё ещё enabled и version не изменилась;
+- manual configuration hash не изменился;
+- calculation run всё ещё ACTIVE;
+- runtime поддерживает model version.
+
+Stale input:
+
+1. snapshot получает `FAILED` с `STALE_INPUT`;
+2. workflow enqueue-ит rebuild с новым deterministic key;
+3. старый ACTIVE остаётся неизменным.
+
+Другие failures используют идемпотентный explicit `markFailed`.
+
+### Fan-out rules
+
+Policy update является store-level change и затрагивает все anchors placement,
+а не один anchor.
+
+Fan-out sources:
+
+- policy change: все published anchors + anchors с manual rows/active snapshots;
+- manual mutation: один anchor + placement;
+- FBT activation:
+  - anchors нового pair-stat run;
+  - все published anchors placements, где fallback chain использует category
+    или store popularity;
+- product lifecycle:
+  - product как anchor;
+  - manual/snapshot references на product как target.
+
+`RecommendationSnapshotFanOutWorkflow` обрабатывает одну page raw product IDs,
+enqueue-ит child builds и запускает следующую page. Page size — 100. Durable
+result хранит counts и next cursor, но не все workflow IDs.
+
+Queue:
+
+```text
+name: recommendation_snapshot_build
+partition: <storeId>:<anchorProductId>:<placement>
+```
+
+Done when:
+
+- policy update не оставляет anchors на старой policy бесконечно;
+- popularity change rebuild-ит anchors без pair stats;
+- failed/stale build не повреждает active serving.
+
+## Phase 6. Storefront serving
+
+### Cursor
+
+```typescript
 interface RecommendationCursorPayload {
   version: 1;
-  hash: string;      // от {storeId, anchorProductId, placement, snapshotId}
+  hash: string;
   snapshotId: string;
   rank: number;
 }
 ```
 
-`hash` пин-ит snapshot generation: cursor, выданный для snapshot A,
-не должен читать snapshot B, если между страницами был опубликован новый
-ranking (`recommendation-storefront-api.ru.md`: "Cursor привязан к immutable
-snapshot generation"). Несовпадение hash — `StorefrontRepositoryValidationError`
-(тот же класс, что уже используется для listing cursor), не тихий сброс на
-первую страницу.
+Hash строится из:
 
-### ProductRecommendationConnectionResolver
+```text
+storeId
+anchorProductId
+placement
+snapshotId
+eligibilityPolicyVersion
+```
 
-Копирует структуру `ProductConnectionResolver.ts`
-(`src/resolvers/storefront/ProductConnectionResolver.ts:19-60`): наследует
-`ListingType<TInput, TOutput>`, `$preload()` вызывает
-`services.repository.storefrontRecommendationQuery.getActiveSnapshotPage(...)`,
-`edges()/nodes()/pageInfo()/totalCount()` читают закэшированный результат.
-`node.product` строится через `toProductReference(targetProductId)` (уже
-существующий helper в `listingReferences.ts`), `node.source` — маппинг
-`primary_source` (`MANUAL|FREQUENTLY_BOUGHT_TOGETHER|CONTENT_SIMILARITY|POPULARITY|FALLBACK`)
-1-в-1 в GraphQL enum `ProductRecommendationSource` (значения уже совпадают
-буквально).
+Без cursor repository выбирает current ACTIVE snapshot. С cursor сначала
+выбирается current ACTIVE snapshot, затем проверяется exact snapshot ID/hash.
+Если generation сменилась, возвращается
+`StorefrontRepositoryValidationError`; выдачи двух generations не смешиваются.
 
-### Wiring
+`first` валидируется как integer `1..100`.
 
-`ResolverRegistry.ts` — добавить:
+### Query behavior
 
-```ts
-async productRecommendationConnection(input: ProductRecommendationConnectionInput) {
-  const { ProductRecommendationConnectionResolver } = await import(
-    "./ProductRecommendationConnectionResolver.js"
-  );
-  return new ProductRecommendationConnectionResolver(input, this.ctx);
+Repository:
+
+1. получает ACTIVE non-expired snapshot;
+2. читает items после rank cursor;
+3. join-ит current publication и availability projections;
+4. читает дальше, пока не собрано `first + 1` eligible rows либо snapshot
+   исчерпан;
+5. вычисляет `hasNextPage` по лишней eligible row;
+6. считает `totalCount` отдельным query с теми же eligibility predicates;
+7. не запускает build synchronously.
+
+No snapshot, disabled policy и empty snapshot возвращают empty connection.
+
+### Batching
+
+Добавить `RecommendationLoader` в request-scoped `Loader`.
+
+DataLoader key:
+
+```typescript
+interface RecommendationPageLoaderKey {
+  anchorProductId: string;
+  placement: RecommendationPlacement;
+  first: number;
+  after: string | null;
 }
 ```
 
-`src/api/graphql-storefront/resolvers/types.ts` — добавить в `typeResolvers.Product`
-(рядом с существующим `__resolveReference`) field-резолверы:
+Batch repository принимает массив keys и выполняет один `VALUES` input query с
+LATERAL page/count branches. Это предотвращает N+1, когда recommendation field
+запрошен для списка Product entities.
 
-```ts
-Product: {
-  __resolveReference: (reference) => reference as unknown as ResolversTypes["Product"],
-  relatedProducts: (parent: { id: string }, args, ctx: ServiceContext) =>
-    getResolverRegistry(ctx).productRecommendationConnection({
-      anchorProductId: decodeGlobalIdByType(parent.id, GlobalIdEntity.Product),
-      placement: "PRODUCT_RELATED",
-      first: args.first,
-      after: args.after,
-    }),
-  frequentlyBoughtTogether: (parent: { id: string }, args, ctx: ServiceContext) =>
-    getResolverRegistry(ctx).productRecommendationConnection({
-      anchorProductId: decodeGlobalIdByType(parent.id, GlobalIdEntity.Product),
-      placement: "FREQUENTLY_BOUGHT_TOGETHER",
-      first: args.first,
-      after: args.after,
-    }),
-},
+### Cache
+
+- request cache обеспечивает DataLoader;
+- active-snapshot lookup cache хранит positive/missing sentinel не более 30s;
+- activation/disable/lifecycle supersede явно инвалидируют lookup key;
+- immutable raw item page может кэшироваться по snapshot ID;
+- live eligibility result между requests не кэшируется;
+- empty immutable snapshot кэшируется как raw empty page.
+
+### Resolver
+
+`ProductRecommendationConnectionResolver` повторяет shape существующего
+connection resolver, но возвращает recommendation node:
+
+```typescript
+{
+  product: toProductReference(targetProductId),
+  source: primarySource,
+}
 ```
 
-`Connection.__resolveType` (строки 27-29) — добавить
-`ProductRecommendationConnectionResolver` в проверку, аналогично
-`ProductConnectionResolver`.
+Storefront schema уже существует; меняются resolver wiring, generated types и
+`Connection.__resolveType`.
 
-### Repository aggregator wiring
+Done when:
 
-`Repository.ts` — добавить публичное поле
-`storefrontRecommendationQuery: StorefrontRecommendationQueryRepository` и
-`recommendationPlacementPolicy`, `manualProductRecommendation`,
-`recommendationIngestionCursor`, `recommendationOrderFact`,
-`recommendationCalculationRun`, `recommendationSnapshot` — по тому же
-паттерну конструктора-цепочки, что и текущий блок строк 170-183
-(`storefrontFacetResolution`, `storefrontListingQuery`, ...): создать в
-`static async create(...)` в порядке зависимостей, передать позиционно в
-`new Repository(...)`.
+- Relay contract forward-only и deterministic;
+- `totalCount` отражает current eligible targets;
+- list-of-products query не создаёт one-query-per-product;
+- activation между pages приводит к explicit cursor error.
 
-### Кэш
+## Phase 7. Admin API
 
-Cache key обязан включать `storeId, anchorProductId, placement, snapshotId,
-eligibility context` (canonical doc). Реализация кэша — на уровне
-DataLoader/HTTP cache существующего storefront слоя (если он есть для
-других connection-полей); этот план фиксирует только состав ключа, не
-инфраструктуру кэша, т.к. остальной storefront API её не описывает отдельно
-в repository-layer плане.
+### Global IDs
 
-Done when: `relatedProducts`/`frequentlyBoughtTogether` возвращают
-детерминированный forward-only Relay connection, пустой snapshot не
-считается ошибкой, cursor не смешивает две generation.
+Добавить:
 
-## Phase 6. Admin API (placement policy + manual recommendation CRUD + preview)
+```typescript
+GlobalIdEntity.RecommendationPlacementPolicy
+GlobalIdEntity.ManualProductRecommendation
+```
 
-`services/listing/src/api/graphql-admin/schema/recommendation.graphql`:
+Оба GraphQL types реализуют `Node`; admin Node/nodes resolvers и loaders
+поддерживают новые entities.
+
+### Policy mutation
 
 ```graphql
-enum RecommendationPlacement {
-  PRODUCT_RELATED
-  FREQUENTLY_BOUGHT_TOGETHER
-  CART_CROSS_SELL
-  CHECKOUT_UPSELL
-  HOME_PERSONALIZED
-  SEARCH_RERANK
-}
-
-enum RecommendationStrategy {
-  CURATED_ONLY
-  CURATED_FIRST
-  BLENDED
-  AUTOMATED_ONLY
-}
-
-enum ManualRecommendationAction {
-  PIN
-  BOOST
-  EXCLUDE
-}
-
-type RecommendationPlacementPolicy implements Node {
-  id: ID!
+input RecommendationPlacementPolicyUpsertInput {
   placement: RecommendationPlacement!
   enabled: Boolean!
   strategy: RecommendationStrategy!
   minimumResults: Int!
   maximumResults: Int!
   fallbackChain: [String!]!
-  version: Int!
+  expectedVersion: Int
 }
+```
 
-type ManualProductRecommendation implements Node {
-  id: ID!
-  anchorProduct: Product!
-  targetProduct: Product!
+- `expectedVersion = null` разрешён только при create;
+- update требует точного current version;
+- mismatch → `VERSION_CONFLICT`;
+- fallback chain содержит unique registered codes;
+- disable supersede-ит active snapshots в transaction;
+- successful enabled update запускает paginated placement fan-out.
+
+### Manual mutations
+
+Create input содержит anchor/target IDs, placement, action, position/boost,
+enabled, startsAt/endsAt.
+
+Update input содержит:
+
+- recommendation Global ID;
+- `expectedVersion`;
+- изменяемые поля.
+
+Delete input содержит recommendation Global ID и `expectedVersion`.
+
+Validation:
+
+- anchor/target существуют в trusted store;
+- anchor != target;
+- action-specific position/boost;
+- half-open schedule;
+- position согласована с policy maximum;
+- PostgreSQL `23P01` обеих exclusion constraints → `SCHEDULE_CONFLICT`;
+- optimistic mismatch → `VERSION_CONFLICT`;
+- not found/cross-store → `NOT_FOUND`.
+
+Workflows защищены `@Policy`:
+
+```text
+create/update: resource=store.data action=write
+delete/disable: resource=store.data action=admin
+domain=store:<storeId>
+```
+
+### Queries
+
+Persisted policy и manual list читаются через admin repositories/loaders.
+Manual list использует forward pagination, а не unbounded array.
+
+Preview принимает draft overlay:
+
+```graphql
+input RecommendationSnapshotPreviewInput {
+  anchorProductId: ID!
   placement: RecommendationPlacement!
-  action: ManualRecommendationAction!
-  position: Int
-  boost: Float
-  enabled: Boolean!
-  startsAt: DateTime
-  endsAt: DateTime
-  version: Int!
+  policy: RecommendationPlacementPolicyDraftInput
+  manualChanges: [ManualRecommendationDraftChangeInput!]!
 }
 ```
 
-Mutations (по образцу `facetCreate`/`facetValueUpdate` — input с
-`clientMutationId`-подобным `operationId` не нужен, идемпотентность строится
-как в `runFacetMutationWorkflow`; каждая мутация возвращает `userErrors:
-[UserError!]!`):
+Preview:
 
-```graphql
-extend type ListingMutation {
-  recommendationPlacementPolicyUpsert(
-    input: RecommendationPlacementPolicyUpsertInput!
-  ): RecommendationPlacementPolicyPayload!
+1. читает persisted policy/manual rows;
+2. накладывает draft policy и manual upsert/delete changes in memory;
+3. вызывает тот же `buildRecommendation()` с fixed `asOf`;
+4. ничего не записывает;
+5. возвращает active, draft и excluded candidates.
 
-  manualProductRecommendationCreate(
-    input: ManualProductRecommendationCreateInput!
-  ): ManualProductRecommendationPayload!
+Без draft overlay preview показывает результат текущей persisted configuration.
 
-  manualProductRecommendationUpdate(
-    input: ManualProductRecommendationUpdateInput!
-  ): ManualProductRecommendationPayload!
+Excluded reasons:
 
-  manualProductRecommendationDelete(
-    input: ManualProductRecommendationDeleteInput!
-  ): ManualProductRecommendationDeletePayload!
-}
+```text
+STALE
+UNPUBLISHED
+UNAVAILABLE
+EXCLUDED
+INSUFFICIENT_SUPPORT
+LIMIT_EXCEEDED
 ```
 
-`ManualProductRecommendationUpdateInput` обязан включать `version` для
-optimistic concurrency (canonical doc: "mutation проверяет optimistic
-version"); script возвращает `userErrors` с кодом `VERSION_CONFLICT`, если
-переданная `version` не совпадает с текущей строкой — не `throw`, т.к. это
-ожидаемый конфликт конкурентного редактирования, а не системная ошибка
-(правило `script.md`: бизнес-ошибки — `userErrors`, не exception).
+Done when:
 
-`ManualProductRecommendationCreateScript`/`UpdateScript` обязаны превращать
-нарушение exclusion constraints
-(`manual_product_recommendation_target_schedule_excl`,
-`manual_product_recommendation_pin_schedule_excl`) в понятный `userError`
-(`code: "SCHEDULE_CONFLICT"`), а не пропускать raw postgres exclusion
-violation наружу — по аналогии с существующим `isUniqueViolation` helper в
-`kernel/types.ts`, но для exclusion constraint (`error.code === "23P01"`).
+- unsaved preview действительно возможен через input;
+- policy/manual concurrency защищена;
+- cross-store Product ID не раскрывает существование объекта;
+- mutation response не содержит raw PostgreSQL errors.
 
-Workflow-обёртки — `RecommendationMutationWorkflows.ts`, структурно идентичны
-`FacetMutationWorkflows.ts`: `runManualProductRecommendationCreate` вызывает
-script, при успехе — `stepStartSnapshotRebuild({ anchorProductId,
-placement })` (аналог `stepStartResync`), не блокируя ответ мутации.
+## Phase 8. Scheduling и schedule boundaries
 
-Query/preview:
+### Calculation scheduler
 
-```graphql
-extend type ListingQuery {
-  recommendationPlacementPolicy(placement: RecommendationPlacement!): RecommendationPlacementPolicy
-  manualProductRecommendations(anchorProductId: ID!, placement: RecommendationPlacement): [ManualProductRecommendation!]!
-  recommendationSnapshotPreview(anchorProductId: ID!, placement: RecommendationPlacement!): RecommendationSnapshotPreview!
-}
+`RecommendationScheduler` вычисляет completed UTC hour bucket и запускает один
+deterministic trigger workflow:
 
-type RecommendationSnapshotPreview {
-  active: ProductRecommendationConnection
-  draft: ProductRecommendationConnection
-  excludedCandidates: [ExcludedRecommendationCandidate!]!
-}
-
-type ExcludedRecommendationCandidate {
-  product: Product!
-  reason: RecommendationExclusionReason!
-}
-
-enum RecommendationExclusionReason {
-  STALE
-  UNPUBLISHED
-  UNAVAILABLE
-  EXCLUDED
-  INSUFFICIENT_SUPPORT
-  LIMIT_EXCEEDED
-}
+```text
+workflow ID: recommendation-calculation-trigger:<utc-hour>
 ```
 
-`draft` пересчитывает candidate pipeline (Phase 4) synchronously
-read-only — без записи snapshot — против ещё не сохранённой policy (если
-preview вызван до сохранения) или против текущей сохранённой policy (если
-после). Это единственное место, где candidate pipeline вызывается вне
-Saga-контекста; вызывающий код должен переиспользовать тот же чистый
-candidate-generation модуль, что и `RecommendationSnapshotBuildWorkflow`, а
-не дублировать логику.
+Все replicas получают одинаковый ID; duplicate start игнорируется.
 
-Admin mutation не принимает `store_id`, product id — Relay Global ID,
-декодируется через `GlobalIdEntity.Product` (существующий `safeDecodeGlobalId`
-helper в `MutationResolver.ts:35-43`).
+Trigger paginated вызывает Project active-store action. Для каждого store
+запускается store-scoped calculation trigger workflow. Store workflow сравнивает
+cursor/run state и запускает calculation только по правилам cadence.
 
-Done when: merchant может создать/изменить/удалить policy и manual
-recommendation через admin API, preview различает active/draft/excluded, все
-записи проходят через тот же lifecycle, что и automated pipeline.
+### Manual schedule scheduler
 
-## Phase 7. Scheduling и product lifecycle
+Каждую минуту запускается deterministic global trigger:
 
-### RecommendationCalculationScheduler
-
-```ts
-@Injectable()
-export class RecommendationCalculationScheduler {
-  constructor(@InjectBroker("listing") private readonly broker: ServiceBroker) {}
-
-  @Cron(CronExpression.EVERY_HOUR)
-  async trigger(): Promise<void> {
-    if (!Kernel.isInitialized()) return;
-    await this.broker.runWorkflow("listing.recommendationCalculationTrigger", undefined, {
-      source: "workflow",
-      workflowId: `recommendation-calc-trigger:${Date.now()}`,
-      stepId: "run",
-    });
-  }
-}
+```text
+workflow ID: recommendation-manual-boundary:<utc-minute>
 ```
 
-`listing.recommendationCalculationTrigger` (обычный `BrokerWorkflows`, не
-Saga) находит stores, где `recommendation_ingestion_cursor.last_position` >
-`source_ingestion_watermark` последнего `ACTIVE`/`READY`/`BUILDING` run
-(т.е. появились новые order facts с прошлого расчёта), и запускает
-`listing.recommendationCalculationRun` для каждого через queue с
-`queuePartitionKey = storeId` (не await в цикле — тот же fan-out принцип,
-что в Phase 4). Store без ни одного нового order fact с прошлого запуска
-пропускается — нет смысла пересчитывать идентичный run (тот же результат
-даст другой idempotency key из-за нового `windowEndedAt`, но без новых
-данных FBT numbers не изменятся — это допустимая оптимизация, не
-обязательная для корректности, но обязательная для стоимости).
+Store-scoped workflow:
 
-`ScheduleModule.forRoot()` — добавить в `imports` `listing.module.ts` (сейчас
-отсутствует, есть только в `media.module.ts`), `RecommendationCalculationScheduler`
-— в `providers`.
+1. читает maintenance cursor;
+2. находит distinct anchor + placement boundaries в
+   `(lastManualBoundaryAt, currentMinute]`;
+3. enqueue-ит deterministic snapshot builds;
+4. после успешного enqueue всех pages advance-ит cursor;
+5. при retry duplicate child workflows являются no-op.
 
-### Product lifecycle
+Cursor нельзя advance-ить до child enqueue: crash не должен терять boundary.
 
-Расширить существующий `ListingProductEventHandlers.ts` (обработчик product
-delete/unpublish уже существует для facet references — добавить симметричную
-обработку для recommendation references):
+Done when:
 
-- product deleted/unpublished → `ManualProductRecommendationRepository`
-  помечает все строки, где этот product — `anchor_product_id` **или**
-  `target_product_id`, соответствующим `anchor_reference_status =
-  'STALE'`/`target_reference_status = 'STALE'` (через reverse index
-  `manual_product_recommendation_target_reverse_idx`), затем запускает
-  snapshot rebuild для затронутых anchors;
-- product restored/republished → обратный переход `STALE -> VALID`, но
-  **только** после проверки tenant ownership (`store_id` совпадает) — по
-  явному требованию canonical doc;
-- anchor product deleted → существующий `ACTIVE` snapshot этого anchor
-  переводится в `SUPERSEDED` (не удаляется), `recommendation_calculation_run`
-  не трогается (canonical doc: "anchor deletion supersede-ит active
-  snapshots, но не удаляет calculation run").
+- future PIN/BOOST/EXCLUDE активируется без новой mutation;
+- end boundary удаляет action из следующего snapshot;
+- downtime восстанавливается чтением cursor interval;
+- multi-replica cron не создаёт duplicate work.
 
-### Retention (отдельный batch job, не блокирует Phase 1-7 serving)
+## Phase 9. Product lifecycle
 
-Реализуется как отдельный store-scoped resumable batch workflow (не входит в
-критический путь этого плана, но структура уже зафиксирована миграциями:
-`ON DELETE RESTRICT` на обоих FK `recommendation_snapshot -> {policy,
-calculation_run}` гарантирует, что run/policy header нельзя удалить, пока на
-него ссылается сохраняемый snapshot). Планируется отдельным
-implementation-plan документом при появлении объёма данных, оправдывающего
-retention job — миграции уже готовы к этому (`statistics_purged_at`,
-`chk_recommendation_calculation_run_statistics_retention`).
+Recommendation reconciliation запускается после успешного update Listing
+projection, а не параллельно с ним.
 
-Done when: FBT recalculation происходит по расписанию без ручного триггера,
-product lifecycle события не оставляют stale/deleted references активными в
-serving path.
+Изменить listing index workflows:
+
+- после sync product index durable step запускает
+  `recommendationReferenceStateSync`;
+- после delete index durable step запускает тот же workflow с deleted state;
+- queue partition остаётся product-scoped, поэтому reconciliation видит уже
+  committed listing state.
+
+Reference sync:
+
+- deleted/unpublished product:
+  - anchor/target manual statuses → `STALE`;
+  - active snapshots product-as-anchor → `SUPERSEDED`;
+  - target reverse references enqueue rebuild;
+- restored/republished product:
+  - tenant ownership проверяется по `store_id`;
+  - stale manual references → `VALID`;
+  - affected anchors enqueue rebuild;
+- unavailable target не переводит editorial reference в `STALE`, но live
+  serving исключает его и async rebuild уплотняет ranks.
+
+FBT statistics не изменяются product lifecycle workflow: historical IDs
+остаются до retention.
+
+Done when:
+
+- recommendation workflow не читает stale pre-sync listing state;
+- deletion не удаляет editorial intent;
+- target disappearance немедленно скрывается live filter и затем rebuild'ом.
 
 ## Observability
 
-Минимальный набор (см. canonical doc "Observability" — этот план фиксирует,
-какие метрики/логи добавляются вместе с каждой фазой, не отдельно):
-
-- Phase 2: event projection lag (`now() - occurred_at` на момент ingest),
-  committed/reversed counts, integrity error rate;
-- Phase 3: calculation duration, products/pairs processed, run failures по
-  `failure_code`;
-- Phase 4: snapshot build duration, activation failures, candidates per
-  source до/после dedup;
-- Phase 5: empty/expired snapshot rate, `totalCount` distribution;
-- все структурированные логи — через `this.$ctx.kernel.getServices().logger.error(...)`
-  (паттерн уже используется в `ProductConnectionResolver.logError`), поля:
-  `storeId, anchorProductId, placement, runId, snapshotId, modelVersion` —
-  без customer PII (в проекции их и так нет, см. Phase 2).
-
-## Acceptance checklist
-
-- Ни один repository-метод не принимает `storeId` явным параметром —
-  используется только `this.storeId`.
-- Все новые async read-методы помечены `@ReadOnly()`.
-- `recommendation_order_fact` наполняется только через
-  `RecommendationOrderFactIngestScript` внутри `@Transactional()`, cursor
-  advance и fact insert — одна транзакция.
-- Повтор события с тем же `event_id` и тем же payload hash — no-op; тот же
-  id/revision с другим hash — integrity error, не молчаливая перезапись.
-- На store + calculation type в любой момент не более одного `ACTIVE` run;
-  `FAILED` run не влияет на текущий serving.
-- На anchor + placement в любой момент не более одного `ACTIVE` snapshot;
-  активация — одна транзакция (supersede старого + activate нового).
-- `PIN` не эмулируется score; ranking детерминирован (`target_product_id
-  ASC` tie-breaker).
-- `EXCLUDE` — hard filter независимо от strategy.
-- Read path storefront повторно проверяет publication/availability и не
-  меняет сохранённый snapshot при их изменении.
-- Пустой snapshot — валидный результат, не ошибка.
-- Cursor привязан к конкретному `snapshotId`; несовпадение — explicit
-  validation error, не молчаливый сброс на первую страницу.
-- Manual recommendation exclusion constraint violations превращены в
-  `userErrors` с понятным кодом, не в raw SQL error наружу GraphQL.
-- Admin mutation не принимает `store_id`; `version` проверяется как
-  optimistic concurrency guard на update/delete.
-- Product lifecycle (delete/unpublish/restore) синхронизирует
-  `anchor_reference_status`/`target_reference_status`, не удаляет editorial
-  intent.
-- Snapshot rebuild после bulk-изменений (calculation run activation)
-  запускается через queue, не в цикле `await` внутри одного workflow.
-- Ни один fallback source code, кроме `category_popularity` и
-  `store_popularity`, не зарегистрирован в `fallback_chain` validation —
-  неизвестный код (включая `content_similarity` на этом этапе) — write
-  error.
-- `packages/events` содержит `OrderSaleCommittedEvent`/`OrderSaleReversedEvent`
-  в `DomainEvent` union; listing не читает таблицы orders напрямую.
-- Customer identity (customerId, email, address, payment) отсутствует во
-  всех таблицах recommendation domain.
-
-## Порядок фаз (зависимости)
+Structured fields:
 
 ```text
-Phase 0 (orders event contract, cross-service)
-   ↓
-Phase 1 (Drizzle models) ──────────────┐
-   ↓                                    │
-Phase 2 (order fact projection)         │
-   ↓                                    │
-Phase 3 (FBT calculation run)           │
-   ↓                                    │
-Phase 4 (candidate merge + snapshot) ←──┘ (policy/manual repos из Phase 6 нужны раньше UI, но не раньше pipeline)
-   ↓                    ↑
-Phase 5 (storefront)    │
-                         │
-Phase 6 (admin CRUD) ────┘ (может стартовать параллельно с Phase 3-4,
-                             т.к. пишет только в policy/manual таблицы;
-                             requires Phase 1)
-   ↓
-Phase 7 (scheduling + lifecycle) — requires Phase 3, 4, 6
+storeId
+anchorProductId
+placement
+runId
+snapshotId
+modelVersion
+workflowId
 ```
 
-Phase 5 (storefront serving) технически может быть развёрнута сразу после
-Phase 1, если `fallback_chain` пуст и policy отсутствует — тогда `relatedProducts`/
-`frequentlyBoughtTogether` детерминированно возвращают пустой connection
-(валидный результат). Полноценное наполнение требует Phase 2-4 (behavioral)
-и/или Phase 6 (curated).
+Metrics:
+
+- ingestion lag, current position, duplicates, integrity failures;
+- late/stale revisions;
+- calculation duration, rows/batches, run failures;
+- support/confidence/lift distributions;
+- snapshot build duration and stale-build retries;
+- candidates per source before/after dedup/filter;
+- fan-out pages and queued anchors;
+- missing/empty snapshot rate;
+- live-filtered target count;
+- manual boundary lag;
+- coverage of published anchors.
+
+Logs не содержат customer identity или order lines.
+
+## Test plan
+
+Тесты добавляются вместе с каждой phase, но не запускаются при согласовании
+этого документа.
+
+### Unit
+
+- canonical payload hash;
+- schedule half-open intervals;
+- manual configuration hash before/after boundary;
+- FBT formulas and thresholds;
+- all strategy/ranker cases;
+- PIN gap filling and deterministic ties;
+- cursor validation.
+
+### Repository integration
+
+- concurrent first cursor creation;
+- duplicate event and conflicting payload;
+- out-of-order revisions;
+- commit in window + reversal outside window;
+- fixed watermark excludes later ingestion;
+- one ACTIVE run/snapshot under concurrent activation;
+- tenant isolation;
+- exclusion constraint mapping;
+- stale policy/manual activation rejection;
+- availability live filter and totalCount.
+
+### Workflow
+
+- failure of first calculation step marks run FAILED;
+- duplicate workflow start;
+- paginated fan-out resume;
+- scheduler multi-replica idempotency;
+- manual boundary retry before/after cursor advance;
+- product sync ordering.
+
+### GraphQL/e2e
+
+- defaults `12` and `3`;
+- `first` validation;
+- nodes/edges/pageInfo/totalCount;
+- cursor generation change;
+- empty connection;
+- Admin optimistic concurrency;
+- draft preview;
+- cross-store IDs.
+
+Для implementation verification используются только `shopana-cli` MCP tools и
+только после отдельного разрешения на запуск checks.
+
+## Порядок реализации
+
+```text
+Phase 0.1 events contract ───────────────────────────────┐
+Phase 0.2 active-store broker contract ─────────────┐    │
+                                                   │    │
+Phase 1 runtime models/repositories                 │    │
+   ├── Phase 7 Admin policy/manual                  │    │
+   │      └── Phase 4 manual/popularity ranking     │    │
+   │             └── Phase 5 snapshots              │    │
+   │                    └── Phase 6 storefront      │    │
+   │                                               │    │
+   ├── Phase 8 manual schedule boundaries ←────────┘    │
+   └── Phase 9 product lifecycle                         │
+                                                        │
+Orders producer integration ←───────────────────────────┘
+   └── Phase 2 order fact projection
+          └── Phase 3 FBT calculation
+                 └── Phase 4 FBT source
+                        └── Phase 5 calculation fan-out
+```
+
+Рекомендуемые delivery slices:
+
+1. models + repositories + curated Admin CRUD;
+2. deterministic manual ranking + snapshots;
+3. storefront API + batch loader;
+4. schedule boundaries + lifecycle;
+5. sale event producer + projection;
+6. FBT calculation + popularity/FBT fan-out;
+7. observability and full e2e coverage.
+
+## Final acceptance criteria
+
+- Orders producer и Listing projection используют self-contained revision-aware
+  events.
+- Calculation сначала выбирает effective revision, затем применяет window.
+- Watermark фиксируется под cursor lock.
+- Ни один durable step не возвращает unbounded statistics/anchor arrays.
+- Run/snapshot failures явно переходят в `FAILED`.
+- Policy disable немедленно прекращает serving.
+- Policy update rebuild-ит все anchors placement'а.
+- Popularity update rebuild-ит anchors без pair stats.
+- Scheduled manual actions активируются и истекают без mutation.
+- Ranking formula полностью определяется model version.
+- Category popularity использует Listing category postings.
+- Publication и availability проверяются при build и serving.
+- Storefront list queries используют batch DataLoader path.
+- Admin preview поддерживает unsaved draft overlay.
+- Cross-store reads/writes не раскрывают чужие entities.
+- Новый ACTIVE run/snapshot публикуется одной transaction.
+- Пустой recommendation result является нормальным результатом.
