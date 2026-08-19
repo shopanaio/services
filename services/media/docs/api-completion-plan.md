@@ -81,15 +81,57 @@ export interface SecretProvider {
 }
 ```
 
-### Task 1.2: Environment-backed implementation
+### Task 1.2: Add a typed `secrets` config surface
+
+There is currently no `secrets` field anywhere in
+`@shopana/shared-service-config` — `BaseServiceSchema`
+(`packages/shared-service-config/src/schema.ts:51-57`) only declares
+`ports`/`db`/`s3`/`casdoor`/`workflows`. `ServiceConfigSchema` is
+`.passthrough()`, so an ad-hoc `secrets` key would survive validation at
+runtime, but it would type as `unknown`, not an indexable record — the
+naive `service.secrets?.[secretRef]` does not type-check as-is. Add the
+field properly, following the same shape as the existing `s3`/`casdoor`
+sub-schemas.
+
+**File:** `packages/shared-service-config/src/schema.ts`
+
+```typescript
+export const SecretsConfigSchema = z.record(z.string(), z.string());
+
+export const BaseServiceSchema = z.object({
+  ports: PortsConfigSchema.optional(),
+  db: DbConfigSchema.optional(),
+  s3: S3ConfigSchema.optional(),
+  casdoor: CasdoorConfigSchema.optional(),
+  workflows: WorkflowsConfigSchema.optional(),
+  secrets: SecretsConfigSchema.optional(),
+});
+```
+
+Export `SecretsConfig = z.infer<typeof SecretsConfigSchema>` alongside the
+other type exports.
+
+Values are sourced the same way every other secret in this config already
+is — `config.yml` entries using the existing `${ENV_VAR}` substitution
+(`configLoader.ts`'s `substituteEnvVars`), e.g.:
+
+```yaml
+services:
+  media:
+    secrets:
+      cdn-imgix-hmac: ${MEDIA_CDN_IMGIX_HMAC_SECRET}
+```
+
+No new config-loading mechanism — this only formalizes a shape that
+`.passthrough()` was silently allowing.
+
+### Task 1.3: Environment-backed implementation
 
 **File:** `src/infrastructure/secrets/EnvSecretProvider.ts` (new)
 
-`secretRef` is a key into `service.secrets` from
-`@shopana/shared-service-config` (the same config module already used for
-`buildS3Config`). Resolution failure throws `FatalError` (not retryable —
-misconfiguration, not a transient fault) — see
-`knowledge/vault/packages/shared-kernel/errors.md`.
+`secretRef` is a key into `service.secrets` (Task 1.2). Resolution failure
+throws `FatalError` (not retryable — misconfiguration, not a transient
+fault) — see `knowledge/vault/packages/shared-kernel/errors.md`.
 
 ```typescript
 import { FatalError } from "@shopana/shared-kernel";
@@ -113,9 +155,13 @@ export class EnvSecretProvider implements SecretProvider {
 ```
 
 **Acceptance criteria**
+- `service.secrets` is a typed `Record<string, string>` on `ServiceConfig`,
+  not an unchecked passthrough key.
 - No secret value is ever written to `media.cdn_configurations` or logged.
 - Missing secret throws `FatalError`, surfaced by `CdnDeliveryService` as a
-  `SIGNING_ADAPTER_FAILED` user error (fallback to origin URL), not a 500.
+  `SIGNING_ADAPTER_FAILED` user error (fallback to origin URL), not a 500 —
+  because `applyAdapters` catches the adapter's thrown error before it
+  reaches whatever global handler maps error classes to HTTP status.
 
 ---
 
@@ -434,9 +480,16 @@ free-text field for `transformStrategy`/`signingMode`.
 
 **File:** `src/scripts/file/FileUploadFromUrlScript.ts`
 
-### Task 3.1: URL policy guard
+### Task 3.1: URL policy guard, with the resolved IP pinned
 
-New helper, applied before every fetch (including redirect targets):
+Validating the hostname and then letting `fetch()` re-resolve DNS itself is
+not sufficient: an attacker-controlled domain with a short/zero TTL can
+answer the validation lookup with a public IP and the connection lookup
+(microseconds later, inside `fetch`) with `169.254.169.254` — classic
+DNS-rebinding SSRF bypass. The guard must resolve **once**, validate that
+result, and force the actual connection to use the exact address it
+validated — not just check the hostname and hope the second resolution
+agrees.
 
 **File:** `src/infrastructure/media/urlFetchPolicy.ts` (new)
 
@@ -446,10 +499,22 @@ import dns from "node:dns/promises";
 
 const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
 
-function isPrivateOrReservedIp(ip: string): boolean {
-  // 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16,
-  // 100.64.0.0/10 (CGNAT), ::1, fc00::/7, fe80::/10
+// Strip the IPv4-mapped-IPv6 wrapper (::ffff:127.0.0.1) so the IPv4 checks
+// below can't be bypassed by asking for the same address in v6 notation.
+function normalizeIp(ip: string): string {
+  const mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  return mapped ? mapped[1] : ip;
+}
+
+function isPrivateOrReservedIp(rawIp: string): boolean {
+  // 0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16,
+  // 169.254.0.0/16, 100.64.0.0/10 (CGNAT), ::1, ::, fc00::/7, fe80::/10.
+  // fc00::/7 covers BOTH fc00::/8 and fd00::/8 — real-world randomly
+  // generated ULAs are fd00::/8, so matching only "fc" (not "fd") would
+  // silently let them through.
+  const ip = normalizeIp(rawIp);
   return (
+    /^0\./.test(ip) ||
     /^127\./.test(ip) ||
     /^10\./.test(ip) ||
     /^192\.168\./.test(ip) ||
@@ -457,12 +522,20 @@ function isPrivateOrReservedIp(ip: string): boolean {
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip) ||
     ip === "::1" ||
-    /^fc/i.test(ip) ||
-    /^fe80/i.test(ip)
+    ip === "::" ||
+    /^f[cd][0-9a-f]{0,2}:/i.test(ip) ||
+    /^fe80:/i.test(ip)
   );
 }
 
-export async function assertFetchAllowed(rawUrl: string): Promise<URL> {
+export interface FetchTarget {
+  url: URL;
+  /** The exact IP the connection must be pinned to — never re-resolved. */
+  pinnedIp: string;
+  pinnedFamily: 4 | 6;
+}
+
+export async function assertFetchAllowed(rawUrl: string): Promise<FetchTarget> {
   const url = new URL(rawUrl);
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Only http(s) URLs are allowed");
@@ -470,34 +543,64 @@ export async function assertFetchAllowed(rawUrl: string): Promise<URL> {
   if (BLOCKED_HOSTNAMES.has(url.hostname.toLowerCase())) {
     throw new Error("This host is not allowed");
   }
-  if (isIP(url.hostname) && isPrivateOrReservedIp(url.hostname)) {
-    throw new Error("This host is not allowed");
-  }
-  if (!isIP(url.hostname)) {
-    const records = await dns.lookup(url.hostname, { all: true, verbatim: true });
-    if (records.some((r) => isPrivateOrReservedIp(r.address))) {
-      throw new Error("This host resolves to a disallowed address");
+
+  if (isIP(url.hostname)) {
+    if (isPrivateOrReservedIp(url.hostname)) {
+      throw new Error("This host is not allowed");
     }
+    return {
+      url,
+      pinnedIp: url.hostname,
+      pinnedFamily: isIP(url.hostname) === 6 ? 6 : 4,
+    };
   }
-  return url;
+
+  const records = await dns.lookup(url.hostname, { all: true, verbatim: true });
+  const safe = records.find((r) => !isPrivateOrReservedIp(r.address));
+  if (!safe) {
+    throw new Error("This host resolves to a disallowed address");
+  }
+  return { url, pinnedIp: safe.address, pinnedFamily: safe.family as 4 | 6 };
 }
 ```
 
-### Task 3.2: Apply the guard, disable redirects, cap response size
+### Task 3.2: Apply the guard, pin the connection, disable redirects, cap response size
+
+`fetch` is pointed at the *pinned* address by overriding the dispatcher's
+DNS lookup, while the `Host`/SNI still use the original hostname (via
+`url`) so TLS certificate validation is unaffected. Exact API surface
+(`undici.Agent`'s `connect.lookup`) should be checked against the pinned
+`undici`/Node version at implementation time — the requirement is
+non-negotiable (no independent second resolution), the mechanism may need
+adjusting to match what's actually available.
 
 ```typescript
+import { Agent, fetch } from "undici";
+
+function pinnedDispatcher(pinnedIp: string, pinnedFamily: 4 | 6): Agent {
+  return new Agent({
+    connect: {
+      lookup: (_hostname, _options, callback) => {
+        callback(null, [{ address: pinnedIp, family: pinnedFamily }]);
+      },
+    },
+  });
+}
+
 private async fetchFileFromUrl(url: string): Promise<FetchResult | FetchError> {
   if (url.startsWith("data:")) return this.parseDataUrl(url);
 
+  let target: FetchTarget;
   try {
-    await assertFetchAllowed(url);
+    target = await assertFetchAllowed(url);
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "URL not allowed" };
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(target.url, {
     method: "GET",
     redirect: "manual", // do not silently follow to an unvalidated host
+    dispatcher: pinnedDispatcher(target.pinnedIp, target.pinnedFamily),
     headers: { "User-Agent": "ShopanaMediaService/1.0" },
   });
 
@@ -523,6 +626,12 @@ private async fetchFileFromUrl(url: string): Promise<FetchResult | FetchError> {
 `readWithCap` reads the stream and aborts once `MAX_BYTES` is exceeded even
 when `Content-Length` is absent or lied about.
 
+**Regression test to add:** a hostname that resolves to a public IP on the
+first lookup and a private IP on a second lookup (mock `dns.lookup` to
+return different results per call) must still be blocked from reaching the
+private address — this is what actually proves the rebinding gap is
+closed, as opposed to just testing static private-IP literals.
+
 ### Task 3.3: Stop leaking raw fetch error text
 
 Replace `fetchResult.error ?? "Failed to fetch file from URL"` in the
@@ -531,8 +640,12 @@ detailed `error` server-side via `this.logger.warn` only.
 
 **Acceptance criteria**
 - Requesting `http://169.254.169.254/...` or any RFC1918/loopback/link-local
-  target returns a `FETCH_FAILED`/`URL_NOT_ALLOWED` user error, never
-  reaches `fetch()`.
+  target (including `::ffff:169.254.169.254` and `fd00::/8` ULA literals)
+  returns a `FETCH_FAILED`/`URL_NOT_ALLOWED` user error, never reaches
+  `fetch()`.
+- A hostname that resolves differently between the validation lookup and a
+  hypothetical second lookup cannot reach a private address — the
+  connection is pinned to the address that was actually validated.
 - A redirect response is rejected, not followed.
 - A response advertising or streaming more than the configured cap is
   rejected before the whole body is buffered in memory.
@@ -542,7 +655,7 @@ detailed `error` server-side via `this.logger.warn` only.
 
 ## Phase 4 — MIME allowlist for uploads
 
-**Files:** `src/scripts/file/FileUploadScript.ts`,
+**Files:** `src/scripts/file/FileUploadMultipartScript.ts`,
 `src/scripts/file/FileUploadFromUrlScript.ts`
 
 ### Task 4.1: Central allowlist
@@ -565,7 +678,7 @@ is served publicly from the CDN origin.
 
 After the existing magic-byte detection (`analyzeMedia`), reject unknown
 mime types with a `UNSUPPORTED_MEDIA_TYPE` user error before the S3 upload
-step, in both `FileUploadScript` and `FileUploadFromUrlScript`.
+step, in both `FileUploadMultipartScript` and `FileUploadFromUrlScript`.
 
 **Acceptance criteria:** uploading an `image/svg+xml` or an executable
 payload disguised with a media extension returns a user error and performs
@@ -580,21 +693,38 @@ no S3 write.
 
 ### Task 5.1: Depth + complexity validation rules
 
-Add `graphql-depth-limit` and a complexity estimator (e.g.
-`graphql-query-complexity`) as new dependencies of `@shopana/media-service`
-(no shared package currently provides this — introduce it locally rather
-than inventing a cross-service convention unprompted).
+Add `graphql-depth-limit` and `graphql-validation-complexity` as new
+dependencies of `@shopana/media-service` (no shared package currently
+provides this — introduce it locally rather than inventing a cross-service
+convention unprompted). `graphql-validation-complexity` is used over
+`graphql-query-complexity` because it exposes a single drop-in
+`validationRules` entry (`createComplexityLimitRule`) with sane default
+per-type-kind costs, instead of requiring a per-field `complexity`
+estimator on every schema type before it does anything.
 
 ```typescript
 import depthLimit from "graphql-depth-limit";
+import { createComplexityLimitRule } from "graphql-validation-complexity";
+
+const ComplexityLimitRule = createComplexityLimitRule(1000, {
+  scalarCost: 1,
+  objectCost: 2,
+  listFactor: 10, // each list field multiplies the cost of its subtree
+});
 
 const apollo = new ApolloServer<ServiceContext>({
   introspection: isDevelopment(global),
-  validationRules: [depthLimit(8)],
+  validationRules: [depthLimit(8), ComplexityLimitRule],
   schema: buildSubgraphSchema(modules),
   ...
 });
 ```
+
+Apply to both `graphql-admin/server.ts` and `graphql-storefront/server.ts`.
+Tune `1000`/`listFactor` against the actual schema once in place — the
+`files(first: N) { edges { node { ... } } }` connections are exactly the
+kind of list field this is meant to catch, so a query with `first: 100`
+nested a few levels deep should land comfortably over the limit.
 
 ### Task 5.2: Introspection off outside development
 
@@ -602,10 +732,12 @@ Replace the hardcoded `introspection: true` on both servers with
 `introspection: isDevelopment(global)` (storefront server already imports
 `isDevelopment`; add the same import to the admin server).
 
-**Acceptance criteria:** a deeply nested or introspection query against a
-non-development environment is rejected before resolver execution; `curl`
-of `/graphql` with an introspection query in a prod-like config returns a
-validation error instead of the schema.
+**Acceptance criteria:** a deeply nested query (depth > 8), a
+high-cost/wide-connection query (over the complexity threshold), or an
+introspection query against a non-development environment are each
+rejected before resolver execution — verified by three separate test
+cases, not just depth; `curl` of `/graphql` with an introspection query in
+a prod-like config returns a validation error instead of the schema.
 
 ---
 
@@ -613,28 +745,50 @@ validation error instead of the schema.
 
 **File:** `src/resolvers/storefront/helpers/storefrontFile.ts`
 
-### Task 6.1: Batch loader for storefront file-by-owner lookups
+No new loader or repository method needed here — one already exists and
+fits exactly. `ctx.loaders.file` is constructed per-request in
+`graphql-storefront/server.ts:117` as
+`new Loader(kernel.repository, { storeId: request.store.id })`, and its
+batch function, `FileRepository.findAccessibleByIds(ids, scope)`, enforces
+`ownerType = "store" AND ownerId = scope.storeId AND deletedAt IS NULL` —
+the exact same predicate `loadStorefrontFile`'s current
+`findByOwner(fileId, "store", storefrontStore.id)` call applies per file,
+per field. The batch key that actually varies across the N resolved fields
+is `fileId`, not owner id (the owner is fixed for the whole request) — a
+loader keyed by owner id would not be the right shape for this N+1 even if
+one didn't already exist.
 
-Add a `fileByOwner` DataLoader following the existing pattern in
-`knowledge/vault/patterns/dataloader.md` (batch key = owner id, batched via
-a new `FileRepository.getByOwnerIds()`).
-
-**File:** `src/loaders/FileByOwnerLoader.ts` (new)
-**File:** `src/loaders/Loader.ts` — register `fileByOwner`
-**File:** `src/repositories/FileRepository.ts` — add `getByOwnerIds()`
-alongside the existing single-owner `findByOwner()`
-
-### Task 6.2: Route `loadStorefrontFile` through the loader
+### Task 6.1: Route `loadStorefrontFile` through `ctx.loaders.file`
 
 ```typescript
-export async function loadStorefrontFile(ctx: ServiceContext, ownerId: string) {
-  return ctx.loaders.fileByOwner.load(ownerId);
+export async function loadStorefrontFile(
+  ctx: ServiceContext,
+  fileId: string,
+  acceptedMediaTypes: readonly FileMediaType[],
+): Promise<File> {
+  if (!ctx.storefrontStore) {
+    throw new PreloadNotFoundError("Storefront media context is unavailable");
+  }
+
+  const file = await ctx.loaders.file.load(fileId);
+  if (!file || !acceptedMediaTypes.includes(file.mediaType as FileMediaType)) {
+    throw new PreloadNotFoundError(`Storefront media not found: ${fileId}`);
+  }
+  return file;
 }
 ```
 
+The media-type acceptance check stays here, in the storefront-specific
+helper — not pushed into the shared `FileLoader`/`FileRepository`, which
+`ctx.loaders.file` also serves for admin-side scopes that have no such
+restriction.
+
 **Acceptance criteria:** a storefront list query resolving N `Image`/
-`Video`/`Model3d` fields issues one batched `files` query, not N queries —
-verified with a query-count assertion in an integration test.
+`Video`/`Model3d` fields issues one batched `files` query (via the
+existing `findAccessibleByIds`), not N `findByOwner` queries — verified
+with a query-count assertion in an integration test. No new files under
+`src/loaders/`, and no new `FileRepository` method, are needed for this
+phase.
 
 ---
 
