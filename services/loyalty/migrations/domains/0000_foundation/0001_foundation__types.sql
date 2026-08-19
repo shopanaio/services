@@ -6,6 +6,15 @@ CREATE TYPE "loyalty"."program_version_status" AS ENUM (
   'DRAFT', 'SCHEDULED', 'ACTIVE', 'RETIRED'
 );
 
+-- Reconciliation state for cross-service references (segments, catalog
+-- selectors, Pricing discounts) carried by an already-published program
+-- version's rules. This is mutable operational metadata, not part of the
+-- immutable `rules` JSON: a reference validated at publish time can go
+-- stale later if the referenced entity is deleted in another service.
+CREATE TYPE "loyalty"."reference_reconciliation_status" AS ENUM (
+  'VALID', 'STALE'
+);
+
 CREATE TYPE "loyalty"."rounding_mode" AS ENUM ('DOWN', 'NEAREST', 'UP');
 CREATE TYPE "loyalty"."refund_policy" AS ENUM ('PROPORTIONAL', 'FULL_REVERSAL');
 CREATE TYPE "loyalty"."debt_policy" AS ENUM ('TRACK_DEBT', 'REJECT_REVERSAL');

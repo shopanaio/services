@@ -425,6 +425,46 @@ export class ProgramRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  /** Published/scheduled versions due for cross-service reference reconciliation, least-recently-checked first. */
+  async listPublishedForReconciliation(limit = 100): Promise<ProgramVersion[]> {
+    return this.connection
+      .select()
+      .from(programVersions)
+      .where(
+        and(
+          eq(programVersions.storeId, this.storeId),
+          inArray(programVersions.status, ["ACTIVE", "SCHEDULED"]),
+        ),
+      )
+      .orderBy(
+        asc(programVersions.referenceReconciliationCheckedAt),
+        asc(programVersions.id),
+      )
+      .limit(limit);
+  }
+
+  /**
+   * Records the outcome of a post-publish reference reconciliation pass.
+   * Deliberately not gated on `status = 'DRAFT'` — this updates mutable
+   * operational metadata on an already-published version, not the
+   * immutable rules snapshot, and must never reject/remove that version.
+   */
+  async updateReferenceReconciliation(
+    id: string,
+    status: "VALID" | "STALE",
+    checkedAt: string,
+  ): Promise<ProgramVersion | null> {
+    const rows = await this.connection
+      .update(programVersions)
+      .set({
+        referenceReconciliationStatus: status,
+        referenceReconciliationCheckedAt: checkedAt,
+      })
+      .where(and(eq(programVersions.storeId, this.storeId), eq(programVersions.id, id)))
+      .returning();
+    return rows[0] ?? null;
+  }
+
   async retireActiveVersion(
     id: string,
     effectiveTo: string,

@@ -1748,7 +1748,7 @@ export type LoyaltyFreeShippingRewardPresentationResolvers<ContextType = Service
 }>;
 
 export type LoyaltyMemberBenefitRewardPresentationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['LoyaltyMemberBenefitRewardPresentation'] = ResolversParentTypes['LoyaltyMemberBenefitRewardPresentation']> = ResolversObject<{
-  code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  code?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   copy?: Resolver<ResolversTypes['LoyaltyOpportunityCopy'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['LoyaltyRewardKind'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -1982,3 +1982,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   Weight?: WeightResolvers<ContextType>;
 }>;
+

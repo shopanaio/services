@@ -13,6 +13,10 @@ export const programVersionStatusEnum = loyaltySchema.enum(
   "program_version_status",
   ["DRAFT", "SCHEDULED", "ACTIVE", "RETIRED"],
 );
+export const referenceReconciliationStatusEnum = loyaltySchema.enum(
+  "reference_reconciliation_status",
+  ["VALID", "STALE"],
+);
 export const roundingModeEnum = loyaltySchema.enum("rounding_mode", [
   "DOWN",
   "NEAREST",

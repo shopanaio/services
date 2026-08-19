@@ -36,7 +36,9 @@
     "drizzle-orm": "^0.45.1",
     "fastify": "^4.28.1",
     "graphql": "^16.9.0",
+    "graphql-depth-limit": "^1.1.0",
     "graphql-tag": "^2.12.6",
+    "graphql-validation-complexity": "^0.4.2",
     "node-pg-migrate": "^8.0.4",
     "pino": "^9.3.2",
     "pino-pretty": "^11.2.2",
@@ -50,6 +52,8 @@
     "@graphql-codegen/typescript": "^4.0.8",
     "@graphql-codegen/typescript-resolvers": "^4.0.9",
     "@shopana/build-tools": "workspace:*",
+    "@types/graphql-depth-limit": "^1.1.6",
+    "@types/graphql-validation-complexity": "^0.4.4",
     "@types/node": "^20.14.14",
     "graphql-codegen-typescript-validation-schema": "^0.18.1",
     "typescript": "^5.5.4"

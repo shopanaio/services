@@ -1,5 +1,5 @@
 import { GlobalIdEntity, type GlobalIdType } from "@shopana/shared-graphql-guid";
-import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
+import { ApolloMutation, TypePolicy, ZodResolver } from "@shopana/type-resolver";
 import { AccountLifecycleService } from "../../application/accounts/AccountLifecycleService.js";
 import { CheckoutRedemptionService } from "../../application/checkout/CheckoutRedemptionService.js";
 import { PointsLedgerService } from "../../application/ledger/PointsLedgerService.js";
@@ -90,6 +90,12 @@ export class MutationResolver extends LoyaltyType<Record<string, never>> {
   loyaltyMutation() { return this.resolvers.loyaltyMutation(); }
 }
 
+@TypePolicy<LoyaltyMutationResolver>({
+  resource: "store.data",
+  action: "write",
+  organizationId: (resolver) => resolver.$ctx.store.organizationId,
+  domain: (resolver) => `store:${resolver.$ctx.store.id}`,
+})
 export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> {
   @ZodResolver(LoyaltyProgramCreateInputSchema())
   async programCreate({ input }: LoyaltyMutationProgramCreateArgs) {

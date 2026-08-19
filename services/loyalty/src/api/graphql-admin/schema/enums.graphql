@@ -12,6 +12,17 @@ enum LoyaltyProgramVersionStatus {
   RETIRED
 }
 
+"""
+Whether cross-service references (segments, catalog selectors, Pricing
+discounts) carried by a published program version's rules were still
+resolvable the last time reconciliation ran. Mutable operational metadata,
+separate from the immutable rules snapshot.
+"""
+enum LoyaltyReferenceReconciliationStatus {
+  VALID
+  STALE
+}
+
 enum LoyaltyRoundingMode {
   DOWN
   NEAREST

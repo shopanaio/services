@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gql } from "graphql-tag";
 import { ServiceContext, setContext } from "../../context/index.js";
+import { buildQueryProtectionOptions } from "../../infrastructure/graphql/queryProtection.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { buildAdminContextMiddleware } from "./contextMiddleware.js";
@@ -72,7 +73,7 @@ export async function startServer(config: ServerConfig) {
   }));
 
   const apollo = new ApolloServer<ServiceContext>({
-    introspection: true,
+    ...buildQueryProtectionOptions(global),
     schema: buildSubgraphSchema(
       modules as unknown as Parameters<typeof buildSubgraphSchema>[0],
     ),

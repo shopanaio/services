@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { GraphQLError } from "graphql";
 import { gql } from "graphql-tag";
 import { ServiceContext, setContext } from "../../context/index.js";
+import { buildQueryProtectionOptions } from "../../infrastructure/graphql/queryProtection.js";
 import { Kernel } from "../../kernel/Kernel.js";
 import { Loader } from "../../loaders/Loader.js";
 import { buildStorefrontContextMiddleware } from "./contextMiddleware.js";
@@ -90,7 +91,7 @@ export async function startStorefrontServer(config: StorefrontServerConfig) {
   }));
 
   const apollo = new ApolloServer<ServiceContext>({
-    introspection: true,
+    ...buildQueryProtectionOptions(global),
     schema: buildSubgraphSchema(modules),
     plugins: [
       fastifyApolloDrainPlugin(app),

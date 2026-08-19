@@ -13,6 +13,7 @@ import {
   WorkflowStep,
 } from "@shopana/shared-kernel";
 import { PointsLedgerService } from "../application/ledger/PointsLedgerService.js";
+import { BrokerLoyaltyReferenceValidator } from "../application/program/BrokerLoyaltyReferenceValidator.js";
 import { ProgramLifecycleService } from "../application/program/ProgramLifecycleService.js";
 import { RewardEntitlementService } from "../application/rewards/RewardEntitlementService.js";
 import { TierEvaluationService } from "../application/tiers/TierEvaluationService.js";
@@ -41,6 +42,8 @@ export interface LoyaltyMaintenanceResult {
   evaluatedTiers: number;
   expiredRewards: number;
   rebuiltBalances: number;
+  reconciledProgramVersions: number;
+  staleProgramVersions: number;
 }
 
 type GetStoreByIdResult = { store: ContextStore | null; userErrors: readonly { message: string }[] };
@@ -88,10 +91,12 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
         effectiveAt: input.effectiveAt,
         limit,
       });
-      const activatedVersions = await new ProgramLifecycleService(repository).activateScheduled(
-        input.effectiveAt,
-        limit,
+      const programs = new ProgramLifecycleService(
+        repository,
+        new BrokerLoyaltyReferenceValidator(this.broker),
       );
+      const activatedVersions = await programs.activateScheduled(input.effectiveAt, limit);
+      const reconciliation = await programs.reconcilePublishedReferences(input.effectiveAt, limit);
       const accounts = await repository.account.listAllForStore();
       const emissions: Emission[] = [];
       let activatedPointLots = 0;
@@ -179,6 +184,8 @@ export class LoyaltyMaintenanceWorkflow extends BrokerWorkflows<
           evaluatedTiers,
           expiredRewards: expiredRewards.length,
           rebuiltBalances,
+          reconciledProgramVersions: reconciliation.checked,
+          staleProgramVersions: reconciliation.stale,
         },
         emissions,
       };

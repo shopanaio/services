@@ -559,6 +559,43 @@ export class ProgramLifecycleService {
     });
   }
 
+  /**
+   * Re-validates cross-service references (segments, catalog selectors,
+   * Pricing discounts) on already-published versions and records the
+   * outcome as mutable reconciliation metadata. Never throws to reject or
+   * mutate the published `rules` snapshot — a STALE result only flags the
+   * version; a broker failure for one version is isolated so the rest of
+   * the batch still gets checked.
+   */
+  async reconcilePublishedReferences(
+    checkedAt: string,
+    limit = 100,
+  ): Promise<{ checked: number; stale: number; failed: number }> {
+    const versions = await this.repository.program.listPublishedForReconciliation(limit);
+    let stale = 0;
+    let failed = 0;
+    for (const version of versions) {
+      try {
+        const [earningRules, rewardDefinitions] = await Promise.all([
+          this.repository.earningRule.listForVersion(version.id),
+          this.repository.reward.listDefinitions(version.id),
+        ]);
+        const issues = await this.validateReferences({
+          storeId: version.storeId,
+          rules: version.rules,
+          rewardDefinitions,
+          earningRules,
+        });
+        const status = issues.length > 0 ? "STALE" : "VALID";
+        if (status === "STALE") stale += 1;
+        await this.repository.program.updateReferenceReconciliation(version.id, status, checkedAt);
+      } catch {
+        failed += 1;
+      }
+    }
+    return { checked: versions.length, stale, failed };
+  }
+
   async activateScheduled(effectiveAt: string, limit = 100): Promise<ProgramVersion[]> {
     return this.repository.runInTransaction(async () => {
       const scheduled = await this.repository.program.listScheduledForActivation(effectiveAt, limit);

@@ -1,5 +1,5 @@
 import { GLOBAL_ID_NAMESPACE, GlobalIdEntity, parseGlobalId } from "@shopana/shared-graphql-guid";
-import { ApolloQuery } from "@shopana/type-resolver";
+import { ApolloQuery, TypePolicy } from "@shopana/type-resolver";
 import { GraphQLError } from "graphql";
 import type {
   LoyaltyQueryAccountArgs,
@@ -45,6 +45,12 @@ export class QueryResolver extends LoyaltyType<Record<string, never>> {
   loyaltyQuery() { return this.resolvers.loyaltyQuery(); }
 }
 
+@TypePolicy<LoyaltyQueryResolver>({
+  resource: "store.data",
+  action: "read",
+  organizationId: (resolver) => resolver.$ctx.store.organizationId,
+  domain: (resolver) => `store:${resolver.$ctx.store.id}`,
+})
 export class LoyaltyQueryResolver extends LoyaltyType<Record<string, never>> {
   async node(args: LoyaltyQueryNodeArgs) {
     const parsed = parseNodeId(args.id);

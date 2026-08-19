@@ -1062,8 +1062,11 @@ export type LoyaltyMaintenanceResult = {
   evaluatedTiers: Scalars['Int']['output'];
   expiredMonetaryLots: Scalars['Int']['output'];
   expiredPointLots: Scalars['Int']['output'];
+  expiredReservations: Scalars['Int']['output'];
   expiredRewards: Scalars['Int']['output'];
   rebuiltBalances: Scalars['Int']['output'];
+  reconciledProgramVersions: Scalars['Int']['output'];
+  staleProgramVersions: Scalars['Int']['output'];
 };
 
 export type LoyaltyMaintenanceRunInput = {
@@ -1668,6 +1671,8 @@ export type LoyaltyProgramVersion = Node & {
   redeemAmountMinor: Scalars['BigInt']['output'];
   redeemPoints: Scalars['BigInt']['output'];
   redemptionEnabled: Scalars['Boolean']['output'];
+  referenceReconciliationCheckedAt: Maybe<Scalars['DateTime']['output']>;
+  referenceReconciliationStatus: LoyaltyReferenceReconciliationStatus;
   refundPolicy: LoyaltyRefundPolicy;
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy;
   revision: Scalars['Int']['output'];
@@ -1992,6 +1997,17 @@ export type LoyaltyQueryTransactionsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   where?: InputMaybe<LoyaltyTransactionWhereInput>;
 };
+
+/**
+ * Whether cross-service references (segments, catalog selectors, Pricing
+ * discounts) carried by a published program version's rules were still
+ * resolvable the last time reconciliation ran. Mutable operational metadata,
+ * separate from the immutable rules snapshot.
+ */
+export enum LoyaltyReferenceReconciliationStatus {
+  Stale = 'STALE',
+  Valid = 'VALID'
+}
 
 export enum LoyaltyRefundPolicy {
   FullReversal = 'FULL_REVERSAL',
@@ -2867,6 +2883,7 @@ export type ResolversTypes = ResolversObject<{
   LoyaltyProgramVersionUpdatePayload: ResolverTypeWrapper<LoyaltyProgramVersionUpdatePayload>;
   LoyaltyProgramWhereInput: LoyaltyProgramWhereInput;
   LoyaltyQuery: ResolverTypeWrapper<Omit<LoyaltyQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
+  LoyaltyReferenceReconciliationStatus: LoyaltyReferenceReconciliationStatus;
   LoyaltyRefundPolicy: LoyaltyRefundPolicy;
   LoyaltyReservation: ResolverTypeWrapper<LoyaltyReservation>;
   LoyaltyReservationConnection: ResolverTypeWrapper<LoyaltyReservationConnection>;
@@ -3296,8 +3313,11 @@ export type LoyaltyMaintenanceResultResolvers<ContextType = ServiceContext, Pare
   evaluatedTiers?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   expiredMonetaryLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   expiredPointLots?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  expiredReservations?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   expiredRewards?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   rebuiltBalances?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  reconciledProgramVersions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  staleProgramVersions?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3575,6 +3595,8 @@ export type LoyaltyProgramVersionResolvers<ContextType = ServiceContext, ParentT
   redeemAmountMinor?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   redeemPoints?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   redemptionEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  referenceReconciliationCheckedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  referenceReconciliationStatus?: Resolver<ResolversTypes['LoyaltyReferenceReconciliationStatus'], ParentType, ContextType>;
   refundPolicy?: Resolver<ResolversTypes['LoyaltyRefundPolicy'], ParentType, ContextType>;
   restoredPointsExpiryPolicy?: Resolver<ResolversTypes['LoyaltyRestoredPointsExpiryPolicy'], ParentType, ContextType>;
   revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;

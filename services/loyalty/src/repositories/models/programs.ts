@@ -21,6 +21,7 @@ import {
   loyaltySchema,
   programStatusEnum,
   programVersionStatusEnum,
+  referenceReconciliationStatusEnum,
   refundPolicyEnum,
   restoredPointsExpiryPolicyEnum,
   roundingModeEnum,
@@ -161,6 +162,15 @@ export const programVersions = loyaltySchema.table(
       withTimezone: true,
       mode: "string",
     }),
+    referenceReconciliationStatus: referenceReconciliationStatusEnum(
+      "reference_reconciliation_status",
+    )
+      .notNull()
+      .default("VALID"),
+    referenceReconciliationCheckedAt: timestamp(
+      "reference_reconciliation_checked_at",
+      { withTimezone: true, mode: "string" },
+    ),
   },
   (table) => [
     foreignKey({

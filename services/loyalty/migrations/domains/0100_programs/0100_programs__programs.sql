@@ -67,6 +67,14 @@ CREATE TABLE "loyalty"."program_version" (
   "published_by_id" text,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "published_at" timestamptz,
+  -- Mutable operational metadata, deliberately outside "rules": tracks
+  -- whether cross-service references (segments, catalog selectors, Pricing
+  -- discounts) last validated at publish time are still resolvable. Updated
+  -- by scheduled reconciliation after publish; never blocks or removes an
+  -- already-published version.
+  "reference_reconciliation_status"
+    "loyalty"."reference_reconciliation_status" NOT NULL DEFAULT 'VALID',
+  "reference_reconciliation_checked_at" timestamptz,
 
   CONSTRAINT "loyalty_program_version_program_fk"
     FOREIGN KEY ("program_id", "store_id")

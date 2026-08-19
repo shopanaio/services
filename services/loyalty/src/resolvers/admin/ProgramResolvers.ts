@@ -80,6 +80,8 @@ export class LoyaltyProgramVersionResolver extends LoyaltyType<string, ProgramVe
   async publishedById() { const id = await this.$get("publishedById"); return id ? this.encodeId(id, GlobalIdEntity.User) : null; }
   createdAt() { return this.$get("createdAt"); }
   publishedAt() { return this.$get("publishedAt"); }
+  referenceReconciliationStatus() { return this.$get("referenceReconciliationStatus"); }
+  referenceReconciliationCheckedAt() { return this.$get("referenceReconciliationCheckedAt"); }
 }
 
 @SubgraphReference()

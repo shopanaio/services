@@ -53,6 +53,8 @@ type LoyaltyProgramVersion implements Node @key(fields: "id") {
   publishedById: ID
   createdAt: DateTime!
   publishedAt: DateTime
+  referenceReconciliationStatus: LoyaltyReferenceReconciliationStatus!
+  referenceReconciliationCheckedAt: DateTime
 }
 
 type LoyaltyTier implements Node @key(fields: "id") {
