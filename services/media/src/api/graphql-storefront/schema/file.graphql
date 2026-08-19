@@ -1,10 +1,24 @@
-"""The part of the image that should remain after cropping."""
-enum CropRegion {
-  BOTTOM
+"""How the image is resized to fit the requested box."""
+enum ImageFitMode {
+  COVER
+  CONTAIN
+  FILL
+  INSIDE
+  OUTSIDE
+}
+
+"""Anchor used when FIT_MODE crops or pads the image."""
+enum ImageGravity {
   CENTER
+  TOP
+  BOTTOM
   LEFT
   RIGHT
-  TOP
+  TOP_LEFT
+  TOP_RIGHT
+  BOTTOM_LEFT
+  BOTTOM_RIGHT
+  AUTO
 }
 
 """List of supported image content types."""
@@ -16,7 +30,8 @@ enum ImageContentType {
 
 """The available options for transforming an image."""
 input ImageTransformInput {
-  crop: CropRegion
+  fit: ImageFitMode
+  gravity: ImageGravity
   maxHeight: Int
   maxWidth: Int
   preferredContentType: ImageContentType

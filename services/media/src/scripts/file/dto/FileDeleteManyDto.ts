@@ -1,3 +1,10 @@
+import { z } from "zod";
+
+export const fileDeleteManySchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1, "At least one id is required").max(100),
+  permanent: z.boolean().optional(),
+});
+
 export interface FileDeleteManyParams {
   readonly ids: string[];
   readonly permanent?: boolean;

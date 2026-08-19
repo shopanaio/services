@@ -1,13 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  BucketCreateParams,
-  BucketCreateResult,
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
+import {
+  bucketCreateSchema,
+  type BucketCreateParams,
+  type BucketCreateResult,
 } from "./dto/BucketCreateDto.js";
 
 export class BucketCreateScript extends BaseScript<
   BucketCreateParams,
   BucketCreateResult
 > {
+  @ZodSchema(bucketCreateSchema)
   protected async execute(params: BucketCreateParams): Promise<BucketCreateResult> {
     const storeId = this.storeId;
 
@@ -32,7 +34,10 @@ export class BucketCreateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): BucketCreateResult {
+  protected handleError(error: unknown): BucketCreateResult {
+    if (error instanceof ValidationError) {
+      return { bucket: null, userErrors: toUserErrors(error) };
+    }
     return {
       bucket: null,
       userErrors: [

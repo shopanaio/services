@@ -1,13 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileDeleteParams,
-  FileDeleteResult,
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
+import {
+  fileDeleteSchema,
+  type FileDeleteParams,
+  type FileDeleteResult,
 } from "./dto/FileDeleteDto.js";
 
 export class FileDeleteScript extends BaseScript<
   FileDeleteParams,
   FileDeleteResult
 > {
+  @ZodSchema(fileDeleteSchema)
   protected async execute(params: FileDeleteParams): Promise<FileDeleteResult> {
     const file = await this.findStoreFile(params.id, true);
     if (!file) {
@@ -68,7 +70,10 @@ export class FileDeleteScript extends BaseScript<
     );
   }
 
-  protected handleError(_error: unknown): FileDeleteResult {
+  protected handleError(error: unknown): FileDeleteResult {
+    if (error instanceof ValidationError) {
+      return { deletedFileId: null, userErrors: toUserErrors(error) };
+    }
     return {
       deletedFileId: null,
       userErrors: [{ message: "Failed to delete file", code: "INTERNAL_ERROR" }],

@@ -1,13 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileUpdateParams,
-  FileUpdateResult,
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
+import {
+  fileUpdateSchema,
+  type FileUpdateParams,
+  type FileUpdateResult,
 } from "./dto/FileUpdateDto.js";
 
 export class FileUpdateScript extends BaseScript<
   FileUpdateParams,
   FileUpdateResult
 > {
+  @ZodSchema(fileUpdateSchema)
   protected async execute(params: FileUpdateParams): Promise<FileUpdateResult> {
     this.logger.info({ params }, "FileUpdateScript: starting");
 
@@ -205,7 +207,10 @@ export class FileUpdateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): FileUpdateResult {
+  protected handleError(error: unknown): FileUpdateResult {
+    if (error instanceof ValidationError) {
+      return { file: null, userErrors: toUserErrors(error) };
+    }
     return {
       file: null,
       userErrors: [{ message: "Failed to update file", code: "INTERNAL_ERROR" }],

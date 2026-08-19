@@ -99,6 +99,12 @@ export type BucketCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
+export type CdnAdapterCapabilities = {
+  __typename?: 'CdnAdapterCapabilities';
+  signingModes: Array<Scalars['String']['output']>;
+  transformStrategies: Array<Scalars['String']['output']>;
+};
+
 export type CdnConfiguration = Node & {
   __typename?: 'CdnConfiguration';
   baseUrl: Scalars['String']['output'];
@@ -226,14 +232,6 @@ export type CdnRoutingRuleUpdateInput = {
   priority?: InputMaybe<Scalars['Int']['input']>;
   transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
 };
-
-export enum CropRegion {
-  Bottom = 'BOTTOM',
-  Center = 'CENTER',
-  Left = 'LEFT',
-  Right = 'RIGHT',
-  Top = 'TOP'
-}
 
 /** Filter operators for DateTime fields */
 export type DateTimeFilter = {
@@ -757,8 +755,32 @@ export enum ImageContentType {
   Webp = 'WEBP'
 }
 
+/** How the image is resized to fit the requested box. */
+export enum ImageFitMode {
+  Contain = 'CONTAIN',
+  Cover = 'COVER',
+  Fill = 'FILL',
+  Inside = 'INSIDE',
+  Outside = 'OUTSIDE'
+}
+
+/** Anchor used when FIT_MODE crops or pads the image. */
+export enum ImageGravity {
+  Auto = 'AUTO',
+  Bottom = 'BOTTOM',
+  BottomLeft = 'BOTTOM_LEFT',
+  BottomRight = 'BOTTOM_RIGHT',
+  Center = 'CENTER',
+  Left = 'LEFT',
+  Right = 'RIGHT',
+  Top = 'TOP',
+  TopLeft = 'TOP_LEFT',
+  TopRight = 'TOP_RIGHT'
+}
+
 export type ImageTransformInput = {
-  crop?: InputMaybe<CropRegion>;
+  fit?: InputMaybe<ImageFitMode>;
+  gravity?: InputMaybe<ImageGravity>;
   maxHeight?: InputMaybe<Scalars['Int']['input']>;
   maxWidth?: InputMaybe<Scalars['Int']['input']>;
   preferredContentType?: InputMaybe<ImageContentType>;
@@ -953,6 +975,8 @@ export enum MediaProcessingStatus {
 
 export type MediaQuery = {
   __typename?: 'MediaQuery';
+  /** Which transformStrategy/signingMode keys are actually registered and usable. */
+  cdnAdapterCapabilities: CdnAdapterCapabilities;
   /** Resolve and inspect the CDN route for a current-store file. */
   cdnDeliveryPreview: CdnDeliveryPreview;
   /** Get a file by ID */
@@ -1250,6 +1274,7 @@ export type ResolversTypes = ResolversObject<{
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: ResolverTypeWrapper<BucketCreatePayload>;
+  CdnAdapterCapabilities: ResolverTypeWrapper<CdnAdapterCapabilities>;
   CdnConfiguration: ResolverTypeWrapper<CdnConfiguration>;
   CdnConfigurationCreateInput: CdnConfigurationCreateInput;
   CdnConfigurationDeletePayload: ResolverTypeWrapper<CdnConfigurationDeletePayload>;
@@ -1263,7 +1288,6 @@ export type ResolversTypes = ResolversObject<{
   CdnRoutingRuleDeletePayload: ResolverTypeWrapper<CdnRoutingRuleDeletePayload>;
   CdnRoutingRulePayload: ResolverTypeWrapper<CdnRoutingRulePayload>;
   CdnRoutingRuleUpdateInput: CdnRoutingRuleUpdateInput;
-  CropRegion: CropRegion;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   ExternalMediaData: ResolverTypeWrapper<ExternalMediaData>;
@@ -1300,6 +1324,8 @@ export type ResolversTypes = ResolversObject<{
   GenericUserError: ResolverTypeWrapper<GenericUserError>;
   IDFilter: IdFilter;
   ImageContentType: ImageContentType;
+  ImageFitMode: ImageFitMode;
+  ImageGravity: ImageGravity;
   ImageTransformInput: ImageTransformInput;
   IntFilter: IntFilter;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
@@ -1339,6 +1365,7 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   BucketCreateInput: BucketCreateInput;
   BucketCreatePayload: BucketCreatePayload;
+  CdnAdapterCapabilities: CdnAdapterCapabilities;
   CdnConfiguration: CdnConfiguration;
   CdnConfigurationCreateInput: CdnConfigurationCreateInput;
   CdnConfigurationDeletePayload: CdnConfigurationDeletePayload;
@@ -1432,6 +1459,12 @@ export type BucketResolvers<ContextType = GraphQLContext, ParentType extends Res
 export type BucketCreatePayloadResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['BucketCreatePayload'] = ResolversParentTypes['BucketCreatePayload']> = ResolversObject<{
   bucket?: Resolver<Maybe<ResolversTypes['Bucket']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CdnAdapterCapabilitiesResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['CdnAdapterCapabilities'] = ResolversParentTypes['CdnAdapterCapabilities']> = ResolversObject<{
+  signingModes?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
+  transformStrategies?: Resolver<Array<ResolversTypes['String']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1672,6 +1705,7 @@ export type MediaMutationResolvers<ContextType = GraphQLContext, ParentType exte
 }>;
 
 export type MediaQueryResolvers<ContextType = GraphQLContext, ParentType extends ResolversParentTypes['MediaQuery'] = ResolversParentTypes['MediaQuery']> = ResolversObject<{
+  cdnAdapterCapabilities?: Resolver<ResolversTypes['CdnAdapterCapabilities'], ParentType, ContextType>;
   cdnDeliveryPreview?: Resolver<ResolversTypes['CdnDeliveryPreview'], ParentType, ContextType, RequireFields<MediaQueryCdnDeliveryPreviewArgs, 'fileId'>>;
   file?: Resolver<Maybe<ResolversTypes['File']>, ParentType, ContextType, RequireFields<MediaQueryFileArgs, 'id'>>;
   files?: Resolver<ResolversTypes['FileConnection'], ParentType, ContextType, RequireFields<MediaQueryFilesArgs, 'state'>>;
@@ -1754,6 +1788,7 @@ export type Resolvers<ContextType = GraphQLContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Bucket?: BucketResolvers<ContextType>;
   BucketCreatePayload?: BucketCreatePayloadResolvers<ContextType>;
+  CdnAdapterCapabilities?: CdnAdapterCapabilitiesResolvers<ContextType>;
   CdnConfiguration?: CdnConfigurationResolvers<ContextType>;
   CdnConfigurationDeletePayload?: CdnConfigurationDeletePayloadResolvers<ContextType>;
   CdnConfigurationPayload?: CdnConfigurationPayloadResolvers<ContextType>;

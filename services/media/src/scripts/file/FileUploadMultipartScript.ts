@@ -1,20 +1,23 @@
 import crypto from "node:crypto";
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import {
   getS3Client,
   getBucketName,
   buildPublicUrl,
 } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
-import type {
-  FileUploadMultipartParams,
-  FileUploadMultipartResult,
+import { ALLOWED_UPLOAD_MIME_TYPES } from "../../infrastructure/media/allowedMimeTypes.js";
+import {
+  fileUploadMultipartSchema,
+  type FileUploadMultipartParams,
+  type FileUploadMultipartResult,
 } from "./dto/FileUploadMultipartDto.js";
 
 export class FileUploadMultipartScript extends BaseScript<
   FileUploadMultipartParams,
   FileUploadMultipartResult
 > {
+  @ZodSchema(fileUploadMultipartSchema)
   protected async execute(
     params: FileUploadMultipartParams
   ): Promise<FileUploadMultipartResult> {
@@ -88,6 +91,19 @@ export class FileUploadMultipartScript extends BaseScript<
       },
       "FileUploadMultipartScript: analyzed file"
     );
+
+    if (!ALLOWED_UPLOAD_MIME_TYPES.has(metadata.mimeType)) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: `Unsupported media type: ${metadata.mimeType}`,
+            field: ["file"],
+            code: "UNSUPPORTED_MEDIA_TYPE",
+          },
+        ],
+      };
+    }
 
     // 4. Generate object key and upload to S3
     const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
@@ -165,7 +181,10 @@ export class FileUploadMultipartScript extends BaseScript<
     return `${storeId}/${timestamp}-${random}.${ext}`;
   }
 
-  protected handleError(_error: unknown): FileUploadMultipartResult {
+  protected handleError(error: unknown): FileUploadMultipartResult {
+    if (error instanceof ValidationError) {
+      return { file: null, userErrors: toUserErrors(error) };
+    }
     return {
       file: null,
       userErrors: [

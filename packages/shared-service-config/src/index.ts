@@ -22,6 +22,7 @@ export type {
   CasdoorConfig,
   WorkflowsConfig,
   PortsConfig,
+  SecretsConfig,
 } from "./schema.js";
 
 // Export schemas for advanced use cases
@@ -34,6 +35,7 @@ export {
   CasdoorConfigSchema,
   WorkflowsConfigSchema,
   PortsConfigSchema,
+  SecretsConfigSchema,
 } from "./schema.js";
 
 // Export configuration loader functions

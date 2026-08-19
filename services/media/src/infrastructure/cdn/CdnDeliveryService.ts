@@ -14,7 +14,8 @@ import {
 } from "./CdnAdapterRegistry.js";
 
 export interface ImageTransformOptions {
-  crop?: string | null;
+  fit?: string | null;
+  gravity?: string | null;
   maxHeight?: number | null;
   maxWidth?: number | null;
   preferredContentType?: string | null;
@@ -215,7 +216,8 @@ export class CdnDeliveryService {
         objectPath: "preview.jpg",
         width: 320,
         height: 240,
-        crop: "center",
+        fit: "cover",
+        gravity: "center",
         scale: 1,
         format: "webp",
         quality: 80,
@@ -332,13 +334,31 @@ export class CdnDeliveryService {
     const numberValue = (value: unknown): number | undefined =>
       typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
+    let gravity =
+      requested?.gravity ??
+      (typeof overrides.gravity === "string" ? overrides.gravity : undefined) ??
+      (typeof configured.defaultGravity === "string"
+        ? configured.defaultGravity
+        : undefined);
+
+    if (gravity?.toUpperCase() === "AUTO") {
+      const allowedGravities = configured.allowedGravities;
+      if (Array.isArray(allowedGravities)) {
+        const supportsAuto = allowedGravities
+          .filter((item): item is string => typeof item === "string")
+          .some((item) => item.toUpperCase() === "AUTO");
+        if (!supportsAuto) gravity = "CENTER";
+      }
+    }
+
     return {
-      crop:
-        requested?.crop?.toLowerCase() ??
-        (typeof overrides.crop === "string" ? overrides.crop : undefined) ??
-        (typeof configured.defaultCrop === "string"
-          ? configured.defaultCrop
+      fit:
+        requested?.fit ??
+        (typeof overrides.fit === "string" ? overrides.fit : undefined) ??
+        (typeof configured.defaultFit === "string"
+          ? configured.defaultFit
           : undefined),
+      gravity,
       height:
         requested?.maxHeight ??
         numberValue(overrides.maxHeight) ??
@@ -396,7 +416,15 @@ export class CdnDeliveryService {
     const parameters = new URLSearchParams();
     if (values.width) parameters.set(parameterName("width"), String(values.width));
     if (values.height) parameters.set(parameterName("height"), String(values.height));
-    if (values.crop) parameters.set(parameterName("crop"), values.crop);
+    if (values.fit) {
+      parameters.set(parameterName("fit"), mapValue(transformConfig, "fit", values.fit));
+    }
+    if (values.gravity) {
+      parameters.set(
+        parameterName("gravity"),
+        mapValue(transformConfig, "gravity", values.gravity)
+      );
+    }
     if (values.scale) parameters.set(parameterName("scale"), String(values.scale));
     if (values.format) parameters.set(parameterName("format"), values.format);
     if (values.quality) parameters.set(parameterName("quality"), String(values.quality));
@@ -408,7 +436,10 @@ export class CdnDeliveryService {
         objectPath: encodedPath,
         width: values.width,
         height: values.height,
-        crop: values.crop,
+        fit: values.fit ? mapValue(transformConfig, "fit", values.fit) : undefined,
+        gravity: values.gravity
+          ? mapValue(transformConfig, "gravity", values.gravity)
+          : undefined,
         scale: values.scale,
         format: values.format,
         quality: values.quality,
@@ -477,7 +508,8 @@ export class CdnDeliveryService {
     checkRange("scale", values.scale, "minScale", "maxScale");
     checkRange("quality", values.quality, "minQuality", "maxQuality");
     checkAllowed("preferredContentType", values.format, "allowedFormats");
-    checkAllowed("crop", values.crop, "allowedCrops");
+    checkAllowed("fit", values.fit, "allowedFits");
+    checkAllowed("gravity", values.gravity, "allowedGravities");
     return errors;
   }
 
@@ -547,6 +579,23 @@ export class CdnDeliveryService {
       throw new Error("CDN adapter returned a URL outside the configured origin");
     }
   }
+}
+
+/**
+ * Translates a normalized transform value (e.g. "COVER", "AUTO") into
+ * whatever token the configured provider expects, via the CdnConfiguration's
+ * `transform_config.valueMap`. Falls back to a lowercased normalized value
+ * when no explicit mapping is configured for the field.
+ */
+export function mapValue(
+  transformConfig: Record<string, unknown>,
+  field: string,
+  normalizedValue: string
+): string {
+  const valueMap = transformConfig.valueMap as
+    | Record<string, Record<string, string>>
+    | undefined;
+  return valueMap?.[field]?.[normalizedValue] ?? normalizedValue.toLowerCase();
 }
 
 function isPrivateFile(file: File): boolean {

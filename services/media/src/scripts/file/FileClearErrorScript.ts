@@ -1,13 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileClearErrorParams,
-  FileClearErrorResult,
+import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
+import {
+  fileClearErrorSchema,
+  type FileClearErrorParams,
+  type FileClearErrorResult,
 } from "./dto/FileClearErrorDto.js";
 
 export class FileClearErrorScript extends BaseScript<
   FileClearErrorParams,
   FileClearErrorResult
 > {
+  @ZodSchema(fileClearErrorSchema)
   protected async execute(
     params: FileClearErrorParams
   ): Promise<FileClearErrorResult> {

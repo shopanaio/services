@@ -1,14 +1,15 @@
 import crypto from "node:crypto";
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import {
   getS3Client,
   getBucketName,
   buildPublicUrl,
 } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
-import type {
-  ProfileAvatarUploadParams,
-  ProfileAvatarUploadResult,
+import {
+  profileAvatarUploadSchema,
+  type ProfileAvatarUploadParams,
+  type ProfileAvatarUploadResult,
 } from "./dto/ProfileAvatarUploadDto.js";
 
 /**
@@ -24,6 +25,7 @@ export class ProfileAvatarUploadScript extends BaseScript<
   ProfileAvatarUploadParams,
   ProfileAvatarUploadResult
 > {
+  @ZodSchema(profileAvatarUploadSchema)
   protected async execute(
     params: ProfileAvatarUploadParams
   ): Promise<ProfileAvatarUploadResult> {
@@ -198,7 +200,10 @@ export class ProfileAvatarUploadScript extends BaseScript<
     return `${ownerType}/${ownerId}/${timestamp}-${random}.${ext}`;
   }
 
-  protected handleError(_error: unknown): ProfileAvatarUploadResult {
+  protected handleError(error: unknown): ProfileAvatarUploadResult {
+    if (error instanceof ValidationError) {
+      return { file: null, userErrors: toUserErrors(error) };
+    }
     return {
       file: null,
       userErrors: [

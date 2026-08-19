@@ -1,8 +1,9 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
 import type { File, FileDeletionState } from "../../repositories/models/index.js";
-import type {
-  FileDeleteManyParams,
-  FileDeleteManyResult,
+import {
+  fileDeleteManySchema,
+  type FileDeleteManyParams,
+  type FileDeleteManyResult,
 } from "./dto/FileDeleteManyDto.js";
 
 interface FileWithState {
@@ -14,6 +15,7 @@ export class FileDeleteManyScript extends BaseScript<
   FileDeleteManyParams,
   FileDeleteManyResult
 > {
+  @ZodSchema(fileDeleteManySchema)
   protected async execute(
     params: FileDeleteManyParams
   ): Promise<FileDeleteManyResult> {

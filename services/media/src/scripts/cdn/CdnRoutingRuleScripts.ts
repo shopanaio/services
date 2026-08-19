@@ -1,10 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import type {
   CdnRoutingConditions,
   CdnRoutingRule,
   CdnTransformOverrides,
 } from "../../repositories/models/index.js";
+import {
+  cdnRoutingRuleCreateSchema,
+  cdnRoutingRuleUpdateSchema,
+  cdnRoutingRuleIdSchema,
+} from "./dto/CdnRoutingRuleDto.js";
 
 export interface CdnRoutingRuleCreateParams {
   cdnConfigurationId: string;
@@ -119,6 +124,7 @@ export class CdnRoutingRuleCreateScript extends BaseScript<
   CdnRoutingRuleCreateParams,
   CdnRoutingRuleResult
 > {
+  @ZodSchema(cdnRoutingRuleCreateSchema)
   protected async execute(
     params: CdnRoutingRuleCreateParams
   ): Promise<CdnRoutingRuleResult> {
@@ -156,7 +162,10 @@ export class CdnRoutingRuleCreateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): CdnRoutingRuleResult {
+  protected handleError(error: unknown): CdnRoutingRuleResult {
+    if (error instanceof ValidationError) {
+      return { routingRule: null, userErrors: toUserErrors(error) };
+    }
     return {
       routingRule: null,
       userErrors: [
@@ -170,6 +179,7 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
   CdnRoutingRuleUpdateParams,
   CdnRoutingRuleResult
 > {
+  @ZodSchema(cdnRoutingRuleUpdateSchema)
   protected async execute(
     params: CdnRoutingRuleUpdateParams
   ): Promise<CdnRoutingRuleResult> {
@@ -239,7 +249,10 @@ export class CdnRoutingRuleUpdateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): CdnRoutingRuleResult {
+  protected handleError(error: unknown): CdnRoutingRuleResult {
+    if (error instanceof ValidationError) {
+      return { routingRule: null, userErrors: toUserErrors(error) };
+    }
     return {
       routingRule: null,
       userErrors: [
@@ -253,6 +266,7 @@ export class CdnRoutingRuleDeleteScript extends BaseScript<
   CdnRoutingRuleIdParams,
   CdnRoutingRuleDeleteResult
 > {
+  @ZodSchema(cdnRoutingRuleIdSchema)
   protected async execute(
     params: CdnRoutingRuleIdParams
   ): Promise<CdnRoutingRuleDeleteResult> {
@@ -271,7 +285,10 @@ export class CdnRoutingRuleDeleteScript extends BaseScript<
         };
   }
 
-  protected handleError(_error: unknown): CdnRoutingRuleDeleteResult {
+  protected handleError(error: unknown): CdnRoutingRuleDeleteResult {
+    if (error instanceof ValidationError) {
+      return { deletedRoutingRuleId: null, userErrors: toUserErrors(error) };
+    }
     return {
       deletedRoutingRuleId: null,
       userErrors: [

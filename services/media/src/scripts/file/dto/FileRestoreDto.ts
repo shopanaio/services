@@ -1,4 +1,9 @@
+import { z } from "zod";
 import type { File } from "../../../repositories/models/index.js";
+
+export const fileRestoreSchema = z.object({
+  id: z.string().trim().min(1, "id is required"),
+});
 
 export interface FileRestoreParams {
   readonly id: string;

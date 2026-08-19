@@ -37,6 +37,9 @@ type MediaQuery {
     transform: ImageTransformInput
   ): CdnDeliveryPreview!
 
+  """Which transformStrategy/signingMode keys are actually registered and usable."""
+  cdnAdapterCapabilities: CdnAdapterCapabilities!
+
   """
   Get a node by its global ID
   """

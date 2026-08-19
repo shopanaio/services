@@ -4,6 +4,11 @@ type MediaSettings {
   cdnRoutingRules: [CdnRoutingRule!]!
 }
 
+type CdnAdapterCapabilities {
+  transformStrategies: [String!]!
+  signingModes: [String!]!
+}
+
 type CdnConfiguration implements Node {
   id: ID!
   name: String!

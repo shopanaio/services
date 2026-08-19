@@ -13,6 +13,7 @@ import { CdnRoutingRuleResolver } from "./CdnRoutingRuleResolver.js";
 import { MediaSettingsResolver } from "./MediaSettingsResolver.js";
 import { CdnDeliveryPreviewResolver } from "./CdnDeliveryPreviewResolver.js";
 import {
+  cdnAdapterRegistry,
   CdnDeliveryService,
   type ImageTransformOptions,
 } from "../../infrastructure/cdn/index.js";
@@ -105,6 +106,13 @@ export class MediaQueryResolver extends MediaType<Record<string, never>> {
       transform,
     });
     return new CdnDeliveryPreviewResolver(result, this.$ctx);
+  }
+
+  cdnAdapterCapabilities() {
+    return {
+      transformStrategies: cdnAdapterRegistry.listTransformKeys(),
+      signingModes: cdnAdapterRegistry.listSigningKeys(),
+    };
   }
 
   /**

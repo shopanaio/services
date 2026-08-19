@@ -1,8 +1,9 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import type { FileProvider } from "../../repositories/index.js";
-import type {
-  FileCreateExternalParams,
-  FileCreateExternalResult,
+import {
+  fileCreateExternalSchema,
+  type FileCreateExternalParams,
+  type FileCreateExternalResult,
 } from "./dto/FileCreateExternalDto.js";
 
 const VALID_PROVIDERS = ["YOUTUBE", "VIMEO", "URL"] as const;
@@ -27,6 +28,7 @@ export class FileCreateExternalScript extends BaseScript<
   FileCreateExternalParams,
   FileCreateExternalResult
 > {
+  @ZodSchema(fileCreateExternalSchema)
   protected async execute(params: FileCreateExternalParams): Promise<FileCreateExternalResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.getOrCreateStoreAssetGroup();
@@ -134,7 +136,10 @@ export class FileCreateExternalScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): FileCreateExternalResult {
+  protected handleError(error: unknown): FileCreateExternalResult {
+    if (error instanceof ValidationError) {
+      return { file: null, userErrors: toUserErrors(error) };
+    }
     return {
       file: null,
       userErrors: [{ message: "Failed to create external file record", code: "INTERNAL_ERROR" }],

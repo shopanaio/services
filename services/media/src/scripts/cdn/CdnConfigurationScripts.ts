@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import type {
   CdnConfiguration,
@@ -11,6 +11,12 @@ import type {
   CdnDeliveryResult,
   ImageTransformOptions,
 } from "../../infrastructure/cdn/index.js";
+import {
+  cdnConfigurationCreateSchema,
+  cdnConfigurationUpdateSchema,
+  cdnConfigurationIdSchema,
+  cdnConfigurationTestSchema,
+} from "./dto/CdnConfigurationDto.js";
 
 export interface CdnConfigurationCreateParams extends CdnConfigurationInput {}
 
@@ -145,6 +151,7 @@ export class CdnConfigurationCreateScript extends BaseScript<
   CdnConfigurationCreateParams,
   CdnConfigurationResult
 > {
+  @ZodSchema(cdnConfigurationCreateSchema)
   protected async execute(
     params: CdnConfigurationCreateParams
   ): Promise<CdnConfigurationResult> {
@@ -160,7 +167,10 @@ export class CdnConfigurationCreateScript extends BaseScript<
     return { configuration, userErrors: [] };
   }
 
-  protected handleError(_error: unknown): CdnConfigurationResult {
+  protected handleError(error: unknown): CdnConfigurationResult {
+    if (error instanceof ValidationError) {
+      return { configuration: null, userErrors: toUserErrors(error) };
+    }
     return {
       configuration: null,
       userErrors: [
@@ -177,6 +187,7 @@ export class CdnConfigurationUpdateScript extends BaseScript<
   CdnConfigurationUpdateParams,
   CdnConfigurationResult
 > {
+  @ZodSchema(cdnConfigurationUpdateSchema)
   protected async execute(
     params: CdnConfigurationUpdateParams
   ): Promise<CdnConfigurationResult> {
@@ -217,7 +228,10 @@ export class CdnConfigurationUpdateScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): CdnConfigurationResult {
+  protected handleError(error: unknown): CdnConfigurationResult {
+    if (error instanceof ValidationError) {
+      return { configuration: null, userErrors: toUserErrors(error) };
+    }
     return {
       configuration: null,
       userErrors: [
@@ -234,6 +248,7 @@ export class CdnConfigurationSetDefaultScript extends BaseScript<
   CdnConfigurationIdParams,
   CdnConfigurationResult
 > {
+  @ZodSchema(cdnConfigurationIdSchema)
   protected async execute(
     params: CdnConfigurationIdParams
   ): Promise<CdnConfigurationResult> {
@@ -252,7 +267,10 @@ export class CdnConfigurationSetDefaultScript extends BaseScript<
         };
   }
 
-  protected handleError(_error: unknown): CdnConfigurationResult {
+  protected handleError(error: unknown): CdnConfigurationResult {
+    if (error instanceof ValidationError) {
+      return { configuration: null, userErrors: toUserErrors(error) };
+    }
     return {
       configuration: null,
       userErrors: [
@@ -266,6 +284,7 @@ export class CdnConfigurationDeleteScript extends BaseScript<
   CdnConfigurationIdParams,
   CdnConfigurationDeleteResult
 > {
+  @ZodSchema(cdnConfigurationIdSchema)
   protected async execute(
     params: CdnConfigurationIdParams
   ): Promise<CdnConfigurationDeleteResult> {
@@ -284,7 +303,10 @@ export class CdnConfigurationDeleteScript extends BaseScript<
         };
   }
 
-  protected handleError(_error: unknown): CdnConfigurationDeleteResult {
+  protected handleError(error: unknown): CdnConfigurationDeleteResult {
+    if (error instanceof ValidationError) {
+      return { deletedConfigurationId: null, userErrors: toUserErrors(error) };
+    }
     return {
       deletedConfigurationId: null,
       userErrors: [
@@ -298,6 +320,7 @@ export class CdnConfigurationTestScript extends BaseScript<
   CdnConfigurationTestParams,
   CdnConfigurationTestResult
 > {
+  @ZodSchema(cdnConfigurationTestSchema)
   protected async execute(
     params: CdnConfigurationTestParams
   ): Promise<CdnConfigurationTestResult> {
@@ -347,7 +370,10 @@ export class CdnConfigurationTestScript extends BaseScript<
     };
   }
 
-  protected handleError(_error: unknown): CdnConfigurationTestResult {
+  protected handleError(error: unknown): CdnConfigurationTestResult {
+    if (error instanceof ValidationError) {
+      return { preview: null, userErrors: toUserErrors(error) };
+    }
     return {
       preview: null,
       userErrors: [

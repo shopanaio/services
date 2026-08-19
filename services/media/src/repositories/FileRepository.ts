@@ -1,4 +1,5 @@
 import { eq, and, or, isNull, inArray, sql } from "drizzle-orm";
+import { GraphQLError } from "graphql";
 import {
   createQuery,
   createRelayQuery,
@@ -13,10 +14,12 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 
+const MAX_PAGE_SIZE = 100;
+
 // ---- Relay Query Builder ----
 
 export const fileRelayQuery = createRelayQuery(
-  createQuery(files).include(["id"]).maxLimit(100).defaultLimit(20),
+  createQuery(files).include(["id"]).maxLimit(MAX_PAGE_SIZE).defaultLimit(20),
   {
     name: "file",
     tieBreaker: "id",
@@ -576,6 +579,14 @@ export class FileRepository {
       state = "ACTIVE",
       ...paginationArgs
     } = args;
+
+    const requestedLimit = paginationArgs.first ?? paginationArgs.last;
+    if (requestedLimit !== undefined && requestedLimit !== null && requestedLimit > MAX_PAGE_SIZE) {
+      throw new GraphQLError(
+        `Requested page size ${requestedLimit} exceeds the maximum allowed size of ${MAX_PAGE_SIZE}`,
+        { extensions: { code: "PAGE_SIZE_TOO_LARGE" } }
+      );
+    }
 
     // Resolve asset group ID from owner type + owner ID
     const assetGroupId = await this.resolveAssetGroupId(ownerType, ownerId);

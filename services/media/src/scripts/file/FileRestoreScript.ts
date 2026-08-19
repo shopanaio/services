@@ -1,13 +1,15 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
-import type {
-  FileRestoreParams,
-  FileRestoreResult,
+import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
+import {
+  fileRestoreSchema,
+  type FileRestoreParams,
+  type FileRestoreResult,
 } from "./dto/FileRestoreDto.js";
 
 export class FileRestoreScript extends BaseScript<
   FileRestoreParams,
   FileRestoreResult
 > {
+  @ZodSchema(fileRestoreSchema)
   protected async execute(
     params: FileRestoreParams
   ): Promise<FileRestoreResult> {

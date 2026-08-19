@@ -19,6 +19,18 @@ export interface UserError {
   code?: string;
 }
 
+/**
+ * Converts shared-kernel's ValidationError#errors (nullable field/code)
+ * into media's local UserError shape (optional field/code).
+ */
+export function toUserErrors(error: ValidationError): UserError[] {
+  return error.errors.map((e) => ({
+    message: e.message,
+    field: e.field ?? undefined,
+    code: e.code ?? undefined,
+  }));
+}
+
 export abstract class BaseScript<TParams, TResult> implements Authorizable {
   /**
    * Authorization provider for @Policy decorator.

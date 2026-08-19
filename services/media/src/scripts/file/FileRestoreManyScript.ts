@@ -1,14 +1,16 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema } from "../../kernel/BaseScript.js";
 import type { FileDeletionState } from "../../repositories/models/index.js";
-import type {
-  FileRestoreManyParams,
-  FileRestoreManyResult,
+import {
+  fileRestoreManySchema,
+  type FileRestoreManyParams,
+  type FileRestoreManyResult,
 } from "./dto/FileRestoreManyDto.js";
 
 export class FileRestoreManyScript extends BaseScript<
   FileRestoreManyParams,
   FileRestoreManyResult
 > {
+  @ZodSchema(fileRestoreManySchema)
   protected async execute(
     params: FileRestoreManyParams
   ): Promise<FileRestoreManyResult> {

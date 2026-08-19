@@ -296,15 +296,6 @@ export enum CountryCode {
   Zz = 'ZZ'
 }
 
-/** The part of the image that should remain after cropping. */
-export enum CropRegion {
-  Bottom = 'BOTTOM',
-  Center = 'CENTER',
-  Left = 'LEFT',
-  Right = 'RIGHT',
-  Top = 'TOP'
-}
-
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -711,9 +702,33 @@ export enum ImageContentType {
   Webp = 'WEBP'
 }
 
+/** How the image is resized to fit the requested box. */
+export enum ImageFitMode {
+  Contain = 'CONTAIN',
+  Cover = 'COVER',
+  Fill = 'FILL',
+  Inside = 'INSIDE',
+  Outside = 'OUTSIDE'
+}
+
+/** Anchor used when FIT_MODE crops or pads the image. */
+export enum ImageGravity {
+  Auto = 'AUTO',
+  Bottom = 'BOTTOM',
+  BottomLeft = 'BOTTOM_LEFT',
+  BottomRight = 'BOTTOM_RIGHT',
+  Center = 'CENTER',
+  Left = 'LEFT',
+  Right = 'RIGHT',
+  Top = 'TOP',
+  TopLeft = 'TOP_LEFT',
+  TopRight = 'TOP_RIGHT'
+}
+
 /** The available options for transforming an image. */
 export type ImageTransformInput = {
-  crop?: InputMaybe<CropRegion>;
+  fit?: InputMaybe<ImageFitMode>;
+  gravity?: InputMaybe<ImageGravity>;
   maxHeight?: InputMaybe<Scalars['Int']['input']>;
   maxWidth?: InputMaybe<Scalars['Int']['input']>;
   preferredContentType?: InputMaybe<ImageContentType>;
@@ -1226,7 +1241,6 @@ export type ResolversTypes = ResolversObject<{
   Connection: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Connection']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   CountryCode: CountryCode;
-  CropRegion: CropRegion;
   CurrencyCode: CurrencyCode;
   Cursor: ResolverTypeWrapper<Scalars['Cursor']['output']>;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -1244,6 +1258,8 @@ export type ResolversTypes = ResolversObject<{
   ISO8601DateTime: ResolverTypeWrapper<Scalars['ISO8601DateTime']['output']>;
   Image: ResolverTypeWrapper<Image>;
   ImageContentType: ImageContentType;
+  ImageFitMode: ImageFitMode;
+  ImageGravity: ImageGravity;
   ImageTransformInput: ImageTransformInput;
   JSON: ResolverTypeWrapper<Scalars['JSON']['output']>;
   LocaleCode: LocaleCode;

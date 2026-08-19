@@ -1,12 +1,54 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { Agent, fetch } from "undici";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import { getS3Client, getBucketName, buildPublicUrl } from "../../infrastructure/s3/index.js";
 import { analyzeMedia } from "../../infrastructure/media/index.js";
-import type {
-  FileUploadFromUrlParams,
-  FileUploadFromUrlResult,
+import { ALLOWED_UPLOAD_MIME_TYPES } from "../../infrastructure/media/allowedMimeTypes.js";
+import {
+  assertFetchAllowed,
+  type FetchTarget,
+} from "../../infrastructure/media/urlFetchPolicy.js";
+import {
+  fileUploadFromUrlSchema,
+  type FileUploadFromUrlParams,
+  type FileUploadFromUrlResult,
 } from "./dto/FileUploadFromUrlDto.js";
+
+const MAX_FETCH_BYTES = 50 * 1024 * 1024;
+
+function pinnedDispatcher(pinnedIp: string, pinnedFamily: 4 | 6): Agent {
+  return new Agent({
+    connect: {
+      lookup: (_hostname, _options, callback) => {
+        callback(null, [{ address: pinnedIp, family: pinnedFamily }]);
+      },
+    },
+  });
+}
+
+async function readWithCap(
+  body: ReadableStream<Uint8Array>,
+  maxBytes: number
+): Promise<Buffer> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        throw new Error("File exceeds the maximum allowed size");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)), total);
+}
 
 interface FetchResult {
   success: true;
@@ -25,6 +67,7 @@ export class FileUploadFromUrlScript extends BaseScript<
   FileUploadFromUrlParams,
   FileUploadFromUrlResult
 > {
+  @ZodSchema(fileUploadFromUrlSchema)
   protected async execute(params: FileUploadFromUrlParams): Promise<FileUploadFromUrlResult> {
     // Resolve asset group ID from store context (ownerType = "store", ownerId = storeId)
     const assetGroup = await this.getOrCreateStoreAssetGroup();
@@ -95,11 +138,15 @@ export class FileUploadFromUrlScript extends BaseScript<
     // 3. Fetch file from URL
     const fetchResult = await this.fetchFileFromUrl(params.sourceUrl);
     if (!fetchResult.success) {
+      this.logger.warn(
+        { error: fetchResult.error, sourceUrl: params.sourceUrl },
+        "FileUploadFromUrlScript: fetch failed"
+      );
       return {
         file: null,
         userErrors: [
           {
-            message: fetchResult.error ?? "Failed to fetch file from URL",
+            message: "Failed to fetch file from URL",
             field: ["sourceUrl"],
             code: "FETCH_FAILED",
           },
@@ -121,6 +168,19 @@ export class FileUploadFromUrlScript extends BaseScript<
       },
       "FileUploadFromUrlScript: analyzed file"
     );
+
+    if (!ALLOWED_UPLOAD_MIME_TYPES.has(metadata.mimeType)) {
+      return {
+        file: null,
+        userErrors: [
+          {
+            message: `Unsupported media type: ${metadata.mimeType}`,
+            field: ["sourceUrl"],
+            code: "UNSUPPORTED_MEDIA_TYPE",
+          },
+        ],
+      };
+    }
 
     // 5. Generate object key and upload to S3
     const objectKey = this.generateObjectKey(this.storeId, metadata.ext);
@@ -227,13 +287,33 @@ export class FileUploadFromUrlScript extends BaseScript<
       return this.parseDataUrl(url);
     }
 
+    let target: FetchTarget;
     try {
-      const response = await fetch(url, {
+      target = await assertFetchAllowed(url);
+    } catch (error) {
+      this.logger.warn({ error, url }, "fetchFileFromUrl: URL not allowed");
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "URL not allowed",
+      };
+    }
+
+    try {
+      const response = await fetch(target.url, {
         method: "GET",
+        redirect: "manual", // do not silently follow to an unvalidated host
+        dispatcher: pinnedDispatcher(target.pinnedIp, target.pinnedFamily),
         headers: {
           "User-Agent": "ShopanaMediaService/1.0",
         },
       });
+
+      if (response.status >= 300 && response.status < 400) {
+        return {
+          success: false,
+          error: "Redirects are not followed for security reasons",
+        };
+      }
 
       if (!response.ok) {
         return {
@@ -244,6 +324,13 @@ export class FileUploadFromUrlScript extends BaseScript<
 
       const contentType = response.headers.get("content-type") ?? "application/octet-stream";
       const contentDisposition = response.headers.get("content-disposition");
+      const contentLengthHeader = Number(response.headers.get("content-length") ?? "0");
+      if (contentLengthHeader > MAX_FETCH_BYTES) {
+        return {
+          success: false,
+          error: "File exceeds the maximum allowed size",
+        };
+      }
 
       // Extract filename from Content-Disposition header if present
       let originalName: string | null = null;
@@ -267,8 +354,10 @@ export class FileUploadFromUrlScript extends BaseScript<
         }
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      if (!response.body) {
+        return { success: false, error: "Empty response body" };
+      }
+      const buffer = await readWithCap(response.body, MAX_FETCH_BYTES);
 
       return {
         success: true,
@@ -292,7 +381,10 @@ export class FileUploadFromUrlScript extends BaseScript<
     return `${storeId}/${timestamp}-${random}.${ext}`;
   }
 
-  protected handleError(_error: unknown): FileUploadFromUrlResult {
+  protected handleError(error: unknown): FileUploadFromUrlResult {
+    if (error instanceof ValidationError) {
+      return { file: null, userErrors: toUserErrors(error) };
+    }
     return {
       file: null,
       userErrors: [{ message: "Failed to upload file from URL", code: "INTERNAL_ERROR" }],

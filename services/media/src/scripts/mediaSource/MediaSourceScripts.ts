@@ -1,6 +1,11 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, ZodSchema, ValidationError, toUserErrors } from "../../kernel/BaseScript.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 import type { MediaSource } from "../../repositories/models/index.js";
+import {
+  mediaSourceCreateSchema,
+  mediaSourceUpdateSchema,
+  mediaSourceDeleteSchema,
+} from "./dto/MediaSourceDto.js";
 
 export interface MediaSourceCreateParams {
   mediaFileId: string;
@@ -70,6 +75,7 @@ export class MediaSourceCreateScript extends MediaSourceScriptBase<
   MediaSourceCreateParams,
   MediaSourceResult
 > {
+  @ZodSchema(mediaSourceCreateSchema)
   protected async execute(params: MediaSourceCreateParams): Promise<MediaSourceResult> {
     const userErrors = await this.validateFiles(
       params.mediaFileId,
@@ -130,7 +136,10 @@ export class MediaSourceCreateScript extends MediaSourceScriptBase<
     };
   }
 
-  protected handleError(_error: unknown): MediaSourceResult {
+  protected handleError(error: unknown): MediaSourceResult {
+    if (error instanceof ValidationError) {
+      return { source: null, userErrors: toUserErrors(error) };
+    }
     return {
       source: null,
       userErrors: [
@@ -144,6 +153,7 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
   MediaSourceUpdateParams,
   MediaSourceResult
 > {
+  @ZodSchema(mediaSourceUpdateSchema)
   protected async execute(params: MediaSourceUpdateParams): Promise<MediaSourceResult> {
     const userErrors = await this.validateFiles(
       params.mediaFileId,
@@ -215,7 +225,10 @@ export class MediaSourceUpdateScript extends MediaSourceScriptBase<
         };
   }
 
-  protected handleError(_error: unknown): MediaSourceResult {
+  protected handleError(error: unknown): MediaSourceResult {
+    if (error instanceof ValidationError) {
+      return { source: null, userErrors: toUserErrors(error) };
+    }
     return {
       source: null,
       userErrors: [
@@ -229,6 +242,7 @@ export class MediaSourceDeleteScript extends MediaSourceScriptBase<
   MediaSourceDeleteParams,
   MediaSourceDeleteResult
 > {
+  @ZodSchema(mediaSourceDeleteSchema)
   protected async execute(
     params: MediaSourceDeleteParams
   ): Promise<MediaSourceDeleteResult> {
@@ -254,7 +268,10 @@ export class MediaSourceDeleteScript extends MediaSourceScriptBase<
         };
   }
 
-  protected handleError(_error: unknown): MediaSourceDeleteResult {
+  protected handleError(error: unknown): MediaSourceDeleteResult {
+    if (error instanceof ValidationError) {
+      return { deletedSourceFileId: null, userErrors: toUserErrors(error) };
+    }
     return {
       deletedSourceFileId: null,
       userErrors: [

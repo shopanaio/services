@@ -35,7 +35,7 @@ rule, and transform input.
 
 The following values are dynamic:
 
-- crop region;
+- fit mode and gravity anchor;
 - maximum width and height;
 - output scale;
 - preferred JPG, PNG, or WebP content type;
@@ -81,7 +81,7 @@ A `url_template`, when used, can reference these normalized values:
 
 ```text
 {baseUrl} {pathPrefix} {objectPath}
-{width} {height} {crop} {scale} {format}
+{width} {height} {fit} {gravity} {scale} {format}
 {quality} {query}
 ```
 
@@ -90,7 +90,10 @@ The adapter must URL-encode object paths and parameter values. The final URL
 must always use the configured `base_url`; a template cannot override the host.
 Generic transform limits can be declared with `minWidth`, `maxWidth`,
 `minHeight`, `maxHeight`, `minScale`, `maxScale`, `minQuality`, `maxQuality`,
-`allowedFormats`, and `allowedCrops` in `transform_config`.
+`allowedFormats`, `allowedFits`, and `allowedGravities` in `transform_config`.
+Per-field value remapping (e.g. normalized `"COVER"` → provider-specific
+`"fill"`) is declared with `transform_config.valueMap`, independent of the key
+remapping in `parameterMap`.
 
 Example provider-neutral profile shape:
 

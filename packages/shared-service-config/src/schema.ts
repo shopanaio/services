@@ -44,6 +44,8 @@ export const PortsConfigSchema = z.record(
   z.number().int().positive()
 );
 
+export const SecretsConfigSchema = z.record(z.string(), z.string());
+
 // ═══════════════════════════════════════════════════════════════════
 // BASE SERVICE SCHEMA (like docker-compose service definition)
 // ═══════════════════════════════════════════════════════════════════
@@ -54,6 +56,7 @@ export const BaseServiceSchema = z.object({
   s3: S3ConfigSchema.optional(),
   casdoor: CasdoorConfigSchema.optional(),
   workflows: WorkflowsConfigSchema.optional(),
+  secrets: SecretsConfigSchema.optional(),
 });
 
 // Service config extends base with additional custom fields
@@ -95,3 +98,4 @@ export type S3Config = z.infer<typeof S3ConfigSchema>;
 export type CasdoorConfig = z.infer<typeof CasdoorConfigSchema>;
 export type WorkflowsConfig = z.infer<typeof WorkflowsConfigSchema>;
 export type PortsConfig = z.infer<typeof PortsConfigSchema>;
+export type SecretsConfig = z.infer<typeof SecretsConfigSchema>;

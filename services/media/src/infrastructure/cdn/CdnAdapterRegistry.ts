@@ -4,7 +4,8 @@ import type {
 } from "../../repositories/models/index.js";
 
 export interface CdnNormalizedTransform {
-  crop?: string;
+  fit?: string;
+  gravity?: string;
   height?: number;
   width?: number;
   format?: string;
@@ -62,6 +63,14 @@ export class CdnAdapterRegistry {
 
   getSigning(key: string): CdnSigningAdapter | null {
     return this.signingAdapters.get(this.normalizeKey(key)) ?? null;
+  }
+
+  listTransformKeys(): string[] {
+    return [...this.transformAdapters.keys()];
+  }
+
+  listSigningKeys(): string[] {
+    return [...this.signingAdapters.keys()];
   }
 
   private normalizeKey(key: string): string {
