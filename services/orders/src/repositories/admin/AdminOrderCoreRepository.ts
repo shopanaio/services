@@ -35,10 +35,7 @@ export type OrderRow = Readonly<{
 }>;
 
 export abstract class AdminOrderCoreRepository extends BaseRepository {
-  public constructor(
-    db: Database,
-    txManager: TransactionManager<Database>,
-  ) {
+  public constructor(db: Database, txManager: TransactionManager<Database>) {
     super(db, txManager);
   }
 

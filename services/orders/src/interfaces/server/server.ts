@@ -12,10 +12,15 @@ import type { ServiceBroker } from "@shopana/shared-kernel";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { resolvers as adminResolvers } from "@src/interfaces/gql-admin-api/resolvers";
 import { resolvers as storefrontResolvers } from "@src/interfaces/gql-storefront-api/resolvers";
-import type { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
+import { GraphQLContext } from "@src/interfaces/gql-admin-api/context";
 import type { GraphQLContext as StorefrontGraphQLContext } from "@src/interfaces/gql-storefront-api/context";
 import type { GrpcConfigPort } from "@shopana/platform-api";
 import { buildCoreContextMiddleware } from "@src/interfaces/server/contextMiddleware";
+import { buildAdminContextMiddleware } from "@src/interfaces/gql-admin-api/contextMiddleware";
+import { setAdminGraphQLContext } from "@src/interfaces/gql-admin-api/contextStorage";
+import { Loader } from "@src/loaders/Loader";
+import type { Repository } from "@src/repositories/Repository";
+import type { AdminContextClaims, ContextStore, ContextUser } from "@shopana/shared-context";
 
 const { service, global } = getServiceConfig("orders");
 
@@ -61,7 +66,7 @@ function addHealthChecks(app: FastifyInstance, serviceName: string) {
  * Create and start GraphQL servers for orders service
  * Admin API on admin_graphql port, Storefront API on storefront_graphql port
  */
-export async function startServer(_broker: ServiceBroker) {
+export async function startServer(broker: ServiceBroker, repository: Repository) {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const schemaPath = join(currentDir, "schema");
 
@@ -113,7 +118,10 @@ export async function startServer(_broker: ServiceBroker) {
 
   const adminApollo = new ApolloServer<GraphQLContext>({
     introspection: true,
-    schema: buildSubgraphSchema(adminModules),
+    // Class-based type-resolver roots are Apollo-compatible at runtime.
+    schema: buildSubgraphSchema(
+      adminModules as unknown as Parameters<typeof buildSubgraphSchema>[0],
+    ),
     plugins: [fastifyApolloDrainPlugin(adminApp), ApolloServerPluginInlineTraceDisabled()],
   });
 
@@ -121,18 +129,30 @@ export async function startServer(_broker: ServiceBroker) {
   addHealthChecks(adminApp, "orders-admin");
 
   await adminApp.register(async function (graphqlInstance) {
-    await graphqlInstance.addHook("preHandler", buildCoreContextMiddleware(grpcConfig));
+    await graphqlInstance.addHook("preHandler", buildAdminContextMiddleware(broker));
 
     await graphqlInstance.register(fastifyApollo(adminApollo), {
       path: "/graphql",
       context: async (request, _reply) => {
-        const ctx = {
-          requestId: request.id as string,
-          apiKey: (request.headers["x-api-key"] as string) ?? "unknown",
-          store: request.store,
-          user: null,
-          customer: request.customer,
-        } satisfies GraphQLContext;
+        const adminRequest = request as typeof request & {
+          store?: ContextStore;
+          user?: ContextUser;
+          adminContext?: AdminContextClaims;
+        };
+        const requestId =
+          headerValue(request.headers["x-idempotency-key"]) ?? (request.id as string);
+        const ctx = new GraphQLContext({
+          requestId,
+          broker,
+          repository,
+          loaders: adminRequest.store
+            ? new Loader(repository, adminRequest.store.id)
+            : (null as never),
+          store: adminRequest.store,
+          user: adminRequest.user,
+          adminContext: adminRequest.adminContext,
+        });
+        setAdminGraphQLContext(ctx);
         return ctx;
       },
     });
@@ -200,4 +220,10 @@ export async function startServer(_broker: ServiceBroker) {
   );
 
   return { adminApp, storefrontApp };
+}
+
+function headerValue(value: string | string[] | undefined): string | undefined {
+  const first = Array.isArray(value) ? value[0] : value;
+  const trimmed = first?.trim();
+  return trimmed || undefined;
 }

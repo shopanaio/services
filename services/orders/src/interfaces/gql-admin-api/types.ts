@@ -41,15 +41,15 @@ export type ApiApiKey = {
 /** Comparison operators for big int; omitted operators do not constrain results. */
 export type ApiBigIntFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<Scalars["BigInt"]["input"]>;
+  eq?: InputMaybe<Scalars["BigInt"]["input"]>;
   /** Validated input value for gt. */
-  gt: InputMaybe<Scalars["BigInt"]["input"]>;
+  gt?: InputMaybe<Scalars["BigInt"]["input"]>;
   /** Validated input value for gte. */
-  gte: InputMaybe<Scalars["BigInt"]["input"]>;
+  gte?: InputMaybe<Scalars["BigInt"]["input"]>;
   /** Validated input value for lt. */
-  lt: InputMaybe<Scalars["BigInt"]["input"]>;
+  lt?: InputMaybe<Scalars["BigInt"]["input"]>;
   /** Validated input value for lte. */
-  lte: InputMaybe<Scalars["BigInt"]["input"]>;
+  lte?: InputMaybe<Scalars["BigInt"]["input"]>;
 };
 
 /** Orders Admin representation of calculated order. */
@@ -489,9 +489,9 @@ export enum ApiCountryCode {
 /** Comparison operators for country code; omitted operators do not constrain results. */
 export type ApiCountryCodeFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiCountryCode>;
+  eq?: InputMaybe<ApiCountryCode>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiCountryCode>>;
+  in?: InputMaybe<Array<ApiCountryCode>>;
 };
 
 /** Currency codes according to ISO 4217 */
@@ -823,9 +823,9 @@ export enum ApiCurrencyCode {
 /** Comparison operators for currency code; omitted operators do not constrain results. */
 export type ApiCurrencyCodeFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiCurrencyCode>;
+  eq?: InputMaybe<ApiCurrencyCode>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiCurrencyCode>>;
+  in?: InputMaybe<Array<ApiCurrencyCode>>;
 };
 
 export type ApiCustomer = {
@@ -837,29 +837,29 @@ export type ApiCustomer = {
 /** Comparison operators for date time; omitted operators do not constrain results. */
 export type ApiDateTimeFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<Scalars["DateTime"]["input"]>;
+  eq?: InputMaybe<Scalars["DateTime"]["input"]>;
   /** Validated input value for gt. */
-  gt: InputMaybe<Scalars["DateTime"]["input"]>;
+  gt?: InputMaybe<Scalars["DateTime"]["input"]>;
   /** Validated input value for gte. */
-  gte: InputMaybe<Scalars["DateTime"]["input"]>;
+  gte?: InputMaybe<Scalars["DateTime"]["input"]>;
   /** Validated input value for lt. */
-  lt: InputMaybe<Scalars["DateTime"]["input"]>;
+  lt?: InputMaybe<Scalars["DateTime"]["input"]>;
   /** Validated input value for lte. */
-  lte: InputMaybe<Scalars["DateTime"]["input"]>;
+  lte?: InputMaybe<Scalars["DateTime"]["input"]>;
 };
 
 /** Comparison operators for decimal; omitted operators do not constrain results. */
 export type ApiDecimalFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<Scalars["Decimal"]["input"]>;
+  eq?: InputMaybe<Scalars["Decimal"]["input"]>;
   /** Validated input value for gt. */
-  gt: InputMaybe<Scalars["Decimal"]["input"]>;
+  gt?: InputMaybe<Scalars["Decimal"]["input"]>;
   /** Validated input value for gte. */
-  gte: InputMaybe<Scalars["Decimal"]["input"]>;
+  gte?: InputMaybe<Scalars["Decimal"]["input"]>;
   /** Validated input value for lt. */
-  lt: InputMaybe<Scalars["Decimal"]["input"]>;
+  lt?: InputMaybe<Scalars["Decimal"]["input"]>;
   /** Validated input value for lte. */
-  lte: InputMaybe<Scalars["Decimal"]["input"]>;
+  lte?: InputMaybe<Scalars["Decimal"]["input"]>;
 };
 
 /** Dimension (length) measurement units */
@@ -935,7 +935,7 @@ export type ApiFulfillmentCancelInput = {
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
   /** Validated input value for restock. */
-  restock: InputMaybe<Scalars["Boolean"]["input"]>;
+  restock?: InputMaybe<Scalars["Boolean"]["input"]>;
 };
 
 /** Validated input for fulfillment create. Tenant identifiers come only from trusted context. */
@@ -949,7 +949,7 @@ export type ApiFulfillmentCreateInput = {
   /** Validated input value for lines. */
   lines: Array<ApiFulfillmentOrderLineQuantityInput>;
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
 };
 
 /** Orders Admin representation of fulfillment hold. */
@@ -1022,7 +1022,7 @@ export type ApiFulfillmentOrderCancelRequestInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
 };
@@ -1036,7 +1036,7 @@ export type ApiFulfillmentOrderHoldInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
 };
@@ -1075,7 +1075,7 @@ export type ApiFulfillmentOrderMoveInput = {
   /** Relay global ID identifying the location. */
   locationId: Scalars["ID"]["input"];
   /** Stable service code. */
-  serviceCode: InputMaybe<Scalars["String"]["input"]>;
+  serviceCode?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Mutation result for fulfillment order; expected failures are returned in userErrors. */
@@ -1200,11 +1200,11 @@ export enum ApiFulfillmentStatus {
 /** Comparison operators for id; omitted operators do not constrain results. */
 export type ApiIdFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<Scalars["ID"]["input"]>;
+  eq?: InputMaybe<Scalars["ID"]["input"]>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  in?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Validated input value for not in. */
-  notIn: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  notIn?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 };
 
 /** Language/Locale codes based on ISO 639-1 and BCP 47 */
@@ -1621,25 +1621,25 @@ export type ApiOrder = ApiNode & {
 
 /** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
 export type ApiOrderActivityArgs = {
-  after: InputMaybe<Scalars["String"]["input"]>;
+  after?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
 /** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
 export type ApiOrderExchangesArgs = {
-  after: InputMaybe<Scalars["String"]["input"]>;
+  after?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
 /** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
 export type ApiOrderRefundsArgs = {
-  after: InputMaybe<Scalars["String"]["input"]>;
+  after?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
 /** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
 export type ApiOrderReturnsArgs = {
-  after: InputMaybe<Scalars["String"]["input"]>;
+  after?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
@@ -1804,37 +1804,37 @@ export type ApiOrderAddress = ApiNode & {
 /** Validated input for order address. Tenant identifiers come only from trusted context. */
 export type ApiOrderAddressInput = {
   /** Validated input value for address1. */
-  address1: InputMaybe<Scalars["String"]["input"]>;
+  address1?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for address2. */
-  address2: InputMaybe<Scalars["String"]["input"]>;
+  address2?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for city. */
-  city: InputMaybe<Scalars["String"]["input"]>;
+  city?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for company. */
-  company: InputMaybe<Scalars["String"]["input"]>;
+  company?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable country code. */
   countryCode: ApiCountryCode;
   /** Structured snapshot or audit data with secrets excluded. */
-  data: InputMaybe<Scalars["JSON"]["input"]>;
+  data?: InputMaybe<Scalars["JSON"]["input"]>;
   /** Validated input value for email. */
-  email: InputMaybe<Scalars["String"]["input"]>;
+  email?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for first name. */
-  firstName: InputMaybe<Scalars["String"]["input"]>;
+  firstName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for last name. */
-  lastName: InputMaybe<Scalars["String"]["input"]>;
+  lastName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for middle name. */
-  middleName: InputMaybe<Scalars["String"]["input"]>;
+  middleName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for phone. */
-  phone: InputMaybe<Scalars["String"]["input"]>;
+  phone?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable postal code. */
-  postalCode: InputMaybe<Scalars["String"]["input"]>;
+  postalCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable province code. */
-  provinceCode: InputMaybe<Scalars["String"]["input"]>;
+  provinceCode?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Validated input for order admin note update. Tenant identifiers come only from trusted context. */
 export type ApiOrderAdminNoteUpdateInput = {
   /** Validated input value for admin note. */
-  adminNote: InputMaybe<Scalars["String"]["input"]>;
+  adminNote?: InputMaybe<Scalars["String"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Relay global ID of this resource. */
@@ -1856,11 +1856,11 @@ export type ApiOrderArchiveInput = {
 /** Validated input for order bulk selection. Tenant identifiers come only from trusted context. */
 export type ApiOrderBulkSelectionInput = {
   /** Validated input value for excluded ids. */
-  excludedIds: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  excludedIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Validated input value for ids. */
-  ids: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  ids?: InputMaybe<Array<Scalars["ID"]["input"]>>;
   /** Validated input value for where. */
-  where: InputMaybe<ApiOrderWhereInput>;
+  where?: InputMaybe<ApiOrderWhereInput>;
 };
 
 /** Validated input for order cancel. Tenant identifiers come only from trusted context. */
@@ -1872,15 +1872,15 @@ export type ApiOrderCancelInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
   /** Validated input value for refund mode. */
-  refundMode: InputMaybe<Scalars["String"]["input"]>;
+  refundMode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for restock. */
-  restock: InputMaybe<Scalars["Boolean"]["input"]>;
+  restock?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Checkout-owned placement provenance projected into Orders. */
@@ -1921,7 +1921,7 @@ export type ApiOrderCloseInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for reason. */
-  reason: InputMaybe<Scalars["String"]["input"]>;
+  reason?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Validated input for order comment add. Tenant identifiers come only from trusted context. */
@@ -1935,7 +1935,7 @@ export type ApiOrderCommentAddInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for visibility. */
-  visibility: InputMaybe<Scalars["String"]["input"]>;
+  visibility?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Validated input for order complete draft. Tenant identifiers come only from trusted context. */
@@ -1947,7 +1947,7 @@ export type ApiOrderCompleteDraftInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
 };
 
 /** Relay-style paginated connection of order resources. */
@@ -1987,19 +1987,19 @@ export type ApiOrderContact = {
 /** Validated input for order contact. Tenant identifiers come only from trusted context. */
 export type ApiOrderContactInput = {
   /** Validated input value for company. */
-  company: InputMaybe<Scalars["String"]["input"]>;
+  company?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for email. */
-  email: InputMaybe<Scalars["String"]["input"]>;
+  email?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for first name. */
-  firstName: InputMaybe<Scalars["String"]["input"]>;
+  firstName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for last name. */
-  lastName: InputMaybe<Scalars["String"]["input"]>;
+  lastName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for middle name. */
-  middleName: InputMaybe<Scalars["String"]["input"]>;
+  middleName?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for phone. */
-  phone: InputMaybe<Scalars["String"]["input"]>;
+  phone?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Server-calculated totals in one currency. Paid, refunded, and outstanding amounts derive from successful financial facts. */
@@ -2030,35 +2030,35 @@ export type ApiOrderCost = {
 /** Validated input for order create. Tenant identifiers come only from trusted context. */
 export type ApiOrderCreateInput = {
   /** Validated input value for admin note. */
-  adminNote: InputMaybe<Scalars["String"]["input"]>;
+  adminNote?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for billing address. */
-  billingAddress: InputMaybe<ApiOrderAddressInput>;
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
   /** Optional client correlation value echoed by supported payloads. */
-  clientMutationId: InputMaybe<Scalars["String"]["input"]>;
+  clientMutationId?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for contact. */
   contact: ApiOrderContactInput;
   /** Merchant-defined structured data; core business facts are not stored here. */
-  customFields: InputMaybe<Scalars["JSON"]["input"]>;
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
   /** Relay global ID identifying the customer. */
-  customerId: InputMaybe<Scalars["ID"]["input"]>;
+  customerId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Validated input value for customer note. */
-  customerNote: InputMaybe<Scalars["String"]["input"]>;
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
   /** Relay global ID identifying the external. */
-  externalId: InputMaybe<Scalars["String"]["input"]>;
+  externalId?: InputMaybe<Scalars["String"]["input"]>;
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for lines. */
   lines: Array<ApiOrderLineCreateInput>;
   /** Stable locale code. */
-  localeCode: InputMaybe<ApiLocaleCode>;
+  localeCode?: InputMaybe<ApiLocaleCode>;
   /** Stable payment method code. */
-  paymentMethodCode: InputMaybe<Scalars["String"]["input"]>;
+  paymentMethodCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for shipping. */
-  shipping: InputMaybe<ApiOrderDeliveryInput>;
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
   /** Stable source code. */
-  sourceCode: InputMaybe<Scalars["String"]["input"]>;
+  sourceCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for tags. */
-  tags: InputMaybe<Array<Scalars["String"]["input"]>>;
+  tags?: InputMaybe<Array<Scalars["String"]["input"]>>;
 };
 
 /** Validated input for order custom fields update. Tenant identifiers come only from trusted context. */
@@ -2076,7 +2076,7 @@ export type ApiOrderCustomFieldsUpdateInput = {
 /** Validated input for order customer set. Tenant identifiers come only from trusted context. */
 export type ApiOrderCustomerSetInput = {
   /** Relay global ID identifying the customer. */
-  customerId: InputMaybe<Scalars["ID"]["input"]>;
+  customerId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Relay global ID of this resource. */
@@ -2149,11 +2149,11 @@ export type ApiOrderDeliveryGroup = ApiNode & {
 /** Validated input for order delivery. Tenant identifiers come only from trusted context. */
 export type ApiOrderDeliveryInput = {
   /** Validated input value for address. */
-  address: InputMaybe<ApiOrderAddressInput>;
+  address?: InputMaybe<ApiOrderAddressInput>;
   /** Stable method code. */
-  methodCode: InputMaybe<Scalars["String"]["input"]>;
+  methodCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for recipient. */
-  recipient: InputMaybe<ApiOrderContactInput>;
+  recipient?: InputMaybe<ApiOrderContactInput>;
 };
 
 /** Orders Admin representation of order delivery method. */
@@ -2206,9 +2206,9 @@ export enum ApiOrderDeliveryStatus {
 /** Comparison operators for order delivery status; omitted operators do not constrain results. */
 export type ApiOrderDeliveryStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderDeliveryStatus>;
+  eq?: InputMaybe<ApiOrderDeliveryStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderDeliveryStatus>>;
+  in?: InputMaybe<Array<ApiOrderDeliveryStatus>>;
 };
 
 /** Validated input for dimensions. Tenant identifiers come only from trusted context. */
@@ -2297,9 +2297,9 @@ export type ApiOrderEditCommitInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Validated input for order edit discount add. Tenant identifiers come only from trusted context. */
@@ -2365,9 +2365,9 @@ export type ApiOrderEditLineUpdateInput = {
   /** Relay global ID identifying the line. */
   lineId: Scalars["ID"]["input"];
   /** Quantity validated against domain conservation invariants. */
-  quantity: InputMaybe<Scalars["Int"]["input"]>;
+  quantity?: InputMaybe<Scalars["Int"]["input"]>;
   /** Validated input value for unit price. */
-  unitPrice: InputMaybe<ApiMoneyInput>;
+  unitPrice?: InputMaybe<ApiMoneyInput>;
 };
 
 /** Mutation result for order edit; expected failures are returned in userErrors. */
@@ -2475,13 +2475,13 @@ export type ApiOrderExchangeCreateInput = {
   /** Validated input value for inbound lines. */
   inboundLines: Array<ApiOrderReturnLineInput>;
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Validated input value for outbound lines. */
   outboundLines: Array<ApiOrderLineCreateInput>;
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Cursor and resource pair for a order exchange connection. */
@@ -2535,9 +2535,9 @@ export enum ApiOrderFulfillmentStatus {
 /** Comparison operators for order fulfillment status; omitted operators do not constrain results. */
 export type ApiOrderFulfillmentStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderFulfillmentStatus>;
+  eq?: InputMaybe<ApiOrderFulfillmentStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderFulfillmentStatus>>;
+  in?: InputMaybe<Array<ApiOrderFulfillmentStatus>>;
 };
 
 /** Closed set of order integration kind values used by Orders Admin API. */
@@ -2608,7 +2608,7 @@ export type ApiOrderIntegrationSyncRequestInput = {
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Validated input value for force. */
-  force: InputMaybe<Scalars["Boolean"]["input"]>;
+  force?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Relay global ID identifying the integration link. */
@@ -2734,27 +2734,27 @@ export type ApiOrderLineCost = {
 /** Validated input for order line create. Tenant identifiers come only from trusted context. */
 export type ApiOrderLineCreateInput = {
   /** Merchant-defined structured data; core business facts are not stored here. */
-  customFields: InputMaybe<Scalars["JSON"]["input"]>;
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
   /** Relay global ID identifying the purchasable. */
-  purchasableId: InputMaybe<Scalars["ID"]["input"]>;
+  purchasableId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Quantity validated against domain conservation invariants. */
   quantity: Scalars["Int"]["input"];
   /** Validated input value for requires shipping. */
-  requiresShipping: InputMaybe<Scalars["Boolean"]["input"]>;
+  requiresShipping?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Validated input value for sku. */
-  sku: InputMaybe<Scalars["String"]["input"]>;
+  sku?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for taxable. */
-  taxable: InputMaybe<Scalars["Boolean"]["input"]>;
+  taxable?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Validated input value for title. */
   title: Scalars["String"]["input"];
   /** Validated input value for unit compare at price. */
-  unitCompareAtPrice: InputMaybe<ApiMoneyInput>;
+  unitCompareAtPrice?: InputMaybe<ApiMoneyInput>;
   /** Validated input value for unit cost. */
-  unitCost: InputMaybe<ApiMoneyInput>;
+  unitCost?: InputMaybe<ApiMoneyInput>;
   /** Validated input value for unit price. */
   unitPrice: ApiMoneyInput;
   /** Validated input value for weight. */
-  weight: InputMaybe<ApiOrderWeightInput>;
+  weight?: InputMaybe<ApiOrderWeightInput>;
 };
 
 /** Validated input for order line delete. Tenant identifiers come only from trusted context. */
@@ -2783,7 +2783,7 @@ export type ApiOrderLinePayload = {
 /** Validated input for order line update. Tenant identifiers come only from trusted context. */
 export type ApiOrderLineUpdateInput = {
   /** Merchant-defined structured data; core business facts are not stored here. */
-  customFields: InputMaybe<Scalars["JSON"]["input"]>;
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
@@ -2793,11 +2793,11 @@ export type ApiOrderLineUpdateInput = {
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Quantity validated against domain conservation invariants. */
-  quantity: InputMaybe<Scalars["Int"]["input"]>;
+  quantity?: InputMaybe<Scalars["Int"]["input"]>;
   /** Validated input value for unit cost. */
-  unitCost: InputMaybe<ApiMoneyInput>;
+  unitCost?: InputMaybe<ApiMoneyInput>;
   /** Validated input value for weight. */
-  weight: InputMaybe<ApiOrderWeightInput>;
+  weight?: InputMaybe<ApiOrderWeightInput>;
 };
 
 /** Validated input for order manual payment record. Tenant identifiers come only from trusted context. */
@@ -2811,13 +2811,13 @@ export type ApiOrderManualPaymentRecordInput = {
   /** Stable method code. */
   methodCode: Scalars["String"]["input"];
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Timestamp for paid, or null when it has not occurred. */
   paidAt: Scalars["DateTime"]["input"];
   /** Validated input value for reference. */
-  reference: InputMaybe<Scalars["String"]["input"]>;
+  reference?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Durable DBOS operation handle for polling progress and terminal outcome. */
@@ -3000,7 +3000,7 @@ export type ApiOrderPaymentAttempt = ApiNode & {
 /** Validated input for order payment capture. Tenant identifiers come only from trusted context. */
 export type ApiOrderPaymentCaptureInput = {
   /** Exact decimal amount serialized as a string. */
-  amount: InputMaybe<ApiMoneyInput>;
+  amount?: InputMaybe<ApiMoneyInput>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
@@ -3062,9 +3062,9 @@ export type ApiOrderPaymentRetryInput = {
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Stable payment method code. */
-  paymentMethodCode: InputMaybe<Scalars["String"]["input"]>;
+  paymentMethodCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for return url. */
-  returnUrl: InputMaybe<Scalars["URL"]["input"]>;
+  returnUrl?: InputMaybe<Scalars["URL"]["input"]>;
 };
 
 /** Closed set of order payment status values used by Orders Admin API. */
@@ -3094,9 +3094,9 @@ export enum ApiOrderPaymentStatus {
 /** Comparison operators for order payment status; omitted operators do not constrain results. */
 export type ApiOrderPaymentStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderPaymentStatus>;
+  eq?: InputMaybe<ApiOrderPaymentStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderPaymentStatus>>;
+  in?: InputMaybe<Array<ApiOrderPaymentStatus>>;
 };
 
 /** Validated input for order payment status override. Tenant identifiers come only from trusted context. */
@@ -3199,9 +3199,9 @@ export enum ApiOrderPlacementStatus {
 /** Comparison operators for order placement status; omitted operators do not constrain results. */
 export type ApiOrderPlacementStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderPlacementStatus>;
+  eq?: InputMaybe<ApiOrderPlacementStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderPlacementStatus>>;
+  in?: InputMaybe<Array<ApiOrderPlacementStatus>>;
 };
 
 /** Refund aggregate and its line and payment-transaction allocations. */
@@ -3253,17 +3253,17 @@ export type ApiOrderRefundCreateInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Validated input value for lines. */
-  lines: InputMaybe<Array<ApiOrderRefundLineInput>>;
+  lines?: InputMaybe<Array<ApiOrderRefundLineInput>>;
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
   /** Validated input value for transaction allocations. */
-  transactionAllocations: InputMaybe<Array<ApiOrderRefundTransactionAllocationInput>>;
+  transactionAllocations?: InputMaybe<Array<ApiOrderRefundTransactionAllocationInput>>;
 };
 
 /** Cursor and resource pair for a order refund connection. */
@@ -3364,7 +3364,7 @@ export type ApiOrderReturn = ApiNode & {
 /** Validated input for order return approve. Tenant identifiers come only from trusted context. */
 export type ApiOrderReturnApproveInput = {
   /** Validated input value for create return shipment. */
-  createReturnShipment: InputMaybe<Scalars["Boolean"]["input"]>;
+  createReturnShipment?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
@@ -3374,7 +3374,7 @@ export type ApiOrderReturnApproveInput = {
   /** Relay global ID identifying the return. */
   returnId: Scalars["ID"]["input"];
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Validated input for order return cancel. Tenant identifiers come only from trusted context. */
@@ -3405,7 +3405,7 @@ export type ApiOrderReturnConnection = ApiConnection & {
 /** Validated input for order return create. Tenant identifiers come only from trusted context. */
 export type ApiOrderReturnCreateInput = {
   /** Validated input value for customer note. */
-  customerNote: InputMaybe<Scalars["String"]["input"]>;
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
@@ -3413,11 +3413,11 @@ export type ApiOrderReturnCreateInput = {
   /** Validated input value for lines. */
   lines: Array<ApiOrderReturnLineInput>;
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Relay global ID identifying the order. */
   orderId: Scalars["ID"]["input"];
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Cursor and resource pair for a order return connection. */
@@ -3451,7 +3451,7 @@ export type ApiOrderReturnLine = {
 /** Validated input for order return line. Tenant identifiers come only from trusted context. */
 export type ApiOrderReturnLineInput = {
   /** Validated input value for note. */
-  note: InputMaybe<Scalars["String"]["input"]>;
+  note?: InputMaybe<Scalars["String"]["input"]>;
   /** Relay global ID identifying the order line. */
   orderLineId: Scalars["ID"]["input"];
   /** Quantity validated against domain conservation invariants. */
@@ -3482,7 +3482,7 @@ export type ApiOrderReturnReceiveInput = {
   /** Relay global ID identifying the location. */
   locationId: Scalars["ID"]["input"];
   /** Validated input value for refund. */
-  refund: InputMaybe<ApiOrderReturnRefundInput>;
+  refund?: InputMaybe<ApiOrderReturnRefundInput>;
   /** Relay global ID identifying the return. */
   returnId: Scalars["ID"]["input"];
 };
@@ -3504,7 +3504,7 @@ export type ApiOrderReturnRefundInput = {
   /** Exact decimal amount serialized as a string. */
   amount: ApiMoneyInput;
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Stable audited reason code. */
   reasonCode: Scalars["String"]["input"];
 };
@@ -3520,7 +3520,7 @@ export type ApiOrderReturnRejectInput = {
   /** Relay global ID identifying the return. */
   returnId: Scalars["ID"]["input"];
   /** Validated input value for staff note. */
-  staffNote: InputMaybe<Scalars["String"]["input"]>;
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Closed set of order return request status values used by Orders Admin API. */
@@ -3556,9 +3556,9 @@ export enum ApiOrderReturnStatus {
 /** Comparison operators for order return status; omitted operators do not constrain results. */
 export type ApiOrderReturnStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderReturnStatus>;
+  eq?: InputMaybe<ApiOrderReturnStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderReturnStatus>>;
+  in?: InputMaybe<Array<ApiOrderReturnStatus>>;
 };
 
 /** Closed set of order risk level values used by Orders Admin API. */
@@ -3631,9 +3631,9 @@ export enum ApiOrderStatus {
 /** Comparison operators for order status; omitted operators do not constrain results. */
 export type ApiOrderStatusFilterInput = {
   /** Validated input value for eq. */
-  eq: InputMaybe<ApiOrderStatus>;
+  eq?: InputMaybe<ApiOrderStatus>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<ApiOrderStatus>>;
+  in?: InputMaybe<Array<ApiOrderStatus>>;
 };
 
 /** Closed set of order sync direction values used by Orders Admin API. */
@@ -3688,11 +3688,11 @@ export type ApiOrderUnarchiveInput = {
 /** Validated input for order update. Tenant identifiers come only from trusted context. */
 export type ApiOrderUpdateInput = {
   /** Validated input value for billing address. */
-  billingAddress: InputMaybe<ApiOrderAddressInput>;
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
   /** Validated input value for contact. */
-  contact: InputMaybe<ApiOrderContactInput>;
+  contact?: InputMaybe<ApiOrderContactInput>;
   /** Validated input value for customer note. */
-  customerNote: InputMaybe<Scalars["String"]["input"]>;
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
   /** Revision observed by the client; the command fails when stale. */
   expectedVersion: Scalars["Int"]["input"];
   /** Relay global ID of this resource. */
@@ -3700,9 +3700,9 @@ export type ApiOrderUpdateInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Stable locale code. */
-  localeCode: InputMaybe<ApiLocaleCode>;
+  localeCode?: InputMaybe<ApiLocaleCode>;
   /** Validated input value for shipping. */
-  shipping: InputMaybe<ApiOrderDeliveryInput>;
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
 };
 
 /** Expected validation, permission, concurrency, or business-rule error returned by a mutation. */
@@ -3731,61 +3731,61 @@ export type ApiOrderWeightInput = {
 /** Composable store-scoped filter for order reads. */
 export type ApiOrderWhereInput = {
   /** Validated input value for and. */
-  and: InputMaybe<Array<ApiOrderWhereInput>>;
+  and?: InputMaybe<Array<ApiOrderWhereInput>>;
   /** Validated input value for archived. */
-  archived: InputMaybe<Scalars["Boolean"]["input"]>;
+  archived?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Timestamp for created, or null when it has not occurred. */
-  createdAt: InputMaybe<ApiDateTimeFilterInput>;
+  createdAt?: InputMaybe<ApiDateTimeFilterInput>;
   /** ISO 4217 currency code. */
-  currencyCode: InputMaybe<ApiCurrencyCodeFilterInput>;
+  currencyCode?: InputMaybe<ApiCurrencyCodeFilterInput>;
   /** Validated input value for customer email. */
-  customerEmail: InputMaybe<ApiStringFilterInput>;
+  customerEmail?: InputMaybe<ApiStringFilterInput>;
   /** Relay global ID identifying the customer. */
-  customerId: InputMaybe<ApiIdFilterInput>;
+  customerId?: InputMaybe<ApiIdFilterInput>;
   /** Validated input value for customer name. */
-  customerName: InputMaybe<ApiStringFilterInput>;
+  customerName?: InputMaybe<ApiStringFilterInput>;
   /** Validated input value for customer phone. */
-  customerPhone: InputMaybe<ApiStringFilterInput>;
+  customerPhone?: InputMaybe<ApiStringFilterInput>;
   /** Stable delivery method code. */
-  deliveryMethodCode: InputMaybe<ApiStringFilterInput>;
+  deliveryMethodCode?: InputMaybe<ApiStringFilterInput>;
   /** Current delivery status. */
-  deliveryStatus: InputMaybe<ApiOrderDeliveryStatusFilterInput>;
+  deliveryStatus?: InputMaybe<ApiOrderDeliveryStatusFilterInput>;
   /** Relay global ID identifying the external. */
-  externalId: InputMaybe<ApiStringFilterInput>;
+  externalId?: InputMaybe<ApiStringFilterInput>;
   /** Current fulfillment status. */
-  fulfillmentStatus: InputMaybe<ApiOrderFulfillmentStatusFilterInput>;
+  fulfillmentStatus?: InputMaybe<ApiOrderFulfillmentStatusFilterInput>;
   /** Validated input value for has tracking. */
-  hasTracking: InputMaybe<Scalars["Boolean"]["input"]>;
+  hasTracking?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Relay global ID of this resource. */
-  id: InputMaybe<ApiIdFilterInput>;
+  id?: InputMaybe<ApiIdFilterInput>;
   /** Store-local order number serialized without precision loss. */
-  number: InputMaybe<ApiBigIntFilterInput>;
+  number?: InputMaybe<ApiBigIntFilterInput>;
   /** Validated input value for or. */
-  or: InputMaybe<Array<ApiOrderWhereInput>>;
+  or?: InputMaybe<Array<ApiOrderWhereInput>>;
   /** Stable payment method code. */
-  paymentMethodCode: InputMaybe<ApiStringFilterInput>;
+  paymentMethodCode?: InputMaybe<ApiStringFilterInput>;
   /** Current payment status. */
-  paymentStatus: InputMaybe<ApiOrderPaymentStatusFilterInput>;
+  paymentStatus?: InputMaybe<ApiOrderPaymentStatusFilterInput>;
   /** Timestamp for placed, or null when it has not occurred. */
-  placedAt: InputMaybe<ApiDateTimeFilterInput>;
+  placedAt?: InputMaybe<ApiDateTimeFilterInput>;
   /** Current placement status. */
-  placementStatus: InputMaybe<ApiOrderPlacementStatusFilterInput>;
+  placementStatus?: InputMaybe<ApiOrderPlacementStatusFilterInput>;
   /** Current return status. */
-  returnStatus: InputMaybe<ApiOrderReturnStatusFilterInput>;
+  returnStatus?: InputMaybe<ApiOrderReturnStatusFilterInput>;
   /** Validated input value for shipping country. */
-  shippingCountry: InputMaybe<ApiCountryCodeFilterInput>;
+  shippingCountry?: InputMaybe<ApiCountryCodeFilterInput>;
   /** Stable source code. */
-  sourceCode: InputMaybe<ApiStringFilterInput>;
+  sourceCode?: InputMaybe<ApiStringFilterInput>;
   /** Current lifecycle or derived projection status. */
-  status: InputMaybe<ApiOrderStatusFilterInput>;
+  status?: InputMaybe<ApiOrderStatusFilterInput>;
   /** Validated input value for tag. */
-  tag: InputMaybe<ApiStringFilterInput>;
+  tag?: InputMaybe<ApiStringFilterInput>;
   /** Monetary total in the order currency. */
-  totalAmount: InputMaybe<ApiDecimalFilterInput>;
+  totalAmount?: InputMaybe<ApiDecimalFilterInput>;
   /** Validated input value for tracking number. */
-  trackingNumber: InputMaybe<ApiStringFilterInput>;
+  trackingNumber?: InputMaybe<ApiStringFilterInput>;
   /** Timestamp for updated, or null when it has not occurred. */
-  updatedAt: InputMaybe<ApiDateTimeFilterInput>;
+  updatedAt?: InputMaybe<ApiDateTimeFilterInput>;
 };
 
 /** Validated input for orders bulk action. Tenant identifiers come only from trusted context. */
@@ -3795,13 +3795,13 @@ export type ApiOrdersBulkActionInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Relay global ID identifying the integration link. */
-  integrationLinkId: InputMaybe<Scalars["ID"]["input"]>;
+  integrationLinkId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Stable audited reason code. */
-  reasonCode: InputMaybe<Scalars["String"]["input"]>;
+  reasonCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for selection. */
   selection: ApiOrderBulkSelectionInput;
   /** Validated input value for tags. */
-  tags: InputMaybe<Array<Scalars["String"]["input"]>>;
+  tags?: InputMaybe<Array<Scalars["String"]["input"]>>;
 };
 
 /** Closed set of orders bulk action kind values used by Orders Admin API. */
@@ -4261,12 +4261,12 @@ export type ApiOrdersQueryOrderOperationArgs = {
 
 /** Read namespace for the Orders Admin API. */
 export type ApiOrdersQueryOrdersArgs = {
-  after: InputMaybe<Scalars["String"]["input"]>;
-  before: InputMaybe<Scalars["String"]["input"]>;
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  before?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
-  last: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy: InputMaybe<Array<ApiOrderOrderByInput>>;
-  where: InputMaybe<ApiOrderWhereInput>;
+  last?: InputMaybe<Scalars["Int"]["input"]>;
+  orderBy?: InputMaybe<Array<ApiOrderOrderByInput>>;
+  where?: InputMaybe<ApiOrderWhereInput>;
 };
 
 /** Relay pagination metadata shared with existing Admin subgraphs. */
@@ -4346,13 +4346,13 @@ export type ApiShipmentCreateInput = {
   /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
   idempotencyKey: Scalars["String"]["input"];
   /** Whether completion should enqueue a customer notification. */
-  notifyCustomer: InputMaybe<Scalars["Boolean"]["input"]>;
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
   /** Validated input value for packages. */
   packages: Array<ApiShipmentPackageInput>;
   /** Stable provider code. */
-  providerCode: InputMaybe<Scalars["String"]["input"]>;
+  providerCode?: InputMaybe<Scalars["String"]["input"]>;
   /** Stable service code. */
-  serviceCode: InputMaybe<Scalars["String"]["input"]>;
+  serviceCode?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Orders Admin representation of shipment event. */
@@ -4414,13 +4414,13 @@ export type ApiShipmentPackage = ApiNode & {
 /** Validated input for shipment package. Tenant identifiers come only from trusted context. */
 export type ApiShipmentPackageInput = {
   /** Validated input value for declared value. */
-  declaredValue: InputMaybe<ApiMoneyInput>;
+  declaredValue?: InputMaybe<ApiMoneyInput>;
   /** Validated input value for dimensions. */
-  dimensions: InputMaybe<ApiOrderDimensionsInput>;
+  dimensions?: InputMaybe<ApiOrderDimensionsInput>;
   /** Validated input value for items. */
   items: Array<ApiShipmentPackageItemInput>;
   /** Validated input value for weight. */
-  weight: InputMaybe<ApiOrderWeightInput>;
+  weight?: InputMaybe<ApiOrderWeightInput>;
 };
 
 /** Orders Admin representation of shipment package item. */
@@ -4503,11 +4503,11 @@ export type ApiShipmentTracking = {
 /** Validated input for shipment tracking. Tenant identifiers come only from trusted context. */
 export type ApiShipmentTrackingInput = {
   /** Validated input value for company. */
-  company: InputMaybe<Scalars["String"]["input"]>;
+  company?: InputMaybe<Scalars["String"]["input"]>;
   /** Store-local order number serialized without precision loss. */
   number: Scalars["String"]["input"];
   /** Validated input value for url. */
-  url: InputMaybe<Scalars["URL"]["input"]>;
+  url?: InputMaybe<Scalars["URL"]["input"]>;
 };
 
 /** Validated input for shipment tracking update. Tenant identifiers come only from trusted context. */
@@ -4525,13 +4525,13 @@ export type ApiShipmentTrackingUpdateInput = {
 /** Comparison operators for string; omitted operators do not constrain results. */
 export type ApiStringFilterInput = {
   /** Validated input value for contains. */
-  contains: InputMaybe<Scalars["String"]["input"]>;
+  contains?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for eq. */
-  eq: InputMaybe<Scalars["String"]["input"]>;
+  eq?: InputMaybe<Scalars["String"]["input"]>;
   /** Validated input value for in. */
-  in: InputMaybe<Array<Scalars["String"]["input"]>>;
+  in?: InputMaybe<Array<Scalars["String"]["input"]>>;
   /** Validated input value for starts with. */
-  startsWith: InputMaybe<Scalars["String"]["input"]>;
+  startsWith?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 export type ApiUser = {
@@ -5081,7 +5081,7 @@ export type ApiApiKeyResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["ApiKey"] = ApiResolversParentTypes["ApiKey"],
 > = {
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5097,9 +5097,9 @@ export type ApiCalculatedOrderResolvers<
   ParentType extends ApiResolversParentTypes["CalculatedOrder"] =
     ApiResolversParentTypes["CalculatedOrder"],
 > = {
-  balanceDelta: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  cost: Resolver<ApiResolversTypes["OrderCost"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  balanceDelta?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  cost?: Resolver<ApiResolversTypes["OrderCost"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5107,7 +5107,7 @@ export type ApiCheckoutResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Checkout"] = ApiResolversParentTypes["Checkout"],
 > = {
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5124,15 +5124,15 @@ export type ApiConnectionResolvers<
     ParentType,
     ContextType
   >;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
 };
 
 export type ApiCustomerResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Customer"] = ApiResolversParentTypes["Customer"],
 > = {
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5154,10 +5154,10 @@ export type ApiDimensionsResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Dimensions"] = ApiResolversParentTypes["Dimensions"],
 > = {
-  height: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
-  length: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
-  unit: Resolver<ApiResolversTypes["DimensionUnit"], ParentType, ContextType>;
-  width: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
+  height?: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
+  length?: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
+  unit?: Resolver<ApiResolversTypes["DimensionUnit"], ParentType, ContextType>;
+  width?: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5167,8 +5167,8 @@ export type ApiDisplayableErrorResolvers<
     ApiResolversParentTypes["DisplayableError"],
 > = {
   __resolveType: TypeResolveFn<"OrderUserError", ParentType, ContextType>;
-  field: Resolver<Maybe<Array<ApiResolversTypes["String"]>>, ParentType, ContextType>;
-  message: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  field?: Resolver<Maybe<Array<ApiResolversTypes["String"]>>, ParentType, ContextType>;
+  message?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
 };
 
 export interface ApiEmailScalarConfig extends GraphQLScalarTypeConfig<
@@ -5183,17 +5183,17 @@ export type ApiFulfillmentResolvers<
   ParentType extends ApiResolversParentTypes["Fulfillment"] =
     ApiResolversParentTypes["Fulfillment"],
 > = {
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  fulfillmentOrder: Resolver<ApiResolversTypes["FulfillmentOrder"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["FulfillmentLine"]>, ParentType, ContextType>;
-  locationId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  notifyCustomer: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  shipments: Resolver<Array<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["FulfillmentStatus"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  fulfillmentOrder?: Resolver<ApiResolversTypes["FulfillmentOrder"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["FulfillmentLine"]>, ParentType, ContextType>;
+  locationId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  notifyCustomer?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  shipments?: Resolver<Array<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["FulfillmentStatus"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5202,12 +5202,12 @@ export type ApiFulfillmentHoldResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentHold"] =
     ApiResolversParentTypes["FulfillmentHold"],
 > = {
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  heldBy: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  note: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  reasonCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  releasedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  heldBy?: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  note?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  reasonCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  releasedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5216,8 +5216,8 @@ export type ApiFulfillmentLineResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentLine"] =
     ApiResolversParentTypes["FulfillmentLine"],
 > = {
-  orderLine: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  orderLine?: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
+  quantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5226,25 +5226,25 @@ export type ApiFulfillmentOrderResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentOrder"] =
     ApiResolversParentTypes["FulfillmentOrder"],
 > = {
-  assignedLocationId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  assignedService: Resolver<
+  assignedLocationId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  assignedService?: Resolver<
     Maybe<ApiResolversTypes["FulfillmentServiceRoute"]>,
     ParentType,
     ContextType
   >;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  deliveryGroup: Resolver<ApiResolversTypes["OrderDeliveryGroup"], ParentType, ContextType>;
-  fulfillAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  fulfillBy: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  holds: Resolver<Array<ApiResolversTypes["FulfillmentHold"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["FulfillmentOrderLine"]>, ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  requestStatus: Resolver<ApiResolversTypes["FulfillmentRequestStatus"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["FulfillmentOrderStatus"], ParentType, ContextType>;
-  supportedActions: Resolver<Array<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  deliveryGroup?: Resolver<ApiResolversTypes["OrderDeliveryGroup"], ParentType, ContextType>;
+  fulfillAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  fulfillBy?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  holds?: Resolver<Array<ApiResolversTypes["FulfillmentHold"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["FulfillmentOrderLine"]>, ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  requestStatus?: Resolver<ApiResolversTypes["FulfillmentRequestStatus"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["FulfillmentOrderStatus"], ParentType, ContextType>;
+  supportedActions?: Resolver<Array<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5253,11 +5253,11 @@ export type ApiFulfillmentOrderLineResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentOrderLine"] =
     ApiResolversParentTypes["FulfillmentOrderLine"],
 > = {
-  fulfilledQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  orderLine: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  remainingQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  fulfilledQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  orderLine?: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
+  quantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  remainingQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5266,9 +5266,13 @@ export type ApiFulfillmentOrderPayloadResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentOrderPayload"] =
     ApiResolversParentTypes["FulfillmentOrderPayload"],
 > = {
-  fulfillmentOrder: Resolver<Maybe<ApiResolversTypes["FulfillmentOrder"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  fulfillmentOrder?: Resolver<
+    Maybe<ApiResolversTypes["FulfillmentOrder"]>,
+    ParentType,
+    ContextType
+  >;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5277,9 +5281,9 @@ export type ApiFulfillmentPayloadResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentPayload"] =
     ApiResolversParentTypes["FulfillmentPayload"],
 > = {
-  fulfillment: Resolver<Maybe<ApiResolversTypes["Fulfillment"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  fulfillment?: Resolver<Maybe<ApiResolversTypes["Fulfillment"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5288,11 +5292,11 @@ export type ApiFulfillmentServiceRouteResolvers<
   ParentType extends ApiResolversParentTypes["FulfillmentServiceRoute"] =
     ApiResolversParentTypes["FulfillmentServiceRoute"],
 > = {
-  appCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  externalReference: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  installationId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  providerRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  serviceCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  appCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  externalReference?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  installationId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  providerRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  serviceCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5307,8 +5311,8 @@ export type ApiMoneyResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Money"] = ApiResolversParentTypes["Money"],
 > = {
-  amount: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
-  currencyCode: Resolver<ApiResolversTypes["CurrencyCode"], ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
+  currencyCode?: Resolver<ApiResolversTypes["CurrencyCode"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5316,7 +5320,7 @@ export type ApiMutationResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Mutation"] = ApiResolversParentTypes["Mutation"],
 > = {
-  ordersMutation: Resolver<ApiResolversTypes["OrdersMutation"], ParentType, ContextType>;
+  ordersMutation?: Resolver<ApiResolversTypes["OrdersMutation"], ParentType, ContextType>;
 };
 
 export type ApiNodeResolvers<
@@ -5351,92 +5355,100 @@ export type ApiNodeResolvers<
     ParentType,
     ContextType
   >;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
 };
 
 export type ApiOrderResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Order"] = ApiResolversParentTypes["Order"],
 > = {
-  activity: Resolver<
+  activity?: Resolver<
     ApiResolversTypes["OrderActivityConnection"],
     ParentType,
     ContextType,
     RequireFields<ApiOrderActivityArgs, "first">
   >;
-  adminNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  archivedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  availableActions: Resolver<Array<ApiResolversTypes["OrderAction"]>, ParentType, ContextType>;
-  billingAddress: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
-  cancelledAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  checkout: Resolver<Maybe<ApiResolversTypes["Checkout"]>, ParentType, ContextType>;
-  checkoutPlacement: Resolver<
+  adminNote?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  archivedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  availableActions?: Resolver<Array<ApiResolversTypes["OrderAction"]>, ParentType, ContextType>;
+  billingAddress?: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
+  cancelledAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  checkout?: Resolver<Maybe<ApiResolversTypes["Checkout"]>, ParentType, ContextType>;
+  checkoutPlacement?: Resolver<
     Maybe<ApiResolversTypes["OrderCheckoutPlacement"]>,
     ParentType,
     ContextType
   >;
-  closedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  contact: Resolver<ApiResolversTypes["OrderContact"], ParentType, ContextType>;
-  cost: Resolver<ApiResolversTypes["OrderCost"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  currencyCode: Resolver<ApiResolversTypes["CurrencyCode"], ParentType, ContextType>;
-  customFields: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  customer: Resolver<Maybe<ApiResolversTypes["Customer"]>, ParentType, ContextType>;
-  customerNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  customerSnapshot: Resolver<ApiResolversTypes["OrderCustomerSnapshot"], ParentType, ContextType>;
-  deliveryGroups: Resolver<Array<ApiResolversTypes["OrderDeliveryGroup"]>, ParentType, ContextType>;
-  deliveryStatus: Resolver<ApiResolversTypes["OrderDeliveryStatus"], ParentType, ContextType>;
-  discounts: Resolver<Array<ApiResolversTypes["OrderDiscount"]>, ParentType, ContextType>;
-  exchanges: Resolver<
+  closedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  contact?: Resolver<ApiResolversTypes["OrderContact"], ParentType, ContextType>;
+  cost?: Resolver<ApiResolversTypes["OrderCost"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  currencyCode?: Resolver<ApiResolversTypes["CurrencyCode"], ParentType, ContextType>;
+  customFields?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  customer?: Resolver<Maybe<ApiResolversTypes["Customer"]>, ParentType, ContextType>;
+  customerNote?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  customerSnapshot?: Resolver<ApiResolversTypes["OrderCustomerSnapshot"], ParentType, ContextType>;
+  deliveryGroups?: Resolver<
+    Array<ApiResolversTypes["OrderDeliveryGroup"]>,
+    ParentType,
+    ContextType
+  >;
+  deliveryStatus?: Resolver<ApiResolversTypes["OrderDeliveryStatus"], ParentType, ContextType>;
+  discounts?: Resolver<Array<ApiResolversTypes["OrderDiscount"]>, ParentType, ContextType>;
+  exchanges?: Resolver<
     ApiResolversTypes["OrderExchangeConnection"],
     ParentType,
     ContextType,
     RequireFields<ApiOrderExchangesArgs, "first">
   >;
-  expiresAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  fulfillmentOrders: Resolver<
+  expiresAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  fulfillmentOrders?: Resolver<
     Array<ApiResolversTypes["FulfillmentOrder"]>,
     ParentType,
     ContextType
   >;
-  fulfillmentStatus: Resolver<ApiResolversTypes["OrderFulfillmentStatus"], ParentType, ContextType>;
-  fulfillments: Resolver<Array<ApiResolversTypes["Fulfillment"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  integrationLinks: Resolver<
+  fulfillmentStatus?: Resolver<
+    ApiResolversTypes["OrderFulfillmentStatus"],
+    ParentType,
+    ContextType
+  >;
+  fulfillments?: Resolver<Array<ApiResolversTypes["Fulfillment"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  integrationLinks?: Resolver<
     Array<ApiResolversTypes["OrderIntegrationLink"]>,
     ParentType,
     ContextType
   >;
-  lines: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  localeCode: Resolver<Maybe<ApiResolversTypes["LocaleCode"]>, ParentType, ContextType>;
-  number: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
-  origin: Resolver<ApiResolversTypes["OrderOrigin"], ParentType, ContextType>;
-  payment: Resolver<ApiResolversTypes["OrderPayment"], ParentType, ContextType>;
-  paymentStatus: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
-  placedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  refunds: Resolver<
+  lines?: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  localeCode?: Resolver<Maybe<ApiResolversTypes["LocaleCode"]>, ParentType, ContextType>;
+  number?: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
+  origin?: Resolver<ApiResolversTypes["OrderOrigin"], ParentType, ContextType>;
+  payment?: Resolver<ApiResolversTypes["OrderPayment"], ParentType, ContextType>;
+  paymentStatus?: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
+  placedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  refunds?: Resolver<
     ApiResolversTypes["OrderRefundConnection"],
     ParentType,
     ContextType,
     RequireFields<ApiOrderRefundsArgs, "first">
   >;
-  returnStatus: Resolver<ApiResolversTypes["OrderReturnStatus"], ParentType, ContextType>;
-  returns: Resolver<
+  returnStatus?: Resolver<ApiResolversTypes["OrderReturnStatus"], ParentType, ContextType>;
+  returns?: Resolver<
     ApiResolversTypes["OrderReturnConnection"],
     ParentType,
     ContextType,
     RequireFields<ApiOrderReturnsArgs, "first">
   >;
-  riskLevel: Resolver<ApiResolversTypes["OrderRiskLevel"], ParentType, ContextType>;
-  shipments: Resolver<Array<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
-  shippingAddress: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
-  source: Resolver<Maybe<ApiResolversTypes["OrderSource"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderStatus"], ParentType, ContextType>;
-  tags: Resolver<Array<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  taxLines: Resolver<Array<ApiResolversTypes["OrderTaxLine"]>, ParentType, ContextType>;
-  totalQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  riskLevel?: Resolver<ApiResolversTypes["OrderRiskLevel"], ParentType, ContextType>;
+  shipments?: Resolver<Array<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
+  shippingAddress?: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
+  source?: Resolver<Maybe<ApiResolversTypes["OrderSource"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderStatus"], ParentType, ContextType>;
+  tags?: Resolver<Array<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  taxLines?: Resolver<Array<ApiResolversTypes["OrderTaxLine"]>, ParentType, ContextType>;
+  totalQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5445,15 +5457,15 @@ export type ApiOrderActivityResolvers<
   ParentType extends ApiResolversParentTypes["OrderActivity"] =
     ApiResolversParentTypes["OrderActivity"],
 > = {
-  actor: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
-  data: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  happenedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  message: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  recordedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  sequence: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
-  type: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  visibility: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  actor?: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
+  data?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  happenedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  message?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  recordedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  sequence?: Resolver<ApiResolversTypes["BigInt"], ParentType, ContextType>;
+  type?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  visibility?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5462,10 +5474,10 @@ export type ApiOrderActivityConnectionResolvers<
   ParentType extends ApiResolversParentTypes["OrderActivityConnection"] =
     ApiResolversParentTypes["OrderActivityConnection"],
 > = {
-  edges: Resolver<Array<ApiResolversTypes["OrderActivityEdge"]>, ParentType, ContextType>;
-  nodes: Resolver<Array<ApiResolversTypes["OrderActivity"]>, ParentType, ContextType>;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  edges?: Resolver<Array<ApiResolversTypes["OrderActivityEdge"]>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ApiResolversTypes["OrderActivity"]>, ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5474,8 +5486,8 @@ export type ApiOrderActivityEdgeResolvers<
   ParentType extends ApiResolversParentTypes["OrderActivityEdge"] =
     ApiResolversParentTypes["OrderActivityEdge"],
 > = {
-  cursor: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  node: Resolver<ApiResolversTypes["OrderActivity"], ParentType, ContextType>;
+  cursor?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  node?: Resolver<ApiResolversTypes["OrderActivity"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5484,9 +5496,9 @@ export type ApiOrderActivityPayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderActivityPayload"] =
     ApiResolversParentTypes["OrderActivityPayload"],
 > = {
-  activity: Resolver<Maybe<ApiResolversTypes["OrderActivity"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  activity?: Resolver<Maybe<ApiResolversTypes["OrderActivity"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5494,11 +5506,11 @@ export type ApiOrderActorResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["OrderActor"] = ApiResolversParentTypes["OrderActor"],
 > = {
-  apiKey: Resolver<Maybe<ApiResolversTypes["ApiKey"]>, ParentType, ContextType>;
-  displayName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  type: Resolver<ApiResolversTypes["OrderActorType"], ParentType, ContextType>;
-  user: Resolver<Maybe<ApiResolversTypes["User"]>, ParentType, ContextType>;
+  apiKey?: Resolver<Maybe<ApiResolversTypes["ApiKey"]>, ParentType, ContextType>;
+  displayName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  type?: Resolver<ApiResolversTypes["OrderActorType"], ParentType, ContextType>;
+  user?: Resolver<Maybe<ApiResolversTypes["User"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5507,21 +5519,21 @@ export type ApiOrderAddressResolvers<
   ParentType extends ApiResolversParentTypes["OrderAddress"] =
     ApiResolversParentTypes["OrderAddress"],
 > = {
-  address1: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  address2: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  city: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  company: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  countryCode: Resolver<Maybe<ApiResolversTypes["CountryCode"]>, ParentType, ContextType>;
-  data: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  middleName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  phone: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  postalCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  provinceCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  redactedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  address1?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  address2?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  city?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  company?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  countryCode?: Resolver<Maybe<ApiResolversTypes["CountryCode"]>, ParentType, ContextType>;
+  data?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  email?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  firstName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  middleName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  phone?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  postalCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  provinceCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  redactedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5530,18 +5542,18 @@ export type ApiOrderCheckoutPlacementResolvers<
   ParentType extends ApiResolversParentTypes["OrderCheckoutPlacement"] =
     ApiResolversParentTypes["OrderCheckoutPlacement"],
 > = {
-  checkoutId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  checkoutVersion: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  confirmedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  contractVersion: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  deliveryRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  failedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  finalQuoteRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  paymentMethodsRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  placementId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  resultRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  snapshotHash: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderPlacementStatus"], ParentType, ContextType>;
+  checkoutId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  checkoutVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  confirmedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  contractVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  deliveryRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  failedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  finalQuoteRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  paymentMethodsRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  placementId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  resultRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  snapshotHash?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderPlacementStatus"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5550,10 +5562,10 @@ export type ApiOrderConnectionResolvers<
   ParentType extends ApiResolversParentTypes["OrderConnection"] =
     ApiResolversParentTypes["OrderConnection"],
 > = {
-  edges: Resolver<Array<ApiResolversTypes["OrderEdge"]>, ParentType, ContextType>;
-  nodes: Resolver<Array<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  edges?: Resolver<Array<ApiResolversTypes["OrderEdge"]>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5562,14 +5574,14 @@ export type ApiOrderContactResolvers<
   ParentType extends ApiResolversParentTypes["OrderContact"] =
     ApiResolversParentTypes["OrderContact"],
 > = {
-  company: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  middleName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  note: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  phone: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  redactedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  company?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  email?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  firstName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  middleName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  note?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  phone?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  redactedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5577,16 +5589,16 @@ export type ApiOrderCostResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["OrderCost"] = ApiResolversParentTypes["OrderCost"],
 > = {
-  adjustmentAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  discountAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  dutyAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  outstandingAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  paidAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  refundedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  shippingAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  subtotalAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  taxAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  totalAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  adjustmentAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  discountAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  dutyAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  outstandingAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  paidAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  refundedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  shippingAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  subtotalAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  taxAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  totalAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5595,14 +5607,14 @@ export type ApiOrderCustomerSnapshotResolvers<
   ParentType extends ApiResolversParentTypes["OrderCustomerSnapshot"] =
     ApiResolversParentTypes["OrderCustomerSnapshot"],
 > = {
-  company: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  countryCode: Resolver<Maybe<ApiResolversTypes["CountryCode"]>, ParentType, ContextType>;
-  customerId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  email: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  firstName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  lastName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  middleName: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  phone: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  company?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  countryCode?: Resolver<Maybe<ApiResolversTypes["CountryCode"]>, ParentType, ContextType>;
+  customerId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  email?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  firstName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  lastName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  middleName?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  phone?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5611,9 +5623,9 @@ export type ApiOrderDeletePayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderDeletePayload"] =
     ApiResolversParentTypes["OrderDeletePayload"],
 > = {
-  deletedId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  deletedId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5622,17 +5634,17 @@ export type ApiOrderDeliveryGroupResolvers<
   ParentType extends ApiResolversParentTypes["OrderDeliveryGroup"] =
     ApiResolversParentTypes["OrderDeliveryGroup"],
 > = {
-  address: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  recipient: Resolver<Maybe<ApiResolversTypes["OrderContact"]>, ParentType, ContextType>;
-  selectedMethod: Resolver<
+  address?: Resolver<Maybe<ApiResolversTypes["OrderAddress"]>, ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  recipient?: Resolver<Maybe<ApiResolversTypes["OrderContact"]>, ParentType, ContextType>;
+  selectedMethod?: Resolver<
     Maybe<ApiResolversTypes["OrderDeliveryMethod"]>,
     ParentType,
     ContextType
   >;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5641,14 +5653,14 @@ export type ApiOrderDeliveryMethodResolvers<
   ParentType extends ApiResolversParentTypes["OrderDeliveryMethod"] =
     ApiResolversParentTypes["OrderDeliveryMethod"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  code: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  customerInput: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  paymentModel: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  providerCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerSnapshot: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  title: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  type: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  code?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  customerInput?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  paymentModel?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  providerCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerSnapshot?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  title?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  type?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5657,14 +5669,14 @@ export type ApiOrderDiscountResolvers<
   ParentType extends ApiResolversParentTypes["OrderDiscount"] =
     ApiResolversParentTypes["OrderDiscount"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  code: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  metadata: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  source: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  target: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  title: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  value: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  code?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  metadata?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  source?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  target?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  title?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  value?: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5672,8 +5684,8 @@ export type ApiOrderEdgeResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["OrderEdge"] = ApiResolversParentTypes["OrderEdge"],
 > = {
-  cursor: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  node: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  cursor?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  node?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5682,10 +5694,10 @@ export type ApiOrderEditChangeResolvers<
   ParentType extends ApiResolversParentTypes["OrderEditChange"] =
     ApiResolversParentTypes["OrderEditChange"],
 > = {
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  kind: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  payload: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  kind?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  payload?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5694,9 +5706,9 @@ export type ApiOrderEditPayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderEditPayload"] =
     ApiResolversParentTypes["OrderEditPayload"],
 > = {
-  edit: Resolver<Maybe<ApiResolversTypes["OrderEditSession"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  edit?: Resolver<Maybe<ApiResolversTypes["OrderEditSession"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5705,16 +5717,16 @@ export type ApiOrderEditSessionResolvers<
   ParentType extends ApiResolversParentTypes["OrderEditSession"] =
     ApiResolversParentTypes["OrderEditSession"],
 > = {
-  baseOrderVersion: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  calculatedOrder: Resolver<ApiResolversTypes["CalculatedOrder"], ParentType, ContextType>;
-  changes: Resolver<Array<ApiResolversTypes["OrderEditChange"]>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  createdBy: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
-  expiresAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  baseOrderVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  calculatedOrder?: Resolver<ApiResolversTypes["CalculatedOrder"], ParentType, ContextType>;
+  changes?: Resolver<Array<ApiResolversTypes["OrderEditChange"]>, ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  createdBy?: Resolver<ApiResolversTypes["OrderActor"], ParentType, ContextType>;
+  expiresAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5723,15 +5735,15 @@ export type ApiOrderExchangeResolvers<
   ParentType extends ApiResolversParentTypes["OrderExchange"] =
     ApiResolversParentTypes["OrderExchange"],
 > = {
-  balance: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  inboundLines: Resolver<Array<ApiResolversTypes["OrderReturnLine"]>, ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  outboundLines: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderExchangeStatus"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  balance?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  inboundLines?: Resolver<Array<ApiResolversTypes["OrderReturnLine"]>, ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  outboundLines?: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderExchangeStatus"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5740,10 +5752,10 @@ export type ApiOrderExchangeConnectionResolvers<
   ParentType extends ApiResolversParentTypes["OrderExchangeConnection"] =
     ApiResolversParentTypes["OrderExchangeConnection"],
 > = {
-  edges: Resolver<Array<ApiResolversTypes["OrderExchangeEdge"]>, ParentType, ContextType>;
-  nodes: Resolver<Array<ApiResolversTypes["OrderExchange"]>, ParentType, ContextType>;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  edges?: Resolver<Array<ApiResolversTypes["OrderExchangeEdge"]>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ApiResolversTypes["OrderExchange"]>, ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5752,8 +5764,8 @@ export type ApiOrderExchangeEdgeResolvers<
   ParentType extends ApiResolversParentTypes["OrderExchangeEdge"] =
     ApiResolversParentTypes["OrderExchangeEdge"],
 > = {
-  cursor: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  node: Resolver<ApiResolversTypes["OrderExchange"], ParentType, ContextType>;
+  cursor?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  node?: Resolver<ApiResolversTypes["OrderExchange"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5762,9 +5774,9 @@ export type ApiOrderExchangePayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderExchangePayload"] =
     ApiResolversParentTypes["OrderExchangePayload"],
 > = {
-  exchange: Resolver<Maybe<ApiResolversTypes["OrderExchange"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  exchange?: Resolver<Maybe<ApiResolversTypes["OrderExchange"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5773,25 +5785,25 @@ export type ApiOrderIntegrationLinkResolvers<
   ParentType extends ApiResolversParentTypes["OrderIntegrationLink"] =
     ApiResolversParentTypes["OrderIntegrationLink"],
 > = {
-  appCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  direction: Resolver<ApiResolversTypes["OrderSyncDirection"], ParentType, ContextType>;
-  externalId: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  externalUrl: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  installationId: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  kind: Resolver<ApiResolversTypes["OrderIntegrationKind"], ParentType, ContextType>;
-  lastErrorCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  lastErrorMessage: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  lastExportedOrderVersion: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
-  lastImportedExternalVersion: Resolver<
+  appCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  direction?: Resolver<ApiResolversTypes["OrderSyncDirection"], ParentType, ContextType>;
+  externalId?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  externalUrl?: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  installationId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  kind?: Resolver<ApiResolversTypes["OrderIntegrationKind"], ParentType, ContextType>;
+  lastErrorCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  lastErrorMessage?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  lastExportedOrderVersion?: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
+  lastImportedExternalVersion?: Resolver<
     Maybe<ApiResolversTypes["String"]>,
     ParentType,
     ContextType
   >;
-  lastSyncedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderIntegrationSyncStatus"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  lastSyncedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderIntegrationSyncStatus"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5799,31 +5811,31 @@ export type ApiOrderLineResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["OrderLine"] = ApiResolversParentTypes["OrderLine"],
 > = {
-  cancelledQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  cost: Resolver<ApiResolversTypes["OrderLineCost"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  customFields: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  fulfillableQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  fulfilledQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  imageUrl: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
-  parentLine: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  productId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  purchasableId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  purchasableSnapshot: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  refundableQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  requiresShipping: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  returnableQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  returnedQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  sku: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  taxable: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  title: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  unitCost: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  variantId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  weight: Resolver<Maybe<ApiResolversTypes["Weight"]>, ParentType, ContextType>;
+  cancelledQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  cost?: Resolver<ApiResolversTypes["OrderLineCost"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  customFields?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  fulfillableQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  fulfilledQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  imageUrl?: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
+  parentLine?: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  productId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  purchasableId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  purchasableSnapshot?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  quantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  refundableQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  requiresShipping?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  returnableQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  returnedQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  sku?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  taxable?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  title?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  unitCost?: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  variantId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  weight?: Resolver<Maybe<ApiResolversTypes["Weight"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5832,13 +5844,13 @@ export type ApiOrderLineCostResolvers<
   ParentType extends ApiResolversParentTypes["OrderLineCost"] =
     ApiResolversParentTypes["OrderLineCost"],
 > = {
-  discountAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  dutyAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  subtotalAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  taxAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  totalAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  unitCompareAtPrice: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
-  unitPrice: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  discountAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  dutyAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  subtotalAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  taxAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  totalAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  unitCompareAtPrice?: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
+  unitPrice?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5847,9 +5859,9 @@ export type ApiOrderLinePayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderLinePayload"] =
     ApiResolversParentTypes["OrderLinePayload"],
 > = {
-  line: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  line?: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5858,19 +5870,19 @@ export type ApiOrderOperationResolvers<
   ParentType extends ApiResolversParentTypes["OrderOperation"] =
     ApiResolversParentTypes["OrderOperation"],
 > = {
-  completedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  failureCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  failureMessage: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  idempotencyKey: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  kind: Resolver<ApiResolversTypes["OrderOperationKind"], ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  progress: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
-  resourceId: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  retryable: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  startedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderOperationStatus"], ParentType, ContextType>;
+  completedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  failureCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  failureMessage?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  idempotencyKey?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  kind?: Resolver<ApiResolversTypes["OrderOperationKind"], ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  progress?: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
+  resourceId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
+  retryable?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  startedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderOperationStatus"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5879,9 +5891,9 @@ export type ApiOrderOperationPayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderOperationPayload"] =
     ApiResolversParentTypes["OrderOperationPayload"],
 > = {
-  operation: Resolver<Maybe<ApiResolversTypes["OrderOperation"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  operation?: Resolver<Maybe<ApiResolversTypes["OrderOperation"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5890,9 +5902,9 @@ export type ApiOrderPayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderPayload"] =
     ApiResolversParentTypes["OrderPayload"],
 > = {
-  clientMutationId: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  clientMutationId?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5901,20 +5913,24 @@ export type ApiOrderPaymentResolvers<
   ParentType extends ApiResolversParentTypes["OrderPayment"] =
     ApiResolversParentTypes["OrderPayment"],
 > = {
-  attempts: Resolver<Array<ApiResolversTypes["OrderPaymentAttempt"]>, ParentType, ContextType>;
-  authorizedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  capturedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  disputes: Resolver<Array<ApiResolversTypes["OrderPaymentDispute"]>, ParentType, ContextType>;
-  outstandingAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  refundedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  selectedMethod: Resolver<Maybe<ApiResolversTypes["OrderPaymentMethod"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
-  transactions: Resolver<
+  attempts?: Resolver<Array<ApiResolversTypes["OrderPaymentAttempt"]>, ParentType, ContextType>;
+  authorizedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  capturedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  disputes?: Resolver<Array<ApiResolversTypes["OrderPaymentDispute"]>, ParentType, ContextType>;
+  outstandingAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  refundedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  selectedMethod?: Resolver<
+    Maybe<ApiResolversTypes["OrderPaymentMethod"]>,
+    ParentType,
+    ContextType
+  >;
+  status?: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
+  transactions?: Resolver<
     Array<ApiResolversTypes["OrderPaymentTransaction"]>,
     ParentType,
     ContextType
   >;
-  voidedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  voidedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5923,18 +5939,18 @@ export type ApiOrderPaymentAttemptResolvers<
   ParentType extends ApiResolversParentTypes["OrderPaymentAttempt"] =
     ApiResolversParentTypes["OrderPaymentAttempt"],
 > = {
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  customerAction: Resolver<Maybe<ApiResolversTypes["JSON"]>, ParentType, ContextType>;
-  expiresAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  failureCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  failureMessage: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  processedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  providerCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerReference: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  requestedAmount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  customerAction?: Resolver<Maybe<ApiResolversTypes["JSON"]>, ParentType, ContextType>;
+  expiresAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  failureCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  failureMessage?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  processedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  providerCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerReference?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  requestedAmount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderPaymentStatus"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5943,16 +5959,16 @@ export type ApiOrderPaymentDisputeResolvers<
   ParentType extends ApiResolversParentTypes["OrderPaymentDispute"] =
     ApiResolversParentTypes["OrderPaymentDispute"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  providerCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerReference: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  reason: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  resolvedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  responseDueAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  providerCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerReference?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  resolvedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  responseDueAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5961,12 +5977,12 @@ export type ApiOrderPaymentMethodResolvers<
   ParentType extends ApiResolversParentTypes["OrderPaymentMethod"] =
     ApiResolversParentTypes["OrderPaymentMethod"],
 > = {
-  code: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  customerInput: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  flow: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerSnapshot: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
-  title: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  code?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  customerInput?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  flow?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerSnapshot?: Resolver<ApiResolversTypes["JSON"], ParentType, ContextType>;
+  title?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5975,21 +5991,21 @@ export type ApiOrderPaymentTransactionResolvers<
   ParentType extends ApiResolversParentTypes["OrderPaymentTransaction"] =
     ApiResolversParentTypes["OrderPaymentTransaction"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  failureCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  failureMessage: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  kind: Resolver<ApiResolversTypes["OrderPaymentTransactionKind"], ParentType, ContextType>;
-  parentTransaction: Resolver<
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  failureCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  failureMessage?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  kind?: Resolver<ApiResolversTypes["OrderPaymentTransactionKind"], ParentType, ContextType>;
+  parentTransaction?: Resolver<
     Maybe<ApiResolversTypes["OrderPaymentTransaction"]>,
     ParentType,
     ContextType
   >;
-  processedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  providerCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  providerReference: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderPaymentTransactionStatus"], ParentType, ContextType>;
+  processedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  providerCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  providerReference?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderPaymentTransactionStatus"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5998,21 +6014,21 @@ export type ApiOrderRefundResolvers<
   ParentType extends ApiResolversParentTypes["OrderRefund"] =
     ApiResolversParentTypes["OrderRefund"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["OrderRefundLine"]>, ParentType, ContextType>;
-  note: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  processedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  reasonCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderRefundStatus"], ParentType, ContextType>;
-  transactions: Resolver<
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["OrderRefundLine"]>, ParentType, ContextType>;
+  note?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  processedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  reasonCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderRefundStatus"], ParentType, ContextType>;
+  transactions?: Resolver<
     Array<ApiResolversTypes["OrderPaymentTransaction"]>,
     ParentType,
     ContextType
   >;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6021,10 +6037,10 @@ export type ApiOrderRefundConnectionResolvers<
   ParentType extends ApiResolversParentTypes["OrderRefundConnection"] =
     ApiResolversParentTypes["OrderRefundConnection"],
 > = {
-  edges: Resolver<Array<ApiResolversTypes["OrderRefundEdge"]>, ParentType, ContextType>;
-  nodes: Resolver<Array<ApiResolversTypes["OrderRefund"]>, ParentType, ContextType>;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  edges?: Resolver<Array<ApiResolversTypes["OrderRefundEdge"]>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ApiResolversTypes["OrderRefund"]>, ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6033,8 +6049,8 @@ export type ApiOrderRefundEdgeResolvers<
   ParentType extends ApiResolversParentTypes["OrderRefundEdge"] =
     ApiResolversParentTypes["OrderRefundEdge"],
 > = {
-  cursor: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  node: Resolver<ApiResolversTypes["OrderRefund"], ParentType, ContextType>;
+  cursor?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  node?: Resolver<ApiResolversTypes["OrderRefund"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6043,9 +6059,9 @@ export type ApiOrderRefundLineResolvers<
   ParentType extends ApiResolversParentTypes["OrderRefundLine"] =
     ApiResolversParentTypes["OrderRefundLine"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  orderLine: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
-  quantity: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  orderLine?: Resolver<Maybe<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
+  quantity?: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6054,20 +6070,20 @@ export type ApiOrderReturnResolvers<
   ParentType extends ApiResolversParentTypes["OrderReturn"] =
     ApiResolversParentTypes["OrderReturn"],
 > = {
-  approvedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  completedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  customerNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  lines: Resolver<Array<ApiResolversTypes["OrderReturnLine"]>, ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  receivedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  requestedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  returnShipment: Resolver<Maybe<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
-  staffNote: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["OrderReturnRequestStatus"], ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  approvedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  completedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  customerNote?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  lines?: Resolver<Array<ApiResolversTypes["OrderReturnLine"]>, ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  receivedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  requestedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  returnShipment?: Resolver<Maybe<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
+  staffNote?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["OrderReturnRequestStatus"], ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6076,10 +6092,10 @@ export type ApiOrderReturnConnectionResolvers<
   ParentType extends ApiResolversParentTypes["OrderReturnConnection"] =
     ApiResolversParentTypes["OrderReturnConnection"],
 > = {
-  edges: Resolver<Array<ApiResolversTypes["OrderReturnEdge"]>, ParentType, ContextType>;
-  nodes: Resolver<Array<ApiResolversTypes["OrderReturn"]>, ParentType, ContextType>;
-  pageInfo: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
-  totalCount: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  edges?: Resolver<Array<ApiResolversTypes["OrderReturnEdge"]>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ApiResolversTypes["OrderReturn"]>, ParentType, ContextType>;
+  pageInfo?: Resolver<ApiResolversTypes["PageInfo"], ParentType, ContextType>;
+  totalCount?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6088,8 +6104,8 @@ export type ApiOrderReturnEdgeResolvers<
   ParentType extends ApiResolversParentTypes["OrderReturnEdge"] =
     ApiResolversParentTypes["OrderReturnEdge"],
 > = {
-  cursor: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  node: Resolver<ApiResolversTypes["OrderReturn"], ParentType, ContextType>;
+  cursor?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  node?: Resolver<ApiResolversTypes["OrderReturn"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6098,13 +6114,13 @@ export type ApiOrderReturnLineResolvers<
   ParentType extends ApiResolversParentTypes["OrderReturnLine"] =
     ApiResolversParentTypes["OrderReturnLine"],
 > = {
-  damagedQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  note: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  orderLine: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  reasonCode: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  receivedQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
-  restockableQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  damagedQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  note?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  orderLine?: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
+  quantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  reasonCode?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  receivedQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  restockableQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6113,9 +6129,9 @@ export type ApiOrderReturnPayloadResolvers<
   ParentType extends ApiResolversParentTypes["OrderReturnPayload"] =
     ApiResolversParentTypes["OrderReturnPayload"],
 > = {
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  return: Resolver<Maybe<ApiResolversTypes["OrderReturn"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  return?: Resolver<Maybe<ApiResolversTypes["OrderReturn"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6124,9 +6140,9 @@ export type ApiOrderSourceResolvers<
   ParentType extends ApiResolversParentTypes["OrderSource"] =
     ApiResolversParentTypes["OrderSource"],
 > = {
-  code: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  externalId: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  externalUrl: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
+  code?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  externalId?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  externalUrl?: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6135,12 +6151,12 @@ export type ApiOrderTaxLineResolvers<
   ParentType extends ApiResolversParentTypes["OrderTaxLine"] =
     ApiResolversParentTypes["OrderTaxLine"],
 > = {
-  amount: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  included: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  jurisdiction: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  rate: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
-  title: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  amount?: Resolver<ApiResolversTypes["Money"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  included?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  jurisdiction?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  rate?: Resolver<ApiResolversTypes["Decimal"], ParentType, ContextType>;
+  title?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6149,11 +6165,11 @@ export type ApiOrderUserErrorResolvers<
   ParentType extends ApiResolversParentTypes["OrderUserError"] =
     ApiResolversParentTypes["OrderUserError"],
 > = {
-  code: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  currentVersion: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
-  field: Resolver<Maybe<Array<ApiResolversTypes["String"]>>, ParentType, ContextType>;
-  message: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  retryable: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  code?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  currentVersion?: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
+  field?: Resolver<Maybe<Array<ApiResolversTypes["String"]>>, ParentType, ContextType>;
+  message?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  retryable?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6162,343 +6178,343 @@ export type ApiOrdersMutationResolvers<
   ParentType extends ApiResolversParentTypes["OrdersMutation"] =
     ApiResolversParentTypes["OrdersMutation"],
 > = {
-  fulfillmentCancel: Resolver<
+  fulfillmentCancel?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentCancelArgs, "input">
   >;
-  fulfillmentCreate: Resolver<
+  fulfillmentCreate?: Resolver<
     ApiResolversTypes["FulfillmentPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentCreateArgs, "input">
   >;
-  fulfillmentOrderCancelRequest: Resolver<
+  fulfillmentOrderCancelRequest?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderCancelRequestArgs, "input">
   >;
-  fulfillmentOrderHold: Resolver<
+  fulfillmentOrderHold?: Resolver<
     ApiResolversTypes["FulfillmentOrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderHoldArgs, "input">
   >;
-  fulfillmentOrderMove: Resolver<
+  fulfillmentOrderMove?: Resolver<
     ApiResolversTypes["FulfillmentOrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderMoveArgs, "input">
   >;
-  fulfillmentOrderReleaseHold: Resolver<
+  fulfillmentOrderReleaseHold?: Resolver<
     ApiResolversTypes["FulfillmentOrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderReleaseHoldArgs, "input">
   >;
-  fulfillmentOrderSplit: Resolver<
+  fulfillmentOrderSplit?: Resolver<
     ApiResolversTypes["FulfillmentOrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderSplitArgs, "input">
   >;
-  fulfillmentOrderSubmit: Resolver<
+  fulfillmentOrderSubmit?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationFulfillmentOrderSubmitArgs, "input">
   >;
-  orderAdminNoteUpdate: Resolver<
+  orderAdminNoteUpdate?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderAdminNoteUpdateArgs, "input">
   >;
-  orderArchive: Resolver<
+  orderArchive?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderArchiveArgs, "input">
   >;
-  orderCancel: Resolver<
+  orderCancel?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCancelArgs, "input">
   >;
-  orderClose: Resolver<
+  orderClose?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCloseArgs, "input">
   >;
-  orderCommentAdd: Resolver<
+  orderCommentAdd?: Resolver<
     ApiResolversTypes["OrderActivityPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCommentAddArgs, "input">
   >;
-  orderCompleteDraft: Resolver<
+  orderCompleteDraft?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCompleteDraftArgs, "input">
   >;
-  orderCreate: Resolver<
+  orderCreate?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCreateArgs, "input">
   >;
-  orderCustomFieldsUpdate: Resolver<
+  orderCustomFieldsUpdate?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCustomFieldsUpdateArgs, "input">
   >;
-  orderCustomerSet: Resolver<
+  orderCustomerSet?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderCustomerSetArgs, "input">
   >;
-  orderDelete: Resolver<
+  orderDelete?: Resolver<
     ApiResolversTypes["OrderDeletePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderDeleteArgs, "input">
   >;
-  orderEditAbandon: Resolver<
+  orderEditAbandon?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditAbandonArgs, "input">
   >;
-  orderEditBegin: Resolver<
+  orderEditBegin?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditBeginArgs, "input">
   >;
-  orderEditCommit: Resolver<
+  orderEditCommit?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditCommitArgs, "input">
   >;
-  orderEditDiscountAdd: Resolver<
+  orderEditDiscountAdd?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditDiscountAddArgs, "input">
   >;
-  orderEditDiscountRemove: Resolver<
+  orderEditDiscountRemove?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditDiscountRemoveArgs, "input">
   >;
-  orderEditLineAdd: Resolver<
+  orderEditLineAdd?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditLineAddArgs, "input">
   >;
-  orderEditLineRemove: Resolver<
+  orderEditLineRemove?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditLineRemoveArgs, "input">
   >;
-  orderEditLineUpdate: Resolver<
+  orderEditLineUpdate?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditLineUpdateArgs, "input">
   >;
-  orderEditShippingUpdate: Resolver<
+  orderEditShippingUpdate?: Resolver<
     ApiResolversTypes["OrderEditPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderEditShippingUpdateArgs, "input">
   >;
-  orderExchangeCancel: Resolver<
+  orderExchangeCancel?: Resolver<
     ApiResolversTypes["OrderExchangePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderExchangeCancelArgs, "input">
   >;
-  orderExchangeCreate: Resolver<
+  orderExchangeCreate?: Resolver<
     ApiResolversTypes["OrderExchangePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderExchangeCreateArgs, "input">
   >;
-  orderIntegrationLinkDetach: Resolver<
+  orderIntegrationLinkDetach?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderIntegrationLinkDetachArgs, "input">
   >;
-  orderIntegrationSyncRequest: Resolver<
+  orderIntegrationSyncRequest?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderIntegrationSyncRequestArgs, "input">
   >;
-  orderIntegrationSyncRetry: Resolver<
+  orderIntegrationSyncRetry?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderIntegrationSyncRetryArgs, "input">
   >;
-  orderLineAdd: Resolver<
+  orderLineAdd?: Resolver<
     ApiResolversTypes["OrderLinePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderLineAddArgs, "input">
   >;
-  orderLineDelete: Resolver<
+  orderLineDelete?: Resolver<
     ApiResolversTypes["OrderDeletePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderLineDeleteArgs, "input">
   >;
-  orderLineUpdate: Resolver<
+  orderLineUpdate?: Resolver<
     ApiResolversTypes["OrderLinePayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderLineUpdateArgs, "input">
   >;
-  orderManualPaymentRecord: Resolver<
+  orderManualPaymentRecord?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderManualPaymentRecordArgs, "input">
   >;
-  orderPaymentCapture: Resolver<
+  orderPaymentCapture?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderPaymentCaptureArgs, "input">
   >;
-  orderPaymentRetry: Resolver<
+  orderPaymentRetry?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderPaymentRetryArgs, "input">
   >;
-  orderPaymentStatusOverride: Resolver<
+  orderPaymentStatusOverride?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderPaymentStatusOverrideArgs, "input">
   >;
-  orderPaymentVoid: Resolver<
+  orderPaymentVoid?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderPaymentVoidArgs, "input">
   >;
-  orderRefundCreate: Resolver<
+  orderRefundCreate?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderRefundCreateArgs, "input">
   >;
-  orderReopen: Resolver<
+  orderReopen?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReopenArgs, "input">
   >;
-  orderReturnApprove: Resolver<
+  orderReturnApprove?: Resolver<
     ApiResolversTypes["OrderReturnPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReturnApproveArgs, "input">
   >;
-  orderReturnCancel: Resolver<
+  orderReturnCancel?: Resolver<
     ApiResolversTypes["OrderReturnPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReturnCancelArgs, "input">
   >;
-  orderReturnCreate: Resolver<
+  orderReturnCreate?: Resolver<
     ApiResolversTypes["OrderReturnPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReturnCreateArgs, "input">
   >;
-  orderReturnReceive: Resolver<
+  orderReturnReceive?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReturnReceiveArgs, "input">
   >;
-  orderReturnReject: Resolver<
+  orderReturnReject?: Resolver<
     ApiResolversTypes["OrderReturnPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderReturnRejectArgs, "input">
   >;
-  orderTagsUpdate: Resolver<
+  orderTagsUpdate?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderTagsUpdateArgs, "input">
   >;
-  orderUnarchive: Resolver<
+  orderUnarchive?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderUnarchiveArgs, "input">
   >;
-  orderUpdate: Resolver<
+  orderUpdate?: Resolver<
     ApiResolversTypes["OrderPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderUpdateArgs, "input">
   >;
-  ordersBulkAction: Resolver<
+  ordersBulkAction?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrdersBulkActionArgs, "input">
   >;
-  shipmentCancel: Resolver<
+  shipmentCancel?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationShipmentCancelArgs, "input">
   >;
-  shipmentCreate: Resolver<
+  shipmentCreate?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationShipmentCreateArgs, "input">
   >;
-  shipmentMarkDelivered: Resolver<
+  shipmentMarkDelivered?: Resolver<
     ApiResolversTypes["ShipmentPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationShipmentMarkDeliveredArgs, "input">
   >;
-  shipmentMarkShipped: Resolver<
+  shipmentMarkShipped?: Resolver<
     ApiResolversTypes["ShipmentPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationShipmentMarkShippedArgs, "input">
   >;
-  shipmentReconcile: Resolver<
+  shipmentReconcile?: Resolver<
     ApiResolversTypes["OrderOperationPayload"],
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationShipmentReconcileArgs, "input">
   >;
-  shipmentTrackingUpdate: Resolver<
+  shipmentTrackingUpdate?: Resolver<
     ApiResolversTypes["ShipmentPayload"],
     ParentType,
     ContextType,
@@ -6512,31 +6528,31 @@ export type ApiOrdersQueryResolvers<
   ParentType extends ApiResolversParentTypes["OrdersQuery"] =
     ApiResolversParentTypes["OrdersQuery"],
 > = {
-  order: Resolver<
+  order?: Resolver<
     Maybe<ApiResolversTypes["Order"]>,
     ParentType,
     ContextType,
     RequireFields<ApiOrdersQueryOrderArgs, "id">
   >;
-  orderByNumber: Resolver<
+  orderByNumber?: Resolver<
     Maybe<ApiResolversTypes["Order"]>,
     ParentType,
     ContextType,
     RequireFields<ApiOrdersQueryOrderByNumberArgs, "number">
   >;
-  orderEditSession: Resolver<
+  orderEditSession?: Resolver<
     Maybe<ApiResolversTypes["OrderEditSession"]>,
     ParentType,
     ContextType,
     RequireFields<ApiOrdersQueryOrderEditSessionArgs, "id">
   >;
-  orderOperation: Resolver<
+  orderOperation?: Resolver<
     Maybe<ApiResolversTypes["OrderOperation"]>,
     ParentType,
     ContextType,
     RequireFields<ApiOrdersQueryOrderOperationArgs, "id">
   >;
-  orders: Resolver<
+  orders?: Resolver<
     ApiResolversTypes["OrderConnection"],
     ParentType,
     ContextType,
@@ -6549,10 +6565,10 @@ export type ApiPageInfoResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["PageInfo"] = ApiResolversParentTypes["PageInfo"],
 > = {
-  endCursor: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  hasNextPage: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  hasPreviousPage: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
-  startCursor: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  endCursor?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  hasNextPage?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  hasPreviousPage?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
+  startCursor?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6560,29 +6576,29 @@ export type ApiQueryResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Query"] = ApiResolversParentTypes["Query"],
 > = {
-  ordersQuery: Resolver<ApiResolversTypes["OrdersQuery"], ParentType, ContextType>;
+  ordersQuery?: Resolver<ApiResolversTypes["OrdersQuery"], ParentType, ContextType>;
 };
 
 export type ApiShipmentResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Shipment"] = ApiResolversParentTypes["Shipment"],
 > = {
-  createdAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  deliveredAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  estimatedDeliveryAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  events: Resolver<Array<ApiResolversTypes["ShipmentEvent"]>, ParentType, ContextType>;
-  fulfillment: Resolver<ApiResolversTypes["Fulfillment"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  order: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
-  packages: Resolver<Array<ApiResolversTypes["ShipmentPackage"]>, ParentType, ContextType>;
-  providerCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  providerReference: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  serviceCode: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  shippedAt: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["ShipmentStatus"], ParentType, ContextType>;
-  tracking: Resolver<Array<ApiResolversTypes["ShipmentTracking"]>, ParentType, ContextType>;
-  updatedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  deliveredAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  estimatedDeliveryAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  events?: Resolver<Array<ApiResolversTypes["ShipmentEvent"]>, ParentType, ContextType>;
+  fulfillment?: Resolver<ApiResolversTypes["Fulfillment"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
+  packages?: Resolver<Array<ApiResolversTypes["ShipmentPackage"]>, ParentType, ContextType>;
+  providerCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  providerReference?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  serviceCode?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  shippedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["ShipmentStatus"], ParentType, ContextType>;
+  tracking?: Resolver<Array<ApiResolversTypes["ShipmentTracking"]>, ParentType, ContextType>;
+  updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6591,12 +6607,12 @@ export type ApiShipmentEventResolvers<
   ParentType extends ApiResolversParentTypes["ShipmentEvent"] =
     ApiResolversParentTypes["ShipmentEvent"],
 > = {
-  happenedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  location: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  message: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  recordedAt: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  status: Resolver<ApiResolversTypes["ShipmentStatus"], ParentType, ContextType>;
+  happenedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  location?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  message?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  recordedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
+  status?: Resolver<ApiResolversTypes["ShipmentStatus"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6605,11 +6621,11 @@ export type ApiShipmentPackageResolvers<
   ParentType extends ApiResolversParentTypes["ShipmentPackage"] =
     ApiResolversParentTypes["ShipmentPackage"],
 > = {
-  declaredValue: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
-  dimensions: Resolver<Maybe<ApiResolversTypes["Dimensions"]>, ParentType, ContextType>;
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
-  items: Resolver<Array<ApiResolversTypes["ShipmentPackageItem"]>, ParentType, ContextType>;
-  weight: Resolver<Maybe<ApiResolversTypes["Weight"]>, ParentType, ContextType>;
+  declaredValue?: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
+  dimensions?: Resolver<Maybe<ApiResolversTypes["Dimensions"]>, ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  items?: Resolver<Array<ApiResolversTypes["ShipmentPackageItem"]>, ParentType, ContextType>;
+  weight?: Resolver<Maybe<ApiResolversTypes["Weight"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6618,8 +6634,8 @@ export type ApiShipmentPackageItemResolvers<
   ParentType extends ApiResolversParentTypes["ShipmentPackageItem"] =
     ApiResolversParentTypes["ShipmentPackageItem"],
 > = {
-  orderLine: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
-  quantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
+  orderLine?: Resolver<ApiResolversTypes["OrderLine"], ParentType, ContextType>;
+  quantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6628,9 +6644,9 @@ export type ApiShipmentPayloadResolvers<
   ParentType extends ApiResolversParentTypes["ShipmentPayload"] =
     ApiResolversParentTypes["ShipmentPayload"],
 > = {
-  order: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
-  shipment: Resolver<Maybe<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
-  userErrors: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
+  order?: Resolver<Maybe<ApiResolversTypes["Order"]>, ParentType, ContextType>;
+  shipment?: Resolver<Maybe<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ApiResolversTypes["OrderUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6639,9 +6655,9 @@ export type ApiShipmentTrackingResolvers<
   ParentType extends ApiResolversParentTypes["ShipmentTracking"] =
     ApiResolversParentTypes["ShipmentTracking"],
 > = {
-  company: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
-  number: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  url: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
+  company?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
+  number?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
+  url?: Resolver<Maybe<ApiResolversTypes["URL"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6653,7 +6669,7 @@ export type ApiUserResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["User"] = ApiResolversParentTypes["User"],
 > = {
-  id: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -6661,94 +6677,94 @@ export type ApiWeightResolvers<
   ContextType = GraphQLContext,
   ParentType extends ApiResolversParentTypes["Weight"] = ApiResolversParentTypes["Weight"],
 > = {
-  unit: Resolver<ApiResolversTypes["WeightUnit"], ParentType, ContextType>;
-  value: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
+  unit?: Resolver<ApiResolversTypes["WeightUnit"], ParentType, ContextType>;
+  value?: Resolver<ApiResolversTypes["Float"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type ApiResolvers<ContextType = GraphQLContext> = {
-  ApiKey: ApiApiKeyResolvers<ContextType>;
-  BigInt: GraphQLScalarType;
-  CalculatedOrder: ApiCalculatedOrderResolvers<ContextType>;
-  Checkout: ApiCheckoutResolvers<ContextType>;
-  Connection: ApiConnectionResolvers<ContextType>;
-  Customer: ApiCustomerResolvers<ContextType>;
-  DateTime: GraphQLScalarType;
-  Decimal: GraphQLScalarType;
-  Dimensions: ApiDimensionsResolvers<ContextType>;
-  DisplayableError: ApiDisplayableErrorResolvers<ContextType>;
-  Email: GraphQLScalarType;
-  Fulfillment: ApiFulfillmentResolvers<ContextType>;
-  FulfillmentHold: ApiFulfillmentHoldResolvers<ContextType>;
-  FulfillmentLine: ApiFulfillmentLineResolvers<ContextType>;
-  FulfillmentOrder: ApiFulfillmentOrderResolvers<ContextType>;
-  FulfillmentOrderLine: ApiFulfillmentOrderLineResolvers<ContextType>;
-  FulfillmentOrderPayload: ApiFulfillmentOrderPayloadResolvers<ContextType>;
-  FulfillmentPayload: ApiFulfillmentPayloadResolvers<ContextType>;
-  FulfillmentServiceRoute: ApiFulfillmentServiceRouteResolvers<ContextType>;
-  JSON: GraphQLScalarType;
-  Money: ApiMoneyResolvers<ContextType>;
-  Mutation: ApiMutationResolvers<ContextType>;
-  Node: ApiNodeResolvers<ContextType>;
-  Order: ApiOrderResolvers<ContextType>;
-  OrderActivity: ApiOrderActivityResolvers<ContextType>;
-  OrderActivityConnection: ApiOrderActivityConnectionResolvers<ContextType>;
-  OrderActivityEdge: ApiOrderActivityEdgeResolvers<ContextType>;
-  OrderActivityPayload: ApiOrderActivityPayloadResolvers<ContextType>;
-  OrderActor: ApiOrderActorResolvers<ContextType>;
-  OrderAddress: ApiOrderAddressResolvers<ContextType>;
-  OrderCheckoutPlacement: ApiOrderCheckoutPlacementResolvers<ContextType>;
-  OrderConnection: ApiOrderConnectionResolvers<ContextType>;
-  OrderContact: ApiOrderContactResolvers<ContextType>;
-  OrderCost: ApiOrderCostResolvers<ContextType>;
-  OrderCustomerSnapshot: ApiOrderCustomerSnapshotResolvers<ContextType>;
-  OrderDeletePayload: ApiOrderDeletePayloadResolvers<ContextType>;
-  OrderDeliveryGroup: ApiOrderDeliveryGroupResolvers<ContextType>;
-  OrderDeliveryMethod: ApiOrderDeliveryMethodResolvers<ContextType>;
-  OrderDiscount: ApiOrderDiscountResolvers<ContextType>;
-  OrderEdge: ApiOrderEdgeResolvers<ContextType>;
-  OrderEditChange: ApiOrderEditChangeResolvers<ContextType>;
-  OrderEditPayload: ApiOrderEditPayloadResolvers<ContextType>;
-  OrderEditSession: ApiOrderEditSessionResolvers<ContextType>;
-  OrderExchange: ApiOrderExchangeResolvers<ContextType>;
-  OrderExchangeConnection: ApiOrderExchangeConnectionResolvers<ContextType>;
-  OrderExchangeEdge: ApiOrderExchangeEdgeResolvers<ContextType>;
-  OrderExchangePayload: ApiOrderExchangePayloadResolvers<ContextType>;
-  OrderIntegrationLink: ApiOrderIntegrationLinkResolvers<ContextType>;
-  OrderLine: ApiOrderLineResolvers<ContextType>;
-  OrderLineCost: ApiOrderLineCostResolvers<ContextType>;
-  OrderLinePayload: ApiOrderLinePayloadResolvers<ContextType>;
-  OrderOperation: ApiOrderOperationResolvers<ContextType>;
-  OrderOperationPayload: ApiOrderOperationPayloadResolvers<ContextType>;
-  OrderPayload: ApiOrderPayloadResolvers<ContextType>;
-  OrderPayment: ApiOrderPaymentResolvers<ContextType>;
-  OrderPaymentAttempt: ApiOrderPaymentAttemptResolvers<ContextType>;
-  OrderPaymentDispute: ApiOrderPaymentDisputeResolvers<ContextType>;
-  OrderPaymentMethod: ApiOrderPaymentMethodResolvers<ContextType>;
-  OrderPaymentTransaction: ApiOrderPaymentTransactionResolvers<ContextType>;
-  OrderRefund: ApiOrderRefundResolvers<ContextType>;
-  OrderRefundConnection: ApiOrderRefundConnectionResolvers<ContextType>;
-  OrderRefundEdge: ApiOrderRefundEdgeResolvers<ContextType>;
-  OrderRefundLine: ApiOrderRefundLineResolvers<ContextType>;
-  OrderReturn: ApiOrderReturnResolvers<ContextType>;
-  OrderReturnConnection: ApiOrderReturnConnectionResolvers<ContextType>;
-  OrderReturnEdge: ApiOrderReturnEdgeResolvers<ContextType>;
-  OrderReturnLine: ApiOrderReturnLineResolvers<ContextType>;
-  OrderReturnPayload: ApiOrderReturnPayloadResolvers<ContextType>;
-  OrderSource: ApiOrderSourceResolvers<ContextType>;
-  OrderTaxLine: ApiOrderTaxLineResolvers<ContextType>;
-  OrderUserError: ApiOrderUserErrorResolvers<ContextType>;
-  OrdersMutation: ApiOrdersMutationResolvers<ContextType>;
-  OrdersQuery: ApiOrdersQueryResolvers<ContextType>;
-  PageInfo: ApiPageInfoResolvers<ContextType>;
-  Query: ApiQueryResolvers<ContextType>;
-  Shipment: ApiShipmentResolvers<ContextType>;
-  ShipmentEvent: ApiShipmentEventResolvers<ContextType>;
-  ShipmentPackage: ApiShipmentPackageResolvers<ContextType>;
-  ShipmentPackageItem: ApiShipmentPackageItemResolvers<ContextType>;
-  ShipmentPayload: ApiShipmentPayloadResolvers<ContextType>;
-  ShipmentTracking: ApiShipmentTrackingResolvers<ContextType>;
-  URL: GraphQLScalarType;
-  User: ApiUserResolvers<ContextType>;
-  Weight: ApiWeightResolvers<ContextType>;
+  ApiKey?: ApiApiKeyResolvers<ContextType>;
+  BigInt?: GraphQLScalarType;
+  CalculatedOrder?: ApiCalculatedOrderResolvers<ContextType>;
+  Checkout?: ApiCheckoutResolvers<ContextType>;
+  Connection?: ApiConnectionResolvers<ContextType>;
+  Customer?: ApiCustomerResolvers<ContextType>;
+  DateTime?: GraphQLScalarType;
+  Decimal?: GraphQLScalarType;
+  Dimensions?: ApiDimensionsResolvers<ContextType>;
+  DisplayableError?: ApiDisplayableErrorResolvers<ContextType>;
+  Email?: GraphQLScalarType;
+  Fulfillment?: ApiFulfillmentResolvers<ContextType>;
+  FulfillmentHold?: ApiFulfillmentHoldResolvers<ContextType>;
+  FulfillmentLine?: ApiFulfillmentLineResolvers<ContextType>;
+  FulfillmentOrder?: ApiFulfillmentOrderResolvers<ContextType>;
+  FulfillmentOrderLine?: ApiFulfillmentOrderLineResolvers<ContextType>;
+  FulfillmentOrderPayload?: ApiFulfillmentOrderPayloadResolvers<ContextType>;
+  FulfillmentPayload?: ApiFulfillmentPayloadResolvers<ContextType>;
+  FulfillmentServiceRoute?: ApiFulfillmentServiceRouteResolvers<ContextType>;
+  JSON?: GraphQLScalarType;
+  Money?: ApiMoneyResolvers<ContextType>;
+  Mutation?: ApiMutationResolvers<ContextType>;
+  Node?: ApiNodeResolvers<ContextType>;
+  Order?: ApiOrderResolvers<ContextType>;
+  OrderActivity?: ApiOrderActivityResolvers<ContextType>;
+  OrderActivityConnection?: ApiOrderActivityConnectionResolvers<ContextType>;
+  OrderActivityEdge?: ApiOrderActivityEdgeResolvers<ContextType>;
+  OrderActivityPayload?: ApiOrderActivityPayloadResolvers<ContextType>;
+  OrderActor?: ApiOrderActorResolvers<ContextType>;
+  OrderAddress?: ApiOrderAddressResolvers<ContextType>;
+  OrderCheckoutPlacement?: ApiOrderCheckoutPlacementResolvers<ContextType>;
+  OrderConnection?: ApiOrderConnectionResolvers<ContextType>;
+  OrderContact?: ApiOrderContactResolvers<ContextType>;
+  OrderCost?: ApiOrderCostResolvers<ContextType>;
+  OrderCustomerSnapshot?: ApiOrderCustomerSnapshotResolvers<ContextType>;
+  OrderDeletePayload?: ApiOrderDeletePayloadResolvers<ContextType>;
+  OrderDeliveryGroup?: ApiOrderDeliveryGroupResolvers<ContextType>;
+  OrderDeliveryMethod?: ApiOrderDeliveryMethodResolvers<ContextType>;
+  OrderDiscount?: ApiOrderDiscountResolvers<ContextType>;
+  OrderEdge?: ApiOrderEdgeResolvers<ContextType>;
+  OrderEditChange?: ApiOrderEditChangeResolvers<ContextType>;
+  OrderEditPayload?: ApiOrderEditPayloadResolvers<ContextType>;
+  OrderEditSession?: ApiOrderEditSessionResolvers<ContextType>;
+  OrderExchange?: ApiOrderExchangeResolvers<ContextType>;
+  OrderExchangeConnection?: ApiOrderExchangeConnectionResolvers<ContextType>;
+  OrderExchangeEdge?: ApiOrderExchangeEdgeResolvers<ContextType>;
+  OrderExchangePayload?: ApiOrderExchangePayloadResolvers<ContextType>;
+  OrderIntegrationLink?: ApiOrderIntegrationLinkResolvers<ContextType>;
+  OrderLine?: ApiOrderLineResolvers<ContextType>;
+  OrderLineCost?: ApiOrderLineCostResolvers<ContextType>;
+  OrderLinePayload?: ApiOrderLinePayloadResolvers<ContextType>;
+  OrderOperation?: ApiOrderOperationResolvers<ContextType>;
+  OrderOperationPayload?: ApiOrderOperationPayloadResolvers<ContextType>;
+  OrderPayload?: ApiOrderPayloadResolvers<ContextType>;
+  OrderPayment?: ApiOrderPaymentResolvers<ContextType>;
+  OrderPaymentAttempt?: ApiOrderPaymentAttemptResolvers<ContextType>;
+  OrderPaymentDispute?: ApiOrderPaymentDisputeResolvers<ContextType>;
+  OrderPaymentMethod?: ApiOrderPaymentMethodResolvers<ContextType>;
+  OrderPaymentTransaction?: ApiOrderPaymentTransactionResolvers<ContextType>;
+  OrderRefund?: ApiOrderRefundResolvers<ContextType>;
+  OrderRefundConnection?: ApiOrderRefundConnectionResolvers<ContextType>;
+  OrderRefundEdge?: ApiOrderRefundEdgeResolvers<ContextType>;
+  OrderRefundLine?: ApiOrderRefundLineResolvers<ContextType>;
+  OrderReturn?: ApiOrderReturnResolvers<ContextType>;
+  OrderReturnConnection?: ApiOrderReturnConnectionResolvers<ContextType>;
+  OrderReturnEdge?: ApiOrderReturnEdgeResolvers<ContextType>;
+  OrderReturnLine?: ApiOrderReturnLineResolvers<ContextType>;
+  OrderReturnPayload?: ApiOrderReturnPayloadResolvers<ContextType>;
+  OrderSource?: ApiOrderSourceResolvers<ContextType>;
+  OrderTaxLine?: ApiOrderTaxLineResolvers<ContextType>;
+  OrderUserError?: ApiOrderUserErrorResolvers<ContextType>;
+  OrdersMutation?: ApiOrdersMutationResolvers<ContextType>;
+  OrdersQuery?: ApiOrdersQueryResolvers<ContextType>;
+  PageInfo?: ApiPageInfoResolvers<ContextType>;
+  Query?: ApiQueryResolvers<ContextType>;
+  Shipment?: ApiShipmentResolvers<ContextType>;
+  ShipmentEvent?: ApiShipmentEventResolvers<ContextType>;
+  ShipmentPackage?: ApiShipmentPackageResolvers<ContextType>;
+  ShipmentPackageItem?: ApiShipmentPackageItemResolvers<ContextType>;
+  ShipmentPayload?: ApiShipmentPayloadResolvers<ContextType>;
+  ShipmentTracking?: ApiShipmentTrackingResolvers<ContextType>;
+  URL?: GraphQLScalarType;
+  User?: ApiUserResolvers<ContextType>;
+  Weight?: ApiWeightResolvers<ContextType>;
 };

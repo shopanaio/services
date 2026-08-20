@@ -20,9 +20,7 @@ import {
   type AdminOrderCommandResult,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import { Repository } from "../../repositories/Repository.js";
-import type {
-  AdminOrderExternalEffect,
-} from "../../application/admin/AdminOrderCommandPorts.js";
+import type { AdminOrderExternalEffect } from "../../application/admin/AdminOrderCommandPorts.js";
 import type { AdminOrderBulkTarget } from "../../application/admin/AdminOrderBulkSelection.js";
 import type { EventEmitResult } from "@shopana/events";
 import { AdminOrderCommandService } from "../../application/admin/AdminOrderCommandService.js";

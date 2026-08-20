@@ -334,7 +334,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       },
     );
 
-    this.servers = await startServer(this.broker as any);
+    this.servers = await startServer(this.broker, this.repository);
     this.logger.log("Orders service started");
   }
 

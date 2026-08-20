@@ -49,6 +49,9 @@ function compilePredicate(predicate: AdminOrderBulkPredicate): SQL {
     )`;
     return predicate.value ? tracking : sql`NOT (${tracking})`;
   }
+  if (predicate.kind !== "comparison") {
+    throw new Error("ORDER_BULK_FILTER_INVALID");
+  }
   return compileComparison(predicate.field, predicate.operator, predicate.value);
 }
 
