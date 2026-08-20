@@ -1,4 +1,5 @@
 import { TransactionManager } from "@shopana/shared-kernel";
+import type { DbosTransactionBridge, PostgresTransactionOptions } from "@shopana/shared-kernel";
 import type { Database } from "@src/infrastructure/db/database";
 import { IdempotencyRepository } from "./idempotency/IdempotencyRepository.js";
 import { OrderNumberRepository } from "./order-number/OrderNumberRepository.js";
@@ -7,9 +8,11 @@ import { OrderLineItemRepository } from "./order/OrderLineItemRepository.js";
 import { OrderReadRepository } from "./order/OrderReadRepository.js";
 import { OrderRepository } from "./order/OrderRepository.js";
 import { DeliveryFulfillmentRepository } from "./fulfillment/DeliveryFulfillmentRepository.js";
+import { OrderCheckoutPlacementRepository } from "./placement/OrderCheckoutPlacementRepository.js";
 
 export interface RepositoryConfig {
   db: Database;
+  dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>;
 }
 
 export type { Database };
@@ -22,7 +25,9 @@ export class Repository {
   readonly orderNumber: OrderNumberRepository;
   readonly pii: OrdersPiiRepository;
   readonly fulfillment: DeliveryFulfillmentRepository;
+  readonly checkoutPlacement: OrderCheckoutPlacementRepository;
   readonly txManager: TransactionManager<Database>;
+  readonly dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>;
 
   private constructor(
     order: OrderRepository,
@@ -32,7 +37,9 @@ export class Repository {
     orderNumber: OrderNumberRepository,
     pii: OrdersPiiRepository,
     fulfillment: DeliveryFulfillmentRepository,
+    checkoutPlacement: OrderCheckoutPlacementRepository,
     txManager: TransactionManager<Database>,
+    dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>,
   ) {
     this.order = order;
     this.orderRead = orderRead;
@@ -41,11 +48,13 @@ export class Repository {
     this.orderNumber = orderNumber;
     this.pii = pii;
     this.fulfillment = fulfillment;
+    this.checkoutPlacement = checkoutPlacement;
     this.txManager = txManager;
+    this.dbosTransactionBridge = dbosTransactionBridge;
   }
 
   static async create(config: RepositoryConfig): Promise<Repository> {
-    const { db } = config;
+    const { db, dbosTransactionBridge } = config;
     const txManager = new TransactionManager(db);
     const idempotency = new IdempotencyRepository(db, txManager);
     const orderNumber = new OrderNumberRepository(db, txManager);
@@ -54,6 +63,7 @@ export class Repository {
     const orderLineItem = new OrderLineItemRepository(db, txManager);
     const order = new OrderRepository(db, txManager, orderNumber, pii, idempotency);
     const fulfillment = new DeliveryFulfillmentRepository(db, txManager);
+    const checkoutPlacement = new OrderCheckoutPlacementRepository(db, txManager, orderNumber);
 
     return new Repository(
       order,
@@ -63,7 +73,9 @@ export class Repository {
       orderNumber,
       pii,
       fulfillment,
+      checkoutPlacement,
       txManager,
+      dbosTransactionBridge,
     );
   }
 

@@ -3,6 +3,7 @@ import {
   DeliveryActions,
   InventoryCheckoutActions,
   OrderLoyaltyActions,
+  OrderCheckoutActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
   type Delivery,
@@ -21,12 +22,14 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
+  TransactionalStep,
 } from "@shopana/shared-kernel";
 import { CheckoutPlacementRepository } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
 import type { LoyaltyReservation, PlaceOrderWorkflowResult } from "./PlaceOrderWorkflow.js";
 import type { CheckoutCompensationFailure } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
 import { compensationFailures } from "../infrastructure/observability/checkoutObservability.js";
+import { CheckoutTransactionKernel } from "../infrastructure/db/CheckoutTransactionKernel.js";
 
 export interface MonitorPlacedPaymentInput {
   organizationId: string;
@@ -51,6 +54,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     @InjectBroker("checkout") broker: ServiceBroker,
     @Inject(CheckoutPlacementRepository)
     private readonly placements: CheckoutPlacementRepository,
+    readonly transactions: CheckoutTransactionKernel,
   ) {
     super(broker);
   }
@@ -84,6 +88,8 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         );
         if (finalizationFailures.length > 0) {
           await this.recordCompensationFailures(input.placementId, finalizationFailures);
+        } else {
+          await this.confirmOrderPlacement(input, session, operation.operationId, eligibleAt);
         }
         return this.replacePlacementResult(
           input.placementId,
@@ -91,6 +97,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         );
       }
       if (isTerminalFailure(session.state)) {
+        await this.cancelOrderPlacement(input, session, operation.operationId);
         const failures = await this.runCompensations([
           ["releaseInventory", () => this.releaseInventory(input)],
           ["reverseDiscountUsage", () => this.reverseDiscountUsage(input)],
@@ -153,6 +160,64 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         if (!isPaymentRevisionConflict(error)) throw error;
       }
     }
+  }
+
+  @WorkflowStep()
+  private async confirmOrderPlacement(
+    input: MonitorPlacedPaymentInput,
+    session: Payments.PaymentSessionSnapshot,
+    operationId: string,
+    finalizedAt: string,
+  ): Promise<void> {
+    await this.broker.call(OrderCheckoutActions.confirmPlacement, {
+      contractVersion: 1,
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      placementId: input.placementId,
+      orderId: input.orderId,
+      evidence:
+        session.state === "AUTHORIZED"
+          ? {
+              kind: "PAYMENT_AUTHORIZED",
+              paymentSessionId: session.paymentSessionId,
+              operationId,
+            }
+          : {
+              kind: "PAYMENT_CAPTURED",
+              paymentSessionId: session.paymentSessionId,
+              operationId,
+            },
+      finalizedAt,
+      idempotencyKey: `${input.idempotencyKey}:order-confirm`,
+      correlationId: input.correlationId,
+    });
+  }
+
+  @WorkflowStep()
+  private async cancelOrderPlacement(
+    input: MonitorPlacedPaymentInput,
+    session: Payments.PaymentSessionSnapshot,
+    operationId: string,
+  ): Promise<void> {
+    const failedAt = new Date(await DBOS.now()).toISOString();
+    await this.broker.call(OrderCheckoutActions.cancelPlacement, {
+      contractVersion: 1,
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      placementId: input.placementId,
+      orderId: input.orderId,
+      reasonCode:
+        session.state === "EXPIRED"
+          ? "PAYMENT_EXPIRED"
+          : session.state === "CANCELLED" || session.state === "VOIDED"
+            ? "PAYMENT_CANCELLED"
+            : "PAYMENT_FAILED",
+      paymentSessionId: session.paymentSessionId,
+      paymentOperationId: operationId,
+      failedAt,
+      idempotencyKey: `${input.idempotencyKey}:order-cancel`,
+      correlationId: input.correlationId,
+    });
   }
 
   @WorkflowStep()
@@ -433,7 +498,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     return failures;
   }
 
-  @WorkflowStep()
+  @MonitorPlacementTransactionalStep()
   private recordCompensationFailures(
     placementId: string,
     failures: readonly CheckoutCompensationFailure[],
@@ -441,7 +506,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     return this.placements.recordCompensationFailures(placementId, failures);
   }
 
-  @WorkflowStep()
+  @MonitorPlacementTransactionalStep()
   private async replacePlacementResult(
     placementId: string,
     result: PlaceOrderWorkflowResult,
@@ -453,6 +518,13 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     );
     return placement.result!;
   }
+}
+
+function MonitorPlacementTransactionalStep() {
+  return TransactionalStep({
+    txManager: (self: MonitorPlacedPaymentWorkflow) => self.transactions.txManager,
+    bridge: (self: MonitorPlacedPaymentWorkflow) => self.transactions.dbosTransactionBridge,
+  });
 }
 
 function paymentDeadline(session: Payments.PaymentSessionSnapshot): string {

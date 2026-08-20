@@ -208,12 +208,34 @@ export { CheckoutCompletionActionNames, CheckoutCompletionActions } from "./chec
 // Orders service review-purchase verification
 export * as Orders from "./orders.js";
 export {
+  OrderCheckoutActionNames,
+  OrderCheckoutActions,
   OrderLoyaltyActionNames,
   OrderLoyaltyActions,
   OrderFulfillmentActionNames,
   OrderFulfillmentActions,
   OrderReviewActionNames,
   OrderReviewActions,
+} from "./orders.js";
+export type {
+  OrderPlacementMoneyV1,
+  OrderPlacementLineV1,
+  OrderPlacementCustomerSnapshotV1,
+  OrderPlacementAddressV1,
+  OrderPlacementDeliveryGroupV1,
+  OrderPlacementDiscountV1,
+  OrderPlacementTaxLineV1,
+  OrderPlacementPaymentMethodV1,
+  OrderPlacementCostV1,
+  OrderPlacementSnapshotV1,
+  OrderPlacementLoyaltyCommitmentV1,
+  OrderPlacementCommitmentsV1,
+  CreateOrderFromCheckoutPlacementV1Params,
+  CreateOrderFromCheckoutPlacementV1Result,
+  ConfirmOrderFromCheckoutPlacementV1Params,
+  CancelOrderFromCheckoutPlacementV1Params,
+  GetOrderCheckoutPlacementV1Params,
+  OrderCheckoutPlacementV1Result,
 } from "./orders.js";
 export type {
   GetOrderDeliveryShipmentPlanParams,

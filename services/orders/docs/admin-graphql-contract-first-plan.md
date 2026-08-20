@@ -77,8 +77,8 @@ records, по которым можно однозначно проследит�
 - GraphQL `storeId` и `organizationId` берутся только из verified request context и никогда не
   принимаются из Admin input;
 - service-to-service DTO может содержать tenant IDs только как routing claims: Orders не считает их
-  trusted сами по себе, проверяет trusted `BrokerCallContext.caller`, разрешённый вызывающий service и
-  соответствие IDs фактическому resource ownership;
+  trusted сами по себе, проверяет trusted `BrokerCallContext.caller`, разрешённый вызывающий service
+  и соответствие IDs фактическому resource ownership;
 - внешние IDs сохраняются как references, но не заменяют Shopana UUID;
 - provider route фиксируется в момент создания operation и не меняется при retry;
 - provider payload допускается в JSONB, core business facts — в типизированных колонках;
@@ -426,8 +426,8 @@ Order source получает `origin = CHECKOUT`, `source.code = "storefront"`.
 
 `createOrderFromCheckoutPlacementV1` выполняет одну локальную PostgreSQL-транзакцию:
 
-1. Проверяет trusted caller/authorization context, сверяет tenant routing claims с resource ownership
-   и валидирует все Global/typed IDs до transaction Script.
+1. Проверяет trusted caller/authorization context, сверяет tenant routing claims с resource
+   ownership и валидирует все Global/typed IDs до transaction Script.
 2. Нормализует payload и повторно вычисляет canonical `snapshotHash`.
 3. Проверяет idempotency record по `(store_id, operation, idempotency_key)` и request hash.
 4. Проверяет uniqueness `(store_id, placement_id)` и `(store_id, checkout_id)`.
@@ -582,17 +582,17 @@ lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
 
 ### 6.15. Точки подключения в текущем коде
 
-| Текущий компонент                                                                      | Роль после реализации RFC                                                                                                     |
-| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `services/checkout/src/interfaces/gql-storefront-api/schema/checkoutPayment.graphql`   | внешний `PlaceOrderInput/Payload` остаётся entry point; при необходимости только документируются новые error/state semantics  |
-| `services/checkout/src/interfaces/gql-storefront-api/resolvers/checkout/placeOrder.ts` | trusted context → DBOS workflow input; Orders напрямую не вызывается                                                          |
-| `services/checkout/src/workflows/PlaceOrderWorkflow.ts`                                | сохраняет saga ownership; вызывает typed create, а затем confirm/cancel handshake в правильной ветке                          |
-| `services/checkout/src/workflows/MonitorPlacedPaymentWorkflow.ts`                      | при settlement финализирует commitments и подтверждает Order; при terminal failure сначала отменяет Order, затем компенсирует |
-| `services/checkout/src/infrastructure/mutations/CheckoutPlacementRepository.ts`        | durable operational state/recovery; вводится invariant `FAILED => order_id IS NULL`                                           |
+| Текущий компонент                                                                      | Роль после реализации RFC                                                                                                                                           |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/checkout/src/interfaces/gql-storefront-api/schema/checkoutPayment.graphql`   | внешний `PlaceOrderInput/Payload` остаётся entry point; при необходимости только документируются новые error/state semantics                                        |
+| `services/checkout/src/interfaces/gql-storefront-api/resolvers/checkout/placeOrder.ts` | trusted context → DBOS workflow input; Orders напрямую не вызывается                                                                                                |
+| `services/checkout/src/workflows/PlaceOrderWorkflow.ts`                                | сохраняет saga ownership; вызывает typed create, а затем confirm/cancel handshake в правильной ветке                                                                |
+| `services/checkout/src/workflows/MonitorPlacedPaymentWorkflow.ts`                      | при settlement финализирует commitments и подтверждает Order; при terminal failure сначала отменяет Order, затем компенсирует                                       |
+| `services/checkout/src/infrastructure/mutations/CheckoutPlacementRepository.ts`        | durable operational state/recovery; вводится invariant `FAILED => order_id IS NULL`                                                                                 |
 | `services/orders/src/orders.nest-service.ts`                                           | регистрирует typed action constants без `any`; принимает `BrokerCallContext`, проверяет caller/resource binding и остаётся thin adapter в `ServiceBroker` workflows |
-| `services/orders/src/application/usecases/orderCreate.ts`                              | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/idempotency transaction           |
-| `services/orders/src/repositories/fulfillment/DeliveryFulfillmentRepository.ts`        | snapshot runtime model удаляется; initial normalized fulfillment orders строятся той же order creation transaction            |
-| `@shopana/broker-types`                                                                | единственный source of truth для V1 create/confirm/cancel/get DTO и action names                                              |
+| `services/orders/src/application/usecases/orderCreate.ts`                              | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/idempotency transaction                                                 |
+| `services/orders/src/repositories/fulfillment/DeliveryFulfillmentRepository.ts`        | snapshot runtime model удаляется; initial normalized fulfillment orders строятся той же order creation transaction                                                  |
+| `@shopana/broker-types`                                                                | единственный source of truth для V1 create/confirm/cancel/get DTO и action names                                                                                    |
 
 Storefront request не должен ждать async payment settlement. Для `REQUIRES_ACTION`,
 `REQUIRES_CONFIRMATION` и `PAYMENT_PENDING` mutation возвращает persisted payload и monitor
@@ -2315,13 +2315,13 @@ Admin UI должен отображать `availableActions` и открыва�
 
 ### 9.2. Concurrency, audit и operational control
 
-| Таблица                     | Назначение                                          | Ключевые поля/constraints                                                                                                                                      |
-| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `orders`                    | canonical state и concurrency revision              | `version > 0`; conditional update по `(store_id, id, version)`                                                                                                 |
-| `order_events`              | immutable audit/integration log, не source of truth | `event_id`, `order_version`, `global_position`, `event_type`, `schema_version`, actor/correlation/causation, payload; unique event ID и order-version/type key |
-| `idempotency_records`       | replay command result                               | `(store_id, operation, idempotency_key)`, request hash, status, response, expiry                                                                               |
-| `order_operations`          | DBOS/Admin async jobs                               | kind/status/order/resource/workflow UUID/failure/progress                                                                                                      |
-| `order_operation_attempts`  | provider/workflow attempts                          | operation, attempt number, route, request/response hashes, error, duration                                                                                     |
+| Таблица                    | Назначение                                          | Ключевые поля/constraints                                                                                                                                      |
+| -------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orders`                   | canonical state и concurrency revision              | `version > 0`; conditional update по `(store_id, id, version)`                                                                                                 |
+| `order_events`             | immutable audit/integration log, не source of truth | `event_id`, `order_version`, `global_position`, `event_type`, `schema_version`, actor/correlation/causation, payload; unique event ID и order-version/type key |
+| `idempotency_records`      | replay command result                               | `(store_id, operation, idempotency_key)`, request hash, status, response, expiry                                                                               |
+| `order_operations`         | DBOS/Admin async jobs                               | kind/status/order/resource/workflow UUID/failure/progress                                                                                                      |
+| `order_operation_attempts` | provider/workflow attempts                          | operation, attempt number, route, request/response hashes, error, duration                                                                                     |
 
 Command transaction algorithm:
 
@@ -2668,10 +2668,10 @@ capability только если это один внешний provider с ед
 service/provider calls. Это относится ко всем Admin mutations, Checkout placement commands, provider
 callbacks, event ingestion, reconciliation и internal/bulk commands. Даже полностью локальная
 операция не выполняет запись напрямую из resolver, broker handler или Script entry point: они
-запускают workflow через `ServiceBroker.runWorkflow()`/`startWorkflow()` с deterministic workflow ID,
-а PostgreSQL mutation выполняется его `@TransactionalStep()`. Raw `WorkflowRegistry` не является
-публичным entry point для resolver, handler или App callback: обход `ServiceBroker` потерял бы trusted
-caller, workflow authorization и context propagation. Канонический service/workflow prefix —
+запускают workflow через `ServiceBroker.runWorkflow()`/`startWorkflow()` с deterministic workflow
+ID, а PostgreSQL mutation выполняется его `@TransactionalStep()`. Raw `WorkflowRegistry` не является
+публичным entry point для resolver, handler или App callback: обход `ServiceBroker` потерял бы
+trusted caller, workflow authorization и context propagation. Канонический service/workflow prefix —
 `order.*`, как у существующего `@InjectBroker("order")` и action constants.
 
 Ниже перечислены характерные long-running workflows; список не ограничивает обязательное правило
@@ -2968,9 +2968,9 @@ services/orders/src/
   запрещён.
 - Admin root workflow объявляет все требуемые Policies на `run`; `ServiceBroker` проверяет их до
   запуска DBOS по verified `ResolvedAdminAccessContext`, сохраняет только минимальный
-  `WorkflowExecutionContext` и повторно авторизует workflow при recovery. Root workflow повторяет все
-  Policies, требуемые вызываемыми nested workflows; nested entrypoint явно получает и передаёт дальше
-  `{ workflowContext }`.
+  `WorkflowExecutionContext` и повторно авторизует workflow при recovery. Root workflow повторяет
+  все Policies, требуемые вызываемыми nested workflows; nested entrypoint явно получает и передаёт
+  дальше `{ workflowContext }`.
 - Internal service command проверяет trusted `BrokerCallContext.caller` и resource ownership; App
   callback проверяет `context.app`, installation/store/resource binding и granted scopes до запуска
   workflow.
@@ -3006,8 +3006,8 @@ orders.bulk.manage
 ```
 
 Command permissions проверяются на workflow `run` до DBOS start и повторно при recovery; Script
-сохраняет defense-in-depth checks, а type-policy защищает read/field resolution. Provider App получает
-только capability scopes конкретной installation, а не staff permissions.
+сохраняет defense-in-depth checks, а type-policy защищает read/field resolution. Provider App
+получает только capability scopes конкретной installation, а не staff permissions.
 
 ### 14.4. Bulk execution
 
@@ -3207,8 +3207,8 @@ Stage 1 implementation record:
 10. [x] Выполнить migration/schema validation и production build через `shopana-cli`.
 
 Gate: clean database строится одной migration chain; Drizzle table/column names 1:1 совпадают с SQL;
-constraint test artifacts покрывают money/quantity/tenant invariants. Их повторный запуск подчиняется
-§17.5.
+constraint test artifacts покрывают money/quantity/tenant invariants. Их повторный запуск
+подчиняется §17.5.
 
 Stage 2 implementation record:
 
@@ -3266,7 +3266,8 @@ side effects — через отдельные idempotent workflow steps. Обы
 15. Returns/exchanges/refunds orchestration.
 16. CRM integration через DBOS workflows и reconciliation.
 17. Bulk coordinator + per-order child workflows: отдельная aggregate transaction/version/audit,
-    уникальный workflow `callId`, явные partial results и отсутствие automatic retry domain conflicts.
+    уникальный workflow `callId`, явные partial results и отсутствие automatic retry domain
+    conflicts.
 
 Gate каждого slice: operation зарегистрирована как `order.*` DBOS workflow и запускается через
 `ServiceBroker`; root/internal/App authorization boundary проверена; отсутствуют raw
@@ -3276,8 +3277,8 @@ artifacts. Ни один успешный state change не может быть 
 resulting `orders.version`. Event delivery начинается только после committed transactional step,
 повтор не дублирует delivery, DBOS checkpoint является единственным delivery state, локальные
 queue/poller/lease tables отсутствуют. Event replay или projection rebuild для чтения состояния не
-используется. При изменении кода выполняется только разрешённый production build через
-`shopana-cli` MCP; test suites в рамках этого плана не запускаются.
+используется. При изменении кода выполняется только разрешённый production build через `shopana-cli`
+MCP; test suites в рамках этого плана не запускаются.
 
 ### Этап 4. GraphQL resolvers/API
 
@@ -3308,11 +3309,11 @@ IDOR/permission suites заполнены как artifacts; production build н�
 8. PII retention/redaction test artifacts.
 9. Dashboards/alerts/runbooks.
 
-Hardening tooling не выполняет direct SQL repair: checker остаётся read-only, а исправления запускают
-те же typed idempotent `order.*` commands. Periodic reconciliation является DBOS scheduled workflow,
-не service-local polling worker. Сценарии и suites из этого этапа создаются, но не запускаются без
-отдельного разрешения; допустимая code verification остаётся production build через `shopana-cli`
-MCP.
+Hardening tooling не выполняет direct SQL repair: checker остаётся read-only, а исправления
+запускают те же typed idempotent `order.*` commands. Periodic reconciliation является DBOS scheduled
+workflow, не service-local polling worker. Сценарии и suites из этого этапа создаются, но не
+запускаются без отдельного разрешения; допустимая code verification остаётся production build через
+`shopana-cli` MCP.
 
 ## 19. Test matrix
 

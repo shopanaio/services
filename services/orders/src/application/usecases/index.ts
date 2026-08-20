@@ -8,7 +8,6 @@ export type { UseCaseDependencies } from "./useCase";
 export { OrderUsecase } from "../order/orderUsecase";
 
 // Order use cases
-export { CreateOrderUseCase } from "./orderCreate";
 export { GetOrderByIdUseCase } from "./orderGetById";
 
 // Admin API use cases

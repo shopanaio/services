@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type {
   OrderLineItemsReadPort,
   OrderLineItemReadPortRow,
@@ -12,7 +12,7 @@ export class OrderLineItemRepository extends BaseRepository implements OrderLine
     const rows = await this.connection
       .select()
       .from(orderLines)
-      .where(eq(orderLines.orderId, orderId))
+      .where(and(eq(orderLines.storeId, this.storeId), eq(orderLines.orderId, orderId)))
       .orderBy(asc(orderLines.id));
 
     return rows.map((row) => ({

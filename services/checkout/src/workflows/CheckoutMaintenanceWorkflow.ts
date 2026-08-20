@@ -4,6 +4,7 @@ import {
   InventoryCheckoutActions,
   LoyaltyCheckoutActions,
   OrderLoyaltyActions,
+  OrderCheckoutActions,
   PricingCheckoutActions,
   type Delivery,
   type Inventory,
@@ -20,6 +21,7 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
+  TransactionalStep,
 } from "@shopana/shared-kernel";
 import { CheckoutMutationRepository } from "../infrastructure/mutations/CheckoutMutationRepository.js";
 import {
@@ -30,6 +32,7 @@ import type { PlaceOrderWorkflowInput, PlaceOrderWorkflowResult } from "./PlaceO
 import type { MonitorPlacedPaymentInput } from "./MonitorPlacedPaymentWorkflow.js";
 import type { LoyaltyReservation } from "./PlaceOrderWorkflow.js";
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";
+import { CheckoutTransactionKernel } from "../infrastructure/db/CheckoutTransactionKernel.js";
 
 export interface CheckoutMaintenanceInput {
   minuteBucket: string;
@@ -53,6 +56,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     private readonly checkouts: CheckoutMutationRepository,
     @Inject(CheckoutPlacementRepository)
     private readonly placements: CheckoutPlacementRepository,
+    readonly transactions: CheckoutTransactionKernel,
   ) {
     super(broker);
   }
@@ -64,6 +68,17 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     let reconciled = 0;
     let recovered = 0;
     for (const placement of stuck) {
+      const request = assertPlaceOrderInput(placement.requestInput);
+      if (placement.requestedOrderId && placement.status === "RESOURCES_RESERVED") {
+        const committed = await this.getOrderPlacement(placement, request.organizationId);
+        if (committed) {
+          await this.advanceOrderCreated(placement.placementId, committed.orderId);
+          await this.startPlacementRecovery(request, placement.workflowId, placement.placementId);
+          reconciled += 1;
+          recovered += 1;
+          continue;
+        }
+      }
       const status = await this.getWorkflowStatus(placement.workflowId);
       const action = placementRecoveryAction(status?.status, status?.output);
       if (action === "COMPLETE") {
@@ -73,7 +88,6 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
         );
         reconciled += 1;
       } else if (action === "RECOVER") {
-        const request = assertPlaceOrderInput(placement.requestInput);
         await this.startPlacementRecovery(request, placement.workflowId, placement.placementId);
         recovered += 1;
       }
@@ -106,7 +120,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     return { reconciled, recovered, compensationsResolved, ...retention };
   }
 
-  @WorkflowStep()
+  @CheckoutMaintenanceTransactionalStep()
   private enforceRetention() {
     return this.checkouts.enforceRetention();
   }
@@ -117,11 +131,25 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
+  private getOrderPlacement(placement: CheckoutPlacementRecord, organizationId: string) {
+    return this.broker.call<import("@shopana/broker-types").OrderCheckoutPlacementV1Result | null>(
+      OrderCheckoutActions.getPlacement,
+      {
+        contractVersion: 1,
+        organizationId,
+        storeId: placement.storeId,
+        placementId: placement.placementId,
+        orderId: placement.requestedOrderId ?? undefined,
+      },
+    );
+  }
+
+  @WorkflowStep()
   private getWorkflowStatus(workflowId: string) {
     return DBOS.getWorkflowStatus(workflowId);
   }
 
-  @WorkflowStep()
+  @CheckoutMaintenanceTransactionalStep()
   private async completePlacement(
     placementId: string,
     result: PlaceOrderWorkflowResult,
@@ -172,7 +200,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @CheckoutMaintenanceTransactionalStep()
   private markPaymentMonitorStarted(
     placementId: string,
     workflowId: string,
@@ -206,6 +234,31 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     if (unknown) throw new Error(`CHECKOUT_COMPENSATION_OPERATION_UNSUPPORTED:${unknown}`);
     assertCompensationRecoveryData(placement, operations);
     const orderId = placement.orderId ?? placement.requestedOrderId;
+    const releasesCommittedResources = [
+      "releaseInventory",
+      "reverseDiscountUsage",
+      "releaseLoyalty:ORDER_FAILED",
+      "releaseLoyalty:PAYMENT_FAILED",
+      "releaseDelivery",
+    ].some((operation) => operations.has(operation));
+    if (orderId && releasesCommittedResources) {
+      const committed = await this.getOrderPlacement(placement, request.organizationId);
+      if (committed?.status === "AWAITING_FINALIZATION") {
+        await this.broker.call(OrderCheckoutActions.cancelPlacement, {
+          contractVersion: 1,
+          organizationId: request.organizationId,
+          storeId: placement.storeId,
+          placementId: placement.placementId,
+          orderId,
+          reasonCode: "PLACEMENT_FAILED",
+          paymentSessionId: placement.paymentSessionId,
+          paymentOperationId: placement.paymentOperationId,
+          failedAt: placement.updatedAt,
+          idempotencyKey: `${placement.idempotencyKey}:order-cancel`,
+          correlationId: request.correlationId,
+        });
+      }
+    }
     if (operations.has("releaseInventory")) {
       if (!orderId) throw new Error("CHECKOUT_COMPENSATION_ORDER_ID_MISSING");
       await this.broker.call<
@@ -320,6 +373,7 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     >(InventoryCheckoutActions.confirm, { storeId, orderId });
   }
 
+  @CheckoutMaintenanceTransactionalStep()
   private async advanceOrderCreated(placementId: string, orderId: string): Promise<void> {
     await this.placements.transition(placementId, {
       from: "RESOURCES_RESERVED",
@@ -435,10 +489,17 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     }
   }
 
-  @WorkflowStep()
+  @CheckoutMaintenanceTransactionalStep()
   private clearCompensationFailures(placementId: string): Promise<void> {
     return this.placements.clearCompensationFailures(placementId);
   }
+}
+
+function CheckoutMaintenanceTransactionalStep() {
+  return TransactionalStep({
+    txManager: (self: CheckoutMaintenanceWorkflow) => self.transactions.txManager,
+    bridge: (self: CheckoutMaintenanceWorkflow) => self.transactions.dbosTransactionBridge,
+  });
 }
 
 function isPlacementResult(value: unknown): value is PlaceOrderWorkflowResult {

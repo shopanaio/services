@@ -11,6 +11,8 @@ import type {
 import type { CheckoutRecalculationResult } from "../../application/pipeline/contracts/index.js";
 import { checkoutCommittedSnapshotSchema } from "../../application/mutations/checkoutCommittedSnapshotSchema.js";
 import { checkoutRetentionPolicy } from "../../configuration/checkoutRetention.js";
+import type { TransactionManager } from "@shopana/shared-kernel";
+import type { CheckoutDatabase } from "../db/CheckoutTransactionKernel.js";
 
 type SnapshotRow = {
   snapshot: CheckoutCommittedSnapshot;
@@ -25,7 +27,14 @@ const DAY_MS = 24 * 60 * 60 * 1_000;
 export class CheckoutMutationRepository
   implements CheckoutMutationSnapshotPort, CheckoutRecalculationCommitPort
 {
-  constructor(private readonly execute: SQLExecutor = dumboPool.execute) {}
+  constructor(
+    private readonly execute: SQLExecutor = dumboPool.execute,
+    readonly txManager?: TransactionManager<CheckoutDatabase, SQLExecutor>,
+  ) {}
+
+  private get connection(): SQLExecutor {
+    return this.txManager?.getConnection() ?? this.execute;
+  }
 
   async enforceRetention(batchSize = checkoutRetentionPolicy().cleanup_batch_size): Promise<{
     expired: number;
@@ -98,7 +107,7 @@ export class CheckoutMutationRepository
       )
       .toString();
     const row = await singleOrNull(
-      this.execute.query<{
+      this.connection.query<{
         expired: number;
         anonymized: number;
         purged: number;
@@ -151,7 +160,7 @@ export class CheckoutMutationRepository
       })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<SnapshotRow>(rawSql(query)));
     if (!row) return null;
     const parsed = checkoutCommittedSnapshotSchema.safeParse(withLifecycle(row));
     if (parsed.success) return parsed.data as unknown as CheckoutCommittedSnapshot;
@@ -176,7 +185,7 @@ export class CheckoutMutationRepository
         [input.checkoutId, input.storeId, JSON.stringify(snapshot), reason.slice(0, 16_384)],
       )
       .toString();
-    await this.execute.query(rawSql(query));
+    await this.connection.query(rawSql(query));
   }
 
   async create(input: {
@@ -277,7 +286,7 @@ export class CheckoutMutationRepository
         ],
       )
       .toString();
-    const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(sql)));
+    const row = await singleOrNull(this.connection.query<SnapshotRow>(rawSql(sql)));
     return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
   }
 
@@ -376,7 +385,7 @@ export class CheckoutMutationRepository
         ],
       )
       .toString();
-    const row = await singleOrNull(this.execute.query<SnapshotRow>(rawSql(sql)));
+    const row = await singleOrNull(this.connection.query<SnapshotRow>(rawSql(sql)));
     return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
   }
 

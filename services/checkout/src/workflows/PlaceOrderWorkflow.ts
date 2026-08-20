@@ -1,10 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { CheckoutDto } from "@shopana/checkout-sdk";
+import type { CheckoutDto, CheckoutLineDto } from "@shopana/checkout-sdk";
+import type { MoneySnapshot } from "@shopana/shared-money";
 import {
   InventoryCheckoutActions,
   CustomersCheckoutActions,
   DeliveryActions,
   OrderLoyaltyActions,
+  OrderCheckoutActions,
   PricingCheckoutActions,
   LoyaltyCheckoutActions,
   type Inventory,
@@ -16,6 +18,9 @@ import {
   type LoyaltyRedemptionQuote,
   type OrderLoyaltyRewardEligibilitySnapshot,
   type PublishOrderLoyaltyRewardEligibleResult,
+  type CreateOrderFromCheckoutPlacementV1Params,
+  type CreateOrderFromCheckoutPlacementV1Result,
+  type OrderPlacementLineV1,
   type ReserveCheckoutLoyaltyRedemptionResult,
   type CommitCheckoutLoyaltyRedemptionResult,
   type ReleaseCheckoutLoyaltyRedemptionResult,
@@ -30,6 +35,7 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
+  TransactionalStep,
 } from "@shopana/shared-kernel";
 import {
   assertCompletePipelineResult,
@@ -42,6 +48,7 @@ import { CheckoutPlacementRepository } from "../infrastructure/mutations/Checkou
 import type { CheckoutCompensationFailure } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
 import { assertAllowedCheckoutReturnUrl } from "../configuration/checkoutSecurity.js";
 import { compensationFailures } from "../infrastructure/observability/checkoutObservability.js";
+import { CheckoutTransactionKernel } from "../infrastructure/db/CheckoutTransactionKernel.js";
 
 export interface PlaceOrderWorkflowInput {
   organizationId: string;
@@ -104,6 +111,8 @@ interface PlaceOrderSnapshot {
   deliverySelections: Delivery.CommitCheckoutDeliverySelectionsParams["selections"];
 }
 
+type PreparedPlaceOrderSnapshot = Omit<PlaceOrderSnapshot, "placementId">;
+
 interface LoyaltyPointsReservation {
   reservationId: string;
   points: string;
@@ -154,6 +163,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     private readonly checkouts: CheckoutMutationRepository,
     @Inject(CheckoutPlacementRepository)
     private readonly placements: CheckoutPlacementRepository,
+    readonly transactions: CheckoutTransactionKernel,
   ) {
     super(broker);
   }
@@ -161,7 +171,8 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   @Workflow("placeOrder", { idempotencyStrategy: "client" })
   async run(input: PlaceOrderWorkflowInput): Promise<PlaceOrderWorkflowResult> {
     await this.validateTenant(input);
-    const claim = await this.claim(input);
+    const prepared = await this.prepareClaim(input);
+    const claim = await this.claim(input, prepared);
     if (claim.status === "COMPLETED") return claim.result;
     const snapshot = claim.snapshot;
 
@@ -295,7 +306,15 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
 
     let orderId: string;
     try {
-      orderId = await this.createOrder(input, snapshot, requestedOrderId, deliveryCommitments);
+      orderId = await this.createOrder(
+        input,
+        snapshot,
+        requestedOrderId,
+        discounts,
+        committedDiscounts,
+        loyalty,
+        deliveryCommitments,
+      );
     } catch (error) {
       await this.compensateAndFail(snapshot.placementId, error, [
         ["releaseInventory", () => this.releaseInventory(input, requestedOrderId)],
@@ -345,6 +364,16 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       );
       if (finalizationFailures.length > 0) {
         await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
+      } else {
+        await this.confirmOrderPlacement(
+          input,
+          snapshot,
+          orderId,
+          {
+            kind: "PAYMENT_NOT_REQUIRED",
+          },
+          eligibleAt,
+        );
       }
       result = {
         placementId: snapshot.placementId,
@@ -405,6 +434,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
           : null;
       await this.markPaymentCreated(snapshot.placementId, result, monitorInput);
       if (result.status === "PAYMENT_FAILED") {
+        await this.cancelOrderPlacement(input, snapshot, orderId, result, "PAYMENT_FAILED");
         const failures = await this.runCompensations([
           ["releaseInventory", () => this.releaseInventory(input, orderId)],
           [
@@ -436,6 +466,24 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         );
         if (finalizationFailures.length > 0) {
           await this.recordCompensationFailures(snapshot.placementId, finalizationFailures);
+        } else {
+          await this.confirmOrderPlacement(
+            input,
+            snapshot,
+            orderId,
+            result.status === "PAID"
+              ? {
+                  kind: "PAYMENT_CAPTURED",
+                  paymentSessionId: result.paymentSessionId!,
+                  operationId: result.paymentOperationId!,
+                }
+              : {
+                  kind: "PAYMENT_AUTHORIZED",
+                  paymentSessionId: result.paymentSessionId!,
+                  operationId: result.paymentOperationId!,
+                },
+            eligibleAt,
+          );
         }
       }
     }
@@ -472,10 +520,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
   }
 
   @WorkflowStep()
-  private async claim(input: PlaceOrderWorkflowInput): Promise<PlaceOrderClaim> {
-    const workflowId = DBOS.workflowID;
-    if (!workflowId) throw new Error("PLACE_ORDER_WORKFLOW_CONTEXT_MISSING");
-    const requestHash = placeOrderRequestHash(input);
+  private async prepareClaim(input: PlaceOrderWorkflowInput): Promise<PreparedPlaceOrderSnapshot> {
     const checkout = await this.checkouts.loadOwned({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
@@ -561,13 +606,54 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         },
       ];
     });
+    return {
+      checkout: checkoutDto,
+      checkoutVersion: checkout.version,
+      quoteId: finalQuote.data.quoteId,
+      quoteRevision: finalQuote.data.revision,
+      paymentMethodsRevision: payment.data.revision,
+      amount: loyalty?.quote.payableAfterLoyalty ?? finalQuote.data.totals.payableTotal,
+      usageRequirements: finalQuote.data.usageRequirements,
+      inventoryLines: inventoryLines(finalQuote.data.lines),
+      selectedPayment,
+      customer:
+        buyer || checkout.draft.billingAddress
+          ? {
+              customerReference: buyer?.customerId ?? null,
+              email: buyer?.email ?? null,
+              phone: buyer?.phone ?? null,
+              billingAddress: toPaymentBillingAddress(checkout.draft.billingAddress),
+            }
+          : null,
+      reservationExpiresAt: reservationDeadline(
+        loyalty?.quote.expiresAt ?? null,
+        loyaltyReward?.quote.expiresAt ?? null,
+      ),
+      loyalty,
+      loyaltyReward,
+      orderRewardEligibility,
+      deliveryRevision: delivery.data.revision,
+      deliverySelections,
+    };
+  }
+
+  @TransactionalStep({
+    txManager: (self: PlaceOrderWorkflow) => self.transactions.txManager,
+    bridge: (self: PlaceOrderWorkflow) => self.transactions.dbosTransactionBridge,
+  })
+  private async claim(
+    input: PlaceOrderWorkflowInput,
+    prepared: PreparedPlaceOrderSnapshot,
+  ): Promise<PlaceOrderClaim> {
+    const workflowId = DBOS.workflowID;
+    if (!workflowId) throw new Error("PLACE_ORDER_WORKFLOW_CONTEXT_MISSING");
     const placement = await this.placements.claim({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
-      checkoutVersion: checkout.version,
+      checkoutVersion: prepared.checkoutVersion,
       resultRevision: input.expectedResultRevision,
       idempotencyKey: input.idempotencyKey,
-      requestHash,
+      requestHash: placeOrderRequestHash(input),
       credentialId: input.credentialId,
       workflowId,
       visitorId: input.visitorId,
@@ -576,45 +662,9 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
     if (placement.status === "PLACED") {
       if (!placement.result) throw new Error("CHECKOUT_PLACEMENT_RESULT_MISSING");
-      return {
-        status: "COMPLETED",
-        result: placement.result as PlaceOrderWorkflowResult,
-      };
+      return { status: "COMPLETED", result: placement.result as PlaceOrderWorkflowResult };
     }
-
-    return {
-      status: "READY",
-      snapshot: {
-        placementId: placement.placementId,
-        checkout: checkoutDto,
-        checkoutVersion: checkout.version,
-        quoteId: finalQuote.data.quoteId,
-        quoteRevision: finalQuote.data.revision,
-        paymentMethodsRevision: payment.data.revision,
-        amount: loyalty?.quote.payableAfterLoyalty ?? finalQuote.data.totals.payableTotal,
-        usageRequirements: finalQuote.data.usageRequirements,
-        inventoryLines: inventoryLines(finalQuote.data.lines),
-        selectedPayment,
-        customer:
-          buyer || checkout.draft.billingAddress
-            ? {
-                customerReference: buyer?.customerId ?? null,
-                email: buyer?.email ?? null,
-                phone: buyer?.phone ?? null,
-                billingAddress: toPaymentBillingAddress(checkout.draft.billingAddress),
-              }
-            : null,
-        reservationExpiresAt: reservationDeadline(
-          loyalty?.quote.expiresAt ?? null,
-          loyaltyReward?.quote.expiresAt ?? null,
-        ),
-        loyalty,
-        loyaltyReward,
-        orderRewardEligibility,
-        deliveryRevision: delivery.data.revision,
-        deliverySelections,
-      },
-    };
+    return { status: "READY", snapshot: { ...prepared, placementId: placement.placementId } };
   }
 
   private async resolveOrderRewardEligibility(
@@ -900,7 +950,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return result.commitments;
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private recordDeliveryCommitments(
     placementId: string,
     commitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
@@ -937,28 +987,72 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     input: PlaceOrderWorkflowInput,
     snapshot: PlaceOrderSnapshot,
     orderId: string,
+    discounts: DiscountReservation,
+    committedDiscounts: CommittedDiscountUsage,
+    loyalty: LoyaltyReservation | null,
     deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
   ): Promise<string> {
-    return this.broker.call<string>("order.createOrderFromCheckoutPlacement", {
+    const workflowId = DBOS.workflowID;
+    if (!workflowId) throw new Error("PLACE_ORDER_WORKFLOW_CONTEXT_MISSING");
+    const params = createOrdersPlacementParams(
+      input,
+      snapshot,
       orderId,
+      discounts,
+      committedDiscounts,
+      loyalty,
+      deliveryCommitments,
+      workflowId,
+    );
+    return this.broker
+      .call<CreateOrderFromCheckoutPlacementV1Result, CreateOrderFromCheckoutPlacementV1Params>(
+        OrderCheckoutActions.createFromPlacement,
+        params,
+      )
+      .then(({ orderId: createdOrderId }) => createdOrderId);
+  }
+
+  @WorkflowStep()
+  private async confirmOrderPlacement(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+    orderId: string,
+    evidence: import("@shopana/broker-types").ConfirmOrderFromCheckoutPlacementV1Params["evidence"],
+    finalizedAt: string,
+  ): Promise<void> {
+    await this.broker.call(OrderCheckoutActions.confirmPlacement, {
+      contractVersion: 1,
       organizationId: input.organizationId,
       storeId: input.storeId,
-      checkoutId: input.checkoutId,
-      credentialId: input.credentialId,
-      userId: input.userId,
-      idempotencyKey: `${input.idempotencyKey}:order`,
-      checkout: snapshot.checkout,
-      payment: snapshot.selectedPayment
-        ? {
-            code: snapshot.selectedPayment.code,
-            title: snapshot.selectedPayment.title,
-            provider: snapshot.selectedPayment.provider,
-            flow: snapshot.selectedPayment.flow,
-            customerInput: snapshot.selectedPayment.customerInput,
-          }
-        : null,
-      loyaltyRewardEligibility: snapshot.orderRewardEligibility,
-      deliveryCommitments,
+      placementId: snapshot.placementId,
+      orderId,
+      evidence,
+      finalizedAt,
+      idempotencyKey: `${input.idempotencyKey}:order-confirm`,
+      correlationId: input.correlationId,
+    });
+  }
+
+  @WorkflowStep()
+  private async cancelOrderPlacement(
+    input: PlaceOrderWorkflowInput,
+    snapshot: PlaceOrderSnapshot,
+    orderId: string,
+    result: PlaceOrderWorkflowResult,
+    reasonCode: "PAYMENT_FAILED" | "PAYMENT_EXPIRED" | "PAYMENT_CANCELLED" | "PLACEMENT_FAILED",
+  ): Promise<void> {
+    await this.broker.call(OrderCheckoutActions.cancelPlacement, {
+      contractVersion: 1,
+      organizationId: input.organizationId,
+      storeId: input.storeId,
+      placementId: snapshot.placementId,
+      orderId,
+      reasonCode,
+      paymentSessionId: result.paymentSessionId,
+      paymentOperationId: result.paymentOperationId,
+      failedAt: new Date(await DBOS.now()).toISOString(),
+      idempotencyKey: `${input.idempotencyKey}:order-cancel`,
+      correlationId: input.correlationId,
     });
   }
 
@@ -1188,7 +1282,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private async completePlacement(
     placementId: string,
     result: PlaceOrderWorkflowResult,
@@ -1201,7 +1295,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return completed.result!;
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private markResourcesReserved(
     placementId: string,
     discounts: DiscountReservation,
@@ -1219,7 +1313,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private markOrderCreated(placementId: string, orderId: string) {
     return this.placements.transition(placementId, {
       from: "RESOURCES_RESERVED",
@@ -1228,7 +1322,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private markPaymentCreated(
     placementId: string,
     result: PlaceOrderWorkflowResult,
@@ -1248,17 +1342,17 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private markPaymentMonitorStarted(placementId: string, workflowId: string): Promise<void> {
     return this.placements.markPaymentMonitorStarted(placementId, workflowId);
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private prepareOrderId(placementId: string, requestedOrderId: string): Promise<string> {
     return this.placements.prepareOrderId(placementId, requestedOrderId);
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private recordDiscountReservations(
     placementId: string,
     reservation: DiscountReservation,
@@ -1266,7 +1360,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return this.placements.recordDiscountReservations(placementId, reservation.reservationIds);
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private recordLoyaltyReservation(
     placementId: string,
     reservation: LoyaltyReservation,
@@ -1274,7 +1368,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return this.placements.recordLoyaltyReservation(placementId, reservation);
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private recordDiscountRedemptions(
     placementId: string,
     committed: CommittedDiscountUsage,
@@ -1322,7 +1416,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return failures;
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private recordCompensationFailures(
     placementId: string,
     failures: readonly CheckoutCompensationFailure[],
@@ -1330,7 +1424,7 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     return this.placements.recordCompensationFailures(placementId, failures);
   }
 
-  @WorkflowStep()
+  @CheckoutPlacementTransactionalStep()
   private failPlacement(
     placementId: string,
     failure: { code: string; message: string; retryable: boolean },
@@ -1360,6 +1454,13 @@ export function placeOrderRequestHash(input: PlaceOrderWorkflowInput): string {
     visitorId: input.visitorId,
     userId: input.userId,
     returnUrl: input.returnUrl,
+  });
+}
+
+function CheckoutPlacementTransactionalStep() {
+  return TransactionalStep({
+    txManager: (self: PlaceOrderWorkflow) => self.transactions.txManager,
+    bridge: (self: PlaceOrderWorkflow) => self.transactions.dbosTransactionBridge,
   });
 }
 
@@ -1451,6 +1552,208 @@ function isPendingPaymentResult(result: PlaceOrderWorkflowResult): boolean {
     result.status === "REQUIRES_CONFIRMATION" ||
     result.status === "PAYMENT_PENDING"
   );
+}
+
+function createOrdersPlacementParams(
+  input: PlaceOrderWorkflowInput,
+  placement: PlaceOrderSnapshot,
+  orderId: string,
+  discounts: DiscountReservation,
+  committedDiscounts: CommittedDiscountUsage,
+  loyalty: LoyaltyReservation | null,
+  deliveryCommitments: readonly Delivery.DeliveryCommittedGroupSnapshot[],
+  workflowId: string,
+): CreateOrderFromCheckoutPlacementV1Params {
+  const checkout = placement.checkout;
+  const currencyCode = checkout.currencyCode ?? checkout.cost.totalAmount.currency.code;
+  const zero = { amountMinor: "0", currencyCode };
+  const shippableLineIds = new Set(deliveryCommitments.flatMap((commitment) => commitment.lineIds));
+  const lines = flattenCheckoutLines(checkout.lines).map<OrderPlacementLineV1>((line) => ({
+    id: line.id,
+    parentLineId: line.parentLineId ?? null,
+    purchasableId: line.purchasableId,
+    purchasableType: "VARIANT",
+    title: line.title,
+    sku: line.sku ?? null,
+    imageUrl: line.imageSrc ?? null,
+    quantity: line.quantity,
+    requiresShipping: shippableLineIds.has(line.id),
+    taxable: true,
+    unitPrice: placementMoney(line.cost.unitPrice),
+    compareAtUnitPrice: line.cost.compareAtUnitPrice
+      ? placementMoney(line.cost.compareAtUnitPrice)
+      : null,
+    subtotal: placementMoney(line.cost.subtotalAmount),
+    discount: placementMoney(line.cost.discountAmount),
+    tax: placementMoney(line.cost.taxAmount),
+    duty: zero,
+    total: placementMoney(line.cost.totalAmount),
+    snapshot: {
+      targeting: { variantId: line.purchasableId },
+      ...(line.componentItemId ? { componentItemId: line.componentItemId } : {}),
+      ...(line.tag ? { tag: line.tag } : {}),
+    },
+  }));
+  const lineById = new Map(lines.map((line) => [line.id, line]));
+  const commitmentByGroup = new Map(deliveryCommitments.map((value) => [value.groupId, value]));
+  const deliveryGroups = checkout.deliveryGroups.map((group) => {
+    const commitment = commitmentByGroup.get(group.id);
+    const address = group.deliveryAddress;
+    const selected = group.selectedDeliveryMethod;
+    const publicData = selected?.provider.data;
+    return {
+      id: group.id,
+      lineIds: commitment?.lineIds ?? group.checkoutLines.map(({ id }) => id),
+      address: address
+        ? {
+            id: address.id,
+            address1: address.address1 || null,
+            address2: address.address2 ?? null,
+            city: address.city || null,
+            countryCode: address.countryCode || null,
+            provinceCode: address.provinceCode ?? null,
+            postalCode: address.postalCode ?? null,
+            company: null,
+            metadata: isPlainRecord(address.data) ? address.data : {},
+          }
+        : null,
+      recipient: address
+        ? {
+            id: group.id,
+            firstName: address.firstName ?? null,
+            lastName: address.lastName ?? null,
+            middleName: null,
+            email: address.email ?? null,
+            phone: address.phone,
+          }
+        : null,
+      selectedMethod: selected
+        ? {
+            code: selected.code,
+            provider: selected.provider.code,
+            title: selected.code,
+            type: selected.deliveryMethodType,
+            paymentModel: selected.shippingPaymentModel,
+            quotedAmount: group.shippingCost ? placementMoney(group.shippingCost.amount) : zero,
+            publicData: isPlainRecord(publicData) ? publicData : {},
+          }
+        : null,
+    };
+  });
+  const externalIdentity =
+    checkout.externalSource && checkout.externalId
+      ? { externalSource: checkout.externalSource, externalId: checkout.externalId }
+      : { externalSource: null, externalId: null };
+  const snapshot: CreateOrderFromCheckoutPlacementV1Params["snapshot"] = {
+    capturedAt: checkout.updatedAt,
+    currencyCode,
+    localeCode: checkout.localeCode,
+    salesChannel: checkout.salesChannel ?? null,
+    ...externalIdentity,
+    customer: {
+      customerId: checkout.customerIdentity.customer?.id ?? null,
+      firstName: checkout.customerIdentity.firstName,
+      lastName: checkout.customerIdentity.lastName,
+      middleName: checkout.customerIdentity.middleName,
+      email: checkout.customerIdentity.email,
+      phone: checkout.customerIdentity.phone,
+      countryCode: checkout.customerIdentity.countryCode,
+    },
+    cost: {
+      subtotal: placementMoney(checkout.cost.subtotalAmount),
+      discount: placementMoney(checkout.cost.totalDiscountAmount),
+      shipping: placementMoney(checkout.cost.totalShippingAmount),
+      tax: placementMoney(checkout.cost.totalTaxAmount),
+      duty: zero,
+      adjustment: zero,
+      total: placementMoney(checkout.cost.totalAmount),
+    },
+    lines,
+    discounts: checkout.appliedPromoCodes.map((discount) => ({
+      code: discount.code,
+      title: discount.code,
+      provider: discount.provider,
+      targetType: "ORDER_LINES",
+      valueType: typeof discount.value === "number" ? "PERCENTAGE" : "FIXED_AMOUNT",
+      valueAmount: typeof discount.value === "number" ? null : placementMoney(discount.value),
+      valuePercentage: typeof discount.value === "number" ? String(discount.value) : null,
+      totalAllocatedAmount:
+        typeof discount.value === "number" ? zero : placementMoney(discount.value),
+      metadata: isPlainRecord(discount.conditions) ? discount.conditions : {},
+    })),
+    taxLines: [],
+    deliveryGroups: deliveryGroups.map((group) => ({
+      ...group,
+      lineIds: group.lineIds.filter((lineId) => lineById.has(lineId)),
+    })),
+    selectedPayment: placement.selectedPayment
+      ? {
+          code: placement.selectedPayment.code,
+          title: placement.selectedPayment.title,
+          provider: placement.selectedPayment.provider,
+          flow: placement.selectedPayment.flow,
+          publicData: { methodHandle: placement.selectedPayment.methodHandle },
+        }
+      : null,
+    customerNote: checkout.customerNote,
+    customFields: {},
+    loyaltyRewardEligibility: placement.orderRewardEligibility,
+  };
+  const commitments: CreateOrderFromCheckoutPlacementV1Params["commitments"] = {
+    inventory: { reservationKey: orderId, expiresAt: placement.reservationExpiresAt },
+    pricing: {
+      reservationIds: discounts.reservationIds,
+      redemptionIds: committedDiscounts.redemptionIds,
+    },
+    loyalty: loyalty
+      ? {
+          pointsReservationId: loyalty.points?.reservationId ?? null,
+          rewardEntitlementId: loyalty.reward?.entitlementId ?? null,
+        }
+      : null,
+    delivery: deliveryCommitments.map(
+      (commitment) => JSON.parse(JSON.stringify(commitment)) as Record<string, unknown>,
+    ),
+  };
+  const hashInput = {
+    contractVersion: 1 as const,
+    organizationId: input.organizationId,
+    storeId: input.storeId,
+    placementId: placement.placementId,
+    checkoutId: input.checkoutId,
+    checkoutVersion: placement.checkoutVersion,
+    resultRevision: input.expectedResultRevision,
+    finalQuote: { quoteId: placement.quoteId, revision: placement.quoteRevision },
+    paymentMethodsRevision: placement.paymentMethodsRevision,
+    deliveryRevision: placement.deliveryRevision,
+    requestedOrderId: orderId,
+    snapshot,
+    commitments,
+  };
+  return {
+    ...hashInput,
+    actor: {
+      credentialId: input.credentialId,
+      userId: input.userId,
+      visitorIdHash: canonicalJsonSha256({ visitorId: input.visitorId }),
+    },
+    snapshotHash: canonicalJsonSha256(hashInput),
+    idempotencyKey: `${input.idempotencyKey}:order`,
+    correlationId: input.correlationId,
+    workflowId,
+  };
+}
+
+function placementMoney(value: MoneySnapshot) {
+  return { amountMinor: value.amount, currencyCode: value.currency.code };
+}
+
+function flattenCheckoutLines(lines: readonly CheckoutLineDto[]): CheckoutLineDto[] {
+  return lines.flatMap((line) => [line, ...flattenCheckoutLines(line.children)]);
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function validateCheckoutSnapshot(

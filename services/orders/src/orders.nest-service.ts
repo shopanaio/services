@@ -6,6 +6,7 @@ import { startServer } from "./interfaces/server/server";
 import { v7 as uuidv7 } from "uuid";
 import { Repository } from "./repositories/Repository.js";
 import {
+  OrderCheckoutActionNames,
   OrderLoyaltyActionNames,
   OrderFulfillmentActionNames,
   OrderReviewActionNames,
@@ -21,7 +22,20 @@ import {
   type ListOrderDeliveryFulfillmentOrdersResult,
   type ApplyOrderDeliveryShipmentUpdateParams,
   type ApplyOrderDeliveryShipmentUpdateResult,
+  type CancelOrderFromCheckoutPlacementV1Params,
+  type ConfirmOrderFromCheckoutPlacementV1Params,
+  type CreateOrderFromCheckoutPlacementV1Params,
+  type CreateOrderFromCheckoutPlacementV1Result,
+  type GetOrderCheckoutPlacementV1Params,
+  type OrderCheckoutPlacementV1Result,
 } from "@shopana/broker-types";
+import type { BrokerCallContext } from "@shopana/shared-kernel";
+import {
+  cancelOrderFromCheckoutPlacementV1Schema,
+  confirmOrderFromCheckoutPlacementV1Schema,
+  createOrderFromCheckoutPlacementV1Schema,
+  getOrderCheckoutPlacementV1Schema,
+} from "./domain/placement/OrderPlacementContracts.js";
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -38,9 +52,71 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.app = App.create(this.repository);
 
-    this.broker.register("createOrderFromCheckoutPlacement", async (params: any) => {
-      return this.app.orderUsecase.createOrder.execute(params);
-    });
+    this.broker.register(
+      OrderCheckoutActionNames.createFromPlacement,
+      async (
+        params: CreateOrderFromCheckoutPlacementV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<CreateOrderFromCheckoutPlacementV1Result> => {
+        assertCheckoutCaller(context);
+        const input = createOrderFromCheckoutPlacementV1Schema.parse(requireParams(params));
+        return this.broker.runWorkflow("order.createOrderFromCheckoutPlacementV1", input, {
+          source: "content",
+          organizationId: input.organizationId,
+          resourceId: input.placementId,
+          operation: "createOrderFromCheckoutPlacementV1",
+          content: input,
+        });
+      },
+    );
+
+    this.broker.register(
+      OrderCheckoutActionNames.confirmPlacement,
+      async (
+        params: ConfirmOrderFromCheckoutPlacementV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<OrderCheckoutPlacementV1Result> => {
+        assertCheckoutCaller(context);
+        const input = confirmOrderFromCheckoutPlacementV1Schema.parse(requireParams(params));
+        return this.broker.runWorkflow("order.confirmOrderFromCheckoutPlacementV1", input, {
+          source: "content",
+          organizationId: input.organizationId,
+          resourceId: input.placementId,
+          operation: "confirmOrderFromCheckoutPlacementV1",
+          content: input,
+        });
+      },
+    );
+
+    this.broker.register(
+      OrderCheckoutActionNames.cancelPlacement,
+      async (
+        params: CancelOrderFromCheckoutPlacementV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<OrderCheckoutPlacementV1Result> => {
+        assertCheckoutCaller(context);
+        const input = cancelOrderFromCheckoutPlacementV1Schema.parse(requireParams(params));
+        return this.broker.runWorkflow("order.cancelOrderFromCheckoutPlacementV1", input, {
+          source: "content",
+          organizationId: input.organizationId,
+          resourceId: input.placementId,
+          operation: "cancelOrderFromCheckoutPlacementV1",
+          content: input,
+        });
+      },
+    );
+
+    this.broker.register(
+      OrderCheckoutActionNames.getPlacement,
+      async (
+        params: GetOrderCheckoutPlacementV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<OrderCheckoutPlacementV1Result | null> => {
+        assertCheckoutCaller(context);
+        const input = getOrderCheckoutPlacementV1Schema.parse(requireParams(params));
+        return this.repository.checkoutPlacement.get(input);
+      },
+    );
 
     this.broker.register("generateOrderId", async () => ({ id: uuidv7() }));
 
@@ -48,29 +124,40 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
       OrderFulfillmentActionNames.listForOrder,
       (
         params: ListOrderDeliveryFulfillmentOrdersParams | undefined,
+        context: BrokerCallContext,
       ): Promise<ListOrderDeliveryFulfillmentOrdersResult> =>
-        this.repository.fulfillment.listForOrder(requireParams(params)),
+        withDeliveryCaller(context, () =>
+          this.repository.fulfillment.listForOrder(requireParams(params)),
+        ),
     );
 
     this.broker.register(
       OrderFulfillmentActionNames.getShipmentPlan,
       (
         params: GetOrderDeliveryShipmentPlanParams | undefined,
+        context: BrokerCallContext,
       ): Promise<GetOrderDeliveryShipmentPlanResult> =>
-        this.repository.fulfillment.getShipmentPlan(requireParams(params)),
+        withDeliveryCaller(context, () =>
+          this.repository.fulfillment.getShipmentPlan(requireParams(params)),
+        ),
     );
 
     this.broker.register(
       OrderFulfillmentActionNames.applyShipmentUpdate,
-      (
+      async (
         params: ApplyOrderDeliveryShipmentUpdateParams | undefined,
+        context: BrokerCallContext,
       ): Promise<ApplyOrderDeliveryShipmentUpdateResult> =>
-        this.repository.fulfillment.applyShipmentUpdate(requireParams(params)),
+        withDeliveryCaller(context, async () => {
+          const input = requireParams(params);
+          return this.broker.runWorkflow("order.applyDeliveryShipmentUpdate", input, {
+            source: "content",
+            resourceId: input.update.fulfillmentOrderId,
+            operation: `applyDeliveryShipmentUpdate:${input.update.shipmentRevision}`,
+            content: input,
+          });
+        }),
     );
-
-    this.broker.register("getOrderById", async (params: any) => {
-      return this.app.orderUsecase.getOrderById.execute(params);
-    });
 
     this.broker.register(
       OrderLoyaltyActionNames.publishEligible,
@@ -157,4 +244,20 @@ function requireParams<T>(params: T | undefined): T {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function assertCheckoutCaller(context: BrokerCallContext): void {
+  if (context.caller.kind !== "action" || context.caller.service !== "checkout") {
+    throw new Error("ORDER_CHECKOUT_CALLER_FORBIDDEN");
+  }
+}
+
+function withDeliveryCaller<TResult>(
+  context: BrokerCallContext,
+  callback: () => Promise<TResult>,
+): Promise<TResult> {
+  if (context.caller.kind !== "action" || context.caller.service !== "delivery") {
+    throw new Error("ORDER_DELIVERY_CALLER_FORBIDDEN");
+  }
+  return callback();
 }

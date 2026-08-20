@@ -4,6 +4,241 @@ import type {
   DeliveryShipmentPlanAvailability,
 } from "./delivery-fulfillment.js";
 
+export const OrderCheckoutActionNames = {
+  createFromPlacement: "createOrderFromCheckoutPlacementV1",
+  confirmPlacement: "confirmOrderFromCheckoutPlacementV1",
+  cancelPlacement: "cancelOrderFromCheckoutPlacementV1",
+  getPlacement: "getOrderCheckoutPlacementV1",
+} as const;
+
+export const OrderCheckoutActions = {
+  createFromPlacement: `order.${OrderCheckoutActionNames.createFromPlacement}`,
+  confirmPlacement: `order.${OrderCheckoutActionNames.confirmPlacement}`,
+  cancelPlacement: `order.${OrderCheckoutActionNames.cancelPlacement}`,
+  getPlacement: `order.${OrderCheckoutActionNames.getPlacement}`,
+} as const;
+
+export interface OrderPlacementMoneyV1 {
+  amountMinor: string;
+  currencyCode: string;
+}
+
+export interface OrderPlacementLineV1 {
+  id: string;
+  parentLineId: string | null;
+  purchasableId: string;
+  purchasableType: string;
+  title: string;
+  sku: string | null;
+  imageUrl: string | null;
+  quantity: number;
+  requiresShipping: boolean;
+  taxable: boolean;
+  unitPrice: OrderPlacementMoneyV1;
+  compareAtUnitPrice: OrderPlacementMoneyV1 | null;
+  subtotal: OrderPlacementMoneyV1;
+  discount: OrderPlacementMoneyV1;
+  tax: OrderPlacementMoneyV1;
+  duty: OrderPlacementMoneyV1;
+  total: OrderPlacementMoneyV1;
+  snapshot: Readonly<Record<string, unknown>>;
+}
+
+export interface OrderPlacementCustomerSnapshotV1 {
+  customerId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  middleName: string | null;
+  email: string | null;
+  phone: string | null;
+  countryCode: string | null;
+}
+
+export interface OrderPlacementAddressV1 {
+  id: string;
+  address1: string | null;
+  address2: string | null;
+  city: string | null;
+  countryCode: string | null;
+  provinceCode: string | null;
+  postalCode: string | null;
+  company: string | null;
+  metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface OrderPlacementDeliveryGroupV1 {
+  id: string;
+  lineIds: readonly string[];
+  address: OrderPlacementAddressV1 | null;
+  recipient: Readonly<{
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    middleName: string | null;
+    email: string | null;
+    phone: string | null;
+  }> | null;
+  selectedMethod: Readonly<{
+    code: string;
+    provider: string;
+    title: string | null;
+    type: string;
+    paymentModel: string | null;
+    quotedAmount: OrderPlacementMoneyV1;
+    publicData: Readonly<Record<string, unknown>>;
+  }> | null;
+}
+
+export interface OrderPlacementDiscountV1 {
+  code: string | null;
+  title: string;
+  provider: string | null;
+  targetType: string;
+  valueType: "FIXED_AMOUNT" | "PERCENTAGE";
+  valueAmount: OrderPlacementMoneyV1 | null;
+  valuePercentage: string | null;
+  totalAllocatedAmount: OrderPlacementMoneyV1;
+  metadata: Readonly<Record<string, unknown>>;
+}
+
+export interface OrderPlacementTaxLineV1 {
+  title: string;
+  rate: string;
+  amount: OrderPlacementMoneyV1;
+}
+
+export interface OrderPlacementPaymentMethodV1 {
+  code: string;
+  title: string;
+  provider: string;
+  flow: string;
+  publicData: Readonly<Record<string, unknown>>;
+}
+
+export interface OrderPlacementCostV1 {
+  subtotal: OrderPlacementMoneyV1;
+  discount: OrderPlacementMoneyV1;
+  shipping: OrderPlacementMoneyV1;
+  tax: OrderPlacementMoneyV1;
+  duty: OrderPlacementMoneyV1;
+  adjustment: OrderPlacementMoneyV1;
+  total: OrderPlacementMoneyV1;
+}
+
+export interface OrderPlacementSnapshotV1 {
+  capturedAt: string;
+  currencyCode: string;
+  localeCode: string | null;
+  salesChannel: string | null;
+  externalSource: string | null;
+  externalId: string | null;
+  customer: OrderPlacementCustomerSnapshotV1;
+  cost: OrderPlacementCostV1;
+  lines: readonly OrderPlacementLineV1[];
+  discounts: readonly OrderPlacementDiscountV1[];
+  taxLines: readonly OrderPlacementTaxLineV1[];
+  deliveryGroups: readonly OrderPlacementDeliveryGroupV1[];
+  selectedPayment: OrderPlacementPaymentMethodV1 | null;
+  customerNote: string | null;
+  customFields: Readonly<Record<string, unknown>>;
+  loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
+}
+
+export interface OrderPlacementLoyaltyCommitmentV1 {
+  pointsReservationId: string | null;
+  rewardEntitlementId: string | null;
+}
+
+export interface OrderPlacementCommitmentsV1 {
+  inventory: { reservationKey: string; expiresAt: string };
+  pricing: { reservationIds: readonly string[]; redemptionIds: readonly string[] };
+  loyalty: OrderPlacementLoyaltyCommitmentV1 | null;
+  delivery: readonly Readonly<Record<string, unknown>>[];
+}
+
+export interface CreateOrderFromCheckoutPlacementV1Params {
+  contractVersion: 1;
+  organizationId: string;
+  storeId: string;
+  placementId: string;
+  checkoutId: string;
+  checkoutVersion: number;
+  resultRevision: string;
+  finalQuote: { quoteId: string; revision: string };
+  paymentMethodsRevision: string;
+  deliveryRevision: string;
+  requestedOrderId: string;
+  actor: { credentialId: string; userId: string | null; visitorIdHash: string };
+  snapshotHash: string;
+  snapshot: OrderPlacementSnapshotV1;
+  commitments: OrderPlacementCommitmentsV1;
+  idempotencyKey: string;
+  correlationId: string;
+  workflowId: string;
+}
+
+export interface CreateOrderFromCheckoutPlacementV1Result {
+  orderId: string;
+  orderNumber: string;
+  orderVersion: number;
+  orderStatus: "OPEN";
+  placementStatus: "AWAITING_FINALIZATION";
+  placedAt: string;
+  snapshotHash: string;
+  duplicate: boolean;
+}
+
+export interface ConfirmOrderFromCheckoutPlacementV1Params {
+  contractVersion: 1;
+  organizationId: string;
+  storeId: string;
+  placementId: string;
+  orderId: string;
+  evidence:
+    | { kind: "PAYMENT_NOT_REQUIRED" }
+    | {
+        kind: "PAYMENT_AUTHORIZED" | "PAYMENT_CAPTURED";
+        paymentSessionId: string;
+        operationId: string;
+      }
+    | { kind: "OFFLINE_ACCEPTED" | "ON_DELIVERY_ACCEPTED"; paymentMethodCode: string };
+  finalizedAt: string;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface CancelOrderFromCheckoutPlacementV1Params {
+  contractVersion: 1;
+  organizationId: string;
+  storeId: string;
+  placementId: string;
+  orderId: string;
+  reasonCode: "PAYMENT_FAILED" | "PAYMENT_EXPIRED" | "PAYMENT_CANCELLED" | "PLACEMENT_FAILED";
+  paymentSessionId: string | null;
+  paymentOperationId: string | null;
+  failedAt: string;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface GetOrderCheckoutPlacementV1Params {
+  contractVersion: 1;
+  organizationId: string;
+  storeId: string;
+  placementId: string;
+  orderId?: string;
+}
+
+export type OrderCheckoutPlacementV1Result = Readonly<{
+  orderId: string;
+  placementId: string;
+  checkoutId: string;
+  snapshotHash: string;
+  status: "AWAITING_FINALIZATION" | "CONFIRMED" | "FAILED";
+  orderStatus: "OPEN" | "CANCELLED";
+  orderVersion: number;
+}>;
+
 export const OrderFulfillmentActionNames = {
   listForOrder: "listDeliveryFulfillmentOrders",
   getShipmentPlan: "getDeliveryShipmentPlan",

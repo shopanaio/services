@@ -6,13 +6,25 @@ import { CheckoutPlacementRepository } from "./infrastructure/mutations/Checkout
 import { PlaceOrderWorkflow } from "./workflows/PlaceOrderWorkflow.js";
 import { MonitorPlacedPaymentWorkflow } from "./workflows/MonitorPlacedPaymentWorkflow.js";
 import { CheckoutMaintenanceWorkflow } from "./workflows/CheckoutMaintenanceWorkflow.js";
+import { CheckoutTransactionKernel } from "./infrastructure/db/CheckoutTransactionKernel.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "checkout" })],
   providers: [
     CheckoutNestService,
-    CheckoutMutationRepository,
-    CheckoutPlacementRepository,
+    CheckoutTransactionKernel,
+    {
+      provide: CheckoutMutationRepository,
+      inject: [CheckoutTransactionKernel],
+      useFactory: (kernel: CheckoutTransactionKernel) =>
+        new CheckoutMutationRepository(kernel.database, kernel.txManager),
+    },
+    {
+      provide: CheckoutPlacementRepository,
+      inject: [CheckoutTransactionKernel],
+      useFactory: (kernel: CheckoutTransactionKernel) =>
+        new CheckoutPlacementRepository(kernel.database, kernel.txManager),
+    },
     PlaceOrderWorkflow,
     MonitorPlacedPaymentWorkflow,
     CheckoutMaintenanceWorkflow,

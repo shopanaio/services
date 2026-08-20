@@ -30,7 +30,7 @@ type PaymentEventPayload =
   | PaymentEvents.Expired
   | PaymentEvents.DisputeChanged;
 
-type PaymentDomainEvent = DomainEvent<string, PaymentEventPayload>;
+export type PaymentDomainEvent = DomainEvent<string, PaymentEventPayload>;
 
 @Injectable()
 export class OrderPaymentEventHandlers extends EventHandlers {
@@ -138,39 +138,17 @@ export class OrderPaymentEventHandlers extends EventHandlers {
 
   private async project(event: PaymentDomainEvent): Promise<EventHandlerResponse> {
     try {
-      await this.repository.txManager.run(async () => {
-        const payload = event.payload;
-        const inserted = await this.repository.db.execute<{ eventId: string }>(sql`
-          INSERT INTO "orders"."order_payment_event_inbox" (
-            "event_id", "store_id", "order_id", "payment_collection_id",
-            "event_type", "event_sequence", "payload", "occurred_at"
-          ) VALUES (
-            ${event.eventId}, ${payload.storeId}::uuid, ${payload.orderId}::uuid,
-            ${payload.paymentCollectionId}::uuid, ${event.eventType},
-            ${requiredEventSequence(event)},
-            ${JSON.stringify(payload)}::jsonb, ${event.timestamp}::timestamptz
-          )
-          ON CONFLICT ("event_id") DO NOTHING
-          RETURNING "event_id" AS "eventId"
-        `);
-        if (inserted.length === 0) return;
-        await projectPaymentDetails(this.repository, event.eventType, payload);
-        const paymentStatus =
-          event.eventType === "payment.collection.state_changed"
-            ? orderPaymentStatus((payload as PaymentEvents.CollectionStateChanged).state)
-            : terminalPaymentStatus(event.eventType, payload);
-        if (paymentStatus) {
-          await projectPaymentStatus(
-            this.repository,
-            payload,
-            paymentStatus,
-            event.eventType,
-            requiredEventSequence(event),
-            event.eventId,
-            event.context.correlationId,
-          );
-        }
-      });
+      await this.broker.runWorkflow(
+        "order.projectPaymentEventV1",
+        { contractVersion: 1, event },
+        {
+          source: "content",
+          organizationId: event.payload.organizationId,
+          resourceId: event.payload.orderId,
+          operation: "projectPaymentEventV1",
+          content: { eventId: event.eventId, eventType: event.eventType, payload: event.payload },
+        },
+      );
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -302,6 +280,43 @@ export class OrderPaymentEventHandlers extends EventHandlers {
           eligibleAmountAfterAllDiscountsMinor: line.eligibleAmountAfterAllDiscountsMinor,
         })),
       },
+    );
+  }
+}
+
+export async function projectOrderPaymentEvent(
+  repository: Repository,
+  event: PaymentDomainEvent,
+): Promise<void> {
+  const payload = event.payload;
+  const inserted = await repository.db.execute<{ eventId: string }>(sql`
+    INSERT INTO "orders"."order_payment_event_inbox" (
+      "event_id", "store_id", "order_id", "payment_collection_id",
+      "event_type", "event_sequence", "payload", "occurred_at"
+    ) VALUES (
+      ${event.eventId}, ${payload.storeId}::uuid, ${payload.orderId}::uuid,
+      ${payload.paymentCollectionId}::uuid, ${event.eventType},
+      ${requiredEventSequence(event)},
+      ${JSON.stringify(payload)}::jsonb, ${event.timestamp}::timestamptz
+    )
+    ON CONFLICT ("event_id") DO NOTHING
+    RETURNING "event_id" AS "eventId"
+  `);
+  if (inserted.length === 0) return;
+  await projectPaymentDetails(repository, event.eventType, payload);
+  const paymentStatus =
+    event.eventType === "payment.collection.state_changed"
+      ? orderPaymentStatus((payload as PaymentEvents.CollectionStateChanged).state)
+      : terminalPaymentStatus(event.eventType, payload);
+  if (paymentStatus) {
+    await projectPaymentStatus(
+      repository,
+      payload,
+      paymentStatus,
+      event.eventType,
+      requiredEventSequence(event),
+      event.eventId,
+      event.context.correlationId,
     );
   }
 }

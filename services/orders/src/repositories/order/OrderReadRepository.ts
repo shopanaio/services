@@ -39,7 +39,7 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       })
       .from(orders)
       .leftJoin(orderContacts, eq(orderContacts.orderId, orders.id))
-      .where(eq(orders.id, id))
+      .where(and(eq(orders.storeId, this.storeId), eq(orders.id, id)))
       .limit(1);
 
     if (!row) return null;
@@ -70,7 +70,8 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
         ORDER BY inbox."event_sequence" DESC
         LIMIT 1
       ) AS latest_collection ON TRUE
-      WHERE current_order."id" = ${id}::uuid
+      WHERE current_order."store_id" = ${this.storeId}::uuid
+        AND current_order."id" = ${id}::uuid
       LIMIT 1
     `);
     if (!lifecycle) throw new Error(`Order lifecycle projection is missing for order ${id}`);
@@ -127,7 +128,7 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderAddresses)
-      .where(inArray(orderAddresses.id, addressIds));
+      .where(and(eq(orderAddresses.storeId, this.storeId), inArray(orderAddresses.id, addressIds)));
     return rows.map((row) => ({
       id: row.id,
       address1: row.address1 ?? "",
@@ -147,7 +148,9 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderRecipients)
-      .where(inArray(orderRecipients.id, recipientIds));
+      .where(
+        and(eq(orderRecipients.storeId, this.storeId), inArray(orderRecipients.id, recipientIds)),
+      );
     return rows.map((row) => ({
       id: row.id,
       store_id: row.storeId,
@@ -166,7 +169,12 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderDiscountApplications)
-      .where(eq(orderDiscountApplications.orderId, orderId))
+      .where(
+        and(
+          eq(orderDiscountApplications.storeId, this.storeId),
+          eq(orderDiscountApplications.orderId, orderId),
+        ),
+      )
       .orderBy(asc(orderDiscountApplications.appliedAt));
     return rows.map((row) => ({
       orderId: row.orderId,
@@ -184,7 +192,12 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderDeliveryGroups)
-      .where(eq(orderDeliveryGroups.orderId, orderId))
+      .where(
+        and(
+          eq(orderDeliveryGroups.storeId, this.storeId),
+          eq(orderDeliveryGroups.orderId, orderId),
+        ),
+      )
       .orderBy(asc(orderDeliveryGroups.createdAt));
     return rows.map((row) => ({
       id: row.id,
@@ -205,7 +218,12 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderDeliveryMethods)
-      .where(inArray(orderDeliveryMethods.deliveryGroupId, deliveryGroupIds));
+      .where(
+        and(
+          eq(orderDeliveryMethods.storeId, this.storeId),
+          inArray(orderDeliveryMethods.deliveryGroupId, deliveryGroupIds),
+        ),
+      );
     return rows.map((row) => ({
       code: row.code,
       provider: row.provider,
@@ -222,7 +240,12 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const rows = await this.connection
       .select()
       .from(orderPaymentMethods)
-      .where(eq(orderPaymentMethods.orderId, orderId));
+      .where(
+        and(
+          eq(orderPaymentMethods.storeId, this.storeId),
+          eq(orderPaymentMethods.orderId, orderId),
+        ),
+      );
     return rows.map((row) => ({
       order_id: row.orderId,
       store_id: row.storeId,
@@ -242,7 +265,11 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       .select()
       .from(orderPaymentMethods)
       .where(
-        and(eq(orderPaymentMethods.orderId, orderId), eq(orderPaymentMethods.isSelected, true)),
+        and(
+          eq(orderPaymentMethods.storeId, this.storeId),
+          eq(orderPaymentMethods.orderId, orderId),
+          eq(orderPaymentMethods.isSelected, true),
+        ),
       )
       .limit(1);
     return row

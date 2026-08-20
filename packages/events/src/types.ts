@@ -688,6 +688,48 @@ export interface OrderCancelledEvent extends DomainEvent<
   }
 > {}
 
+export interface OrderPlacedEvent extends DomainEvent<
+  "orderPlaced",
+  {
+    schemaVersion: 1;
+    organizationId: string;
+    storeId: string;
+    orderId: string;
+    orderVersion: number;
+    placementId: string;
+    checkoutId: string;
+    snapshotHash: string;
+    placedAt: string;
+  }
+> {}
+
+export interface OrderPlacementConfirmedEvent extends DomainEvent<
+  "orderPlacementConfirmed",
+  {
+    schemaVersion: 1;
+    organizationId: string;
+    storeId: string;
+    orderId: string;
+    orderVersion: number;
+    placementId: string;
+    finalizedAt: string;
+  }
+> {}
+
+export interface OrderPlacementFailedEvent extends DomainEvent<
+  "orderPlacementFailed",
+  {
+    schemaVersion: 1;
+    organizationId: string;
+    storeId: string;
+    orderId: string;
+    orderVersion: number;
+    placementId: string;
+    reasonCode: string;
+    failedAt: string;
+  }
+> {}
+
 export interface OrderRefundedEvent extends DomainEvent<
   "orderRefunded",
   {
@@ -974,6 +1016,9 @@ export type ShopanaEvent =
   | OrderCreatedEvent
   | OrderCompletedEvent
   | OrderCancelledEvent
+  | OrderPlacedEvent
+  | OrderPlacementConfirmedEvent
+  | OrderPlacementFailedEvent
   | OrderRefundedEvent
   | OrderSaleCommittedEvent
   | OrderSaleReversedEvent

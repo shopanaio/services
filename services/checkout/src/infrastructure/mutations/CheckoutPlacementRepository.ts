@@ -1,6 +1,8 @@
 import { rawSql, singleOrNull, type SQLExecutor } from "@event-driven-io/dumbo";
 import { dumboPool } from "../db/dumbo.js";
 import { knex } from "../db/knex.js";
+import type { TransactionManager } from "@shopana/shared-kernel";
+import type { CheckoutDatabase } from "../db/CheckoutTransactionKernel.js";
 
 export type CheckoutPlacementStatus =
   "CLAIMED" | "RESOURCES_RESERVED" | "ORDER_CREATED" | "PAYMENT_CREATED" | "PLACED" | "FAILED";
@@ -78,7 +80,14 @@ type PlacementRow = {
 };
 
 export class CheckoutPlacementRepository {
-  constructor(private readonly execute: SQLExecutor = dumboPool.execute) {}
+  constructor(
+    private readonly execute: SQLExecutor = dumboPool.execute,
+    readonly txManager?: TransactionManager<CheckoutDatabase, SQLExecutor>,
+  ) {}
+
+  private get connection(): SQLExecutor {
+    return this.txManager?.getConnection() ?? this.execute;
+  }
 
   async claim(input: {
     storeId: string;
@@ -129,7 +138,7 @@ export class CheckoutPlacementRepository {
         ],
       )
       .toString();
-    const inserted = await singleOrNull(this.execute.query<PlacementRow>(rawSql(insert)));
+    const inserted = await singleOrNull(this.connection.query<PlacementRow>(rawSql(insert)));
     if (inserted) return mapPlacement(inserted);
 
     const existing = await this.findByCheckout(input.storeId, input.checkoutId);
@@ -182,7 +191,7 @@ export class CheckoutPlacementRepository {
       .whereIn("status", ["CLAIMED", "RESOURCES_RESERVED", "ORDER_CREATED", "PAYMENT_CREATED"])
       .returning("*")
       .toString();
-    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     if (updated) return mapPlacement(updated);
     const existing = await this.findById(placementId);
     if (existing?.workflowId === workflowId) return existing;
@@ -199,7 +208,7 @@ export class CheckoutPlacementRepository {
       .returning("requested_order_id")
       .toString();
     const updated = await singleOrNull(
-      this.execute.query<{ requested_order_id: string }>(rawSql(query)),
+      this.connection.query<{ requested_order_id: string }>(rawSql(query)),
     );
     if (updated) return updated.requested_order_id;
     const existing = await this.findById(placementId);
@@ -266,7 +275,7 @@ export class CheckoutPlacementRepository {
       .where({ id: placementId })
       .returning("*")
       .toString();
-    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     if (updated) {
       await this.setCheckoutLifecycle(
         updated.store_id,
@@ -342,7 +351,7 @@ export class CheckoutPlacementRepository {
       .where({ id: placementId, status: input.from })
       .returning("*")
       .toString();
-    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     if (updated) return mapPlacement(updated);
     const existing = await this.findById(placementId);
     if (existing && hasReachedPlacementState(existing.status, input.to)) {
@@ -375,7 +384,7 @@ export class CheckoutPlacementRepository {
       )
       .returning("id")
       .toString();
-    const updated = await singleOrNull(this.execute.query<{ id: string }>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<{ id: string }>(rawSql(query)));
     if (!updated) throw new Error("CHECKOUT_PAYMENT_MONITOR_TRANSITION_CONFLICT");
   }
 
@@ -397,7 +406,7 @@ export class CheckoutPlacementRepository {
       .whereNotIn("status", ["PLACED", "FAILED"])
       .returning("*")
       .toString();
-    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     if (updated) {
       await this.setCheckoutLifecycle(updated.store_id, updated.checkout_id, "ABANDONED");
       return;
@@ -425,7 +434,7 @@ export class CheckoutPlacementRepository {
         [JSON.stringify(failures), placementId],
       )
       .toString();
-    await this.execute.query(rawSql(query));
+    await this.connection.query(rawSql(query));
   }
 
   async replaceResult<TResult>(
@@ -445,7 +454,7 @@ export class CheckoutPlacementRepository {
       .whereIn("status", ["PAYMENT_CREATED", "PLACED"])
       .returning("*")
       .toString();
-    const updated = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     if (updated) {
       await this.setCheckoutLifecycle(
         updated.store_id,
@@ -477,7 +486,7 @@ export class CheckoutPlacementRepository {
         [olderThanSeconds],
       )
       .toString();
-    const row = await singleOrNull(this.execute.query<{ count: number }>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<{ count: number }>(rawSql(query)));
     return Number(row?.count ?? 0);
   }
 
@@ -492,7 +501,7 @@ export class CheckoutPlacementRepository {
         [olderThanSeconds, limit],
       )
       .toString();
-    const rows = await this.execute.query<PlacementRow>(rawSql(query));
+    const rows = await this.connection.query<PlacementRow>(rawSql(query));
     return rows.rows.map(mapPlacement);
   }
 
@@ -509,7 +518,7 @@ export class CheckoutPlacementRepository {
         [limit],
       )
       .toString();
-    const rows = await this.execute.query<PlacementRow>(rawSql(query));
+    const rows = await this.connection.query<PlacementRow>(rawSql(query));
     return rows.rows.map(mapPlacement);
   }
 
@@ -523,7 +532,7 @@ export class CheckoutPlacementRepository {
         [limit],
       )
       .toString();
-    const rows = await this.execute.query<PlacementRow>(rawSql(query));
+    const rows = await this.connection.query<PlacementRow>(rawSql(query));
     return rows.rows.map(mapPlacement);
   }
 
@@ -535,7 +544,7 @@ export class CheckoutPlacementRepository {
       .where({ id: placementId })
       .returning("id")
       .toString();
-    const updated = await singleOrNull(this.execute.query<{ id: string }>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<{ id: string }>(rawSql(query)));
     if (!updated) throw new Error("CHECKOUT_COMPENSATION_PLACEMENT_NOT_FOUND");
   }
 
@@ -555,7 +564,7 @@ export class CheckoutPlacementRepository {
       COALESCE(sum(jsonb_array_length(compensation_failures)), 0)::int AS compensation_failures
     FROM checkout.checkout_placements`;
     const row = await singleOrNull(
-      this.execute.query<{
+      this.connection.query<{
         stuck: number;
         payment_lag: number;
         compensation_failures: number;
@@ -579,7 +588,7 @@ export class CheckoutPlacementRepository {
       .update({ status, updated_at: knex.fn.now() })
       .where({ id: checkoutId, store_id: storeId })
       .toString();
-    await this.execute.query(rawSql(query));
+    await this.connection.query(rawSql(query));
   }
 
   async findById<TResult = unknown>(
@@ -592,7 +601,7 @@ export class CheckoutPlacementRepository {
       .where({ id: placementId })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     return row ? (mapPlacement(row) as CheckoutPlacementRecord<TResult>) : null;
   }
 
@@ -621,7 +630,7 @@ export class CheckoutPlacementRepository {
       })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     return row ? (mapPlacement(row) as CheckoutPlacementRecord<TResult>) : null;
   }
 
@@ -650,7 +659,7 @@ export class CheckoutPlacementRepository {
       })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     return row ? (mapPlacement(row) as CheckoutPlacementRecord<TResult>) : null;
   }
 
@@ -665,7 +674,7 @@ export class CheckoutPlacementRepository {
       .where({ store_id: storeId, checkout_id: checkoutId })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     return row ? mapPlacement(row) : null;
   }
 
@@ -680,7 +689,7 @@ export class CheckoutPlacementRepository {
       .where({ store_id: storeId, idempotency_key: idempotencyKey })
       .limit(1)
       .toString();
-    const row = await singleOrNull(this.execute.query<PlacementRow>(rawSql(query)));
+    const row = await singleOrNull(this.connection.query<PlacementRow>(rawSql(query)));
     return row ? mapPlacement(row) : null;
   }
 
@@ -706,7 +715,7 @@ export class CheckoutPlacementRepository {
         [column, encoded, placementId, column, column, encoded],
       )
       .toString();
-    const updated = await singleOrNull(this.execute.query<{ id: string }>(rawSql(query)));
+    const updated = await singleOrNull(this.connection.query<{ id: string }>(rawSql(query)));
     if (updated) return;
 
     const matches = knex
@@ -716,7 +725,7 @@ export class CheckoutPlacementRepository {
         encoded,
       ])
       .toString();
-    const existing = await singleOrNull(this.execute.query<{ id: string }>(rawSql(matches)));
+    const existing = await singleOrNull(this.connection.query<{ id: string }>(rawSql(matches)));
     if (existing) return;
     throw new Error(conflictCode);
   }
