@@ -71,10 +71,12 @@ product + comparison_field
   └── comparison_field_not_applicable              explicit N/A
 ```
 
-Все store-scoped таблицы содержат `store_id`. Как и в остальных Catalog
-domains, `store_id` является tenant scope, но не входит в PK/FK. Scripts и
-repositories обязаны брать его из trusted `ServiceContext` и проверять owner
-entities в том же store.
+Все entities store-scoped aggregate содержат `store_id`. Каждый FK между ними
+является составным: `(store_id, entity_id)` ссылается на
+`(store_id, id)` owner entity. Referenced tables предоставляют соответствующий
+`UNIQUE (store_id, id)`, если эта пара не является PK. Scripts и repositories
+обязаны брать `store_id` из trusted `ServiceContext`; database constraints
+запрещают cross-store references.
 
 ## Comparison profile
 

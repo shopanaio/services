@@ -128,10 +128,23 @@ CREATE TABLE products (
   store_id UUID NOT NULL REFERENCES stores(id),
   title VARCHAR(255) NOT NULL,
   -- ...
+  UNIQUE (store_id, id)
+);
+
+-- Every relation inside a store-scoped aggregate carries the tenant key.
+CREATE TABLE product_variants (
+  id UUID PRIMARY KEY,
+  store_id UUID NOT NULL REFERENCES stores(id),
+  product_id UUID NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  FOREIGN KEY (store_id, product_id)
+    REFERENCES products(store_id, id),
+  UNIQUE (store_id, id)
 );
 
 -- Index for tenant isolation
 CREATE INDEX idx_products_store ON products(store_id);
+CREATE INDEX idx_product_variants_store ON product_variants(store_id);
 
 -- Global table (no store_id)
 CREATE TABLE currencies (

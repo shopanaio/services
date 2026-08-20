@@ -394,9 +394,10 @@ breakdown предназначены для explain/debug/admin tooling; storefr
 - каждый target принадлежит store и прошёл eligibility;
 - policy/calculation lineage относится к тому же store.
 
-DB constraints обеспечивают уникальность, но cross-owner/store invariants
-дополнительно проверяет application script, потому что `store_id` является
-tenant scope и не входит в PK/FK.
+DB constraints обеспечивают уникальность и tenant ownership связей: каждый FK
+между store-scoped aggregate entities включает `store_id` с обеих сторон.
+Инварианты, которые нельзя полностью выразить constraint-ами, дополнительно
+проверяет application script.
 
 ## Storefront serving
 
@@ -538,7 +539,10 @@ eligibility.
 ## Consistency и идемпотентность
 
 - Все persisted UUID — UUIDv7, генерируемые application layer.
-- `store_id` обязателен на root store-scoped records, но не входит в PK/FK.
+- `store_id` обязателен на всех records store-scoped aggregate; каждый FK между
+  такими entities является составным и включает `store_id` с обеих сторон.
+- Stable UUIDv7 `id` может оставаться PK; referenced tables предоставляют
+  `UNIQUE (store_id, id)` для tenant-safe composite FK.
 - Repository всегда фильтрует root records по trusted store context.
 - Events применяются revision-aware и payload-hash-aware.
 - Calculation run и snapshot имеют idempotency keys.

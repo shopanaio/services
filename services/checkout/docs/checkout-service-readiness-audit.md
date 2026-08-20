@@ -13,8 +13,8 @@ recalculation pipeline, versioned snapshots, compare-and-swap mutation commits, 
 selection, loyalty, durable order placement, compensations, payment monitoring, retention, and
 tenant/visitor isolation. Both declared queries and all declared mutations are wired to resolvers.
 
-The service is nevertheless not complete against its own public schema and implementation plans.
-The principal blockers are:
+The service is nevertheless not complete against its own public schema and implementation plans. The
+principal blockers are:
 
 1. `checkoutCreate` does not expose caller-provided idempotency, so a transport retry can create a
    second checkout.
@@ -26,8 +26,8 @@ The principal blockers are:
    descriptions: bundle `priceConfig`, purchase type, promo value/timestamps, tag timestamps, and
    localized address names.
 5. Tax calculation, Media integration, and multi-currency behavior are explicitly outside the
-   implemented V1 scope. They must either be completed or removed/reworded as product promises before
-   the service can be described as fully complete.
+   implemented V1 scope. They must either be completed or removed/reworded as product promises
+   before the service can be described as fully complete.
 6. The repository contains 189 current checkout Storefront E2E scenarios, but they were not executed
    during this audit. Several notification assertions are statically incompatible with the mapper.
 
@@ -54,18 +54,18 @@ instructions in the root `AGENTS.md`. Consequently:
 
 ## Readiness scorecard
 
-| Area | Weight | Score | Assessment |
-| --- | ---: | ---: | --- |
-| Public operation wiring | 10 | 10 | Both queries and all 26 mutations are registered |
-| Mutation correctness and concurrency | 15 | 12 | Strong coordinator/CAS model; create retry semantics are incomplete |
-| Canonical recalculation pipeline | 15 | 13 | Six stages and strict boundary parsing are implemented |
-| Public read-model fidelity | 15 | 7 | Several declared fields are empty, hardcoded, or semantically inaccurate |
-| Delivery, payments, and loyalty | 15 | 12 | Substantial integration and selection logic; runtime verification pending |
-| Order placement and recovery | 15 | 12 | Durable orchestration and compensation are extensive |
-| Security and tenancy | 5 | 4 | Store/visitor/credential boundaries are present; full runtime proof pending |
-| Operations and observability | 5 | 2 | Metrics/readiness exist, but readiness dependency coverage is incomplete |
-| Verification evidence | 5 | 3 | Broad E2E suite exists, but was not executed and contains static contradictions |
-| **Total** | **100** | **65** | **NO-GO** |
+| Area                                 |  Weight |  Score | Assessment                                                                      |
+| ------------------------------------ | ------: | -----: | ------------------------------------------------------------------------------- |
+| Public operation wiring              |      10 |     10 | Both queries and all 26 mutations are registered                                |
+| Mutation correctness and concurrency |      15 |     12 | Strong coordinator/CAS model; create retry semantics are incomplete             |
+| Canonical recalculation pipeline     |      15 |     13 | Six stages and strict boundary parsing are implemented                          |
+| Public read-model fidelity           |      15 |      7 | Several declared fields are empty, hardcoded, or semantically inaccurate        |
+| Delivery, payments, and loyalty      |      15 |     12 | Substantial integration and selection logic; runtime verification pending       |
+| Order placement and recovery         |      15 |     12 | Durable orchestration and compensation are extensive                            |
+| Security and tenancy                 |       5 |      4 | Store/visitor/credential boundaries are present; full runtime proof pending     |
+| Operations and observability         |       5 |      2 | Metrics/readiness exist, but readiness dependency coverage is incomplete        |
+| Verification evidence                |       5 |      3 | Broad E2E suite exists, but was not executed and contains static contradictions |
+| **Total**                            | **100** | **65** | **NO-GO**                                                                       |
 
 The percentage is an engineering readiness estimate, not test coverage and not a claim that 65% of
 individual lines are correct.
@@ -74,42 +74,42 @@ individual lines are correct.
 
 ### Queries
 
-| Operation | Resolver | Static status | Notes |
-| --- | --- | --- | --- |
-| `checkout(id)` | `checkoutQuery.ts` | Implemented | Store and visitor ownership enforced through `loadOwned` |
-| `checkoutPlacement(id)` | `checkoutPlacement.ts` | Implemented | Store, credential, and visitor ownership enforced |
+| Operation               | Resolver               | Static status | Notes                                                    |
+| ----------------------- | ---------------------- | ------------- | -------------------------------------------------------- |
+| `checkout(id)`          | `checkoutQuery.ts`     | Implemented   | Store and visitor ownership enforced through `loadOwned` |
+| `checkoutPlacement(id)` | `checkoutPlacement.ts` | Implemented   | Store, credential, and visitor ownership enforced        |
 
 ### Mutations
 
-| Operation | Static status | Pipeline behavior | Important notes |
-| --- | --- | --- | --- |
-| `checkoutCreate` | **Incomplete** | Full recalculation | Caller cannot supply an idempotency key |
-| `checkoutLinesAdd` | Implemented | Full recalculation | Batch use case and canonical line intent |
-| `checkoutLinesUpdate` | Implemented | Full recalculation | Quantity zero removes a line |
-| `checkoutLinesReplace` | Implemented | Full recalculation | Source-to-target replacement semantics |
-| `checkoutLinesDelete` | Implemented | Full recalculation | Batch validation and removal |
-| `checkoutLinesClear` | Implemented | Full recalculation | Clears lines and affected references |
-| `checkoutCustomerIdentityUpdate` | Implemented | Full recalculation | Authenticated customer ownership comes from trusted context |
-| `checkoutCustomerNoteUpdate` | Implemented | CAS-only | Does not change pipeline result revision |
-| `checkoutLanguageCodeUpdate` | Implemented | Full recalculation | Recalculates localized outputs |
-| `checkoutCurrencyCodeUpdate` | Implemented | Full recalculation | Actual support depends on Pricing/Catalog data |
-| `checkoutBillingAddressUpdate` | Partially complete | CAS-only | Stored and passed at placement; not part of recalculation/validation |
-| `checkoutDeliveryAddressesAdd` | Implemented | Full recalculation | Multi-destination batch mutation |
-| `checkoutDeliveryAddressesUpdate` | Implemented | Full recalculation | Batch update |
-| `checkoutDeliveryAddressesRemove` | Implemented | Full recalculation | Resets dependent selections |
-| `checkoutDeliveryMethodUpdate` | Implemented | Full recalculation | Opaque option handle and private customer input |
-| `checkoutDeliveryRecipientsAdd` | Implemented | Full recalculation | Recipient data updates destination intent |
-| `checkoutDeliveryRecipientsUpdate` | Implemented | Full recalculation | Batch update |
-| `checkoutDeliveryRecipientsRemove` | Implemented | Full recalculation | Batch removal |
-| `checkoutPromoCodeAdd` | Implemented | Full recalculation | Public promo projection has semantic defects |
-| `checkoutPromoCodeRemove` | Implemented | Full recalculation | Normalized/idempotent removal |
-| `checkoutTagCreate` | Implemented | CAS-only | Per-tag timestamps are not persisted |
-| `checkoutTagUpdate` | Implemented | CAS-only | Uniqueness validation exists; timestamp projection is inaccurate |
-| `checkoutTagDelete` | Implemented | CAS-only | Assignment cleanup is atomic |
-| `checkoutPaymentMethodUpdate` | Implemented | Full recalculation | Opaque handle and private customer input |
-| `checkoutLoyaltyRedemptionUpdate` | Implemented | Full recalculation | Supports points and reward entitlements internally |
-| `checkoutLoyaltyRedemptionRemove` | Implemented | Full recalculation | No-op semantics for absent selection |
-| `placeOrder` | Implemented | Durable workflow | Client idempotency is exposed here, unlike checkout creation |
+| Operation                          | Static status      | Pipeline behavior  | Important notes                                                      |
+| ---------------------------------- | ------------------ | ------------------ | -------------------------------------------------------------------- |
+| `checkoutCreate`                   | **Incomplete**     | Full recalculation | Caller cannot supply an idempotency key                              |
+| `checkoutLinesAdd`                 | Implemented        | Full recalculation | Batch use case and canonical line intent                             |
+| `checkoutLinesUpdate`              | Implemented        | Full recalculation | Quantity zero removes a line                                         |
+| `checkoutLinesReplace`             | Implemented        | Full recalculation | Source-to-target replacement semantics                               |
+| `checkoutLinesDelete`              | Implemented        | Full recalculation | Batch validation and removal                                         |
+| `checkoutLinesClear`               | Implemented        | Full recalculation | Clears lines and affected references                                 |
+| `checkoutCustomerIdentityUpdate`   | Implemented        | Full recalculation | Authenticated customer ownership comes from trusted context          |
+| `checkoutCustomerNoteUpdate`       | Implemented        | CAS-only           | Does not change pipeline result revision                             |
+| `checkoutLanguageCodeUpdate`       | Implemented        | Full recalculation | Recalculates localized outputs                                       |
+| `checkoutCurrencyCodeUpdate`       | Implemented        | Full recalculation | Actual support depends on Pricing/Catalog data                       |
+| `checkoutBillingAddressUpdate`     | Partially complete | CAS-only           | Stored and passed at placement; not part of recalculation/validation |
+| `checkoutDeliveryAddressesAdd`     | Implemented        | Full recalculation | Multi-destination batch mutation                                     |
+| `checkoutDeliveryAddressesUpdate`  | Implemented        | Full recalculation | Batch update                                                         |
+| `checkoutDeliveryAddressesRemove`  | Implemented        | Full recalculation | Resets dependent selections                                          |
+| `checkoutDeliveryMethodUpdate`     | Implemented        | Full recalculation | Opaque option handle and private customer input                      |
+| `checkoutDeliveryRecipientsAdd`    | Implemented        | Full recalculation | Recipient data updates destination intent                            |
+| `checkoutDeliveryRecipientsUpdate` | Implemented        | Full recalculation | Batch update                                                         |
+| `checkoutDeliveryRecipientsRemove` | Implemented        | Full recalculation | Batch removal                                                        |
+| `checkoutPromoCodeAdd`             | Implemented        | Full recalculation | Public promo projection has semantic defects                         |
+| `checkoutPromoCodeRemove`          | Implemented        | Full recalculation | Normalized/idempotent removal                                        |
+| `checkoutTagCreate`                | Implemented        | CAS-only           | Per-tag timestamps are not persisted                                 |
+| `checkoutTagUpdate`                | Implemented        | CAS-only           | Uniqueness validation exists; timestamp projection is inaccurate     |
+| `checkoutTagDelete`                | Implemented        | CAS-only           | Assignment cleanup is atomic                                         |
+| `checkoutPaymentMethodUpdate`      | Implemented        | Full recalculation | Opaque handle and private customer input                             |
+| `checkoutLoyaltyRedemptionUpdate`  | Implemented        | Full recalculation | Supports points and reward entitlements internally                   |
+| `checkoutLoyaltyRedemptionRemove`  | Implemented        | Full recalculation | No-op semantics for absent selection                                 |
+| `placeOrder`                       | Implemented        | Durable workflow   | Client idempotency is exposed here, unlike checkout creation         |
 
 Operation registration is therefore complete in shape, but operation semantics are not all complete.
 
@@ -135,7 +135,8 @@ Evidence:
   replayable create idempotency and explicitly prohibits resolver-generated random keys.
 
 The persistence repository itself has useful reservation, lease, conflict, replay, and final-failure
-states. The problem is that the public/application boundary never allows a retry to reuse an identity.
+states. The problem is that the public/application boundary never allows a retry to reuse an
+identity.
 
 Required completion:
 
@@ -150,8 +151,8 @@ Required completion:
 
 **Severity:** Blocker  
 **Affected API:** `Checkout.notifications`  
-**Risk:** storefront cannot explain automatic quantity changes, price changes, stock loss, or removed
-merchandise
+**Risk:** storefront cannot explain automatic quantity changes, price changes, stock loss, or
+removed merchandise
 
 The schema declares four notification codes and a non-null notification collection. Current E2E
 scenarios assert `NOT_ENOUGH_STOCK`, `PRICE_CHANGED`, `OUT_OF_STOCK`, and `ITEM_UNAVAILABLE`.
@@ -190,15 +191,16 @@ does not require the core actions used by ordinary checkout creation and mutatio
 - payment-method discovery;
 - validation-function binding discovery.
 
-It also omits several actions required for placement finalization and compensation, such as inventory
-confirmation, discount release/reversal, delivery release, and loyalty reserve/commit/release.
+It also omits several actions required for placement finalization and compensation, such as
+inventory confirmation, discount release/reversal, delivery release, and loyalty
+reserve/commit/release.
 
 Required completion:
 
 1. Split dependencies into recalculation-critical, placement-critical, and recovery-critical groups.
 2. Require all recalculation-critical actions for readiness.
-3. Decide whether recovery-only missing dependencies make the instance unready or degraded; expose the
-   distinction explicitly.
+3. Decide whether recovery-only missing dependencies make the instance unready or degraded; expose
+   the distinction explicitly.
 4. Add a unit-level inventory test that proves every broker action/workflow referenced by checkout
    runtime code is classified by readiness policy.
 
@@ -211,9 +213,11 @@ Required completion:
 The mapper currently hardcodes:
 
 ```ts
-image: null
-purchase: { type: "ONE_TIME" }
-priceConfig: null
+image: null;
+purchase: {
+  type: "ONE_TIME";
+}
+priceConfig: null;
 ```
 
 Consequences:
@@ -225,8 +229,8 @@ Consequences:
   Media reference.
 
 The bundle price rule is available while Catalog/Pricing transform the line but is dropped from the
-final quoted-line contract. Exact `FREE`, amount, percentage, and override semantics therefore cannot
-be faithfully reconstructed in the checkout mapper.
+final quoted-line contract. Exact `FREE`, amount, percentage, and override semantics therefore
+cannot be faithfully reconstructed in the checkout mapper.
 
 Required completion:
 
@@ -243,12 +247,12 @@ Required completion:
 **Affected fields:** `CheckoutPromoCode.value`, `discountType`, `appliedAt`
 
 The schema documents `value` as a percentage. The mapper returns
-`Number(discount.amount.amountMinor)`, which is the allocated monetary discount in minor units.
-For a percentage promotion, a shopper may therefore receive `1500` instead of `15`. For a fixed
+`Number(discount.amount.amountMinor)`, which is the allocated monetary discount in minor units. For
+a percentage promotion, a shopper may therefore receive `1500` instead of `15`. For a fixed
 promotion, the field description remains wrong.
 
-`appliedAt` is populated with the checkout's latest `updatedAt`. An unrelated note, address, line, or
-tag mutation changes the reported application time of every promo code.
+`appliedAt` is populated with the checkout's latest `updatedAt`. An unrelated note, address, line,
+or tag mutation changes the reported application time of every promo code.
 
 Required completion:
 
@@ -268,8 +272,8 @@ Effects:
 - updating any unrelated checkout field changes every tag's `updatedAt`;
 - updating one tag cannot be distinguished from updating another.
 
-Required completion: persist tag-level `createdAt` and `updatedAt`, update only the affected tag, and
-preserve timestamps through snapshot serialization and CAS-only commits.
+Required completion: persist tag-level `createdAt` and `updatedAt`, update only the affected tag,
+and preserve timestamps through snapshot serialization and CAS-only commits.
 
 ### H-04 — Address name fields are codes, not localized names
 
@@ -282,14 +286,14 @@ snapshot or rename/remove the misleading fields and leave only codes.
 
 ### H-05 — Billing address does not participate in recalculation validation
 
-The schema says billing address is used by payment providers. It is stored via a CAS-only mutation and
-later passed when creating a payment session, but it does not enter payment-method discovery or native
-checkout validation.
+The schema says billing address is used by payment providers. It is stored via a CAS-only mutation
+and later passed when creating a payment session, but it does not enter payment-method discovery or
+native checkout validation.
 
 This may be acceptable only if the product rule is explicitly: billing address is never required for
-method eligibility and is validated exclusively by the selected provider at payment-session creation.
-If providers may require country, postal code, or billing identity before checkout becomes `READY`, the
-current behavior is incomplete.
+method eligibility and is validated exclusively by the selected provider at payment-session
+creation. If providers may require country, postal code, or billing identity before checkout becomes
+`READY`, the current behavior is incomplete.
 
 Required decision: codify the above policy or add billing-address facts to the payment/validation
 pipeline and convert the mutation to a recalculating mutation.
@@ -307,7 +311,8 @@ be complete unless the release contract explicitly declares these limitations. B
 service complete, choose one of two approaches for each item:
 
 1. implement the feature and its tests; or
-2. make the limitation explicit in the public/product contract and remove misleading semantic claims.
+2. make the limitation explicit in the public/product contract and remove misleading semantic
+   claims.
 
 ## Architecture strengths confirmed by static review
 
@@ -344,8 +349,8 @@ service complete, choose one of two approaches for each item:
 
 - `placeOrder` exposes caller-provided idempotency.
 - Placement claims an immutable checkout version/result revision.
-- Inventory, discount usage, delivery, loyalty, order creation, and payment creation are orchestrated
-  as durable workflow operations.
+- Inventory, discount usage, delivery, loyalty, order creation, and payment creation are
+  orchestrated as durable workflow operations.
 - Compensation failures are recorded for maintenance recovery.
 - Pending payment sessions have a monitor and recovery path.
 - Placement status is queryable with Storefront ownership checks.
@@ -376,8 +381,9 @@ There are 12 current checkout Storefront spec files containing 189 test cases:
 - maintenance and retention;
 - tags.
 
-No skipped/todo checkout tests were found by static search. This is strong breadth, but it is not proof
-of a passing suite. At minimum, notification scenarios conflict with the unconditional empty mapper.
+No skipped/todo checkout tests were found by static search. This is strong breadth, but it is not
+proof of a passing suite. At minimum, notification scenarios conflict with the unconditional empty
+mapper.
 
 Additional verification gaps to add or make explicit:
 
@@ -447,7 +453,8 @@ Checkout can be marked complete only when all of the following are true:
 - all mutation batches and snapshot commits remain atomic under conflicts and failures;
 - no public field is unconditionally empty, null, hardcoded, or timestamped from an unrelated entity
   unless that behavior is explicitly the contract;
-- notifications correctly describe line removal, quantity adjustment, price change, and availability;
+- notifications correctly describe line removal, quantity adjustment, price change, and
+  availability;
 - bundle price adjustments and purchase modes survive the pipeline and public projection;
 - promo, tag, and address fields match their GraphQL descriptions;
 - readiness fails when any dependency required for checkout recalculation is unavailable;
@@ -460,10 +467,10 @@ Checkout can be marked complete only when all of the following are true:
 
 ## Final verdict
 
-The checkout service has a strong architectural core and a broad intended verification matrix, but it
-does not yet satisfy the requested condition that all declared API and business logic be complete.
-The immediate release blockers are create idempotency, notifications, and readiness correctness.
-After those, public projection fidelity and explicit V1 scope decisions are required before a final
-green verification run.
+The checkout service has a strong architectural core and a broad intended verification matrix, but
+it does not yet satisfy the requested condition that all declared API and business logic be
+complete. The immediate release blockers are create idempotency, notifications, and readiness
+correctness. After those, public projection fidelity and explicit V1 scope decisions are required
+before a final green verification run.
 
 **Current release decision: NO-GO.**
