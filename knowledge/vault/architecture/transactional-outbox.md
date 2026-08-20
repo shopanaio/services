@@ -114,4 +114,4 @@ Before approving an operation described as a transactional outbox, verify that:
 - [[packages/dbos/sagas]] — compensation for distributed operations
 - [[packages/dbos/transactional-steps]] — atomic database-write contract
 - [[packages/shared-kernel/service-broker]] — broker workflow and saga entrypoints
-- [[architecture/decisions]] — DBOS and Orders event-store decisions
+- [[architecture/decisions]] — DBOS and Orders state/audit decisions

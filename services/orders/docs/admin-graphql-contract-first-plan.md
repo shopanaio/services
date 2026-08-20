@@ -23,6 +23,12 @@ capability:
 не являются произвольно редактируемыми полями. Они меняются только через разрешённые команды или
 вычисляются из дочерних фактов.
 
+Orders является обычным state-first мутабельным сервисом, а не event-sourced системой. Текущие
+нормализованные state tables являются source of truth, `orders.version` — единственным aggregate
+optimistic-concurrency token. Каждая успешно зафиксированная команда добавляет immutable audit
+records, по которым можно однозначно проследить actor, причину, порядок и результат изменений, но
+состояние заказа не восстанавливается replay этих событий.
+
 ## 2. Цели
 
 - Поддержать все операции, уже заявленные в черновом Admin UI.
@@ -2292,6 +2298,8 @@ Admin UI должен отображать `availableActions` и открыва�
 - Outbound side effects идут только после committed transactional step через DBOS workflow.
 - Локальные publish-queue tables/workers запрещены: retry, recovery и delivery state принадлежат
   DBOS.
+- Orders не использует event sourcing: command handlers читают и изменяют canonical state tables
+  напрямую внутри транзакции, а audit events фиксируют результат изменения.
 
 ### 9.2. Concurrency, audit и operational control
 
@@ -2770,7 +2778,7 @@ scopes и store policy.
 - right-to-erasure redacts contact/address fields, сохраняя order number, sums, taxes и audit
   hashes.
 
-## 13. Domain events и DBOS delivery
+## 13. Audit/integration events и DBOS delivery
 
 ### 13.1. Envelope
 
@@ -2799,6 +2807,10 @@ interface OrderIntegrationEvent<TType extends string, TPayload> {
 доставляются отдельными idempotent DBOS workflow steps после commit. Они не используются как журнал
 восстановления aggregate и не заменяют строки `orders` и дочерних таблиц. Отдельная локальная
 очередь для их доставки не создаётся.
+
+Audit event обязан позволять проследить изменение без replay aggregate: он содержит resulting
+`orderVersion`, actor, reason, correlation/causation и versioned payload с изменёнными business
+facts. Полный state snapshot в каждом событии не требуется.
 
 Core:
 
@@ -2907,7 +2919,7 @@ services/orders/src/
   workflows/
   handlers/
   repositories/
-    event-store/
+    audit/
     read/
     payment/
     fulfillment/
@@ -3198,7 +3210,9 @@ side effects — через отдельные idempotent workflow steps. Обы
 
 Gate каждого slice: operation зарегистрирована как DBOS workflow; отсутствует direct write path;
 domain invariant tests, repository integration tests, idempotency replay, version conflict,
-state/audit/idempotency atomicity и workflow recovery проходят.
+state/audit/idempotency atomicity и workflow recovery проходят. Ни один успешный state change не
+может быть committed без audit record соответствующей resulting `orders.version`; event replay или
+projection rebuild для чтения состояния не используется.
 
 ### Этап 4. GraphQL resolvers/API
 

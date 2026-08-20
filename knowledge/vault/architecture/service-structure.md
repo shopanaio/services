@@ -32,7 +32,8 @@ Shopana is a **headless e-commerce platform** built with:
 - **Microservices** — domain-driven bounded contexts
 - **GraphQL Federation** — unified API from distributed services
 - **DBOS** — durable workflows for complex operations
-- **Event Sourcing** — audit trail for orders and checkout
+- **Mutable domain state with immutable audit events** — canonical Orders state remains directly
+  queryable while every change is recorded for activity and investigation
 
 ## Document Structure
 
