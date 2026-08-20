@@ -10,6 +10,9 @@
       "source": "./src/listing.module.ts"
     }
   },
+  "scripts": {
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
+  },
   "dependencies": {
     "@apollo/server": "^4.11.0",
     "@apollo/subgraph": "^2.9.0",
@@ -39,7 +42,10 @@
   },
   "devDependencies": {
     "@shopana/build-tools": "0.0.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.14.14",
+    "jest": "^30.1.3",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"
   },

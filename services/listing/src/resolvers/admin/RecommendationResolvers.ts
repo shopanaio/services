@@ -4,6 +4,7 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { hashContent } from "@shopana/shared-kernel";
+import { GraphQLError } from "graphql";
 import type {
   ManualProductRecommendation,
   RecommendationPlacement,
@@ -84,6 +85,14 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
     const afterId = args.after
       ? Buffer.from(args.after, "base64url").toString("utf8")
       : undefined;
+    if (
+      afterId !== undefined &&
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(afterId)
+    ) {
+      throw new GraphQLError("Invalid manual recommendation cursor", {
+        extensions: { code: "BAD_USER_INPUT" },
+      });
+    }
     const page = await this.$ctx.kernel.repository.manualProductRecommendation.listPage({
       anchorProductId,
       placement: args.placement,

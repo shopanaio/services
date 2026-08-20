@@ -1,10 +1,15 @@
 import { Transactional } from "../../kernel/BaseScript.js";
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
-import { buildRecommendation, type RecommendationExcludedReason } from "../../recommendation/buildRecommendation.js";
+import {
+  buildRecommendation,
+  type RecommendationBuildResult,
+  type RecommendationExcludedReason,
+} from "../../recommendation/buildRecommendation.js";
 import { canonicalByteLength } from "../../recommendation/canonical.js";
 import {
   MAX_RECOMMENDATION_PREVIEW_BYTES,
   MAX_RECOMMENDATION_PREVIEW_CHANGES,
+  MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT,
   recommendationModelVersion,
 } from "../../recommendation/constants.js";
 import type {
@@ -16,6 +21,7 @@ import type {
 } from "../../repositories/models/recommendationRuntime.js";
 import type { RankedRecommendationCandidate } from "../../repositories/recommendation/types.js";
 import { validateManualValues, validatePolicy } from "./validation.js";
+import { RecommendationIntegrityError } from "../../recommendation/errors.js";
 
 interface PolicyDraft {
   expectedVersion?: number | null;
@@ -75,6 +81,26 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     ) {
       return { active: null, draft: null, userErrors: [{ message: "Preview input limit exceeded", code: "PREVIEW_LIMIT_EXCEEDED" }] };
     }
+    const referencedProductIds = [
+      input.anchorProductId,
+      ...input.manualChanges.flatMap((change) => {
+        if (change.kind === "create") return [change.value.targetProductId];
+        if (change.kind === "update" && typeof change.value.targetProductId === "string") {
+          return [change.value.targetProductId];
+        }
+        return [];
+      }),
+    ];
+    const ownedProductIds = await this.repository.manualProductRecommendation.findOwnedProductIds(
+      referencedProductIds,
+    );
+    if (referencedProductIds.some((id) => !ownedProductIds.has(id))) {
+      return {
+        active: null,
+        draft: null,
+        userErrors: [{ message: "Product not found", code: "NOT_FOUND" }],
+      };
+    }
     const asOf = await this.repository.recommendationCalculationRun.databaseNow();
     const persistedPolicy = await this.repository.recommendationPlacementPolicy.findByPlacement(input.placement);
     const active = await this.activeResult(input.anchorProductId, input.placement);
@@ -84,20 +110,105 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     const rows = await this.loadAllManual(input.anchorProductId, input.placement);
     const overlay = this.applyOverlay(input, rows, policyResult.policy.maximumResults, asOf);
     if (overlay.userErrors.length > 0) return { active, draft: null, userErrors: overlay.userErrors };
-    const build = await buildRecommendation({
-      anchorProductId: input.anchorProductId,
-      policy: policyResult.policy,
-      manualRows: overlay.rows.filter((row) => effective(row, asOf)),
-      loadFbt: (limit) => this.repository.recommendationCandidateSource.fbt({ anchorProductId: input.anchorProductId, limit }),
-      loadCategoryPopularity: (limit) => this.repository.recommendationCandidateSource.categoryPopularity({ anchorProductId: input.anchorProductId, limit }),
-      loadStorePopularity: (limit) => this.repository.recommendationCandidateSource.storePopularity({ anchorProductId: input.anchorProductId, limit }),
-      eligibility: (ids) => this.repository.recommendationCandidateSource.currentEligibility(ids),
+    if (overlay.rows.length > MAX_MANUAL_ROWS_PER_ANCHOR_PLACEMENT) {
+      return {
+        active,
+        draft: null,
+        userErrors: [{
+          message: "Manual recommendation row limit reached",
+          code: "MANUAL_ROW_LIMIT_EXCEEDED",
+        }],
+      };
+    }
+    const asOfTime = Date.parse(asOf);
+    if (overlay.rows.some((row) =>
+      row.action === "PIN" &&
+      row.enabled &&
+      row.anchorReferenceStatus === "VALID" &&
+      row.targetReferenceStatus === "VALID" &&
+      (row.position ?? 0) > policyResult.policy!.maximumResults &&
+      (row.endsAt === null || Date.parse(row.endsAt) > asOfTime)
+    )) {
+      return {
+        active,
+        draft: null,
+        userErrors: [{
+          message: "A current or future PIN exceeds maximumResults",
+          code: "PIN_POSITION_OUT_OF_RANGE",
+        }],
+      };
+    }
+    const scheduleErrors = validateOverlaySchedules(overlay.rows);
+    if (scheduleErrors.length > 0) {
+      return { active, draft: null, userErrors: scheduleErrors };
+    }
+    const insufficientSupport: Array<{ targetProductId: string }> = [];
+    let build: RecommendationBuildResult;
+    try {
+      build = await buildRecommendation({
+        anchorProductId: input.anchorProductId,
+        policy: policyResult.policy,
+        manualRows: overlay.rows.filter((row) => effective(row, asOf)),
+        loadFbt: async (limit) => {
+          const rows = await this.repository.recommendationCandidateSource.fbt({
+            anchorProductId: input.anchorProductId,
+            limit,
+            diagnostic: true,
+          });
+          insufficientSupport.push(
+            ...rows.filter((candidate) => candidate.insufficientSupport),
+          );
+          return rows.filter((candidate) => !candidate.insufficientSupport);
+        },
+        loadCategoryPopularity: (limit) => this.repository.recommendationCandidateSource.categoryPopularity({ anchorProductId: input.anchorProductId, limit }),
+        loadStorePopularity: (limit) => this.repository.recommendationCandidateSource.storePopularity({ anchorProductId: input.anchorProductId, limit }),
+        eligibility: (ids) => this.repository.recommendationCandidateSource.currentEligibility(ids),
+      });
+    } catch (error) {
+      if (
+        error instanceof RecommendationIntegrityError &&
+        error.code === "CANDIDATE_LIMIT_EXCEEDED"
+      ) {
+        return {
+          active,
+          draft: null,
+          userErrors: [{
+            message: "Preview candidate limit exceeded",
+            code: "PREVIEW_LIMIT_EXCEEDED",
+          }],
+        };
+      }
+      throw error;
+    }
+    const represented = new Set([
+      ...build.candidates.map((candidate) => candidate.targetProductId),
+      ...build.excluded.map((candidate) => candidate.targetProductId),
+    ]);
+    const diagnosticIds = insufficientSupport
+      .map((candidate) => candidate.targetProductId)
+      .filter((targetProductId) => !represented.has(targetProductId));
+    const diagnosticEligibility = await this.repository.recommendationCandidateSource.currentEligibility(
+      diagnosticIds,
+    );
+    const manualExclusions = new Set(
+      overlay.rows
+        .filter((row) => effective(row, asOf) && row.action === "EXCLUDE")
+        .map((row) => row.targetProductId),
+    );
+    const diagnosticExcluded = diagnosticIds.map((targetProductId) => {
+      const state = diagnosticEligibility.get(targetProductId) ?? "STALE";
+      const reason: RecommendationExcludedReason = manualExclusions.has(targetProductId)
+        ? "EXCLUDED"
+        : state === "ELIGIBLE"
+          ? "INSUFFICIENT_SUPPORT"
+          : state;
+      return { targetProductId, reason };
     });
     return {
       active,
       draft: {
         candidates: build.candidates,
-        excluded: build.excluded,
+        excluded: [...build.excluded, ...diagnosticExcluded],
         asOf,
         modelVersion: recommendationModelVersion(input.placement),
       },
@@ -252,4 +363,47 @@ function toPreviewCandidate(item: RecommendationSnapshotItem) {
     primarySource: item.primarySource,
     sourceBreakdown: item.sourceBreakdown,
   };
+}
+
+function validateOverlaySchedules(rows: readonly ManualProductRecommendation[]): UserError[] {
+  const reserving = rows.filter((row) =>
+    row.enabled &&
+    row.anchorReferenceStatus === "VALID" &&
+    row.targetReferenceStatus === "VALID"
+  );
+  const groups = new Map<string, ManualProductRecommendation[]>();
+  for (const row of reserving) {
+    const targetKey = `target:${row.targetProductId}`;
+    groups.set(targetKey, [...(groups.get(targetKey) ?? []), row]);
+    if (row.action === "PIN" && row.position !== null) {
+      const pinKey = `pin:${row.position}`;
+      groups.set(pinKey, [...(groups.get(pinKey) ?? []), row]);
+    }
+  }
+  for (const group of groups.values()) {
+    const ordered = [...group].sort((left, right) =>
+      intervalStart(left) - intervalStart(right) ||
+      left.recommendationId.localeCompare(right.recommendationId)
+    );
+    let previousEnd = Number.NEGATIVE_INFINITY;
+    for (const row of ordered) {
+      const start = intervalStart(row);
+      if (start < previousEnd) {
+        return [{
+          message: "Manual recommendation schedule conflicts with another row",
+          code: "SCHEDULE_CONFLICT",
+        }];
+      }
+      previousEnd = Math.max(previousEnd, intervalEnd(row));
+    }
+  }
+  return [];
+}
+
+function intervalStart(row: ManualProductRecommendation): number {
+  return row.startsAt === null ? Number.NEGATIVE_INFINITY : Date.parse(row.startsAt);
+}
+
+function intervalEnd(row: ManualProductRecommendation): number {
+  return row.endsAt === null ? Number.POSITIVE_INFINITY : Date.parse(row.endsAt);
 }

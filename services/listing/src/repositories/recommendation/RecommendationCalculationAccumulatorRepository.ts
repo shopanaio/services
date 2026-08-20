@@ -1,6 +1,7 @@
 import { ReadOnly } from "@shopana/shared-kernel";
 import { sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
+import { FBT_RULES_V1 } from "../../recommendation/constants.js";
 import type { RecommendationCalculationRun } from "../models/recommendationRuntime.js";
 
 const ORDER_PAGE_SIZE = 25;
@@ -257,14 +258,16 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
       ON CONFLICT (run_id, product_id) DO NOTHING
     `);
     const progressAfter = rows.at(-1)!.productId;
-    await this.connection.execute(sql`
+    const advanced = await this.connection.execute<{ runId: string }>(sql`
       UPDATE listing.recommendation_calculation_run
       SET product_progress_after = ${progressAfter}::uuid,
         product_count = product_count + ${rows.length}
       WHERE store_id = ${this.storeId}::uuid AND run_id = ${run.runId}::uuid
         AND materialization_phase = 'PRODUCTS'
         AND product_progress_after IS NOT DISTINCT FROM ${run.productProgressAfter}::uuid
+      RETURNING run_id AS "runId"
     `);
+    if (!advanced[0]) throw new Error("Recommendation product materialization progress conflict");
     return { done: false, inserted: rows.length, progressAfter };
   }
 
@@ -305,18 +308,18 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
         ),
         round(exp(-ln(2::numeric) *
           (extract(epoch FROM (${run.windowEndedAt}::timestamptz - a.last_purchased_together_at)) / 86400::numeric)
-          / 30::numeric), 10),
+          / ${FBT_RULES_V1.recencyHalfLifeDays}::numeric), 10),
         round(
           (a.orders_together::numeric / anchor.orders_count::numeric)
           * ln(1::numeric + a.orders_together::numeric)
           * LEAST(
               (a.orders_together::numeric / anchor.orders_count::numeric)
               / (target.orders_count::numeric / ${run.orderCount}::numeric),
-              5::numeric
+              ${FBT_RULES_V1.liftCap}::numeric
             )
           * exp(-ln(2::numeric) *
               (extract(epoch FROM (${run.windowEndedAt}::timestamptz - a.last_purchased_together_at)) / 86400::numeric)
-              / 30::numeric),
+              / ${FBT_RULES_V1.recencyHalfLifeDays}::numeric),
           10
         )
       FROM jsonb_to_recordset(${JSON.stringify(values)}::jsonb) AS x(
@@ -334,7 +337,7 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
       ON CONFLICT (run_id, anchor_product_id, target_product_id) DO NOTHING
     `);
     const last = rows.at(-1)!;
-    await this.connection.execute(sql`
+    const advanced = await this.connection.execute<{ runId: string }>(sql`
       UPDATE listing.recommendation_calculation_run
       SET pair_progress_anchor_after = ${last.anchorProductId}::uuid,
         pair_progress_target_after = ${last.targetProductId}::uuid,
@@ -343,7 +346,9 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
         AND materialization_phase = 'PAIRS'
         AND pair_progress_anchor_after IS NOT DISTINCT FROM ${run.pairProgressAnchorAfter}::uuid
         AND pair_progress_target_after IS NOT DISTINCT FROM ${run.pairProgressTargetAfter}::uuid
+      RETURNING run_id AS "runId"
     `);
+    if (!advanced[0]) throw new Error("Recommendation pair materialization progress conflict");
     return {
       done: false,
       inserted: rows.length,

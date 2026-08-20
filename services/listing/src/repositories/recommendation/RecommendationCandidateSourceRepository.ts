@@ -18,6 +18,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
   async fbt(input: {
     anchorProductId: string;
     limit: number;
+    runId?: string;
     diagnostic?: boolean;
   }): Promise<Array<RecommendationCandidate & { insufficientSupport?: boolean }>> {
     assertSourceLimit(input.limit);
@@ -32,6 +33,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
         WHERE store_id = ${this.storeId}::uuid
           AND calculation_type = 'FREQUENTLY_BOUGHT_TOGETHER'
           AND status = 'ACTIVE'
+          AND (${input.runId ?? null}::uuid IS NULL OR run_id = ${input.runId ?? null}::uuid)
       ), maximum AS (
         SELECT max(orders_count)::numeric AS count
         FROM listing.recommendation_product_stat ps
@@ -88,6 +90,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
   async storePopularity(input: {
     anchorProductId: string;
     limit: number;
+    runId?: string;
   }): Promise<RecommendationCandidate[]> {
     assertSourceLimit(input.limit);
     const rows = await this.connection.execute<AutomatedCandidateRow>(sql`
@@ -97,6 +100,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
         WHERE store_id = ${this.storeId}::uuid
           AND calculation_type = 'FREQUENTLY_BOUGHT_TOGETHER'
           AND status = 'ACTIVE'
+          AND (${input.runId ?? null}::uuid IS NULL OR run_id = ${input.runId ?? null}::uuid)
       ), ranked AS (
         SELECT ps.*, max(ps.orders_count) OVER ()::numeric AS maximum
         FROM listing.recommendation_product_stat ps
@@ -119,6 +123,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
   async categoryPopularity(input: {
     anchorProductId: string;
     limit: number;
+    runId?: string;
   }): Promise<RecommendationCandidate[]> {
     assertSourceLimit(input.limit);
     const rows = await this.connection.execute<AutomatedCandidateRow>(sql`
@@ -128,6 +133,7 @@ export class RecommendationCandidateSourceRepository extends BaseRepository {
         WHERE store_id = ${this.storeId}::uuid
           AND calculation_type = 'FREQUENTLY_BOUGHT_TOGETHER'
           AND status = 'ACTIVE'
+          AND (${input.runId ?? null}::uuid IS NULL OR run_id = ${input.runId ?? null}::uuid)
       ), anchor AS (
         SELECT product_doc_id
         FROM listing.product_listing_index

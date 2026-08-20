@@ -1,3 +1,5 @@
+import { FatalError } from "@shopana/shared-kernel";
+
 export type RecommendationIntegrityCode =
   | "INVALID_EVENT_PAYLOAD"
   | "EVENT_PAYLOAD_CONFLICT"
@@ -7,12 +9,12 @@ export type RecommendationIntegrityCode =
   | "INVALID_SNAPSHOT_CONTENT"
   | "LIFECYCLE_PLAN_LIMIT_EXCEEDED";
 
-export class RecommendationIntegrityError extends Error {
+export class RecommendationIntegrityError extends FatalError {
   constructor(
-    public readonly code: RecommendationIntegrityCode,
+    code: RecommendationIntegrityCode,
     message: string,
   ) {
-    super(message);
+    super(message, undefined, code);
     this.name = "RecommendationIntegrityError";
   }
 }

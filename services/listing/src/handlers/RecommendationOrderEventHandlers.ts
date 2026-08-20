@@ -13,7 +13,10 @@ import type {
   OrderSaleCommittedEvent,
   OrderSaleReversedEvent,
 } from "@shopana/events";
-import type { RecommendationOrderIngestInput } from "../workflows/RecommendationWorkflows.js";
+import {
+  RECOMMENDATION_INGESTION_QUEUE,
+  type RecommendationOrderIngestInput,
+} from "../workflows/RecommendationWorkflows.js";
 import { isDuplicateWorkflowStartError } from "../workflows/listingIndexWorkflowHelpers.js";
 
 @Injectable()
@@ -54,7 +57,13 @@ export class RecommendationOrderEventHandlers extends EventHandlers {
         "listing.recommendationOrderFactIngest",
         workflowInput,
         idempotency,
-        { workflowId },
+        {
+          workflowId,
+          queueName: RECOMMENDATION_INGESTION_QUEUE,
+          enqueueOptions: {
+            queuePartitionKey: `${event.payload.storeId}:${event.payload.orderId}`,
+          },
+        },
       );
       return { success: true };
     } catch (error) {

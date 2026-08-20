@@ -13,6 +13,11 @@ export class RecommendationReferenceStateSyncScript extends BaseScript<
 > {
   @Transactional()
   protected async execute({ plan }: { plan: RecommendationLifecyclePlan }) {
+    const stateChanged =
+      plan.oldState.published !== plan.newState.published ||
+      plan.oldState.available !== plan.newState.available ||
+      plan.oldState.categoryIds.join("\0") !== plan.newState.categoryIds.join("\0");
+    if (!stateChanged) return { requests: [] };
     await this.repository.manualProductRecommendation.markReferenceStatus({
       productId: plan.productId,
       status: plan.newState.published ? "VALID" : "STALE",
@@ -69,7 +74,14 @@ export class RecommendationLifecycleAffectedPageScript extends BaseScript<
       for (const placement of PLACEMENTS) {
         const policy = await this.repository.recommendationPlacementPolicy.findByPlacement(placement);
         if (!policy?.enabled) continue;
-        if (input.mode === "category" && !policy.fallbackChain.includes("category_popularity")) continue;
+        if (
+          input.mode === "category" &&
+          (
+            policy.strategy === "CURATED_ONLY" ||
+            policy.minimumResults === 0 ||
+            !policy.fallbackChain.includes("category_popularity")
+          )
+        ) continue;
         requests.push(await this.repository.recommendationBuildRequest.request(
           anchorProductId,
           placement,

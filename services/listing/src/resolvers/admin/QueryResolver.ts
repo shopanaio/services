@@ -69,11 +69,11 @@ export class ListingQueryResolver extends ListingType<Record<string, never>> {
     try {
       const decoded = decodeGlobalId(args.id);
       if (decoded.typeName === GlobalIdEntity.RecommendationPlacementPolicy) {
-        const row = await this.$ctx.kernel.repository.recommendationPlacementPolicy.findById(decoded.id);
+        const row = await this.$ctx.loaders.recommendationPolicy.load(decoded.id);
         return row ? mapRecommendationPolicy(row) : null;
       }
       if (decoded.typeName === GlobalIdEntity.ManualProductRecommendation) {
-        const row = await this.$ctx.kernel.repository.manualProductRecommendation.findById(decoded.id);
+        const row = await this.$ctx.loaders.manualRecommendation.load(decoded.id);
         return row ? mapManualRecommendation(row) : null;
       }
       return null;

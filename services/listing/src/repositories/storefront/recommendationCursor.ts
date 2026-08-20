@@ -30,7 +30,10 @@ export function decodeRecommendationCursor(value: string): RecommendationCursorP
     const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<RecommendationCursorPayload>;
     if (
       parsed.version !== 1 || typeof parsed.hash !== "string" ||
-      typeof parsed.snapshotId !== "string" || !Number.isSafeInteger(parsed.rank) ||
+      !/^[0-9a-f]{64}$/.test(parsed.hash) ||
+      typeof parsed.snapshotId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(parsed.snapshotId) ||
+      !Number.isSafeInteger(parsed.rank) ||
       (parsed.rank ?? 0) < 1
     ) throw new Error("shape");
     return parsed as RecommendationCursorPayload;

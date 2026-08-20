@@ -79,6 +79,10 @@ export async function buildRecommendation(input: {
     strategy: input.policy.strategy,
     maximumResults: input.policy.maximumResults,
   });
+  const included = new Set(candidates.map((candidate) => candidate.targetProductId));
+  for (const targetProductId of union.keys()) {
+    if (!included.has(targetProductId)) excluded.set(targetProductId, "LIMIT_EXCEEDED");
+  }
   return {
     candidates,
     excluded: [...excluded].map(([targetProductId, reason]) => ({ targetProductId, reason })),
@@ -172,11 +176,24 @@ function assertLimit(size: number): void {
 }
 
 function compareBoost(left: string | null, right: string | null): number {
-  return Number(left ?? 0) - Number(right ?? 0);
+  return compareDecimal(left ?? "0", right ?? "0");
 }
 
 function maxDecimal(left: string | null, right: string | null): string | null {
   if (left === null) return right;
   if (right === null) return left;
-  return Number(left) >= Number(right) ? left : right;
+  return compareDecimal(left, right) >= 0 ? left : right;
+}
+
+function compareDecimal(left: string, right: string): number {
+  const [leftWhole = "0", leftFraction = ""] = left.split(".");
+  const [rightWhole = "0", rightFraction = ""] = right.split(".");
+  if (leftWhole.length !== rightWhole.length) {
+    return leftWhole.length < rightWhole.length ? -1 : 1;
+  }
+  if (leftWhole !== rightWhole) return leftWhole < rightWhole ? -1 : 1;
+  const scale = Math.max(leftFraction.length, rightFraction.length);
+  const normalizedLeft = leftFraction.padEnd(scale, "0");
+  const normalizedRight = rightFraction.padEnd(scale, "0");
+  return normalizedLeft < normalizedRight ? -1 : normalizedLeft > normalizedRight ? 1 : 0;
 }

@@ -15,6 +15,8 @@ export class Loader {
   public readonly facetValueSourceChildren;
   public readonly facetSwatch;
   public readonly recommendation;
+  public readonly recommendationPolicy;
+  public readonly manualRecommendation;
 
   constructor(public readonly repository: Repository) {
     const facetLoader = new FacetLoader(repository);
@@ -32,5 +34,7 @@ export class Loader {
     this.facetValueSourceChildren = facetValueLoader.facetValueSourceChildren;
     this.facetSwatch = facetSwatchLoader.facetSwatch;
     this.recommendation = recommendationLoader.page;
+    this.recommendationPolicy = recommendationLoader.policyById;
+    this.manualRecommendation = recommendationLoader.manualById;
   }
 }

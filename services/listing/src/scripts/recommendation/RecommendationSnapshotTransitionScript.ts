@@ -3,6 +3,7 @@ import { BaseScript } from "../../kernel/BaseScript.js";
 import { manualConfigurationHash } from "../../recommendation/manualConfigurationHash.js";
 import { recommendationModelVersion } from "../../recommendation/constants.js";
 import type { RecommendationBuildInputs } from "../../repositories/recommendation/types.js";
+import type { RecommendationRequestGeneration } from "../../repositories/recommendation/types.js";
 
 export type RecommendationSnapshotTransitionParams =
   | { snapshotId: string; transition: "READY" }
@@ -11,7 +12,7 @@ export type RecommendationSnapshotTransitionParams =
 
 export class RecommendationSnapshotTransitionScript extends BaseScript<
   RecommendationSnapshotTransitionParams,
-  { status: "applied" | "stale" }
+  { status: "applied" | "stale"; rebuildRequest?: RecommendationRequestGeneration }
 > {
   @Transactional()
   protected async execute(input: RecommendationSnapshotTransitionParams) {
@@ -20,8 +21,22 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       return { status: "applied" as const };
     }
     if (input.transition === "FAILED") {
+      const snapshot = await this.repository.recommendationSnapshot.findById(input.snapshotId);
+      let rebuildRequest: RecommendationRequestGeneration | undefined;
+      if (snapshot && input.failureCode === "STALE_INPUT") {
+        const policy = await this.repository.recommendationPlacementPolicy.lockByPlacement(
+          snapshot.placement,
+        );
+        if (policy?.enabled) {
+          rebuildRequest = await this.repository.recommendationBuildRequest.request(
+            snapshot.anchorProductId,
+            snapshot.placement,
+            `stale-rebuild:${snapshot.snapshotId}:${snapshot.policyVersion}`,
+          );
+        }
+      }
       await this.repository.recommendationSnapshot.markFailed(input.snapshotId, input.failureCode);
-      return { status: "applied" as const };
+      return { status: "applied" as const, rebuildRequest };
     }
     const snapshot = await this.repository.recommendationSnapshot.findById(input.snapshotId);
     if (!snapshot) return { status: "stale" as const };
@@ -60,7 +75,27 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       (snapshot.calculationRunId === null || locks.run?.status === "ACTIVE");
     if (!valid) {
       await this.repository.recommendationSnapshot.markFailed(snapshot.snapshotId, "STALE_INPUT");
-      return { status: "stale" as const };
+      let rebuildRequest: RecommendationRequestGeneration | undefined;
+      if (locks.policy?.enabled) {
+        const requestAlreadyAdvanced = locks.request && (
+          locks.request.generation.toString() !== fixed.requestedGeneration ||
+          locks.request.triggerKey !== fixed.triggerKey
+        );
+        rebuildRequest = requestAlreadyAdvanced
+          ? {
+              requestId: locks.request!.requestId,
+              anchorProductId: locks.request!.anchorProductId,
+              placement: locks.request!.placement,
+              generation: locks.request!.generation.toString(),
+              triggerKey: locks.request!.triggerKey,
+            }
+          : await this.repository.recommendationBuildRequest.request(
+              snapshot.anchorProductId,
+              snapshot.placement,
+              `stale-rebuild:${snapshot.snapshotId}:${currentHash}`,
+            );
+      }
+      return { status: "stale" as const, rebuildRequest };
     }
     await this.repository.recommendationSnapshot.activate(snapshot.snapshotId);
     return { status: "applied" as const };

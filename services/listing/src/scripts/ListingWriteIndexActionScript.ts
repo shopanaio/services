@@ -90,19 +90,39 @@ export class ListingWriteIndexActionScript extends BaseScript<
       }
 
       if ("syncWriteModel" in input) {
-        const recommendationPlan = await this.buildRecommendationLifecyclePlan(input);
+        const oldState = await this.readRecommendationLifecycleState(
+          input.action.itemKey.itemId,
+        );
         await this.applySync(input.action, input.syncWriteModel.writeModelJson);
         await this.upsertLatestState(
           input.action,
           "indexed",
           statePayloadHash
         );
+        const newState = await this.readRecommendationLifecycleState(
+          input.action.itemKey.itemId,
+        );
+        const recommendationPlan = this.buildRecommendationLifecyclePlan(
+          input,
+          oldState,
+          newState,
+        );
         return { result: this.buildResult(input.action, "applied"), recommendationPlan };
       }
 
-      const recommendationPlan = await this.buildRecommendationLifecyclePlan(input);
+      const oldState = await this.readRecommendationLifecycleState(
+        input.action.itemKey.itemId,
+      );
       await this.applyDelete(input.action);
       await this.upsertLatestState(input.action, "deleted", statePayloadHash);
+      const newState = await this.readRecommendationLifecycleState(
+        input.action.itemKey.itemId,
+      );
+      const recommendationPlan = this.buildRecommendationLifecyclePlan(
+        input,
+        oldState,
+        newState,
+      );
       return { result: this.buildResult(input.action, "applied"), recommendationPlan };
     });
   }
@@ -111,10 +131,9 @@ export class ListingWriteIndexActionScript extends BaseScript<
     throw error;
   }
 
-  private async buildRecommendationLifecyclePlan(
-    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
-  ): Promise<RecommendationLifecyclePlan> {
-    const productId = input.action.itemKey.itemId;
+  private async readRecommendationLifecycleState(
+    productId: string,
+  ): Promise<RecommendationLifecycleState> {
     const current = await this.repository.productListingIndex.findByProductId(productId);
     const currentCategories = current
       ? (await this.repository.listingPostingBitmap.getMembershipKeys({
@@ -126,20 +145,19 @@ export class ListingWriteIndexActionScript extends BaseScript<
     const currentSorts = current
       ? await this.repository.listingPostingProductSort.getByProductDocId(current.productDocId)
       : [];
-    const oldState: RecommendationLifecycleState = {
+    return {
       published: current?.status === "published",
       available: currentSorts.some((row) => row.sortKind === "availability" && row.boolValue === true),
       categoryIds: normalizeCategoryIds(currentCategories),
     };
-    const newState: RecommendationLifecycleState = "syncWriteModel" in input
-      ? {
-          published: input.syncWriteModel.writeModelJson.product.status === "published",
-          available: input.syncWriteModel.writeModelJson.productSortRows.some(
-            (row) => row.sortKind === "availability" && row.boolValue === true,
-          ),
-          categoryIds: normalizeCategoryIds(input.syncWriteModel.writeModelJson.productPostingValueKeys.category),
-        }
-      : { published: false, available: false, categoryIds: [] };
+  }
+
+  private buildRecommendationLifecyclePlan(
+    input: ListingPreparedSyncWriteAction | ListingPreparedDeleteWriteAction,
+    oldState: RecommendationLifecycleState,
+    newState: RecommendationLifecycleState,
+  ): RecommendationLifecyclePlan {
+    const productId = input.action.itemKey.itemId;
     const plan: RecommendationLifecyclePlan = {
       version: 1,
       organizationId: input.action.organizationId,

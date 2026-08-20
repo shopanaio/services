@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import {
   BrokerWorkflows,
   buildIdempotencyKey,
@@ -42,8 +42,10 @@ import {
 import type { RecommendationPlacement } from "../repositories/models/recommendationRuntime.js";
 import type { RecommendationRequestGeneration } from "../repositories/recommendation/types.js";
 import { isDuplicateWorkflowStartError } from "./listingIndexWorkflowHelpers.js";
+import { RecommendationIntegrityError } from "../recommendation/errors.js";
 
 export const RECOMMENDATION_SNAPSHOT_QUEUE = "recommendation_snapshot_build" as const;
+export const RECOMMENDATION_INGESTION_QUEUE = "recommendation_order_fact_ingestion" as const;
 
 export interface RecommendationWorkflowContext {
   storeId: string;
@@ -67,6 +69,8 @@ function scriptContext(context: RecommendationWorkflowContext): RunScriptContext
 
 abstract class RecommendationWorkflowBase<TInput = unknown, TOutput = unknown>
   extends BrokerWorkflows<TInput, TOutput> {
+  protected readonly logger = new Logger("RecommendationWorkflows");
+
   constructor(broker: ServiceBroker) {
     super(broker);
   }
@@ -121,9 +125,30 @@ export class RecommendationSnapshotBuildWorkflow extends RecommendationWorkflowB
       await this.populateSnapshot(input.context, created.snapshotId);
       await this.transition(input.context, created.snapshotId, "READY");
       const activated = await this.activate(input.context, created.snapshotId);
+      if (activated.status === "stale" && activated.rebuildRequest) {
+        await this.startBuild(input.context, activated.rebuildRequest);
+      }
+      this.logger.log({
+        storeId: input.context.storeId,
+        anchorProductId: input.request.anchorProductId,
+        placement: input.request.placement,
+        snapshotId: created.snapshotId,
+        status: activated.status,
+      }, "Recommendation snapshot build completed");
       return { status: activated.status === "applied" ? "activated" as const : "stale" as const };
     } catch (error) {
-      await this.fail(input.context, created.snapshotId, failureCode(error));
+      const failed = await this.fail(input.context, created.snapshotId, failureCode(error));
+      if (failed.rebuildRequest) {
+        await this.startBuild(input.context, failed.rebuildRequest);
+      }
+      this.logger.error({
+        error,
+        storeId: input.context.storeId,
+        anchorProductId: input.request.anchorProductId,
+        placement: input.request.placement,
+        snapshotId: created.snapshotId,
+        failureCode: failureCode(error),
+      }, "Recommendation snapshot build failed");
       throw error;
     }
   }
@@ -181,6 +206,7 @@ export interface RecommendationFanOutInput {
   triggerKey: string;
   calculationRunId?: string;
   includePopularityPolicies?: boolean;
+  requiredFallbackCode?: "category_popularity" | "store_popularity";
 }
 
 @Injectable()
@@ -200,6 +226,12 @@ export class RecommendationSnapshotFanOutWorkflow extends RecommendationWorkflow
       requested += page.requests.length;
       afterProductId = page.nextCursor ?? undefined;
     } while (afterProductId);
+    this.logger.log({
+      storeId: input.context.storeId,
+      placement: input.placement,
+      requested,
+      triggerKey: input.triggerKey,
+    }, "Recommendation snapshot fan-out completed");
     return { requested };
   }
 
@@ -210,12 +242,16 @@ export class RecommendationSnapshotFanOutWorkflow extends RecommendationWorkflow
       triggerKey: input.triggerKey,
       calculationRunId: input.calculationRunId,
       includePopularityPolicies: input.includePopularityPolicies,
+      requiredFallbackCode: input.requiredFallbackCode,
       afterProductId,
     }, scriptContext(input.context));
   }
 }
 
-export interface RecommendationCalculationInput { context: RecommendationWorkflowContext }
+export interface RecommendationCalculationInput {
+  context: RecommendationWorkflowContext;
+  bucket: string;
+}
 
 @Injectable()
 export class RecommendationCalculationRunWorkflow extends RecommendationWorkflowBase<
@@ -238,9 +274,30 @@ export class RecommendationCalculationRunWorkflow extends RecommendationWorkflow
       for (const placement of ["PRODUCT_RELATED", "FREQUENTLY_BOUGHT_TOGETHER"] as const) {
         await this.startFanOut(input.context, placement, created.run.runId);
       }
+      this.logger.log({
+        storeId: input.context.storeId,
+        runId: created.run.runId,
+        modelVersion: created.run.algorithmVersion,
+        productCount: compute.counts?.productCount,
+        pairCount: compute.counts?.pairCount,
+      }, "Recommendation calculation run activated");
       return { runId: created.run.runId };
     } catch (error) {
-      await this.runTransition(input.context, created.run.runId, "FAILED", undefined, "CALCULATION_FAILED");
+      await this.runTransition(
+        input.context,
+        created.run.runId,
+        "FAILED",
+        undefined,
+        error instanceof RecommendationIntegrityError
+          ? "INVALID_CALCULATION_RESULT"
+          : "CALCULATION_FAILED",
+      );
+      this.logger.error({
+        error,
+        storeId: input.context.storeId,
+        runId: created.run.runId,
+        modelVersion: created.run.algorithmVersion,
+      }, "Recommendation calculation run failed");
       throw error;
     }
   }
@@ -305,7 +362,7 @@ export class RecommendationCalculationTriggerWorkflow extends RecommendationWork
     const decision = await this.shouldRun(input.context);
     if (!decision.shouldRun) return { started: false };
     const idempotency = buildContext("recommendationCalculationRun", input.context, {
-      hour: new Date().toISOString().slice(0, 13),
+      bucket: input.bucket,
     });
     const workflowId = buildIdempotencyKey("listing.recommendationCalculationRun", idempotency);
     try {
@@ -470,7 +527,10 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
     const direct = await this.syncState(input);
     for (const request of direct.requests) await this.startBuild(input.context, request);
     let requested = direct.requests.length;
-    requested += await this.processAffected(input, "reverse");
+    const eligibilityChanged =
+      input.plan.oldState.published !== input.plan.newState.published ||
+      input.plan.oldState.available !== input.plan.newState.available;
+    if (eligibilityChanged) requested += await this.processAffected(input, "reverse");
     if (categoryChanged(input.plan)) requested += await this.processAffected(input, "category");
     const becameEligible = (!input.plan.oldState.published || !input.plan.oldState.available) &&
       input.plan.newState.published && input.plan.newState.available;
@@ -525,6 +585,7 @@ export class RecommendationReferenceStateSyncWorkflow extends RecommendationWork
       context: input.context,
       placement,
       triggerKey: `lifecycle:${input.plan.productId}:${input.plan.eventSequence}`,
+      requiredFallbackCode: "store_popularity",
     };
     const idempotency = buildContext("recommendationLifecycleFanOut", input.context, {
       productId: input.plan.productId,
@@ -546,6 +607,56 @@ export interface RecommendationManualScheduleInput {
   toBoundary: string;
 }
 
+export interface RecommendationManualBootstrapInput {
+  context: RecommendationWorkflowContext;
+  cutoff: string;
+}
+
+@Injectable()
+export class RecommendationManualBootstrapWorkflow extends RecommendationWorkflowBase<
+  RecommendationManualBootstrapInput,
+  { requested: number; status: string }
+> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("recommendationManualBootstrap")
+  async run(input: RecommendationManualBootstrapInput): Promise<{ requested: number; status: string }> {
+    const triggerKey = `schedule-bootstrap:${input.cutoff}`;
+    let after: { anchorProductId: string; placement: RecommendationPlacement } | undefined;
+    let requested = 0;
+    do {
+      const page = await this.page(input, triggerKey, after);
+      for (const request of page.requests) await this.startBuild(input.context, request);
+      requested += page.requests.length;
+      after = page.nextCursor ?? undefined;
+    } while (after);
+    const completed = await this.complete(input);
+    return { requested, status: completed.status };
+  }
+
+  @WorkflowStep()
+  private page(
+    input: RecommendationManualBootstrapInput,
+    triggerKey: string,
+    after?: { anchorProductId: string; placement: RecommendationPlacement },
+  ) {
+    return Kernel.getInstance().runScript(
+      RecommendationMaintenanceRequestPageScript,
+      { mode: "bootstrap", triggerKey, after },
+      scriptContext(input.context),
+    );
+  }
+
+  @WorkflowStep()
+  private complete(input: RecommendationManualBootstrapInput) {
+    return Kernel.getInstance().runScript(
+      RecommendationMaintenanceCompleteScript,
+      { mode: "bootstrap", cutoff: input.cutoff },
+      scriptContext(input.context),
+    );
+  }
+}
+
 @Injectable()
 export class RecommendationManualScheduleWorkflow extends RecommendationWorkflowBase<
   RecommendationManualScheduleInput,
@@ -555,35 +666,41 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
 
   @Workflow("recommendationManualSchedule")
   async run(input: RecommendationManualScheduleInput): Promise<{ requested: number; status: string }> {
-    const state = await this.open(input);
-    const mode = state.status === "BOOTSTRAPPING" ? "bootstrap" as const : "interval" as const;
-    const triggerKey = state.status === "BOOTSTRAPPING"
-      ? `schedule-bootstrap:${state.cutoff}`
-      : `schedule:${state.fromBoundary}:${state.toBoundary}`;
-    let after: { anchorProductId: string; placement: RecommendationPlacement } | undefined;
+    let state = await this.open(input);
+    if (state.status === "BOOTSTRAPPING") {
+      await this.startBootstrap(input.context, state.cutoff);
+      return { requested: 0, status: "BOOTSTRAPPING" };
+    }
     let requested = 0;
-    do {
-      const page = await this.maintenancePage(input.context, {
-        mode,
-        triggerKey,
-        ...(state.status === "ACTIVE" ? {
-          fromBoundary: state.fromBoundary,
-          toBoundary: state.toBoundary,
-        } : {}),
-        after,
-      });
-      for (const request of page.requests) await this.startBuild(input.context, request);
-      requested += page.requests.length;
-      after = page.nextCursor ?? undefined;
-    } while (after);
-    const completed = state.status === "BOOTSTRAPPING"
-      ? await this.completeMaintenance(input.context, { mode: "bootstrap", cutoff: state.cutoff })
-      : await this.completeMaintenance(input.context, {
+    while (true) {
+      const triggerKey = `schedule:${state.fromBoundary}:${state.toBoundary}`;
+      let after: { anchorProductId: string; placement: RecommendationPlacement } | undefined;
+      do {
+        const page = await this.maintenancePage(input.context, {
           mode: "interval",
+          triggerKey,
           fromBoundary: state.fromBoundary,
           toBoundary: state.toBoundary,
+          after,
         });
-    return { requested, status: completed.status };
+        for (const request of page.requests) await this.startBuild(input.context, request);
+        requested += page.requests.length;
+        after = page.nextCursor ?? undefined;
+      } while (after);
+      const completed = await this.completeMaintenance(input.context, {
+        mode: "interval",
+        fromBoundary: state.fromBoundary,
+        toBoundary: state.toBoundary,
+      });
+      if (completed.status !== "CONFLICT") {
+        return { requested, status: completed.status };
+      }
+      state = await this.open(input);
+      if (state.status === "BOOTSTRAPPING") {
+        await this.startBootstrap(input.context, state.cutoff);
+        return { requested, status: "BOOTSTRAPPING" };
+      }
+    }
   }
 
   @WorkflowStep()
@@ -593,6 +710,26 @@ export class RecommendationManualScheduleWorkflow extends RecommendationWorkflow
       { toBoundary: input.toBoundary },
       scriptContext(input.context),
     );
+  }
+
+  @WorkflowStep()
+  private async startBootstrap(
+    context: RecommendationWorkflowContext,
+    cutoff: string,
+  ): Promise<void> {
+    const input: RecommendationManualBootstrapInput = { context, cutoff };
+    const idempotency = buildContext("recommendationManualBootstrap", context, { cutoff });
+    const workflowId = buildIdempotencyKey("listing.recommendationManualBootstrap", idempotency);
+    try {
+      await this.broker.startWorkflow(
+        "listing.recommendationManualBootstrap",
+        input,
+        idempotency,
+        { workflowId },
+      );
+    } catch (error) {
+      if (!isDuplicateWorkflowStartError(error, workflowId)) throw error;
+    }
   }
 
   @WorkflowStep()
@@ -661,7 +798,7 @@ export class RecommendationGlobalTriggerWorkflow extends RecommendationWorkflowB
       ? "listing.recommendationCalculationTrigger"
       : "listing.recommendationManualSchedule";
     const workflowInput = input.kind === "calculation"
-      ? { context }
+      ? { context, bucket: input.bucket }
       : { context, toBoundary: input.bucket };
     const idempotency = buildContext(`recommendation-${input.kind}`, context, { bucket: input.bucket });
     const workflowId = buildIdempotencyKey(workflowName, idempotency);

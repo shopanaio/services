@@ -1,5 +1,6 @@
 import { ReadOnly } from "@shopana/shared-kernel";
 import { and, asc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   recommendationSnapshot,
@@ -358,6 +359,13 @@ function validateContent(items: readonly RankedRecommendationCandidate[]): void 
   let expectedRank = 1;
   let totalBytes = 0;
   for (const item of items) {
+    const parsed = rankedRecommendationCandidateSchema.safeParse(item);
+    if (!parsed.success) {
+      throw new RecommendationIntegrityError(
+        "INVALID_SNAPSHOT_CONTENT",
+        "Recommendation item does not match the closed versioned schema",
+      );
+    }
     if (item.rank !== expectedRank++ || targets.has(item.targetProductId)) {
       throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Recommendation ranks or targets are invalid");
     }
@@ -372,3 +380,42 @@ function validateContent(items: readonly RankedRecommendationCandidate[]): void 
     throw new RecommendationIntegrityError("INVALID_SNAPSHOT_CONTENT", "Recommendation snapshot exceeds byte limit");
   }
 }
+
+const decimalSchema = z.string().regex(/^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$/);
+const manualBreakdownSchema = z.object({
+  action: z.enum(["PIN", "BOOST"]),
+  position: z.number().int().nullable(),
+  boost: decimalSchema.nullable(),
+}).strict();
+const sourceBreakdownSchema = z.object({
+  version: z.literal(1),
+  manual: manualBreakdownSchema.optional(),
+  fbt: z.object({ runId: z.string().uuid(), sourceScore: decimalSchema }).strict().optional(),
+  categoryPopularity: z.object({ score: decimalSchema }).strict().optional(),
+  storePopularity: z.object({ score: decimalSchema }).strict().optional(),
+}).strict();
+const rankedRecommendationCandidateSchema = z.object({
+  targetProductId: z.string().uuid(),
+  manualAction: z.enum(["PIN", "BOOST"]).nullable(),
+  manualPosition: z.number().int().nullable(),
+  manualBoost: decimalSchema.nullable(),
+  fbtSourceScore: decimalSchema.nullable(),
+  popularityScore: decimalSchema.nullable(),
+  primarySource: z.enum([
+    "MANUAL",
+    "FREQUENTLY_BOUGHT_TOGETHER",
+    "CONTENT_SIMILARITY",
+    "POPULARITY",
+    "FALLBACK",
+  ]),
+  sourceBreakdown: sourceBreakdownSchema,
+  rank: z.number().int().positive(),
+  score: decimalSchema,
+  pinned: z.boolean(),
+  features: z.object({
+    version: z.literal(1),
+    manualBoost: decimalSchema.nullable(),
+    fbtNormalized: decimalSchema,
+    popularity: decimalSchema,
+  }).strict(),
+}).strict();
