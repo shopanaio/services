@@ -11,7 +11,6 @@ const modelsRoot = join(serviceRoot, "src", "repositories", "models");
 const requiredTables = [
   "orders",
   "order_events",
-  "order_outbox",
   "idempotency_records",
   "order_operations",
   "order_operation_attempts",
@@ -57,6 +56,7 @@ const requiredTables = [
 ] as const;
 const forbiddenTables = [
   "order_items",
+  "order_outbox",
   "delivery_fulfillment_snapshots",
   "delivery_fulfillment_updates",
 ];

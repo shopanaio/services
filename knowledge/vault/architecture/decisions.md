@@ -16,7 +16,8 @@ Key decisions that shaped Shopana architecture.
 
 ### Context
 
-E-commerce platforms consist of loosely coupled domains: catalog, inventory, orders, payments — each is a separate bounded context with its own data model and business rules.
+E-commerce platforms consist of loosely coupled domains: catalog, inventory, orders, payments — each
+is a separate bounded context with its own data model and business rules.
 
 ### Decision
 
@@ -39,17 +40,20 @@ Use microservices architecture where each domain is a separate service.
 
 ### Context
 
-Clients need a unified API, not 12 different endpoints. Traditional API gateway proxying is complex and creates tight coupling.
+Clients need a unified API, not 12 different endpoints. Traditional API gateway proxying is complex
+and creates tight coupling.
 
 ### Decision
 
-Use GraphQL Federation where each service owns its part of the schema, and gateway composes them into a single supergraph.
+Use GraphQL Federation where each service owns its part of the schema, and gateway composes them
+into a single supergraph.
 
 ### Rationale
 
 - **Schema ownership** — each service defines and maintains its own types
 - **Single endpoint** — client makes one request, gateway distributes to services
-- **Type extensions** — services can extend types from other services (e.g., `Variant` extended with `stock` from inventory)
+- **Type extensions** — services can extend types from other services (e.g., `Variant` extended with
+  `stock` from inventory)
 - **Automatic composition** — Hive Gateway composes supergraph from subgraphs
 
 ### Implementation
@@ -68,11 +72,13 @@ Use GraphQL Federation where each service owns its part of the schema, and gatew
 
 ### Context
 
-Microservices typically use database-per-service pattern. However, in development this creates overhead: multiple databases, complex setup, resource consumption.
+Microservices typically use database-per-service pattern. However, in development this creates
+overhead: multiple databases, complex setup, resource consumption.
 
 ### Decision
 
-In development mode, all services share a single PostgreSQL instance with logical separation by schema/prefixes. In production, services can use separate databases.
+In development mode, all services share a single PostgreSQL instance with logical separation by
+schema/prefixes. In production, services can use separate databases.
 
 ### Rationale
 
@@ -91,7 +97,8 @@ In development mode, all services share a single PostgreSQL instance with logica
 
 ### Context
 
-E-commerce has long-running operations: checkout → payment → order creation → fulfillment. These must complete even after crashes, handle failures gracefully, and be trackable.
+E-commerce has long-running operations: checkout → payment → order creation → fulfillment. These
+must complete even after crashes, handle failures gracefully, and be trackable.
 
 ### Decision
 
@@ -106,7 +113,8 @@ Use DBOS SDK for durable workflow execution.
 
 ### Example Use Cases
 
-- **Checkout workflow** — cart validation → inventory reservation → order creation → payment initiation
+- **Checkout workflow** — cart validation → inventory reservation → order creation → payment
+  initiation
 - **Payment workflow** — create transaction → call provider → handle callback → update status
 - **Fulfillment workflow** — pick items → create shipment → notify customer
 
@@ -146,25 +154,27 @@ Use Event Sourcing (Emmett + Pongo) for orders and checkout domains.
 ### Context
 
 The Orders contract requires optimistic concurrency, idempotent command replay, atomic projection
-updates, transactional outbox delivery, and reconstruction from an immutable event stream. The
-existing Orders migrations already model these facts in PostgreSQL, while no maintained Emmett/Pongo
-runtime adapter is present in the service.
+updates, durable DBOS delivery, and reconstruction from an immutable event stream. The existing
+Orders migrations already model these facts in PostgreSQL, while no maintained Emmett/Pongo runtime
+adapter is present in the service.
 
 ### Decision
 
 Orders owns a PostgreSQL append-only event store implemented with the existing database stack. An
-order command appends events, updates synchronous projections, records idempotency state, and writes
-outbox messages in one database transaction.
+order command appends events, updates synchronous projections, and records idempotency state in one
+DBOS transactional step. External delivery runs only in idempotent DBOS workflow steps after that
+transactional step commits. A local publish queue/table is forbidden.
 
 The event stream revision is the only aggregate concurrency token. DBOS owns durable orchestration
-around external systems, but it does not replace the Orders event store or split the atomic local
-commit. Emmett and Pongo are not runtime dependencies of the canonical implementation.
+and delivery around external systems, but it does not replace the Orders event store or split the
+atomic local commit. Emmett and Pongo are not runtime dependencies of the canonical implementation.
 
 ### Consequences
 
 - Event and projection schemas remain explicit and reviewable SQL.
 - Projection rebuilds consume the same versioned event stream.
-- A command cannot publish an outbox message without its event and projection.
+- A workflow cannot publish an integration event before its event and projection transactional step
+  commits.
 - Append-only and tenant constraints are enforced in PostgreSQL.
 - Stage 2 must keep Drizzle/repository models aligned 1:1 with canonical SQL.
 

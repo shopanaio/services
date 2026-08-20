@@ -1,8 +1,8 @@
 # Orders Admin API: contract-first RFC и план реализации
 
 Статус: **accepted — Stage 2 complete** Область: `services/orders`, Admin GraphQL Federation
-subgraph, PostgreSQL, DBOS, provider Apps, CRM integrations
-Порядок разработки: **GraphQL SDL → PostgreSQL schema → domain/business logic → resolvers/API**
+subgraph, PostgreSQL, DBOS, provider Apps, CRM integrations Порядок разработки: **GraphQL SDL →
+PostgreSQL schema → domain/business logic → resolvers/API**
 
 ## 1. Решение
 
@@ -36,8 +36,9 @@ capability:
   consistency.
 - Сохранить исторические snapshots независимо от изменений Catalog, Customer, Pricing, Delivery и
   Payments.
-- Следовать существующим правилам Shopana: Federation, Global IDs, Relay connections, Scripts, DBOS,
-  transactional outbox, Zod и DataLoader.
+- Следовать существующим правилам Shopana: Federation, Global IDs, Relay connections, Scripts, DBOS
+  transactional workflows, Zod и DataLoader. Локальные таблицы и workers для отложенной публикации
+  событий запрещены.
 
 ## 3. Не цели первой версии
 
@@ -113,7 +114,7 @@ status update.
 | Storefront mutation, visitor ownership и stale checkout detection            | `checkout`                     | `checkoutId + expectedResultRevision + idempotencyKey`                                      |
 | Placement state machine и DBOS recovery                                      | `checkout`                     | `checkout_placements` — operational source of truth saga                                    |
 | Pricing/discount, loyalty, inventory и delivery reservations до Order commit | `checkout`                     | Checkout создаёт и компенсирует свои commitments                                            |
-| Коммерческий факт размещённого заказа                                        | `orders`                       | atomic state transaction + audit/outbox event                                               |
+| Коммерческий факт размещённого заказа                                        | `orders`                       | atomic state transaction + immutable audit event                                            |
 | Order number и Order version                                                 | `orders`                       | не вычисляются Checkout                                                                     |
 | Payment collection/session orchestration                                     | `checkout` → `payments`        | создаётся только после Order commit, потому что требует `orderId`                           |
 | Payment facts                                                                | `payments` → events → `orders` | Checkout status не патчит `paymentStatus`                                                   |
@@ -200,7 +201,7 @@ sequenceDiagram
     CO->>DE: commit selected delivery groups
     CO->>CO: placement = RESOURCES_RESERVED
     CO->>OR: createOrderFromCheckoutPlacementV1(snapshot, commitments)
-    OR->>OR: insert order state + fulfillment holds + audit/outbox event
+    OR->>OR: insert order state + fulfillment holds + audit event
     OR-->>CO: orderId, number, orderVersion, AWAITING_FINALIZATION
     CO->>CO: placement = ORDER_CREATED
 
@@ -222,7 +223,7 @@ sequenceDiagram
             Note over CO,PA: renew inventory; retry/reconcile/expire durably
         else terminal failure
             CO->>OR: cancelOrderFromCheckoutPlacementV1(payment evidence)
-            OR->>OR: cancel order state; close fulfillment work; write audit/outbox
+            OR->>OR: cancel order state; close fulfillment work; write audit event
             CO->>IN: release reservation
             CO->>PR: reverse/release discount and loyalty
             CO->>DE: release delivery commitments
@@ -419,7 +420,7 @@ Order source получает `origin = CHECKOUT`, `source.code = "storefront"`.
 8. Создаёт initial fulfillment orders из committed delivery groups с system hold
    `CHECKOUT_PLACEMENT_AWAITING_FINALIZATION`.
 9. Создаёт `order_checkout_placements(status = AWAITING_FINALIZATION)`.
-10. Записывает outbox events и idempotency response.
+10. Записывает idempotency response.
 11. Commit и только затем возвращает result Checkout.
 
 Ни один внешний broker/provider вызов внутри этой транзакции не разрешён. Если transaction не
@@ -428,7 +429,8 @@ committed, Order не существует. Если response потерян п�
 
 Audit record `order.placed` содержит self-contained snapshot, достаточный для расследования и
 интеграционных consumers, но не является source of truth и не используется для восстановления
-состояния заказа. Отдельное `order.draft_created` для Storefront placement не создаётся.
+состояния заказа. Его надёжная доставка выполняется DBOS workflow после committed transactional
+step. Отдельное `order.draft_created` для Storefront placement не создаётся.
 
 ### 6.9. Order placement handshake после создания
 
@@ -439,8 +441,8 @@ Audit record `order.placed` содержит self-contained snapshot, доста
 - `confirmOrderFromCheckoutPlacementV1`: после подтверждения inventory/loyalty и допустимого payment
   outcome атомарно переводит placement в `CONFIRMED` и снимает только system placement hold;
 - `cancelOrderFromCheckoutPlacementV1`: атомарно переводит placement в `FAILED`, заказ в
-  `CANCELLED`, закрывает unfulfilled fulfillment orders и пишет audit/outbox records; физического
-  удаления Order нет.
+  `CANCELLED`, закрывает unfulfilled fulfillment orders и пишет audit records; физического удаления
+  Order нет.
 
 Обе команды idempotent по placement и evidence. Для system/event command Orders блокирует текущую
 строку `orders` и выполняет conditional update по `orders.version`; version conflict повторяется
@@ -551,7 +553,7 @@ lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
 1. `order.createOrderFromCheckoutPlacement(params: any)` заменяется typed V1 action из
    `@shopana/broker-types` и canonical request hash.
 2. Текущий repository create не должен вставлять storefront order как `DRAFT`: command сразу создаёт
-   `OPEN`, `placedAt`, `version = 1` и audit/outbox record `order.placed`.
+   `OPEN`, `placedAt`, `version = 1` и audit record `order.placed`.
 3. После Order commit любые payment failures больше не вызывают release ресурсов до фиксации
    `cancelOrderFromCheckoutPlacementV1`.
 4. Zero/authorized/paid/offline success и async payment monitor вызывают
@@ -570,7 +572,7 @@ lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
 | `services/checkout/src/workflows/MonitorPlacedPaymentWorkflow.ts`                      | при settlement финализирует commitments и подтверждает Order; при terminal failure сначала отменяет Order, затем компенсирует |
 | `services/checkout/src/infrastructure/mutations/CheckoutPlacementRepository.ts`        | durable operational state/recovery; вводится invariant `FAILED => order_id IS NULL`                                           |
 | `services/orders/src/orders.nest-service.ts`                                           | регистрирует typed action constants без `any`; thin adapter в Scripts/workflows                                               |
-| `services/orders/src/application/usecases/orderCreate.ts`                              | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/outbox transaction                |
+| `services/orders/src/application/usecases/orderCreate.ts`                              | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/idempotency transaction           |
 | `services/orders/src/repositories/fulfillment/DeliveryFulfillmentRepository.ts`        | snapshot runtime model удаляется; initial normalized fulfillment orders строятся той же order creation transaction            |
 | `@shopana/broker-types`                                                                | единственный source of truth для V1 create/confirm/cancel/get DTO и action names                                              |
 
@@ -2285,9 +2287,11 @@ Admin UI должен отображать `availableActions` и открыва�
 - Queryable business state не прячется в JSONB.
 - JSONB используется для immutable provider snapshots, custom fields и versioned event payloads.
 - Все lifecycle timestamps — `timestamptz`.
-- Канонические state tables, audit records и outbox обновляются в одной локальной транзакции, чтобы
-  mutation обеспечивала read-after-write.
-- Outbound side effects идут только после commit через outbox/DBOS.
+- Канонические state tables, audit records и idempotency обновляются в одном DBOS transactional
+  step, чтобы mutation обеспечивала read-after-write и durable checkpoint.
+- Outbound side effects идут только после committed transactional step через DBOS workflow.
+- Локальные publish-queue tables/workers запрещены: retry, recovery и delivery state принадлежат
+  DBOS.
 
 ### 9.2. Concurrency, audit и operational control
 
@@ -2295,7 +2299,6 @@ Admin UI должен отображать `availableActions` и открыва�
 | --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `orders`                    | canonical state и concurrency revision              | `version > 0`; conditional update по `(store_id, id, version)`                                                                                                 |
 | `order_events`              | immutable audit/integration log, не source of truth | `event_id`, `order_version`, `global_position`, `event_type`, `schema_version`, actor/correlation/causation, payload; unique event ID и order-version/type key |
-| `order_outbox`              | committed outbound facts                            | event/topic/status/attempts/available_at; unique event destination                                                                                             |
 | `order_idempotency_records` | replay command result                               | `(store_id, operation, idempotency_key)`, request hash, status, response, expiry                                                                               |
 | `order_operations`          | DBOS/Admin async jobs                               | kind/status/order/resource/workflow UUID/failure/progress                                                                                                      |
 | `order_operation_attempts`  | provider/worker attempts                            | operation, attempt number, route, request/response hashes, error, duration                                                                                     |
@@ -2308,7 +2311,7 @@ Command transaction algorithm:
 4. validate command against current normalized state;
 5. atomically update canonical state and increment `orders.version` once per command;
 6. append immutable audit records for the committed version;
-7. insert outbox rows and operation state;
+7. insert operation state с DBOS workflow identity;
 8. store serialized mutation result in idempotency record;
 9. commit.
 
@@ -2459,7 +2462,7 @@ services/orders/migrations/domains/
     0002_foundation__functions.sql
   0100_operational/
     0100_operational__audit_events.sql
-    0101_operational__idempotency_outbox.sql
+    0101_operational__idempotency.sql
     0102_operational__operations.sql
   0200_orders/
     0200_orders__orders_lines.sql
@@ -2635,7 +2638,15 @@ capability только если это один внешний provider с ед
 
 ### 11.5. Durable workflows
 
-Нужны DBOS workflows:
+Каждая state-changing Orders operation является DBOS workflow независимо от наличия внешних
+service/provider calls. Это относится ко всем Admin mutations, Checkout placement commands, provider
+callbacks, event ingestion, reconciliation и internal/bulk commands. Даже полностью локальная
+операция не выполняет запись напрямую из resolver, broker handler или Script entry point: они
+запускают workflow с deterministic workflow ID, а PostgreSQL mutation выполняется его
+`@TransactionalStep()`.
+
+Ниже перечислены характерные long-running workflows; список не ограничивает обязательное правило
+выше:
 
 - `orders.cancelOrder`;
 - `orders.commitOrderEdit`;
@@ -2759,7 +2770,7 @@ scopes и store policy.
 - right-to-erasure redacts contact/address fields, сохраняя order number, sums, taxes и audit
   hashes.
 
-## 13. Domain events и outbox
+## 13. Domain events и DBOS delivery
 
 ### 13.1. Envelope
 
@@ -2784,9 +2795,10 @@ interface OrderIntegrationEvent<TType extends string, TPayload> {
 
 ### 13.2. Минимальный audit/integration event catalog
 
-Эти события фиксируют уже committed изменения канонических state tables и доставляются через outbox.
-Они не используются как журнал восстановления aggregate и не заменяют строки `orders` и дочерних
-таблиц.
+Эти события фиксируют изменения канонических state tables в том же DBOS transactional step и
+доставляются отдельными idempotent DBOS workflow steps после commit. Они не используются как журнал
+восстановления aggregate и не заменяют строки `orders` и дочерних таблиц. Отдельная локальная
+очередь для их доставки не создаётся.
 
 Core:
 
@@ -2917,11 +2929,14 @@ services/orders/src/
 
 - Resolver декодирует Global IDs, но не содержит бизнес-правил.
 - Zod schema валидирует форму input и cross-field shape.
+- Resolver, broker handler и callback handler не исполняют command напрямую: каждая операция
+  запускается через зарегистрированный DBOS workflow с deterministic workflow ID.
 - Script выполняет Policy, загружает current state, применяет command и атомарно сохраняет state,
-  audit и outbox records.
+  audit и idempotency records внутри DBOS transactional step.
 - Repository не решает lifecycle policy; он только сохраняет/читает tenant-scoped data.
-- DBOS workflow используется, если команда вызывает другой service/provider, ждёт callback или
-  требует compensation/recovery.
+- Простая локальная команда состоит минимум из одного `@TransactionalStep()`; внешние вызовы,
+  ожидание callback, retry и compensation добавляются отдельными workflow steps.
+- Прямой write path в обход DBOS запрещён для Admin, Checkout, provider и internal commands.
 - Resolver возвращает resolver instances, а relations загружаются DataLoader-ами.
 
 ### 14.3. RBAC permissions
@@ -3056,7 +3071,7 @@ orders_command_total{command,result}
 orders_version_conflict_total{command}
 orders_workflow_duration_seconds{workflow,result}
 orders_provider_operation_total{capability,provider,operation,result}
-orders_outbox_lag_seconds{topic}
+orders_integration_delivery_total{eventType,result}
 orders_integration_sync_lag_versions{app}
 orders_checkout_placement_stuck_total{checkoutState,orderPlacementState}
 orders_checkout_placement_reconciliation_total{result,reason}
@@ -3118,10 +3133,10 @@ Stage 1 implementation record:
 
 ### Этап 2. PostgreSQL schema
 
-1. [x] Зафиксировать row-version optimistic concurrency и atomic state/audit/outbox transaction
+1. [x] Зафиксировать row-version optimistic concurrency и atomic state/audit/idempotency transaction
        model.
 2. [x] Переписать несовместимые migrations и Drizzle models под один canonical schema.
-3. [x] Реализовать core/audit/outbox/idempotency tables.
+3. [x] Реализовать core/audit/idempotency tables без локальной publish queue.
 4. [x] Реализовать `order_checkout_placements` и immutable commitment tables.
 5. [x] Реализовать payment state tables.
 6. [x] Реализовать normalized fulfillment/shipments.
@@ -3135,9 +3150,9 @@ constraint tests доказывают money/quantity/tenant invariants.
 
 Stage 2 implementation record:
 
-- canonical aggregate использует `orders.version`; audit/outbox связываются с `order_version`, а
+- canonical aggregate использует `orders.version`; audit records связываются с `order_version`, а
   `order_events` имеет UUID `event_id` и monotonic `global_position`;
-- migration chain содержит 69 tenant-scoped tables для core, checkout placement, edits, payments,
+- migration chain содержит 68 tenant-scoped tables для core, checkout placement, edits, payments,
   normalized fulfillment/shipments, returns/exchanges/refunds, operations и outbound integrations;
 - snapshot-only `delivery_fulfillment_snapshots`/`delivery_fulfillment_updates` удалены; runtime
   delivery projection переведён на `order_fulfillment_orders` и versioned fulfillment inbox;
@@ -3146,7 +3161,7 @@ Stage 2 implementation record:
   tables и обязательные tenant/money/quantity invariants;
 - append-only audit/activity/tracking/attempt facts, finalized payment protection и one-way PII
   redaction реализованы PostgreSQL triggers/functions;
-- clean chain применена к одноразовой PostgreSQL 17 database: создано 69 tables; для validation
+- clean chain применена к одноразовой PostgreSQL 17 database: создано 68 tables; для validation
   использован только test-scope `uuidv7()` shim, потому что целевой runtime предоставляет `uuidv7()`
   как platform database primitive;
 - `shopana build -s orders` проходит formatting, lint, packages build, type checking и production
@@ -3154,12 +3169,18 @@ Stage 2 implementation record:
 
 ### Этап 3. Business logic
 
+Обязательное правило всех vertical slices: каждая state-changing operation реализуется и
+регистрируется как DBOS workflow. Локальная запись выполняется через `@TransactionalStep()`, внешние
+side effects — через отдельные idempotent workflow steps. Обычные Query/read paths DBOS workflow не
+требуют.
+
 Порядок vertical slices:
 
-1. Canonical order repositories + row-version concurrency + idempotency.
+1. DBOS workflow execution foundation для всех commands + canonical order repositories + row-version
+   concurrency + idempotency.
 2. Versioned broker-types для Checkout placement create/confirm/cancel/get.
-3. Order creation transaction: snapshot validation, normalized state, audit/outbox records, initial
-   fulfillment holds и replay.
+3. Order creation transactional step: snapshot validation, normalized state, audit/idempotency
+   records, initial fulfillment holds и replay.
 4. Интегрировать существующий `checkout.placeOrder` и `monitorPlacedPayment` с placement handshake.
 5. Реализовать Checkout ↔ Orders reconciler и post-commit compensation rules.
 6. Draft create/update/line mutations/complete/delete.
@@ -3172,11 +3193,12 @@ Stage 2 implementation record:
 13. Shipment provider integration/tracking/reconciliation.
 14. Cancellation saga.
 15. Returns/exchanges/refunds orchestration.
-16. CRM integration/outbox/reconciliation.
+16. CRM integration через DBOS workflows и reconciliation.
 17. Bulk operations.
 
-Gate каждого slice: domain invariant tests, repository integration tests, idempotency replay,
-version conflict, state/audit/outbox atomicity и workflow recovery.
+Gate каждого slice: operation зарегистрирована как DBOS workflow; отсутствует direct write path;
+domain invariant tests, repository integration tests, idempotency replay, version conflict,
+state/audit/idempotency atomicity и workflow recovery проходят.
 
 ### Этап 4. GraphQL resolvers/API
 
@@ -3197,8 +3219,8 @@ suites заполнены, IDOR/permission tests проходят.
 1. Chaos tests provider timeout/duplicate/out-of-order callbacks.
 2. Checkout placement crash-at-every-step и lost-response tests.
 3. DBOS restart/recovery/compensation tests.
-4. State consistency checker и audit/outbox reconciliation tooling.
-5. Outbox dead-letter/replay tooling.
+4. State consistency checker и audit/DBOS operation reconciliation tooling.
+5. DBOS failed-operation inspection/restart tooling.
 6. CRM/3PL provider certification suite.
 7. Load tests lists, detail fan-out и activity timeline.
 8. PII retention/redaction tests.
@@ -3210,7 +3232,7 @@ suites заполнены, IDOR/permission tests проходят.
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | SDL                | codegen, federation compose, schema lint, payload consistency                                                                             |
 | Domain             | transitions, amounts, quantity conservation, actions availability                                                                         |
-| Concurrency/audit  | expected version, conditional update, audit/outbox atomicity, duplicate key, replay                                                       |
+| Concurrency/audit  | expected version, conditional update, audit/idempotency atomicity, duplicate key, replay                                                  |
 | Checkout placement | stale revision, same/different idempotency replay, lost Order response, pre/post-commit failure, confirm/cancel handshake, reconciliation |
 | Repository         | tenant isolation, transactions, indexes, constraints                                                                                      |
 | Payment state      | duplicate/out-of-order events, partial capture/refund/void                                                                                |
@@ -3228,8 +3250,8 @@ suites заполнены, IDOR/permission tests проходят.
   lifecycle.
 - Storefront `checkout.placeOrder` создаёт `OPEN` Order через typed V1 broker contract, а не Admin
   draft mutation.
-- Order, initial normalized state, audit/outbox records и fulfillment holds создаются одной Orders
-  transaction.
+- Order, initial normalized state, audit/idempotency records и fulfillment holds создаются одним
+  Orders DBOS transactional step.
 - После Order commit ни одна compensation не освобождает ресурсы до Orders confirm/cancel handshake.
 - Повтор placement после lost response возвращает тот же `orderId`, number, version и snapshot hash.
 - Terminal payment failure сохраняет `CANCELLED` Order и audit trail; orphan `OPEN/DRAFT` order
@@ -3237,6 +3259,8 @@ suites заполнены, IDOR/permission tests проходят.
 - Fulfillment недоступен до `OrderPlacementStatus.CONFIRMED`.
 - Ни один aggregate status не может стать противоречивым произвольным update.
 - Все mutation inputs имеют idempotency; state-changing commands имеют optimistic concurrency.
+- Каждая state-changing Orders operation, включая локальные mutations и internal commands,
+  исполняется только как зарегистрированный DBOS workflow; direct write path отсутствует.
 - Placed order edits staged и previewable.
 - Cancellation, payment, provider fulfillment, shipment и CRM sync являются durable operations.
 - Merchant fulfillment и external fulfillment service используют один domain model.
@@ -3264,7 +3288,7 @@ suites заполнены, IDOR/permission tests проходят.
 - placed edits staged;
 - `orders.version` является concurrency token;
 - normalized fulfillment model заменяет snapshot-only runtime tables;
-- CRM/ERP только через App capability + outbox/DBOS;
+- CRM/ERP только через App capability + DBOS workflows;
 - no backfill/compatibility/dual-read.
 
 Дополнительно решено для V1:

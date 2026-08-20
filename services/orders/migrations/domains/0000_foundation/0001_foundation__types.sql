@@ -300,12 +300,6 @@ CREATE TYPE "orders"."order_idempotency_status" AS ENUM (
   'FAILED'
 );
 
-CREATE TYPE "orders"."order_outbox_status" AS ENUM (
-  'PENDING',
-  'PUBLISHED',
-  'FAILED'
-);
-
 CREATE TYPE "orders"."order_placement_status" AS ENUM (
   'AWAITING_FINALIZATION',
   'CONFIRMED',
