@@ -412,62 +412,10 @@ type ManualCreateInput = { context: RecommendationWorkflowContext; params: Manua
 type ManualUpdateInput = { context: RecommendationWorkflowContext; params: ManualRecommendationUpdateParams };
 type ManualDeleteInput = { context: RecommendationWorkflowContext; params: { id: string; expectedVersion: number } };
 
-@Injectable()
-export class RecommendationMutationWorkflow extends RecommendationWorkflowBase {
-  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
-
-  @Workflow("recommendationPolicyUpsert")
-  @Policy<PolicyUpsertInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
-  async policyUpsert(input: PolicyUpsertInput): Promise<RecommendationPolicyResult> {
-    const result = await this.policyUpsertStep(input);
-    if (result.policy && result.generationTrigger) {
-      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
-    }
-    return result;
-  }
-
-  @Workflow("recommendationPolicySetEnabled")
-  @Policy<PolicyEnabledInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
-  async policySetEnabled(input: PolicyEnabledInput): Promise<RecommendationPolicyResult> {
-    const result = await this.policyEnabledStep(input);
-    if (result.policy?.enabled && result.generationTrigger) {
-      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
-    }
-    return result;
-  }
-
-  @Workflow("manualRecommendationCreate")
-  @Policy<ManualCreateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
-  async manualCreate(input: ManualCreateInput): Promise<ManualRecommendationResult> {
-    const result = await this.manualCreateStep(input);
-    await this.startManualBuild(input.context, result);
-    return result;
-  }
-
-  @Workflow("manualRecommendationUpdate")
-  @Policy<ManualUpdateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
-  async manualUpdate(input: ManualUpdateInput): Promise<ManualRecommendationResult> {
-    const result = await this.manualUpdateStep(input);
-    await this.startManualBuild(input.context, result);
-    return result;
-  }
-
-  @Workflow("manualRecommendationDelete")
-  @Policy<ManualDeleteInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
-  async manualDelete(input: ManualDeleteInput): Promise<ManualRecommendationResult> {
-    const result = await this.manualDeleteStep(input);
-    await this.startManualBuild(input.context, result);
-    return result;
-  }
-
-  @WorkflowStep() private policyUpsertStep(input: PolicyUpsertInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicyUpsertScript, input.params, scriptContext(input.context)); }
-  @WorkflowStep() private policyEnabledStep(input: PolicyEnabledInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicySetEnabledScript, input.params, scriptContext(input.context)); }
-  @WorkflowStep() private manualCreateStep(input: ManualCreateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationCreateScript, input.params, scriptContext(input.context)); }
-  @WorkflowStep() private manualUpdateStep(input: ManualUpdateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationUpdateScript, input.params, scriptContext(input.context)); }
-  @WorkflowStep() private manualDeleteStep(input: ManualDeleteInput) { return Kernel.getInstance().runScript(ManualProductRecommendationDeleteScript, input.params, scriptContext(input.context)); }
-
+abstract class RecommendationMutationWorkflowBase<TInput, TOutput>
+  extends RecommendationWorkflowBase<TInput, TOutput> {
   @WorkflowStep()
-  private async startPolicyFanOut(context: RecommendationWorkflowContext, placement: RecommendationPlacement, triggerKey: string) {
+  protected async startPolicyFanOut(context: RecommendationWorkflowContext, placement: RecommendationPlacement, triggerKey: string) {
     const input: RecommendationFanOutInput = { context, placement, triggerKey };
     const idempotency = buildContext("recommendationPolicyFanOut", context, { placement, triggerKey });
     const workflowId = buildIdempotencyKey("listing.recommendationSnapshotFanOut", idempotency);
@@ -476,7 +424,7 @@ export class RecommendationMutationWorkflow extends RecommendationWorkflowBase {
   }
 
   @WorkflowStep()
-  private async startManualBuild(context: RecommendationWorkflowContext, result: ManualRecommendationResult) {
+  protected async startManualBuild(context: RecommendationWorkflowContext, result: ManualRecommendationResult) {
     if (!result.anchorProductId || !result.placement || !result.generation || !result.triggerKey) return;
     await this.startBuild(context, {
       requestId: `${result.anchorProductId}:${result.placement}`,
@@ -486,6 +434,90 @@ export class RecommendationMutationWorkflow extends RecommendationWorkflowBase {
       triggerKey: result.triggerKey,
     });
   }
+}
+
+@Injectable()
+export class RecommendationPolicyUpsertWorkflow
+  extends RecommendationMutationWorkflowBase<PolicyUpsertInput, RecommendationPolicyResult> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("recommendationPolicyUpsert")
+  @Policy<PolicyUpsertInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  async run(input: PolicyUpsertInput): Promise<RecommendationPolicyResult> {
+    const result = await this.policyUpsertStep(input);
+    if (result.policy && result.generationTrigger) {
+      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
+    }
+    return result;
+  }
+
+  @WorkflowStep() private policyUpsertStep(input: PolicyUpsertInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicyUpsertScript, input.params, scriptContext(input.context)); }
+}
+
+@Injectable()
+export class RecommendationPolicySetEnabledWorkflow
+  extends RecommendationMutationWorkflowBase<PolicyEnabledInput, RecommendationPolicyResult> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("recommendationPolicySetEnabled")
+  @Policy<PolicyEnabledInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  async run(input: PolicyEnabledInput): Promise<RecommendationPolicyResult> {
+    const result = await this.policyEnabledStep(input);
+    if (result.policy?.enabled && result.generationTrigger) {
+      await this.startPolicyFanOut(input.context, result.policy.placement, result.generationTrigger);
+    }
+    return result;
+  }
+
+  @WorkflowStep() private policyEnabledStep(input: PolicyEnabledInput) { return Kernel.getInstance().runScript(RecommendationPlacementPolicySetEnabledScript, input.params, scriptContext(input.context)); }
+}
+
+@Injectable()
+export class ManualRecommendationCreateWorkflow
+  extends RecommendationMutationWorkflowBase<ManualCreateInput, ManualRecommendationResult> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("manualRecommendationCreate")
+  @Policy<ManualCreateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  async run(input: ManualCreateInput): Promise<ManualRecommendationResult> {
+    const result = await this.manualCreateStep(input);
+    await this.startManualBuild(input.context, result);
+    return result;
+  }
+
+  @WorkflowStep() private manualCreateStep(input: ManualCreateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationCreateScript, input.params, scriptContext(input.context)); }
+}
+
+@Injectable()
+export class ManualRecommendationUpdateWorkflow
+  extends RecommendationMutationWorkflowBase<ManualUpdateInput, ManualRecommendationResult> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("manualRecommendationUpdate")
+  @Policy<ManualUpdateInput>({ resource: "store.data", action: "write", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  async run(input: ManualUpdateInput): Promise<ManualRecommendationResult> {
+    const result = await this.manualUpdateStep(input);
+    await this.startManualBuild(input.context, result);
+    return result;
+  }
+
+  @WorkflowStep() private manualUpdateStep(input: ManualUpdateInput) { return Kernel.getInstance().runScript(ManualProductRecommendationUpdateScript, input.params, scriptContext(input.context)); }
+}
+
+@Injectable()
+export class ManualRecommendationDeleteWorkflow
+  extends RecommendationMutationWorkflowBase<ManualDeleteInput, ManualRecommendationResult> {
+  constructor(@InjectBroker("listing") broker: ServiceBroker) { super(broker); }
+
+  @Workflow("manualRecommendationDelete")
+  @Policy<ManualDeleteInput>({ resource: "store.data", action: "admin", organizationId: (_s, i) => i.context.organizationId, domain: (_s, i) => `store:${i.context.storeId}` })
+  async run(input: ManualDeleteInput): Promise<ManualRecommendationResult> {
+    const result = await this.manualDeleteStep(input);
+    await this.startManualBuild(input.context, result);
+    return result;
+  }
+
+  @WorkflowStep() private manualDeleteStep(input: ManualDeleteInput) { return Kernel.getInstance().runScript(ManualProductRecommendationDeleteScript, input.params, scriptContext(input.context)); }
 }
 
 function buildContext(operation: string, context: RecommendationWorkflowContext, payload: unknown): IdempotencyContext {

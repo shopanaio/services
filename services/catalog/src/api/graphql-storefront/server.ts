@@ -86,6 +86,7 @@ export async function startStorefrontServer(
     "shared-locale.graphql",
     "shared-units.graphql",
     "base.graphql",
+    "collection.graphql",
     "media.graphql",
     "navigation/category.graphql",
     "product/catalog-entities.graphql",

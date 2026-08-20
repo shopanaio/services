@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import type { CheckoutDto } from "@shopana/checkout-sdk";
 import {
   InventoryCheckoutActions,
@@ -150,7 +150,9 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
 > {
   constructor(
     @InjectBroker("checkout") broker: ServiceBroker,
+    @Inject(CheckoutMutationRepository)
     private readonly checkouts: CheckoutMutationRepository,
+    @Inject(CheckoutPlacementRepository)
     private readonly placements: CheckoutPlacementRepository,
   ) {
     super(broker);

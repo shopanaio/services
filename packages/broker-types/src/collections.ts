@@ -135,6 +135,10 @@ export type CatalogCollectionSnapshot =
   | CatalogCollectionListingSnapshot
   | CatalogCollectionListingTombstone;
 
+export type CatalogCollectionPayload =
+  | Omit<CatalogCollectionListingSnapshot, "payloadHash">
+  | Omit<CatalogCollectionListingTombstone, "payloadHash">;
+
 export const CatalogCollectionActionNames = {
   getListingSnapshot: "getCollectionListingSnapshot",
 } as const;
@@ -216,12 +220,6 @@ export function encodeCollectionRuleTerm(term: CollectionRuleTerm): string {
       invalid("Tag rule terms are valid only for products");
     }
     return JSON.stringify(["v1", "tag", canonicalUuid(term.tagId, ["tagId"])]);
-  }
-  if (
-    (term.kind === "feature" && term.entityType !== "product") ||
-    (term.kind === "option" && term.entityType !== "variant")
-  ) {
-    invalid(`Invalid ${term.kind} rule-term entity type`);
   }
   return JSON.stringify([
     "v1",
@@ -530,7 +528,7 @@ export function hashCanonicalJsonV1(value: unknown): string {
 }
 
 export function serializeCollectionListingPayloadV1(
-  input: Omit<CatalogCollectionSnapshot, "payloadHash">,
+  input: CatalogCollectionPayload,
 ): string {
   if (input.snapshotVersion !== COLLECTION_LISTING_CONTRACT_VERSION) {
     invalid("Unsupported collection listing contract version", [
@@ -567,7 +565,7 @@ export function serializeCollectionListingPayloadV1(
 }
 
 export function hashCollectionListingPayloadV1(
-  input: Omit<CatalogCollectionSnapshot, "payloadHash">,
+  input: CatalogCollectionPayload,
 ): string {
   return versionedHash(serializeCollectionListingPayloadV1(input));
 }

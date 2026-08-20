@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import {
   DeliveryActions,
   InventoryCheckoutActions,
@@ -49,6 +49,7 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
 > {
   constructor(
     @InjectBroker("checkout") broker: ServiceBroker,
+    @Inject(CheckoutPlacementRepository)
     private readonly placements: CheckoutPlacementRepository,
   ) {
     super(broker);

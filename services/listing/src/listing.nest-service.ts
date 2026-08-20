@@ -2,6 +2,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  OnApplicationBootstrap,
   OnModuleDestroy,
   OnModuleInit,
 } from "@nestjs/common";
@@ -22,7 +23,9 @@ import { RecommendationScheduler } from "./scheduled/RecommendationScheduler.js"
 const { service } = getServiceConfig("listing");
 
 @Injectable()
-export class ListingNestService implements OnModuleInit, OnModuleDestroy {
+export class ListingNestService
+  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(ListingNestService.name);
   private kernel!: Kernel;
   private graphqlServer: FastifyInstance | null = null;
@@ -32,6 +35,7 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
     @InjectBroker("listing") private readonly broker: ServiceBroker,
     @Inject(WORKFLOW_REGISTRY) private readonly workflow: WorkflowRegistry,
     @Inject(DATABASE_CLIENT) private readonly dbClient: DatabaseClient,
+    @Inject(RecommendationScheduler)
     private readonly recommendationScheduler: RecommendationScheduler,
   ) {}
 
@@ -40,8 +44,6 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
 
     this.kernel = await Kernel.create(this.broker, this.workflow, this.dbClient);
     this.logger.debug("Kernel created");
-    this.recommendationScheduler.start();
-
     this.graphqlServer = await startServer({
       port: service.ports?.admin_graphql ?? 0,
     });
@@ -53,6 +55,10 @@ export class ListingNestService implements OnModuleInit, OnModuleDestroy {
     this.logger.debug("Storefront GraphQL server started");
 
     this.logger.log("Listing service started");
+  }
+
+  onApplicationBootstrap() {
+    this.recommendationScheduler.start();
   }
 
   async onModuleDestroy() {

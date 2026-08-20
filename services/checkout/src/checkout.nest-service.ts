@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { InjectBroker, ServiceBroker, type BrokerCallContext } from '@shopana/shared-kernel';
 import {
@@ -15,7 +21,9 @@ import { startCheckoutMetricsServer } from './interfaces/server/metricsServer.js
 import { getServiceConfig } from '@shopana/shared-service-config';
 
 @Injectable()
-export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
+export class CheckoutNestService
+  implements OnModuleInit, OnApplicationBootstrap, OnModuleDestroy
+{
   private readonly logger = new Logger(CheckoutNestService.name);
   private app!: App;
   private graphqlServer!: FastifyInstance;
@@ -112,13 +120,16 @@ export class CheckoutNestService implements OnModuleInit, OnModuleDestroy {
         placements: this.app.checkoutPlacementRepository,
       });
     }
+    this.logger.log('Checkout service started');
+  }
+
+  async onApplicationBootstrap() {
     await this.startMaintenance();
     this.maintenanceTimer = setInterval(() => {
       void this.startMaintenance().catch((error) =>
         this.logger.error(error, 'Failed to start checkout maintenance workflow')
       );
     }, 60_000);
-    this.logger.log('Checkout service started');
   }
 
   async onModuleDestroy() {

@@ -381,12 +381,13 @@ function findScopedOverride(
 
 function scopedStoreId(params: unknown): string | null {
   if (!params || typeof params !== "object") return null;
-  if ("storeId" in params && typeof params.storeId === "string") {
-    return params.storeId;
+  const record = params as Record<string, unknown>;
+  if (typeof record.storeId === "string") {
+    return record.storeId;
   }
   for (const key of ["context", "params", "input"] as const) {
-    if (key in params) {
-      const nested = scopedStoreId(params[key]);
+    if (key in record) {
+      const nested = scopedStoreId(record[key]);
       if (nested) return nested;
     }
   }

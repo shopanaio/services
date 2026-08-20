@@ -8,7 +8,7 @@ import { BootstrapModule, BootstrapModuleOptions } from './bootstrap.module';
 import { getConfig } from '@shopana/shared-service-config';
 
 const logger = new Logger('Bootstrap');
-const PROCESS_LISTENER_HEADROOM = 10;
+const PROCESS_LISTENER_HEADROOM = 20;
 
 async function bootstrap() {
   // Load configuration synchronously before NestFactory
@@ -41,6 +41,18 @@ async function bootstrap() {
   // DBOS workflows - read from config.workflows or environment
   const workflowsDbUrl = config.workflows?.database_url ?? process.env.DBOS_DATABASE_URL;
   if (workflowsDbUrl) {
+    const listingIndexWorkerConcurrency = parsePositiveInteger(
+      process.env.LISTING_INDEX_ACTIONS_WORKER_CONCURRENCY,
+      1,
+    );
+    const recommendationSnapshotWorkerConcurrency = parsePositiveInteger(
+      process.env.RECOMMENDATION_SNAPSHOT_WORKER_CONCURRENCY,
+      20,
+    );
+    const recommendationIngestionWorkerConcurrency = parsePositiveInteger(
+      process.env.RECOMMENDATION_INGESTION_WORKER_CONCURRENCY,
+      20,
+    );
     bootstrapOptions.workflows = {
       databaseUrl: workflowsDbUrl,
       name: config.workflows?.app_name ?? 'shopana',
@@ -49,31 +61,22 @@ async function bootstrap() {
         {
           name: 'listing_index_actions',
           partitionQueue: true,
-          concurrency: 1,
-          workerConcurrency: parsePositiveInteger(
-            process.env.LISTING_INDEX_ACTIONS_WORKER_CONCURRENCY,
-            1,
-          ),
+          concurrency: listingIndexWorkerConcurrency,
+          workerConcurrency: listingIndexWorkerConcurrency,
           onConflict: 'update_if_latest_version',
         },
         {
           name: 'recommendation_snapshot_build',
           partitionQueue: true,
-          concurrency: 1,
-          workerConcurrency: parsePositiveInteger(
-            process.env.RECOMMENDATION_SNAPSHOT_WORKER_CONCURRENCY,
-            20,
-          ),
+          concurrency: recommendationSnapshotWorkerConcurrency,
+          workerConcurrency: recommendationSnapshotWorkerConcurrency,
           onConflict: 'update_if_latest_version',
         },
         {
           name: 'recommendation_order_fact_ingestion',
           partitionQueue: true,
-          concurrency: 1,
-          workerConcurrency: parsePositiveInteger(
-            process.env.RECOMMENDATION_INGESTION_WORKER_CONCURRENCY,
-            20,
-          ),
+          concurrency: recommendationIngestionWorkerConcurrency,
+          workerConcurrency: recommendationIngestionWorkerConcurrency,
         },
         {
           name: 'customer_statistics_projection',
