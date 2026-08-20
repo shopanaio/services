@@ -1,9 +1,3 @@
-extend schema
-  @link(
-    url: "https://specs.apollo.dev/federation/v2.7"
-    import: ["@key", "@inaccessible"]
-  )
-
 """Public Catalog entry points for the active storefront context."""
 type Query {
   """Returns any catalog object by its globally unique Relay ID."""
