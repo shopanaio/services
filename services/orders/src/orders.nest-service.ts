@@ -11,6 +11,8 @@ import {
   OrderLoyaltyActionNames,
   OrderFulfillmentActionNames,
   OrderReviewActionNames,
+  OrderProviderActionNames,
+  OrderProviderActions,
   type PublishOrderLoyaltyRewardEligibleParams,
   type PublishOrderLoyaltyRewardEligibleResult,
   type PublishOrderLoyaltyRewardReversedParams,
@@ -29,6 +31,10 @@ import {
   type CreateOrderFromCheckoutPlacementV1Result,
   type GetOrderCheckoutPlacementV1Params,
   type OrderCheckoutPlacementV1Result,
+  type ApplyOrderIntegrationEventV1Params,
+  type ApplyOrderIntegrationEventV1Result,
+  type CompleteOrderFulfillmentServiceOperationV1Params,
+  type CompleteOrderFulfillmentServiceOperationV1Result,
 } from "@shopana/broker-types";
 import type { BrokerCallContext } from "@shopana/shared-kernel";
 import {
@@ -43,6 +49,11 @@ import {
   type AdminOrderCommandInput,
   type AdminOrderCommandResult,
 } from "./domain/admin/AdminOrderCommandContracts.js";
+import {
+  applyOrderIntegrationEventV1Schema,
+  completeOrderFulfillmentServiceOperationV1Schema,
+  type TrustedOrderAppContext,
+} from "./domain/integration/OrderProviderContracts.js";
 
 @Injectable()
 export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
@@ -167,6 +178,56 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     );
 
     this.broker.register("generateOrderId", async () => ({ id: uuidv7() }));
+
+    this.broker.register(
+      OrderProviderActionNames.completeFulfillmentServiceOperation,
+      async (
+        params: CompleteOrderFulfillmentServiceOperationV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<CompleteOrderFulfillmentServiceOperationV1Result> => {
+        const input = completeOrderFulfillmentServiceOperationV1Schema.parse(requireParams(params));
+        const app = trustedOrderAppContext(
+          context,
+          OrderProviderActions.completeFulfillmentServiceOperation,
+        );
+        if (app.operationId && app.operationId !== input.operationId) {
+          throw new Error("FULFILLMENT_PROVIDER_OPERATION_CONTEXT_MISMATCH");
+        }
+        return this.broker.runWorkflow(
+          "order.completeOrderFulfillmentServiceOperationV1",
+          { context: app, input },
+          {
+            source: "content",
+            organizationId: app.organizationId,
+            resourceId: input.operationId,
+            operation: "completeOrderFulfillmentServiceOperationV1",
+            content: { installationId: app.installationId, input },
+          },
+        );
+      },
+    );
+
+    this.broker.register(
+      OrderProviderActionNames.applyIntegrationEvent,
+      async (
+        params: ApplyOrderIntegrationEventV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<ApplyOrderIntegrationEventV1Result> => {
+        const input = applyOrderIntegrationEventV1Schema.parse(requireParams(params));
+        const app = trustedOrderAppContext(context, OrderProviderActions.applyIntegrationEvent);
+        return this.broker.runWorkflow(
+          "order.applyOrderIntegrationEventV1",
+          { context: app, input },
+          {
+            source: "content",
+            organizationId: app.organizationId,
+            resourceId: input.integrationLinkId,
+            operation: "applyOrderIntegrationEventV1",
+            content: { installationId: app.installationId, input },
+          },
+        );
+      },
+    );
 
     this.broker.register(
       OrderFulfillmentActionNames.listForOrder,
@@ -308,4 +369,31 @@ function withDeliveryCaller<TResult>(
     throw new Error("ORDER_DELIVERY_CALLER_FORBIDDEN");
   }
   return callback();
+}
+
+function trustedOrderAppContext(
+  context: BrokerCallContext,
+  requiredScope: string,
+): TrustedOrderAppContext {
+  const app = context.app;
+  if (
+    context.caller.kind !== "action" ||
+    context.caller.service !== "apps" ||
+    !app ||
+    app.executionKind === "COMMERCE_FUNCTION"
+  ) {
+    throw new Error("ORDER_PROVIDER_CALLBACK_CONTEXT_INVALID");
+  }
+  if (!app.grantedScopes.includes(requiredScope)) {
+    throw new Error("ORDER_PROVIDER_CALLBACK_SCOPE_FORBIDDEN");
+  }
+  return Object.freeze({
+    organizationId: app.organizationId,
+    storeId: app.storeId,
+    installationId: app.installationId,
+    appCode: app.appCode,
+    appVersion: app.appVersion,
+    operationId: app.operationId ?? null,
+    correlationId: app.correlationId ?? uuidv7(),
+  });
 }

@@ -6,6 +6,14 @@ import type {
   AdminOrderCommandName,
   AdminOrderCommandResult,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
+import type {
+  FulfillmentServiceCallbackWorkflowInput,
+  IntegrationEventWorkflowInput,
+} from "../../domain/integration/OrderProviderContracts.js";
+import type {
+  ApplyOrderIntegrationEventV1Result,
+  CompleteOrderFulfillmentServiceOperationV1Result,
+} from "@shopana/broker-types";
 import { asynchronousAdminOrderCommands } from "../../domain/admin/AdminOrderCommandContracts.js";
 import { parseDecimalInput } from "../../utils/decimal.js";
 import { Money } from "@shopana/shared-money";
@@ -126,7 +134,7 @@ export class AdminOrderCommandRepository extends BaseRepository {
       case "orderDelete":
         return this.deleteDraft(request);
       case "orderCompleteDraft":
-        return this.transition(request, command, ["DRAFT"], "OPEN", { placedAt: true });
+        return this.completeDraft(request, command);
       case "orderClose":
         return this.transition(request, command, ["OPEN"], "CLOSED", { closedAt: true });
       case "orderReopen":
@@ -232,12 +240,40 @@ export class AdminOrderCommandRepository extends BaseRepository {
         ${request.context.actor.id}, NULL, ${optionalString(input.sourceCode)},
         ${optionalString(input.externalId)}, ${optionalString(input.localeCode)}, ${currencyCode},
         ${totals.subtotal}, 0, 0, 0, 0, 0, ${totals.total}, '{}'::jsonb,
-        ${JSON.stringify({ customFields: jsonObject(input.customFields) })}::jsonb, ${now}, ${now}
+        ${JSON.stringify({
+          customFields: jsonObject(input.customFields),
+          paymentMethodCode: optionalString(input.paymentMethodCode),
+        })}::jsonb, ${now}, ${now}
       )
     `);
     for (const line of lines)
       await this.insertLine(request.context.storeId, orderId, line, currencyCode, now);
-    if (input.contact) await this.upsertContact(request, orderId, asRecord(input.contact), now);
+    if (input.contact) {
+      await this.upsertContact(
+        request,
+        orderId,
+        { ...asRecord(input.contact), note: input.customerNote ?? asRecord(input.contact).note },
+        now,
+      );
+    }
+    if (input.billingAddress) {
+      await this.upsertAddress(
+        request.context.storeId,
+        orderId,
+        "BILLING",
+        asRecord(input.billingAddress),
+        now,
+      );
+    }
+    if (input.shipping) {
+      await this.syncDraftDelivery(
+        request.context.storeId,
+        orderId,
+        currencyCode,
+        asRecord(input.shipping),
+        now,
+      );
+    }
     if (Array.isArray(input.tags)) await this.replaceTags(request, orderId, input.tags, now);
     if (typeof input.adminNote === "string" && input.adminNote.trim()) {
       await this.writeAdminNote(request, orderId, input.adminNote, now);
@@ -254,6 +290,31 @@ export class AdminOrderCommandRepository extends BaseRepository {
     const input = request.input;
     const now = new Date().toISOString();
     if (input.contact) await this.upsertContact(request, order.id, asRecord(input.contact), now);
+    if (input.customerNote !== undefined) {
+      await this.connection.execute(sql`
+        UPDATE orders.order_contacts SET customer_note = ${optionalString(input.customerNote)},
+          updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+      `);
+    }
+    if (input.billingAddress) {
+      await this.upsertAddress(
+        request.context.storeId,
+        order.id,
+        "BILLING",
+        asRecord(input.billingAddress),
+        now,
+      );
+    }
+    if (input.shipping) {
+      await this.syncDraftDelivery(
+        request.context.storeId,
+        order.id,
+        order.currency_code,
+        asRecord(input.shipping),
+        now,
+      );
+    }
     await this.connection.execute(sql`
       UPDATE orders.orders
       SET locale_code = COALESCE(${optionalString(input.localeCode)}, locale_code), updated_at = ${now}
@@ -301,6 +362,32 @@ export class AdminOrderCommandRepository extends BaseRepository {
     return this.bumpAndAudit(request, order, command, request.input, now);
   }
 
+  private async completeDraft(
+    request: AdminOrderCommandInput,
+    command: AdminOrderCommandName,
+  ): Promise<MutableResult> {
+    const order = await this.lockOrder(request, ["DRAFT"]);
+    const lines = await this.connection.execute<{ count: number }>(sql`
+      SELECT count(*)::integer AS count
+      FROM orders.order_lines
+      WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+    `);
+    if ((lines[0]?.count ?? 0) === 0) throw new Error("ORDER_LINES_REQUIRED");
+    const contacts = await this.connection.execute<{ count: number }>(sql`
+      SELECT count(*)::integer AS count FROM orders.order_contacts
+      WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+        AND redacted_at IS NULL
+    `);
+    if ((contacts[0]?.count ?? 0) === 0) throw new Error("ORDER_CONTACT_REQUIRED");
+    const now = new Date().toISOString();
+    await this.connection.execute(sql`
+      UPDATE orders.orders
+      SET status = 'OPEN', placed_at = ${now}, updated_at = ${now}
+      WHERE store_id = ${request.context.storeId} AND id = ${order.id}
+    `);
+    return this.bumpAndAudit(request, order, command, request.input, now);
+  }
+
   private async archive(
     request: AdminOrderCommandInput,
     command: AdminOrderCommandName,
@@ -325,6 +412,9 @@ export class AdminOrderCommandRepository extends BaseRepository {
       UPDATE orders.orders SET customer_id = ${optionalUuid(request.input.customerId, "customerId")}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${order.id}
     `);
+    if (request.input.contact !== undefined) {
+      await this.upsertContact(request, order.id, asRecord(request.input.contact), now);
+    }
     return this.bumpAndAudit(request, order, command, request.input, now);
   }
 
@@ -408,6 +498,7 @@ export class AdminOrderCommandRepository extends BaseRepository {
       order.currency_code,
       now,
     );
+    await this.refreshDraftDeliveryGroup(request.context.storeId, order.id, now);
     await this.recalculateOrder(request.context.storeId, order.id, now);
     const result = await this.bumpAndAudit(request, order, command, { lineId, line }, now);
     return { ...result, resourceId: lineId };
@@ -427,18 +518,26 @@ export class AdminOrderCommandRepository extends BaseRepository {
     const changed = await this.connection.execute<{ id: string }>(sql`
       UPDATE orders.order_lines
       SET quantity = COALESCE(${quantity}, quantity),
-          unit_price_amount = COALESCE(${unitCost}, unit_price_amount),
-          subtotal_amount = COALESCE(${unitCost}, unit_price_amount) * COALESCE(${quantity}, quantity),
-          total_amount = COALESCE(${unitCost}, unit_price_amount) * COALESCE(${quantity}, quantity)
+          subtotal_amount = unit_price_amount * COALESCE(${quantity}, quantity),
+          total_amount = unit_price_amount * COALESCE(${quantity}, quantity)
             - discount_amount + tax_amount + duty_amount,
-          metadata = CASE WHEN ${request.input.customFields !== undefined}
-            THEN jsonb_set(metadata, '{customFields}', ${JSON.stringify(jsonObject(request.input.customFields))}::jsonb, true)
+          metadata = CASE
+            WHEN ${request.input.customFields !== undefined} OR ${request.input.weight !== undefined}
+              OR ${unitCost}::bigint IS NOT NULL
+            THEN metadata || ${JSON.stringify({
+              ...(request.input.customFields !== undefined
+                ? { customFields: jsonObject(request.input.customFields) }
+                : {}),
+              ...(request.input.weight !== undefined ? { weight: request.input.weight } : {}),
+              ...(unitCost !== null ? { unitCostMinor: unitCost.toString() } : {}),
+            })}::jsonb
             ELSE metadata END,
           updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND order_id = ${order.id} AND id = ${lineId}
       RETURNING id
     `);
     if (!changed[0]) throw new Error("ORDER_LINE_NOT_FOUND");
+    await this.refreshDraftDeliveryGroup(request.context.storeId, order.id, now);
     await this.recalculateOrder(request.context.storeId, order.id, now);
     const result = await this.bumpAndAudit(request, order, command, { lineId }, now);
     return { ...result, resourceId: lineId };
@@ -450,6 +549,11 @@ export class AdminOrderCommandRepository extends BaseRepository {
   ): Promise<MutableResult> {
     const order = await this.lockOrder(request, ["DRAFT"]);
     const lineId = requiredUuid(request.input, "lineId");
+    await this.connection.execute(sql`
+      DELETE FROM orders.order_delivery_group_lines
+      WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+        AND order_line_id = ${lineId}
+    `);
     const removed = await this.connection.execute<{ id: string }>(sql`
       DELETE FROM orders.order_lines
       WHERE store_id = ${request.context.storeId} AND order_id = ${order.id} AND id = ${lineId}
@@ -457,6 +561,7 @@ export class AdminOrderCommandRepository extends BaseRepository {
     `);
     if (!removed[0]) throw new Error("ORDER_LINE_NOT_FOUND");
     const now = new Date().toISOString();
+    await this.refreshDraftDeliveryGroup(request.context.storeId, order.id, now);
     await this.recalculateOrder(request.context.storeId, order.id, now);
     const result = await this.bumpAndAudit(request, order, command, { lineId }, now);
     return { ...result, resourceId: lineId, deleted: true };
@@ -507,7 +612,8 @@ export class AdminOrderCommandRepository extends BaseRepository {
         id, store_id, order_id, edit_session_id, sequence, change_type, payload, created_at
       ) VALUES (
         ${changeId}, ${request.context.storeId}, ${edit.orderId}, ${edit.id},
-        ${nextEditVersion - 1}, ${command}, ${JSON.stringify(request.input)}::jsonb, ${now}
+        ${nextEditVersion - 1}, ${command},
+        ${JSON.stringify({ ...request.input, changeId })}::jsonb, ${now}
       )
     `);
     await this.connection.execute(sql`
@@ -515,6 +621,12 @@ export class AdminOrderCommandRepository extends BaseRepository {
       SET version = ${nextEditVersion}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${edit.id}
     `);
+    await this.refreshEditPreview(
+      request.context.storeId,
+      edit.id,
+      edit.orderId,
+      edit.currencyCode,
+    );
     await this.insertEventOnly(
       request,
       {
@@ -571,10 +683,11 @@ export class AdminOrderCommandRepository extends BaseRepository {
       } else if (change.change_type === "orderEditLineUpdate") {
         const lineId = requiredUuid(payload, "lineId");
         const quantity = optionalPositiveInt(payload.quantity, "quantity");
+        await this.assertLineEditable(request.context.storeId, edit.orderId, lineId, quantity);
         const unitPrice = payload.unitPrice
           ? moneyMinor(asRecord(payload.unitPrice), edit.currencyCode)
           : null;
-        await this.connection.execute(sql`
+        const updated = await this.connection.execute<{ id: string }>(sql`
           UPDATE orders.order_lines
           SET quantity = COALESCE(${quantity}, quantity),
               unit_price_amount = COALESCE(${unitPrice}, unit_price_amount),
@@ -583,13 +696,89 @@ export class AdminOrderCommandRepository extends BaseRepository {
                 - discount_amount + tax_amount + duty_amount,
               updated_at = ${now}
           WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId} AND id = ${lineId}
+          RETURNING id
         `);
+        if (!updated[0]) throw new Error("ORDER_LINE_NOT_FOUND");
       } else if (change.change_type === "orderEditLineRemove") {
-        await this.connection.execute(sql`
+        const lineId = requiredUuid(payload, "lineId");
+        await this.assertLineEditable(request.context.storeId, edit.orderId, lineId, 0);
+        const removed = await this.connection.execute<{ id: string }>(sql`
           DELETE FROM orders.order_lines
           WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
-            AND id = ${requiredUuid(payload, "lineId")}
+            AND id = ${lineId}
+          RETURNING id
         `);
+        if (!removed[0]) throw new Error("ORDER_LINE_NOT_FOUND");
+      } else if (change.change_type === "orderEditShippingUpdate") {
+        const shipping = asRecord(payload.shipping);
+        const methodCode = optionalString(shipping.methodCode);
+        if (methodCode) {
+          await this.connection.execute(sql`
+            UPDATE orders.order_delivery_methods
+            SET is_selected = false, updated_at = ${now}
+            WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+          `);
+          const selected = await this.connection.execute<{ id: string }>(sql`
+            UPDATE orders.order_delivery_methods
+            SET is_selected = true, updated_at = ${now}
+            WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+              AND code = ${methodCode}
+            RETURNING id
+          `);
+          if (!selected[0]) throw new Error("ORDER_DELIVERY_METHOD_NOT_FOUND");
+        }
+        await this.connection.execute(sql`
+          UPDATE orders.order_delivery_groups
+          SET metadata = jsonb_set(metadata, '{editShipping}', ${JSON.stringify(shipping)}::jsonb, true),
+            updated_at = ${now}
+          WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+        `);
+      } else if (change.change_type === "orderEditDiscountAdd") {
+        const amount = moneyMinor(asRecord(payload.amount), edit.currencyCode);
+        if (amount <= 0n) throw new Error("ORDER_EDIT_DISCOUNT_INVALID");
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_adjustments (
+            store_id, order_id, type, amount, reason, source, source_reference, metadata
+          ) VALUES (
+            ${request.context.storeId}, ${edit.orderId}, 'CREDIT', ${-amount},
+            ${requiredString(payload, "reasonCode")}, 'ORDER_EDIT',
+            ${requiredUuid(payload, "changeId")},
+            ${JSON.stringify({ title: requiredString(payload, "title"), editId: edit.id })}::jsonb
+          )
+        `);
+      } else if (change.change_type === "orderEditDiscountRemove") {
+        const discountId = requiredUuid(payload, "discountId");
+        await this.connection.execute(sql`
+          UPDATE orders.order_lines line
+          SET discount_amount = GREATEST(0, line.discount_amount - allocation.amount),
+            total_amount = line.subtotal_amount
+              - GREATEST(0, line.discount_amount - allocation.amount)
+              + line.tax_amount + line.duty_amount,
+            updated_at = ${now}
+          FROM orders.order_line_discount_allocations allocation
+          WHERE allocation.store_id = line.store_id AND allocation.order_id = line.order_id
+            AND allocation.order_line_id = line.id
+            AND allocation.store_id = ${request.context.storeId}
+            AND allocation.order_id = ${edit.orderId}
+            AND allocation.discount_application_id = ${discountId}
+        `);
+        await this.connection.execute(sql`
+          DELETE FROM orders.order_line_discount_allocations
+          WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+            AND discount_application_id = ${discountId}
+        `);
+        await this.connection.execute(sql`
+          DELETE FROM orders.order_delivery_discount_allocations
+          WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+            AND discount_application_id = ${discountId}
+        `);
+        const removed = await this.connection.execute<{ id: string }>(sql`
+          DELETE FROM orders.order_discount_applications
+          WHERE store_id = ${request.context.storeId} AND order_id = ${edit.orderId}
+            AND id = ${discountId}
+          RETURNING id
+        `);
+        if (!removed[0]) throw new Error("ORDER_DISCOUNT_NOT_FOUND");
       }
     }
     await this.recalculateOrder(request.context.storeId, edit.orderId, now);
@@ -857,6 +1046,14 @@ export class AdminOrderCommandRepository extends BaseRepository {
     if (["CLOSED", "CANCELLED", "ON_HOLD"].includes(fulfillmentOrder.status)) {
       throw new Error("FULFILLMENT_CREATE_NOT_ALLOWED");
     }
+    const placement = await this.connection.execute<{ status: string }>(sql`
+      SELECT status FROM orders.order_checkout_placements
+      WHERE store_id = ${request.context.storeId} AND order_id = ${fulfillmentOrder.orderId}
+      LIMIT 1 FOR UPDATE
+    `);
+    if (placement[0] && placement[0].status !== "CONFIRMED") {
+      throw new Error("ORDER_PLACEMENT_NOT_CONFIRMED");
+    }
     const lines = requiredArray(request.input, "lines").map(asRecord);
     if (lines.length === 0) throw new Error("FULFILLMENT_LINES_REQUIRED");
     const fulfillmentId = uuidv7();
@@ -874,12 +1071,28 @@ export class AdminOrderCommandRepository extends BaseRepository {
     for (const line of lines) {
       const lineId = requiredUuid(line, "fulfillmentOrderLineId");
       const quantity = requiredPositiveInt(line, "quantity");
-      const allocation = await this.connection.execute<{ quantity: number }>(sql`
-        SELECT quantity FROM orders.order_fulfillment_order_lines
-        WHERE store_id = ${request.context.storeId} AND fulfillment_order_id = ${fulfillmentOrder.id}
-          AND order_line_id = ${lineId} FOR UPDATE
+      const allocation = await this.connection.execute<{
+        quantity: number;
+        fulfilled: number;
+      }>(sql`
+        SELECT allocation.quantity,
+          COALESCE((
+            SELECT sum(line.quantity)::integer
+            FROM orders.order_fulfillment_lines line
+            JOIN orders.order_fulfillments fulfillment
+              ON fulfillment.store_id = line.store_id AND fulfillment.id = line.fulfillment_id
+            WHERE line.store_id = allocation.store_id
+              AND line.order_id = allocation.order_id
+              AND line.order_line_id = allocation.order_line_id
+              AND fulfillment.status = 'SUCCESS'
+          ), 0) AS fulfilled
+        FROM orders.order_fulfillment_order_lines allocation
+        WHERE allocation.store_id = ${request.context.storeId}
+          AND allocation.fulfillment_order_id = ${fulfillmentOrder.id}
+          AND allocation.order_line_id = ${lineId}
+        FOR UPDATE OF allocation
       `);
-      if (!allocation[0] || quantity > allocation[0].quantity) {
+      if (!allocation[0] || quantity > allocation[0].quantity - allocation[0].fulfilled) {
         throw new Error("FULFILLMENT_QUANTITY_INVALID");
       }
       await this.connection.execute(sql`
@@ -888,14 +1101,69 @@ export class AdminOrderCommandRepository extends BaseRepository {
         VALUES (${request.context.storeId}, ${fulfillmentOrder.orderId}, ${fulfillmentId}, ${lineId}, ${quantity})
       `);
     }
+    const remaining = await this.connection.execute<{ quantity: number }>(sql`
+      SELECT COALESCE(sum(allocation.quantity), 0)::integer
+        - COALESCE(sum(fulfilled.quantity), 0)::integer AS quantity
+      FROM orders.order_fulfillment_order_lines allocation
+      LEFT JOIN LATERAL (
+        SELECT sum(line.quantity)::integer AS quantity
+        FROM orders.order_fulfillment_lines line
+        JOIN orders.order_fulfillments fulfillment
+          ON fulfillment.store_id = line.store_id AND fulfillment.id = line.fulfillment_id
+        WHERE line.store_id = allocation.store_id
+          AND line.order_id = allocation.order_id
+          AND line.order_line_id = allocation.order_line_id
+          AND fulfillment.status = 'SUCCESS'
+      ) fulfilled ON true
+      WHERE allocation.store_id = ${request.context.storeId}
+        AND allocation.fulfillment_order_id = ${fulfillmentOrder.id}
+    `);
     await this.connection.execute(sql`
       UPDATE orders.order_fulfillment_orders
-      SET status = 'IN_PROGRESS', version = version + 1, updated_at = ${now}
+      SET status = ${(remaining[0]?.quantity ?? 0) === 0 ? "CLOSED" : "IN_PROGRESS"}::orders.order_fulfillment_order_status,
+          closed_at = CASE WHEN ${(remaining[0]?.quantity ?? 0) === 0} THEN ${now}::timestamptz ELSE NULL END,
+          version = version + 1, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentOrder.id}
     `);
     const order = await this.lockOrderById(request.context.storeId, fulfillmentOrder.orderId);
+    const aggregateRemaining = await this.connection.execute<{
+      remaining: number;
+      fulfilled: number;
+    }>(sql`
+      SELECT
+        COALESCE(sum(line.quantity - line.cancelled_quantity), 0)::integer
+          - COALESCE((
+            SELECT sum(fulfilled_line.quantity)::integer
+            FROM orders.order_fulfillment_lines fulfilled_line
+            JOIN orders.order_fulfillments fulfillment
+              ON fulfillment.store_id = fulfilled_line.store_id
+             AND fulfillment.id = fulfilled_line.fulfillment_id
+            WHERE fulfilled_line.store_id = ${request.context.storeId}
+              AND fulfilled_line.order_id = ${order.id}
+              AND fulfillment.status = 'SUCCESS'
+          ), 0) AS remaining,
+        COALESCE((
+          SELECT sum(fulfilled_line.quantity)::integer
+          FROM orders.order_fulfillment_lines fulfilled_line
+          JOIN orders.order_fulfillments fulfillment
+            ON fulfillment.store_id = fulfilled_line.store_id
+           AND fulfillment.id = fulfilled_line.fulfillment_id
+          WHERE fulfilled_line.store_id = ${request.context.storeId}
+            AND fulfilled_line.order_id = ${order.id}
+            AND fulfillment.status = 'SUCCESS'
+        ), 0) AS fulfilled
+      FROM orders.order_lines line
+      WHERE line.store_id = ${request.context.storeId} AND line.order_id = ${order.id}
+    `);
+    const fulfillmentStatus =
+      (aggregateRemaining[0]?.remaining ?? 0) === 0
+        ? "FULFILLED"
+        : (aggregateRemaining[0]?.fulfilled ?? 0) > 0
+          ? "PARTIALLY_FULFILLED"
+          : "UNFULFILLED";
     await this.connection.execute(sql`
-      UPDATE orders.orders SET fulfillment_status = 'PARTIALLY_FULFILLED', updated_at = ${now}
+      UPDATE orders.orders SET fulfillment_status = ${fulfillmentStatus}::orders.order_fulfillment_status,
+        updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${order.id}
     `);
     const result = await this.bumpAndAudit(
@@ -1050,12 +1318,25 @@ export class AdminOrderCommandRepository extends BaseRepository {
       WHERE store_id = ${request.context.storeId} AND id = ${returned.id}
     `);
     if (status === "APPROVED") {
+      const locationId = optionalUuid(request.input.locationId, "locationId");
       await this.connection.execute(sql`
         UPDATE orders.order_return_request_lines
         SET approved_quantity = requested_quantity,
-            restock_location_id = ${optionalUuid(request.input.locationId, "locationId")}
+            restock_location_id = ${locationId}
         WHERE store_id = ${request.context.storeId} AND return_request_id = ${returned.id}
       `);
+      if (request.input.createReturnShipment === true) {
+        if (!locationId) throw new Error("RETURN_SHIPMENT_LOCATION_REQUIRED");
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_return_shipments (
+            store_id, order_id, return_request_id, status, destination_location_id,
+            metadata, created_at, updated_at
+          ) VALUES (
+            ${request.context.storeId}, ${returned.orderId}, ${returned.id}, 'LABEL_CREATED',
+            ${locationId}, ${JSON.stringify({ requestedByCommand: command })}::jsonb, ${now}, ${now}
+          )
+        `);
+      }
     }
     const order = await this.lockOrderById(request.context.storeId, returned.orderId);
     const result = await this.bumpAndAudit(
@@ -1105,7 +1386,12 @@ export class AdminOrderCommandRepository extends BaseRepository {
         WHERE store_id = ${request.context.storeId} AND order_id = ${order.id} AND id = ${orderLineId}
         FOR UPDATE
       `);
-      if (!source[0] || quantity > source[0].quantity)
+      const available = await this.returnableQuantity(
+        request.context.storeId,
+        order.id,
+        orderLineId,
+      );
+      if (!source[0] || quantity > source[0].quantity || quantity > available)
         throw new Error("ORDER_EXCHANGE_QUANTITY_INVALID");
       const returnLineId = uuidv7();
       const amount = BigInt(source[0].unit_price_amount) * BigInt(quantity);
@@ -1118,6 +1404,14 @@ export class AdminOrderCommandRepository extends BaseRepository {
           ${returnLineId}, ${request.context.storeId}, ${order.id}, ${returnId}, ${orderLineId},
           ${quantity}, ${quantity}, ${requiredString(line, "reasonCode")}::orders.order_return_reason,
           ${optionalString(line.note)}, 'PENDING', '{}'::jsonb
+        )
+      `);
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_exchange_inbound_lines (
+          store_id, order_id, exchange_id, return_request_line_id, quantity, amount
+        ) VALUES (
+          ${request.context.storeId}, ${order.id}, ${exchangeId}, ${returnLineId},
+          ${quantity}, ${amount}
         )
       `);
     }
@@ -1143,16 +1437,25 @@ export class AdminOrderCommandRepository extends BaseRepository {
     for (const item of outbound) {
       await this.connection.execute(sql`
         INSERT INTO orders.order_exchange_outbound_lines (
-          store_id, order_id, exchange_id, purchasable_id, title, sku, snapshot,
+          store_id, order_id, exchange_id, purchasable_id, variant_id, title, sku, snapshot,
           quantity, unit_price_amount, total_amount
         ) VALUES (
           ${request.context.storeId}, ${order.id}, ${exchangeId},
-          ${optionalString(item.line.purchasableId) ?? uuidv7()}, ${requiredString(item.line, "title")},
-          ${optionalString(item.line.sku)}, ${JSON.stringify(jsonObject(item.line.customFields))}::jsonb,
+          ${optionalString(item.line.purchasableId) ?? uuidv7()},
+          ${optionalString(item.line.purchasableId)}, ${requiredString(item.line, "title")},
+          ${optionalString(item.line.sku)}, ${JSON.stringify({
+            customFields: jsonObject(item.line.customFields),
+            requiresShipping: optionalBoolean(item.line.requiresShipping) ?? true,
+            taxable: optionalBoolean(item.line.taxable) ?? true,
+          })}::jsonb,
           ${item.quantity}, ${item.amount}, ${item.amount * BigInt(item.quantity)}
         )
       `);
     }
+    await this.connection.execute(sql`
+      UPDATE orders.orders SET return_status = 'REQUESTED', updated_at = ${now}
+      WHERE store_id = ${request.context.storeId} AND id = ${order.id}
+    `);
     const result = await this.bumpAndAudit(request, order, command, { returnId, exchangeId }, now);
     return { ...result, resourceId: exchangeId };
   }
@@ -1181,6 +1484,15 @@ export class AdminOrderCommandRepository extends BaseRepository {
       UPDATE orders.order_exchanges SET status = 'CANCELLED', version = version + 1,
         cancelled_at = ${now}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${exchangeId}
+    `);
+    await this.connection.execute(sql`
+      UPDATE orders.order_return_requests request
+      SET status = 'CANCELLED', version = version + 1, resolved_by_type = ${request.context.actor.type},
+        resolved_by_id = ${request.context.actor.id}, resolved_at = ${now}, updated_at = ${now}
+      FROM orders.order_exchanges exchange
+      WHERE exchange.store_id = request.store_id AND exchange.return_request_id = request.id
+        AND exchange.store_id = ${request.context.storeId} AND exchange.id = ${exchangeId}
+        AND request.status IN ('REQUESTED', 'APPROVED')
     `);
     const order = await this.lockOrderById(request.context.storeId, exchange.order_id);
     const result = await this.bumpAndAudit(request, order, command, { exchangeId }, now);
@@ -1217,13 +1529,18 @@ export class AdminOrderCommandRepository extends BaseRepository {
       const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
       if (order.version !== expectedVersion) throw new Error("ORDER_VERSION_CONFLICT");
     }
+    if (command === "orderCancel" && order) await this.validateCancellation(request, order);
     const now = new Date().toISOString();
+    const resourceId =
+      command === "orderIntegrationSyncRequest" || command === "orderIntegrationSyncRetry"
+        ? await this.resolveIntegrationLinkId(request)
+        : operationResourceId(request.input);
     const operationId = await this.insertOperation(
       request,
       command,
       workflowId,
       orderId,
-      operationResourceId(request.input),
+      resourceId,
       "RUNNING",
       now,
     );
@@ -1235,7 +1552,7 @@ export class AdminOrderCommandRepository extends BaseRepository {
         { operationId, input: request.input },
         now,
       );
-      return { ...result, operationId, resourceId: operationResourceId(request.input) };
+      return { ...result, operationId, resourceId };
     }
     return { orderId: null, orderVersion: null, resourceId: null, operationId };
   }
@@ -1254,6 +1571,29 @@ export class AdminOrderCommandRepository extends BaseRepository {
       throw new Error(`ORDER_${commandStatus(order.status)}_TRANSITION_NOT_ALLOWED`);
     }
     return order;
+  }
+
+  private async validateCancellation(
+    request: AdminOrderCommandInput,
+    order: OrderRow,
+  ): Promise<void> {
+    if (!["OPEN", "CLOSED"].includes(order.status)) throw new Error("ORDER_CANCEL_NOT_ALLOWED");
+    const returns = await this.connection.execute<{ found: boolean }>(sql`
+      SELECT true AS found
+      FROM orders.order_return_requests
+      WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+        AND status IN ('APPROVED', 'IN_TRANSIT')
+      LIMIT 1 FOR UPDATE
+    `);
+    if (returns[0]) throw new Error("ORDER_CANCEL_RETURN_IN_PROGRESS");
+    const delivered = await this.connection.execute<{ found: boolean }>(sql`
+      SELECT true AS found
+      FROM orders.order_shipments
+      WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+        AND status = 'DELIVERED'
+      LIMIT 1 FOR UPDATE
+    `);
+    if (delivered[0]) throw new Error("ORDER_CANCEL_DELIVERED_SHIPMENT");
   }
 
   private async lockOrderById(storeId: string, orderId: string): Promise<OrderRow> {
@@ -1511,6 +1851,7 @@ export class AdminOrderCommandRepository extends BaseRepository {
     const compareAt = line.unitCompareAtPrice
       ? moneyMinor(asRecord(line.unitCompareAtPrice), currencyCode)
       : null;
+    const unitCost = line.unitCost ? moneyMinor(asRecord(line.unitCost), currencyCode) : null;
     await this.connection.execute(sql`
       INSERT INTO orders.order_lines (
         id, store_id, order_id, currency_code, purchasable_id, purchasable_type,
@@ -1524,7 +1865,11 @@ export class AdminOrderCommandRepository extends BaseRepository {
         ${optionalBoolean(line.taxable) ?? true}, ${unitPrice}, ${compareAt},
         ${unitPrice * BigInt(quantity)}, 0, 0, 0, ${unitPrice * BigInt(quantity)},
         ${JSON.stringify({ purchasableId: optionalString(line.purchasableId) })}::jsonb,
-        ${JSON.stringify({ customFields: jsonObject(line.customFields), weight: line.weight ?? null })}::jsonb,
+        ${JSON.stringify({
+          customFields: jsonObject(line.customFields),
+          weight: line.weight ?? null,
+          unitCostMinor: unitCost?.toString() ?? null,
+        })}::jsonb,
         ${now}, ${now}
       )
     `);
@@ -1536,17 +1881,23 @@ export class AdminOrderCommandRepository extends BaseRepository {
       UPDATE orders.orders current_order
       SET subtotal_amount = totals.subtotal,
           discount_amount = totals.discount,
+          shipping_amount = delivery.shipping,
           tax_amount = totals.tax,
           duty_amount = totals.duty,
-          total_amount = totals.subtotal - totals.discount + current_order.shipping_amount
-            + totals.tax + totals.duty + current_order.adjustment_amount,
+          adjustment_amount = adjustments.amount,
+          total_amount = totals.subtotal - totals.discount + delivery.shipping
+            + totals.tax + totals.duty + adjustments.amount,
           payment_status = CASE
-            WHEN totals.subtotal - totals.discount + current_order.shipping_amount
-              + totals.tax + totals.duty + current_order.adjustment_amount = 0
+            WHEN totals.subtotal - totals.discount + delivery.shipping
+              + totals.tax + totals.duty + adjustments.amount = 0
             THEN 'NOT_REQUIRED'::orders.order_payment_status
-            WHEN current_order.payment_status = 'NOT_REQUIRED'
-            THEN 'PENDING'::orders.order_payment_status
-            ELSE current_order.payment_status
+            WHEN payment.net_paid >= totals.subtotal - totals.discount + delivery.shipping
+              + totals.tax + totals.duty + adjustments.amount
+            THEN 'PAID'::orders.order_payment_status
+            WHEN payment.net_paid > 0 THEN 'PARTIALLY_PAID'::orders.order_payment_status
+            WHEN current_order.payment_status = 'AUTHORIZED'
+            THEN 'AUTHORIZED'::orders.order_payment_status
+            ELSE 'PENDING'::orders.order_payment_status
           END,
           updated_at = ${now}
       FROM (
@@ -1556,9 +1907,193 @@ export class AdminOrderCommandRepository extends BaseRepository {
           COALESCE(sum(duty_amount), 0) AS duty
         FROM orders.order_lines
         WHERE store_id = ${storeId} AND order_id = ${orderId}
-      ) totals
+      ) totals,
+      (
+        SELECT COALESCE(sum(quoted_amount), 0)::bigint AS shipping
+        FROM orders.order_delivery_methods
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND is_selected = true
+      ) delivery,
+      (
+        SELECT COALESCE(sum(amount), 0)::bigint AS amount
+        FROM orders.order_adjustments
+        WHERE store_id = ${storeId} AND order_id = ${orderId}
+      ) adjustments,
+      (
+        SELECT GREATEST(0,
+          COALESCE(sum(amount) FILTER (
+            WHERE kind IN ('CAPTURE', 'SALE', 'MANUAL') AND status = 'SUCCESS'
+          ), 0)
+          - COALESCE(sum(amount) FILTER (
+            WHERE kind = 'REFUND' AND status = 'SUCCESS'
+          ), 0)
+        )::bigint AS net_paid
+        FROM orders.order_payment_transactions
+        WHERE store_id = ${storeId} AND order_id = ${orderId}
+      ) payment
       WHERE current_order.store_id = ${storeId} AND current_order.id = ${orderId}
     `);
+  }
+
+  private async refreshEditPreview(
+    storeId: string,
+    editId: string,
+    orderId: string,
+    currencyCode: string,
+  ): Promise<void> {
+    const orderRows = await this.connection.execute<{
+      discount: string;
+      shipping: string;
+      tax: string;
+      duty: string;
+      adjustment: string;
+    }>(sql`
+      SELECT discount_amount::text AS discount, shipping_amount::text AS shipping,
+        tax_amount::text AS tax, duty_amount::text AS duty,
+        adjustment_amount::text AS adjustment
+      FROM orders.orders
+      WHERE store_id = ${storeId} AND id = ${orderId}
+      FOR UPDATE
+    `);
+    if (!orderRows[0]) throw new Error("ORDER_NOT_FOUND");
+    const lineRows = await this.connection.execute<{
+      id: string;
+      quantity: number;
+      unitPrice: string;
+      discount: string;
+      tax: string;
+      duty: string;
+    }>(sql`
+      SELECT id, quantity, unit_price_amount::text AS "unitPrice",
+        discount_amount::text AS discount, tax_amount::text AS tax, duty_amount::text AS duty
+      FROM orders.order_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId}
+      FOR UPDATE
+    `);
+    const lines = new Map(
+      lineRows.map((line) => [
+        line.id,
+        {
+          quantity: line.quantity,
+          unitPrice: BigInt(line.unitPrice),
+          discount: BigInt(line.discount),
+          tax: BigInt(line.tax),
+          duty: BigInt(line.duty),
+        },
+      ]),
+    );
+    const changes = await this.connection.execute<{
+      changeType: string;
+      payload: Record<string, unknown>;
+    }>(sql`
+      SELECT change_type AS "changeType", payload
+      FROM orders.order_edit_changes
+      WHERE store_id = ${storeId} AND edit_session_id = ${editId}
+      ORDER BY sequence
+    `);
+    let addedDiscount = 0n;
+    let removedDiscount = 0n;
+    let shipping = BigInt(orderRows[0].shipping);
+    for (const change of changes) {
+      const payload = asRecord(change.payload);
+      if (change.changeType === "orderEditLineAdd") {
+        const line = asRecord(payload.line);
+        lines.set(requiredUuid(payload, "changeId"), {
+          quantity: requiredPositiveInt(line, "quantity"),
+          unitPrice: moneyMinor(asRecord(line.unitPrice), currencyCode),
+          discount: 0n,
+          tax: 0n,
+          duty: 0n,
+        });
+      } else if (change.changeType === "orderEditLineUpdate") {
+        const current = lines.get(requiredUuid(payload, "lineId"));
+        if (!current) throw new Error("ORDER_LINE_NOT_FOUND");
+        current.quantity = optionalPositiveInt(payload.quantity, "quantity") ?? current.quantity;
+        current.unitPrice = payload.unitPrice
+          ? moneyMinor(asRecord(payload.unitPrice), currencyCode)
+          : current.unitPrice;
+      } else if (change.changeType === "orderEditLineRemove") {
+        if (!lines.delete(requiredUuid(payload, "lineId"))) throw new Error("ORDER_LINE_NOT_FOUND");
+      } else if (change.changeType === "orderEditDiscountAdd") {
+        addedDiscount += moneyMinor(asRecord(payload.amount), currencyCode);
+      } else if (change.changeType === "orderEditDiscountRemove") {
+        const discounts = await this.connection.execute<{ amount: string }>(sql`
+          SELECT total_allocated_amount::text AS amount
+          FROM orders.order_discount_applications
+          WHERE store_id = ${storeId} AND order_id = ${orderId}
+            AND id = ${requiredUuid(payload, "discountId")}
+        `);
+        if (!discounts[0]) throw new Error("ORDER_DISCOUNT_NOT_FOUND");
+        removedDiscount += BigInt(discounts[0].amount);
+      } else if (change.changeType === "orderEditShippingUpdate") {
+        const methodCode = optionalString(asRecord(payload.shipping).methodCode);
+        if (methodCode) {
+          const methods = await this.connection.execute<{ amount: string }>(sql`
+            SELECT COALESCE(sum(quoted_amount), 0)::text AS amount
+            FROM orders.order_delivery_methods
+            WHERE store_id = ${storeId} AND order_id = ${orderId} AND code = ${methodCode}
+          `);
+          shipping = BigInt(methods[0]?.amount ?? "0");
+        }
+      }
+    }
+    let subtotal = 0n;
+    let tax = 0n;
+    let duty = 0n;
+    for (const line of lines.values()) {
+      subtotal += line.unitPrice * BigInt(line.quantity);
+      tax += line.tax;
+      duty += line.duty;
+    }
+    if (tax === 0n) tax = BigInt(orderRows[0].tax);
+    if (duty === 0n) duty = BigInt(orderRows[0].duty);
+    const discount = BigInt(orderRows[0].discount) - removedDiscount;
+    const adjustment = BigInt(orderRows[0].adjustment) - addedDiscount;
+    const total = subtotal - discount + shipping + tax + duty + adjustment;
+    if (discount < 0n || total < 0n) throw new Error("ORDER_EDIT_TOTAL_INVALID");
+    await this.connection.execute(sql`
+      UPDATE orders.order_edit_sessions
+      SET subtotal_amount = ${subtotal}, discount_amount = ${discount},
+        shipping_amount = ${shipping}, tax_amount = ${tax}, duty_amount = ${duty},
+        adjustment_amount = ${adjustment}, total_amount = ${total}
+      WHERE store_id = ${storeId} AND id = ${editId}
+    `);
+  }
+
+  private async assertLineEditable(
+    storeId: string,
+    orderId: string,
+    lineId: string,
+    requestedQuantity: number | null,
+  ): Promise<void> {
+    const rows = await this.connection.execute<{ committed: number }>(sql`
+      SELECT GREATEST(
+        COALESCE((SELECT sum(item.quantity)::integer
+          FROM orders.order_fulfillment_lines item
+          JOIN orders.order_fulfillments fulfillment
+            ON fulfillment.store_id = item.store_id AND fulfillment.id = item.fulfillment_id
+          WHERE item.store_id = line.store_id AND item.order_id = line.order_id
+            AND item.order_line_id = line.id AND fulfillment.status = 'SUCCESS'), 0),
+        COALESCE((SELECT sum(item.approved_quantity)::integer
+          FROM orders.order_return_request_lines item
+          JOIN orders.order_return_requests request
+            ON request.store_id = item.store_id AND request.id = item.return_request_id
+          WHERE item.store_id = line.store_id AND item.order_id = line.order_id
+            AND item.order_line_id = line.id AND request.status NOT IN ('REJECTED', 'CANCELLED')), 0),
+        COALESCE((SELECT sum(item.quantity)::integer
+          FROM orders.order_refund_lines item
+          JOIN orders.order_refunds refund
+            ON refund.store_id = item.store_id AND refund.id = item.refund_id
+          WHERE item.store_id = line.store_id AND item.order_id = line.order_id
+            AND item.order_line_id = line.id AND refund.status <> 'FAILED'), 0)
+      ) AS committed
+      FROM orders.order_lines line
+      WHERE line.store_id = ${storeId} AND line.order_id = ${orderId} AND line.id = ${lineId}
+      FOR UPDATE OF line
+    `);
+    if (!rows[0]) throw new Error("ORDER_LINE_NOT_FOUND");
+    if (requestedQuantity !== null && requestedQuantity < rows[0].committed) {
+      throw new Error("ORDER_EDIT_QUANTITY_COMMITTED");
+    }
   }
 
   private async upsertContact(
@@ -1576,11 +2111,226 @@ export class AdminOrderCommandRepository extends BaseRepository {
         ${optionalString(contact.middleName)}, ${optionalString(contact.lastName)},
         ${optionalString(contact.email)}, ${optionalString(contact.phone)},
         ${optionalString(contact.note)}, '{}'::jsonb, ${now}, ${now}
-      ) ON CONFLICT (store_id, order_id, type) DO UPDATE
+      ) ON CONFLICT (store_id, order_id) DO UPDATE
         SET first_name = EXCLUDED.first_name, middle_name = EXCLUDED.middle_name,
             last_name = EXCLUDED.last_name, email = EXCLUDED.email,
             phone_e164 = EXCLUDED.phone_e164, customer_note = EXCLUDED.customer_note,
             updated_at = EXCLUDED.updated_at
+    `);
+  }
+
+  private async upsertAddress(
+    storeId: string,
+    orderId: string,
+    type: "BILLING" | "SHIPPING",
+    address: Record<string, unknown>,
+    now: string,
+  ): Promise<string> {
+    const existing = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_addresses
+      WHERE store_id = ${storeId} AND order_id = ${orderId}
+        AND type = ${type}::orders.order_address_type
+      ORDER BY created_at, id LIMIT 1 FOR UPDATE
+    `);
+    const addressId = existing[0]?.id ?? uuidv7();
+    if (existing[0]) {
+      await this.connection.execute(sql`
+        UPDATE orders.order_addresses
+        SET address1 = ${optionalString(address.address1)},
+          address2 = ${optionalString(address.address2)}, city = ${optionalString(address.city)},
+          country_code = ${requiredString(address, "countryCode").toUpperCase()},
+          province_code = ${optionalString(address.provinceCode)},
+          postal_code = ${optionalString(address.postalCode)},
+          company = ${optionalString(address.company)},
+          metadata = ${JSON.stringify(jsonObject(address.data))}::jsonb, updated_at = ${now}
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND id = ${addressId}
+      `);
+    } else {
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_addresses (
+          id, store_id, order_id, type, address1, address2, city, country_code,
+          province_code, postal_code, company, metadata, created_at, updated_at
+        ) VALUES (
+          ${addressId}, ${storeId}, ${orderId}, ${type}::orders.order_address_type,
+          ${optionalString(address.address1)}, ${optionalString(address.address2)},
+          ${optionalString(address.city)}, ${requiredString(address, "countryCode").toUpperCase()},
+          ${optionalString(address.provinceCode)}, ${optionalString(address.postalCode)},
+          ${optionalString(address.company)}, ${JSON.stringify(jsonObject(address.data))}::jsonb,
+          ${now}, ${now}
+        )
+      `);
+    }
+    return addressId;
+  }
+
+  private async upsertRecipient(
+    storeId: string,
+    orderId: string,
+    recipientId: string | null,
+    recipient: Record<string, unknown>,
+    now: string,
+  ): Promise<string> {
+    const id = recipientId ?? uuidv7();
+    if (recipientId) {
+      await this.connection.execute(sql`
+        UPDATE orders.order_recipients
+        SET first_name = ${optionalString(recipient.firstName)},
+          middle_name = ${optionalString(recipient.middleName)},
+          last_name = ${optionalString(recipient.lastName)}, email = ${optionalString(recipient.email)},
+          phone = ${optionalString(recipient.phone)}, metadata = ${JSON.stringify({
+            company: optionalString(recipient.company),
+          })}::jsonb, updated_at = ${now}
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND id = ${id}
+      `);
+    } else {
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_recipients (
+          id, store_id, order_id, first_name, middle_name, last_name, email, phone,
+          metadata, created_at, updated_at
+        ) VALUES (
+          ${id}, ${storeId}, ${orderId}, ${optionalString(recipient.firstName)},
+          ${optionalString(recipient.middleName)}, ${optionalString(recipient.lastName)},
+          ${optionalString(recipient.email)}, ${optionalString(recipient.phone)},
+          ${JSON.stringify({ company: optionalString(recipient.company) })}::jsonb, ${now}, ${now}
+        )
+      `);
+    }
+    return id;
+  }
+
+  private async syncDraftDelivery(
+    storeId: string,
+    orderId: string,
+    currencyCode: string,
+    shipping: Record<string, unknown>,
+    now: string,
+  ): Promise<void> {
+    const current = await this.connection.execute<{
+      id: string;
+      addressId: string | null;
+      recipientId: string | null;
+    }>(sql`
+      SELECT id, address_id AS "addressId", recipient_id AS "recipientId"
+      FROM orders.order_delivery_groups
+      WHERE store_id = ${storeId} AND order_id = ${orderId}
+      ORDER BY created_at, id LIMIT 1 FOR UPDATE
+    `);
+    let addressId = current[0]?.addressId ?? null;
+    let recipientId = current[0]?.recipientId ?? null;
+    if (shipping.address) {
+      addressId = await this.upsertAddress(
+        storeId,
+        orderId,
+        "SHIPPING",
+        asRecord(shipping.address),
+        now,
+      );
+    }
+    if (shipping.recipient) {
+      recipientId = await this.upsertRecipient(
+        storeId,
+        orderId,
+        recipientId,
+        asRecord(shipping.recipient),
+        now,
+      );
+    }
+    const lineTotals = await this.connection.execute<{ subtotal: string }>(sql`
+      SELECT COALESCE(sum(subtotal_amount), 0)::text AS subtotal
+      FROM orders.order_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND requires_shipping
+    `);
+    const subtotal = BigInt(lineTotals[0]?.subtotal ?? "0");
+    const groupId = current[0]?.id ?? uuidv7();
+    if (current[0]) {
+      await this.connection.execute(sql`
+        UPDATE orders.order_delivery_groups
+        SET address_id = ${addressId}, recipient_id = ${recipientId},
+          requires_shipping = true, subtotal_amount = ${subtotal}, discount_amount = 0,
+          tax_amount = 0, total_amount = ${subtotal}, updated_at = ${now}
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND id = ${groupId}
+      `);
+    } else {
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_delivery_groups (
+          id, store_id, order_id, currency_code, status, address_id, recipient_id,
+          requires_shipping, subtotal_amount, discount_amount, tax_amount, total_amount,
+          metadata, created_at, updated_at
+        ) VALUES (
+          ${groupId}, ${storeId}, ${orderId}, ${currencyCode}, 'OPEN', ${addressId}, ${recipientId},
+          true, ${subtotal}, 0, 0, ${subtotal}, '{}'::jsonb, ${now}, ${now}
+        )
+      `);
+    }
+    await this.connection.execute(sql`
+      DELETE FROM orders.order_delivery_group_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND delivery_group_id = ${groupId}
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_delivery_group_lines (
+        store_id, order_id, delivery_group_id, order_line_id, quantity
+      )
+      SELECT store_id, order_id, ${groupId}, id, quantity
+      FROM orders.order_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND requires_shipping
+    `);
+    const methodCode = optionalString(shipping.methodCode);
+    if (methodCode) {
+      await this.connection.execute(sql`
+        UPDATE orders.order_delivery_methods SET is_selected = false, updated_at = ${now}
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND delivery_group_id = ${groupId}
+      `);
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_delivery_methods (
+          store_id, order_id, delivery_group_id, currency_code, code, provider,
+          title, type, payment_model, quoted_amount, is_selected,
+          provider_data, customer_input_snapshot, created_at, updated_at
+        ) VALUES (
+          ${storeId}, ${orderId}, ${groupId}, ${currencyCode}, ${methodCode}, 'admin',
+          ${methodCode}, 'SHIPPING', 'MERCHANT_COLLECTED', 0, true, '{}'::jsonb,
+          '{}'::jsonb, ${now}, ${now}
+        ) ON CONFLICT (store_id, order_id, delivery_group_id, code, provider) DO UPDATE
+          SET is_selected = true, updated_at = EXCLUDED.updated_at
+      `);
+    }
+    await this.recalculateOrder(storeId, orderId, now);
+  }
+
+  private async refreshDraftDeliveryGroup(
+    storeId: string,
+    orderId: string,
+    now: string,
+  ): Promise<void> {
+    const groups = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_delivery_groups
+      WHERE store_id = ${storeId} AND order_id = ${orderId}
+      ORDER BY created_at, id LIMIT 1 FOR UPDATE
+    `);
+    const groupId = groups[0]?.id;
+    if (!groupId) return;
+    await this.connection.execute(sql`
+      DELETE FROM orders.order_delivery_group_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND delivery_group_id = ${groupId}
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_delivery_group_lines (
+        store_id, order_id, delivery_group_id, order_line_id, quantity
+      )
+      SELECT store_id, order_id, ${groupId}, id, quantity
+      FROM orders.order_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND requires_shipping
+    `);
+    await this.connection.execute(sql`
+      UPDATE orders.order_delivery_groups delivery_group
+      SET subtotal_amount = totals.subtotal, discount_amount = 0, tax_amount = 0,
+        total_amount = totals.subtotal, updated_at = ${now}
+      FROM (
+        SELECT COALESCE(sum(subtotal_amount), 0) AS subtotal
+        FROM orders.order_lines
+        WHERE store_id = ${storeId} AND order_id = ${orderId} AND requires_shipping
+      ) totals
+      WHERE delivery_group.store_id = ${storeId} AND delivery_group.order_id = ${orderId}
+        AND delivery_group.id = ${groupId}
     `);
   }
 
@@ -1742,12 +2492,68 @@ export class AdminOrderCommandRepository extends BaseRepository {
         },
       ];
     }
-    if (command === "orderReturnReceive" && request.input.refund) {
+    if (command === "orderReturnReceive") {
       if (!result.orderId) throw new Error("ORDER_NOT_FOUND");
-      const payment = await this.latestPaymentRoute(request.context.storeId, result.orderId);
-      const refund = asRecord(request.input.refund);
-      return [
-        {
+      const returnId = requiredUuid(request.input, "returnId");
+      const effects: AdminOrderExternalEffect[] = [];
+      const receivedLines = requiredArray(request.input, "lines").map(asRecord);
+      const restockRows = await this.connection.execute<{
+        orderLineId: string;
+        variantId: string;
+        warehouseId: string | null;
+        previousRestockable: number;
+      }>(sql`
+        SELECT return_line.order_line_id AS "orderLineId",
+          order_line.purchasable_id AS "variantId",
+          return_line.restock_location_id AS "warehouseId",
+          return_line.restockable_quantity AS "previousRestockable"
+        FROM orders.order_return_request_lines return_line
+        JOIN orders.order_lines order_line
+          ON order_line.store_id = return_line.store_id
+         AND order_line.order_id = return_line.order_id
+         AND order_line.id = return_line.order_line_id
+        WHERE return_line.store_id = ${request.context.storeId}
+          AND return_line.order_id = ${result.orderId}
+          AND return_line.return_request_id = ${returnId}
+        FOR UPDATE OF return_line
+      `);
+      const restockByLine = new Map(restockRows.map((line) => [line.orderLineId, line]));
+      const inventoryLines = receivedLines.flatMap((line) => {
+        const orderLineId = requiredUuid(line, "orderLineId");
+        const current = restockByLine.get(orderLineId);
+        if (!current) throw new Error("RETURN_RECEIVE_LINE_INVALID");
+        const requested = Number(line.restockableQuantity ?? 0);
+        const quantity = requested - current.previousRestockable;
+        if (quantity < 0) throw new Error("RETURN_RESTOCK_QUANTITY_DECREASED");
+        if (quantity === 0) return [];
+        const warehouseId =
+          current.warehouseId ?? optionalUuid(request.input.locationId, "locationId");
+        if (!warehouseId) throw new Error("RETURN_RESTOCK_LOCATION_REQUIRED");
+        return [
+          {
+            orderLineId,
+            variantId: current.variantId,
+            warehouseId,
+            targetQuantity: requested,
+            quantity,
+          },
+        ];
+      });
+      if (inventoryLines.length > 0) {
+        effects.push({
+          route: "inventory.restockOrderReturnInventory",
+          params: {
+            ...base,
+            orderId: result.orderId,
+            returnId,
+            lines: inventoryLines,
+          },
+        });
+      }
+      if (request.input.refund) {
+        const payment = await this.latestPaymentRoute(request.context.storeId, result.orderId);
+        const refund = asRecord(request.input.refund);
+        effects.push({
           route: "payments.refundPayment",
           params: {
             ...base,
@@ -1756,11 +2562,24 @@ export class AdminOrderCommandRepository extends BaseRepository {
             amount: paymentMoney(refund.amount, payment.currencyCode),
             reason: optionalString(refund.reasonCode) ?? "RETURN_RECEIVED",
           },
-        },
-      ];
+        });
+      }
+      return effects;
     }
     if (command === "shipmentCreate") {
       const fulfillmentId = requiredUuid(request.input, "fulfillmentId");
+      const packageItems = requiredArray(request.input, "packages")
+        .map(asRecord)
+        .flatMap((shipmentPackage) => requiredArray(shipmentPackage, "items").map(asRecord));
+      if (packageItems.length === 0) throw new Error("SHIPMENT_PACKAGE_ITEMS_REQUIRED");
+      const quantities = new Map<string, number>();
+      for (const item of packageItems) {
+        const lineId = requiredUuid(item, "orderLineId");
+        quantities.set(
+          lineId,
+          (quantities.get(lineId) ?? 0) + requiredPositiveInt(item, "quantity"),
+        );
+      }
       const rows = await this.connection.execute<{
         fulfillmentOrderId: string;
         version: number;
@@ -1781,7 +2600,10 @@ export class AdminOrderCommandRepository extends BaseRepository {
             ...base,
             fulfillmentOrderId: rows[0].fulfillmentOrderId,
             expectedFulfillmentOrderRevision: rows[0].version,
-            lineItems: null,
+            lineItems: [...quantities].map(([fulfillmentOrderLineItemId, quantity]) => ({
+              fulfillmentOrderLineItemId,
+              quantity,
+            })),
           },
         },
       ];
@@ -1953,18 +2775,20 @@ export class AdminOrderCommandRepository extends BaseRepository {
     }
     if (command === "orderIntegrationSyncRequest" || command === "orderIntegrationSyncRetry") {
       const link = await this.integrationRoute(request, result.orderId);
+      const snapshot = await this.orderSyncSnapshot(request.context.storeId, result.orderId!);
       return [
         {
           route: "apps.executeCapability",
           params: {
             storeId: request.context.storeId,
-            capability: "orders.integration",
-            operation: "syncOrder",
+            capability: "crm.order-sync",
+            operation: "upsertOrder",
             installationId: link.installationId,
             correlationId: request.context.correlationId,
             executionId: result.operationId,
             input: {
-              orderId: result.orderId,
+              schemaVersion: 1,
+              snapshot,
               externalOrderId: link.externalOrderId,
               force: request.input.force === true,
               idempotencyKey: key,
@@ -1996,6 +2820,385 @@ export class AdminOrderCommandRepository extends BaseRepository {
         ${error ? errorCode(error) : null}, ${error ? errorMessage(error) : null}, ${finishedAt}
       ) ON CONFLICT (store_id, operation_id, attempt_number) DO NOTHING
     `);
+  }
+
+  async applyFulfillmentServiceCallback(
+    callback: FulfillmentServiceCallbackWorkflowInput,
+  ): Promise<CompleteOrderFulfillmentServiceOperationV1Result> {
+    const { context, input } = callback;
+    const operations = await this.connection.execute<{
+      orderId: string;
+      fulfillmentOrderId: string;
+      kind: string;
+    }>(sql`
+      SELECT order_id AS "orderId", resource_id AS "fulfillmentOrderId", kind
+      FROM orders.order_operations
+      WHERE store_id = ${context.storeId} AND id = ${input.operationId}
+        AND kind IN ('FULFILLMENT_SUBMIT', 'FULFILLMENT_CANCEL')
+      FOR UPDATE
+    `);
+    const operation = operations[0];
+    if (!operation?.orderId || !operation.fulfillmentOrderId) {
+      throw new Error("FULFILLMENT_PROVIDER_OPERATION_NOT_FOUND");
+    }
+    const requests = await this.connection.execute<{ installationId: string }>(sql`
+      SELECT app_installation_id AS "installationId"
+      FROM orders.order_fulfillment_service_requests
+      WHERE store_id = ${context.storeId}
+        AND fulfillment_order_id = ${operation.fulfillmentOrderId}
+      ORDER BY request_revision DESC LIMIT 1 FOR UPDATE
+    `);
+    if (requests[0]?.installationId !== context.installationId) {
+      throw new Error("FULFILLMENT_PROVIDER_ROUTE_MISMATCH");
+    }
+    const replay = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_fulfillment_event_inbox
+      WHERE store_id = ${context.storeId} AND provider_code = ${context.appCode}
+        AND provider_event_id = ${input.providerEventId}
+      LIMIT 1
+    `);
+    const order = await this.lockOrderById(context.storeId, operation.orderId);
+    if (replay[0]) {
+      return {
+        orderId: order.id,
+        fulfillmentOrderId: operation.fulfillmentOrderId,
+        orderVersion: order.version,
+        duplicate: true,
+      };
+    }
+    const requestHash = digest(input);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_fulfillment_event_inbox (
+        store_id, order_id, provider_code, provider_resource_id, provider_event_id,
+        provider_sequence, event_type, schema_version, request_hash, status,
+        payload, received_at, processed_at
+      ) VALUES (
+        ${context.storeId}, ${order.id}, ${context.appCode}, ${input.externalId},
+        ${input.providerEventId}, ${input.providerSequence}, ${input.status}, 1,
+        ${requestHash}, 'APPLIED', ${JSON.stringify(input.payload)}::jsonb,
+        ${input.occurredAt}, ${input.occurredAt}
+      )
+    `);
+    const requestStatus =
+      input.status === "REJECTED"
+        ? operation.kind === "FULFILLMENT_CANCEL"
+          ? "CANCELLATION_REJECTED"
+          : "REJECTED"
+        : operation.kind === "FULFILLMENT_CANCEL"
+          ? "CANCELLATION_ACCEPTED"
+          : "ACCEPTED";
+    const fulfillmentStatus =
+      input.status === "COMPLETED"
+        ? "CLOSED"
+        : input.status === "CANCELLED"
+          ? "CANCELLED"
+          : input.status === "IN_PROGRESS"
+            ? "IN_PROGRESS"
+            : null;
+    await this.connection.execute(sql`
+      UPDATE orders.order_fulfillment_orders
+      SET request_status = ${requestStatus}::orders.order_fulfillment_request_status,
+        status = COALESCE(${fulfillmentStatus}::orders.order_fulfillment_order_status, status),
+        external_source = ${context.appCode}, external_id = ${input.externalId},
+        provider_snapshot = jsonb_build_object(
+          'installationId', ${context.installationId}, 'appCode', ${context.appCode},
+          'appVersion', ${context.appVersion}, 'externalRevision', ${input.externalRevision}
+        ),
+        version = version + 1, updated_at = ${input.occurredAt}
+      WHERE store_id = ${context.storeId} AND id = ${operation.fulfillmentOrderId}
+    `);
+    const request: AdminOrderCommandInput = {
+      context: {
+        organizationId: context.organizationId,
+        storeId: context.storeId,
+        actor: { type: "APP", id: context.installationId },
+        correlationId: context.correlationId,
+      },
+      input: { idempotencyKey: input.providerEventId },
+    };
+    const result = await this.bumpAndAudit(
+      request,
+      order,
+      operation.kind === "FULFILLMENT_CANCEL"
+        ? "fulfillmentOrderCancelRequest"
+        : "fulfillmentOrderSubmit",
+      { providerStatus: input.status, externalId: input.externalId },
+      input.occurredAt,
+    );
+    return {
+      orderId: order.id,
+      fulfillmentOrderId: operation.fulfillmentOrderId,
+      orderVersion: result.orderVersion!,
+      duplicate: false,
+    };
+  }
+
+  async applyIntegrationEvent(
+    event: IntegrationEventWorkflowInput,
+  ): Promise<ApplyOrderIntegrationEventV1Result> {
+    const { context, input } = event;
+    const links = await this.connection.execute<{
+      orderId: string;
+      installationId: string;
+      externalId: string | null;
+    }>(sql`
+      SELECT order_id AS "orderId", app_installation_id AS "installationId",
+        external_id AS "externalId"
+      FROM orders.order_integration_links
+      WHERE store_id = ${context.storeId} AND id = ${input.integrationLinkId}
+      FOR UPDATE
+    `);
+    const link = links[0];
+    if (!link || link.installationId !== context.installationId) {
+      throw new Error("ORDER_INTEGRATION_ROUTE_MISMATCH");
+    }
+    if (link.externalId && link.externalId !== input.externalOrderId) {
+      throw new Error("ORDER_INTEGRATION_EXTERNAL_ID_MISMATCH");
+    }
+    const replay = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_integration_event_inbox
+      WHERE store_id = ${context.storeId} AND app_installation_id = ${context.installationId}
+        AND provider_event_id = ${input.providerEventId}
+      LIMIT 1
+    `);
+    const order = await this.lockOrderById(context.storeId, link.orderId);
+    if (replay[0]) {
+      return {
+        orderId: order.id,
+        integrationLinkId: input.integrationLinkId,
+        orderVersion: order.version,
+        duplicate: true,
+        reconciliationRequired: input.eventType !== "SYNC_ACKNOWLEDGED",
+      };
+    }
+    const reconciliationRequired = input.eventType !== "SYNC_ACKNOWLEDGED";
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_integration_event_inbox (
+        store_id, order_id, app_installation_id, provider_event_id,
+        external_order_id, external_revision, event_type, schema_version,
+        status, payload, received_at, processed_at
+      ) VALUES (
+        ${context.storeId}, ${order.id}, ${context.installationId}, ${input.providerEventId},
+        ${input.externalOrderId}, ${input.externalRevision}, ${input.eventType}, 1,
+        ${reconciliationRequired ? "IGNORED" : "APPLIED"}::orders.order_inbox_status,
+        ${JSON.stringify(input.payload)}::jsonb, ${input.occurredAt}, ${input.occurredAt}
+      )
+    `);
+    await this.connection.execute(sql`
+      UPDATE orders.order_integration_links
+      SET external_id = COALESCE(external_id, ${input.externalOrderId}),
+        last_imported_external_version = ${input.externalRevision},
+        status = ${reconciliationRequired ? "OUT_OF_SYNC" : "SYNCED"}::orders.order_integration_sync_status,
+        last_synced_at = CASE WHEN ${reconciliationRequired} THEN last_synced_at ELSE ${input.occurredAt}::timestamptz END,
+        updated_at = ${input.occurredAt}
+      WHERE store_id = ${context.storeId} AND id = ${input.integrationLinkId}
+    `);
+    const request: AdminOrderCommandInput = {
+      context: {
+        organizationId: context.organizationId,
+        storeId: context.storeId,
+        actor: { type: "APP", id: context.installationId },
+        correlationId: context.correlationId,
+      },
+      input: { idempotencyKey: input.providerEventId },
+    };
+    const result = await this.bumpAndAudit(
+      request,
+      order,
+      "orderIntegrationSyncRequest",
+      {
+        integrationLinkId: input.integrationLinkId,
+        eventType: input.eventType,
+        externalRevision: input.externalRevision,
+        reconciliationRequired,
+      },
+      input.occurredAt,
+    );
+    return {
+      orderId: order.id,
+      integrationLinkId: input.integrationLinkId,
+      orderVersion: result.orderVersion!,
+      duplicate: false,
+      reconciliationRequired,
+    };
+  }
+
+  async applyExternalEffectResult(
+    command: AdminOrderCommandName,
+    request: AdminOrderCommandInput,
+    result: AdminOrderCommandResult,
+    effect: AdminOrderExternalEffect,
+    response: unknown,
+  ): Promise<void> {
+    const envelope = isPlainRecord(response) ? response : {};
+    const data = isPlainRecord(envelope.data) ? envelope.data : envelope;
+    const now = new Date().toISOString();
+    if (command === "orderIntegrationSyncRequest" || command === "orderIntegrationSyncRetry") {
+      const linkId = await this.resolveIntegrationLinkId(request);
+      const externalId = optionalString(data.externalId);
+      if (!externalId) throw new Error("ORDER_INTEGRATION_EXTERNAL_ID_REQUIRED");
+      const externalRevision = optionalString(data.externalRevision);
+      const externalUrl = optionalString(data.externalUrl);
+      const installationId = optionalUuid(envelope.installationId, "installationId");
+      const appCode = optionalString(envelope.appCode);
+      const routeRevision = optionalString(envelope.routeRevision);
+      const updated = await this.connection.execute<{ id: string }>(sql`
+        UPDATE orders.order_integration_links
+        SET external_id = ${externalId}, external_url = ${externalUrl},
+          status = 'SYNCED', last_exported_order_version = ${result.orderVersion},
+          last_synced_at = ${now}, last_error_code = NULL, last_error_message = NULL,
+          app_code = COALESCE(${appCode}, app_code),
+          updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND order_id = ${result.orderId}
+          AND id = ${linkId}
+          AND (${installationId}::uuid IS NULL OR app_installation_id = ${installationId}::uuid)
+        RETURNING id
+      `);
+      if (!updated[0]) throw new Error("ORDER_INTEGRATION_ROUTE_MISMATCH");
+      const attempt = await this.connection.execute<{ number: number }>(sql`
+        SELECT COALESCE(max(attempt_number), 0)::integer + 1 AS number
+        FROM orders.order_integration_sync_attempts
+        WHERE store_id = ${request.context.storeId} AND integration_link_id = ${linkId}
+      `);
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_integration_sync_attempts (
+          store_id, order_id, integration_link_id, direction, status, attempt_number,
+          exported_order_version, external_revision, idempotency_key, request_hash,
+          response_hash, started_at, completed_at
+        ) VALUES (
+          ${request.context.storeId}, ${result.orderId}, ${linkId}, 'EXPORT', 'SUCCEEDED',
+          ${attempt[0]?.number ?? 1}, ${result.orderVersion}, ${externalRevision},
+          ${requiredString(request.input, "idempotencyKey")}, ${digest(effect.params)},
+          ${digest(response)}, ${now}, ${now}
+        )
+      `);
+      await this.connection.execute(sql`
+        UPDATE orders.order_integration_links
+        SET last_imported_external_version = COALESCE(last_imported_external_version, ${externalRevision}),
+          updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND id = ${linkId}
+      `);
+      void routeRevision;
+      return;
+    }
+    if (command === "fulfillmentOrderSubmit" || command === "fulfillmentOrderCancelRequest") {
+      const fulfillmentOrderId = requiredUuid(request.input, "fulfillmentOrderId");
+      const installationId = optionalUuid(envelope.installationId, "installationId");
+      const appCode = optionalString(envelope.appCode);
+      const externalId = optionalString(data.externalId) ?? optionalString(data.requestId);
+      if (!installationId || !appCode) throw new Error("FULFILLMENT_PROVIDER_ROUTE_MISSING");
+      const fulfillmentRows = await this.connection.execute<{ orderId: string }>(sql`
+        SELECT order_id AS "orderId"
+        FROM orders.order_fulfillment_orders
+        WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentOrderId}
+        FOR UPDATE
+      `);
+      if (!fulfillmentRows[0]) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
+      const revisionRows = await this.connection.execute<{ revision: number }>(sql`
+        SELECT COALESCE(max(request_revision), 0)::integer + 1 AS revision
+        FROM orders.order_fulfillment_service_requests
+        WHERE store_id = ${request.context.storeId} AND fulfillment_order_id = ${fulfillmentOrderId}
+      `);
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_fulfillment_service_requests (
+          store_id, order_id, fulfillment_order_id, app_installation_id, app_code,
+          request_revision, status, provider_reference, provider_revision,
+          request_snapshot, response_snapshot, submitted_at, responded_at
+        ) VALUES (
+          ${request.context.storeId}, ${fulfillmentRows[0].orderId}, ${fulfillmentOrderId},
+          ${installationId}, ${appCode}, ${revisionRows[0]?.revision ?? 1},
+          ${command === "fulfillmentOrderSubmit" ? "ACCEPTED" : "CANCELLATION_ACCEPTED"}::orders.order_fulfillment_request_status,
+          ${externalId}, ${optionalString(data.externalRevision)},
+          ${JSON.stringify(request.input)}::jsonb, ${JSON.stringify(data)}::jsonb, ${now}, ${now}
+        )
+      `);
+      await this.connection.execute(sql`
+        UPDATE orders.order_fulfillment_orders
+        SET request_status = ${command === "fulfillmentOrderSubmit" ? "ACCEPTED" : "CANCELLATION_ACCEPTED"}::orders.order_fulfillment_request_status,
+          external_source = COALESCE(${appCode}, external_source),
+          external_id = COALESCE(${externalId}, external_id),
+          provider_snapshot = ${JSON.stringify({
+            installationId: installationId ?? null,
+            appCode: appCode ?? null,
+            routeRevision: optionalString(envelope.routeRevision),
+          })}::jsonb,
+          version = version + 1, updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentOrderId}
+      `);
+      return;
+    }
+    if (command === "shipmentCreate") {
+      if (optionalString(data.status) !== "ACCEPTED") {
+        throw new Error("SHIPMENT_PROVIDER_NOT_CONFIGURED");
+      }
+      const providerShipmentId = optionalUuid(data.shipmentId, "shipmentId");
+      if (!providerShipmentId || !result.orderId)
+        throw new Error("SHIPMENT_PROVIDER_RESULT_INVALID");
+      const fulfillmentId = requiredUuid(request.input, "fulfillmentId");
+      const existing = await this.connection.execute<{ id: string }>(sql`
+        SELECT id FROM orders.order_shipments
+        WHERE store_id = ${request.context.storeId} AND order_id = ${result.orderId}
+          AND external_id = ${providerShipmentId}
+        LIMIT 1 FOR UPDATE
+      `);
+      if (existing[0]) return;
+      const shipmentId = uuidv7();
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_shipments (
+          id, store_id, order_id, fulfillment_id, status, carrier_code,
+          service_code, external_id, metadata, created_at, updated_at
+        ) VALUES (
+          ${shipmentId}, ${request.context.storeId}, ${result.orderId}, ${fulfillmentId},
+          'LABEL_CREATED', ${optionalString(request.input.providerCode)},
+          ${optionalString(request.input.serviceCode)}, ${providerShipmentId},
+          ${JSON.stringify({
+            providerRevision: 1,
+            deliveryOperationId: optionalString(data.operationId),
+            deliveryWorkflowId: optionalString(data.workflowId),
+          })}::jsonb, ${now}, ${now}
+        )
+      `);
+      const order = await this.lockOrderById(request.context.storeId, result.orderId);
+      const packages = requiredArray(request.input, "packages").map(asRecord);
+      for (let index = 0; index < packages.length; index += 1) {
+        const shipmentPackage = packages[index]!;
+        const weight = shipmentPackage.weight ? asRecord(shipmentPackage.weight) : {};
+        const dimensions = shipmentPackage.dimensions ? asRecord(shipmentPackage.dimensions) : {};
+        const packageId = uuidv7();
+        const declaredValue = shipmentPackage.declaredValue
+          ? moneyMinor(asRecord(shipmentPackage.declaredValue), order.currency_code)
+          : null;
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_shipment_packages (
+            id, store_id, order_id, shipment_id, package_reference,
+            weight_value, weight_unit, length_value, width_value, height_value,
+            dimensions_unit, declared_value_amount, currency_code, metadata, created_at
+          ) VALUES (
+            ${packageId}, ${request.context.storeId}, ${result.orderId}, ${shipmentId},
+            ${`package-${index + 1}`}, ${optionalPositiveNumber(weight.value)},
+            ${optionalString(weight.unit)}, ${optionalPositiveNumber(dimensions.length)},
+            ${optionalPositiveNumber(dimensions.width)}, ${optionalPositiveNumber(dimensions.height)},
+            ${optionalString(dimensions.unit)}, ${declaredValue}, ${order.currency_code},
+            '{}'::jsonb, ${now}
+          )
+        `);
+        for (const rawItem of requiredArray(shipmentPackage, "items")) {
+          const item = asRecord(rawItem);
+          await this.connection.execute(sql`
+            INSERT INTO orders.order_shipment_package_lines (
+              store_id, order_id, package_id, fulfillment_id, order_line_id, quantity
+            ) VALUES (
+              ${request.context.storeId}, ${result.orderId}, ${packageId}, ${fulfillmentId},
+              ${requiredUuid(item, "orderLineId")}, ${requiredPositiveInt(item, "quantity")}
+            )
+          `);
+        }
+      }
+      await this.connection.execute(sql`
+        UPDATE orders.orders SET delivery_status = 'NOT_SHIPPED', updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND id = ${result.orderId}
+      `);
+    }
   }
 
   async bulkTargets(request: AdminOrderCommandInput): Promise<readonly AdminOrderBulkTarget[]> {
@@ -2089,18 +3292,91 @@ export class AdminOrderCommandRepository extends BaseRepository {
 
   private async integrationRoute(request: AdminOrderCommandInput, orderId: string | null) {
     if (!orderId) throw new Error("ORDER_NOT_FOUND");
-    const linkId = requiredUuid(request.input, "integrationLinkId");
+    const linkId = await this.resolveIntegrationLinkId(request);
     const rows = await this.connection.execute<{
       installationId: string;
-      externalOrderId: string;
+      externalOrderId: string | null;
     }>(sql`
-      SELECT app_installation_id AS "installationId", external_order_id AS "externalOrderId"
+      SELECT app_installation_id AS "installationId", external_id AS "externalOrderId"
       FROM orders.order_integration_links
       WHERE store_id = ${request.context.storeId} AND order_id = ${orderId} AND id = ${linkId}
       FOR UPDATE
     `);
     if (!rows[0]) throw new Error("ORDER_INTEGRATION_LINK_NOT_FOUND");
     return rows[0];
+  }
+
+  private async resolveIntegrationLinkId(request: AdminOrderCommandInput): Promise<string> {
+    if (request.input.integrationLinkId) return requiredUuid(request.input, "integrationLinkId");
+    const operationId = requiredUuid(request.input, "operationId");
+    const rows = await this.connection.execute<{ id: string | null }>(sql`
+      SELECT resource_id AS id
+      FROM orders.order_operations
+      WHERE store_id = ${request.context.storeId} AND id = ${operationId}
+        AND kind = 'INTEGRATION_SYNC'
+      LIMIT 1 FOR UPDATE
+    `);
+    if (!rows[0]?.id) throw new Error("ORDER_INTEGRATION_OPERATION_NOT_FOUND");
+    return rows[0].id;
+  }
+
+  private async orderSyncSnapshot(
+    storeId: string,
+    orderId: string,
+  ): Promise<Record<string, unknown>> {
+    const rows = await this.connection.execute<Record<string, unknown>>(sql`
+      SELECT jsonb_build_object(
+        'schemaVersion', 1,
+        'storeId', current_order.store_id,
+        'orderId', current_order.id,
+        'orderVersion', current_order.version,
+        'orderNumber', current_order.order_number::text,
+        'status', current_order.status,
+        'paymentStatus', current_order.payment_status,
+        'fulfillmentStatus', current_order.fulfillment_status,
+        'deliveryStatus', current_order.delivery_status,
+        'currencyCode', current_order.currency_code,
+        'totals', jsonb_build_object(
+          'subtotalMinor', current_order.subtotal_amount::text,
+          'discountMinor', current_order.discount_amount::text,
+          'shippingMinor', current_order.shipping_amount::text,
+          'taxMinor', current_order.tax_amount::text,
+          'totalMinor', current_order.total_amount::text,
+          'paidMinor', COALESCE(payment.paid, 0)::text,
+          'refundedMinor', COALESCE(payment.refunded, 0)::text
+        ),
+        'lines', COALESCE(lines.value, '[]'::jsonb),
+        'tags', COALESCE(tags.value, '[]'::jsonb),
+        'placedAt', current_order.placed_at,
+        'updatedAt', current_order.updated_at
+      ) AS snapshot
+      FROM orders.orders current_order
+      LEFT JOIN LATERAL (
+        SELECT
+          COALESCE(sum(amount) FILTER (WHERE kind IN ('CAPTURE', 'SALE', 'MANUAL') AND status = 'SUCCESS'), 0) AS paid,
+          COALESCE(sum(amount) FILTER (WHERE kind = 'REFUND' AND status = 'SUCCESS'), 0) AS refunded
+        FROM orders.order_payment_transactions transaction
+        WHERE transaction.store_id = current_order.store_id AND transaction.order_id = current_order.id
+      ) payment ON true
+      LEFT JOIN LATERAL (
+        SELECT jsonb_agg(jsonb_build_object(
+          'orderLineId', line.id, 'sku', line.sku, 'title', line.title,
+          'quantity', line.quantity, 'unitPriceMinor', line.unit_price_amount::text,
+          'totalMinor', line.total_amount::text
+        ) ORDER BY line.created_at, line.id) AS value
+        FROM orders.order_lines line
+        WHERE line.store_id = current_order.store_id AND line.order_id = current_order.id
+      ) lines ON true
+      LEFT JOIN LATERAL (
+        SELECT jsonb_agg(tag.tag ORDER BY tag.tag) AS value
+        FROM orders.order_tags tag
+        WHERE tag.store_id = current_order.store_id AND tag.order_id = current_order.id
+      ) tags ON true
+      WHERE current_order.store_id = ${storeId} AND current_order.id = ${orderId}
+    `);
+    const snapshot = rows[0]?.snapshot;
+    if (!snapshot || typeof snapshot !== "object") throw new Error("ORDER_NOT_FOUND");
+    return snapshot as Record<string, unknown>;
   }
 
   async completeOperation(
@@ -2115,6 +3391,18 @@ export class AdminOrderCommandRepository extends BaseRepository {
     const now = new Date().toISOString();
     if (succeeded && result.orderId) {
       await this.finalizeDomainOperation(command, request, result.orderId, now);
+    }
+    if (
+      !succeeded &&
+      (command === "orderIntegrationSyncRequest" || command === "orderIntegrationSyncRetry")
+    ) {
+      const linkId = await this.resolveIntegrationLinkId(request);
+      await this.connection.execute(sql`
+        UPDATE orders.order_integration_links
+        SET status = 'FAILED', last_error_code = ${errorCode(error)},
+          last_error_message = ${errorMessage(error)}, updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND id = ${linkId}
+      `);
     }
     await this.connection.execute(sql`
       UPDATE orders.order_operations
@@ -2161,6 +3449,19 @@ export class AdminOrderCommandRepository extends BaseRepository {
           cancelled_at = ${now}, closed_at = COALESCE(closed_at, ${now}), updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND id = ${order.id}
       `);
+      await this.connection.execute(sql`
+        UPDATE orders.order_fulfillments
+        SET status = 'CANCELLED', cancelled_at = COALESCE(cancelled_at, ${now}), updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+          AND external_source IS NULL AND status IN ('PENDING', 'SUCCESS')
+      `);
+      await this.connection.execute(sql`
+        UPDATE orders.order_fulfillment_orders
+        SET status = 'CANCELLED', closed_at = COALESCE(closed_at, ${now}),
+          version = version + 1, updated_at = ${now}
+        WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+          AND external_source IS NULL AND status <> 'CANCELLED'
+      `);
       changed = true;
     } else if (
       command === "fulfillmentOrderSubmit" ||
@@ -2200,6 +3501,20 @@ export class AdminOrderCommandRepository extends BaseRepository {
         if (restockable < 0 || damaged < 0 || restockable + damaged !== received) {
           throw new Error("RETURN_RECEIVE_QUANTITY_INVALID");
         }
+        const current = await this.connection.execute<{
+          received: number;
+          approved: number;
+        }>(sql`
+          SELECT received_quantity AS received, approved_quantity AS approved
+          FROM orders.order_return_request_lines
+          WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+            AND return_request_id = ${returnId}
+            AND order_line_id = ${requiredUuid(line, "orderLineId")}
+          FOR UPDATE
+        `);
+        if (!current[0] || received < current[0].received || received > current[0].approved) {
+          throw new Error("RETURN_RECEIVE_QUANTITY_INVALID");
+        }
         const updated = await this.connection.execute<{ id: string }>(sql`
           UPDATE orders.order_return_request_lines
           SET received_quantity = ${received}, restockable_quantity = ${restockable},
@@ -2211,20 +3526,38 @@ export class AdminOrderCommandRepository extends BaseRepository {
           WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
             AND return_request_id = ${returnId}
             AND order_line_id = ${requiredUuid(line, "orderLineId")}
-            AND approved_quantity >= ${received}
+            AND approved_quantity >= ${received} AND received_quantity <= ${received}
           RETURNING id
         `);
         if (!updated[0]) throw new Error("RETURN_RECEIVE_LINE_INVALID");
       }
+      const completion = await this.connection.execute<{ complete: boolean }>(sql`
+        SELECT bool_and(received_quantity = approved_quantity) AS complete
+        FROM orders.order_return_request_lines
+        WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+          AND return_request_id = ${returnId}
+      `);
+      const requestComplete = completion[0]?.complete === true;
       await this.connection.execute(sql`
         UPDATE orders.order_return_requests
-        SET status = 'RECEIVED', version = version + 1, resolved_at = ${now},
+        SET status = ${requestComplete ? "RECEIVED" : "IN_TRANSIT"}::orders.order_return_request_status,
+          version = version + 1, resolved_at = CASE WHEN ${requestComplete} THEN ${now}::timestamptz ELSE NULL END,
           resolved_by_type = ${request.context.actor.type}, resolved_by_id = ${request.context.actor.id},
           updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND order_id = ${order.id} AND id = ${returnId}
       `);
+      const aggregate = await this.connection.execute<{ complete: boolean }>(sql`
+        SELECT bool_and(line.received_quantity = line.approved_quantity) AS complete
+        FROM orders.order_return_request_lines line
+        JOIN orders.order_return_requests request
+          ON request.store_id = line.store_id AND request.id = line.return_request_id
+        WHERE line.store_id = ${request.context.storeId} AND line.order_id = ${order.id}
+          AND request.status NOT IN ('REJECTED', 'CANCELLED')
+      `);
       await this.connection.execute(sql`
-        UPDATE orders.orders SET return_status = 'PARTIALLY_RETURNED', updated_at = ${now}
+        UPDATE orders.orders
+        SET return_status = ${aggregate[0]?.complete === true ? "RETURNED" : "PARTIALLY_RETURNED"}::orders.order_return_status,
+          updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND id = ${order.id}
       `);
       changed = true;
@@ -2314,6 +3647,10 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 function jsonObject(value: unknown): Record<string, unknown> {
   if (value === undefined || value === null) return {};
   return asRecord(value);
@@ -2361,6 +3698,14 @@ function optionalPositiveInt(value: unknown, field: string): number | null {
   if (!Number.isSafeInteger(value) || Number(value) <= 0)
     throw new Error(`ORDER_${field.toUpperCase()}_INVALID`);
   return Number(value);
+}
+
+function optionalPositiveNumber(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error("ORDER_POSITIVE_NUMBER_INVALID");
+  }
+  return value;
 }
 
 function requiredArray(record: Record<string, unknown>, field: string): unknown[] {

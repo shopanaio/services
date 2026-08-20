@@ -1,7 +1,17 @@
 import { Injectable } from "@nestjs/common";
-import { BrokerActions, InjectBroker, ServiceBroker, Action } from "@shopana/shared-kernel";
+import {
+  BrokerActions,
+  InjectBroker,
+  ServiceBroker,
+  Action,
+  type BrokerCallContext,
+} from "@shopana/shared-kernel";
 import type { ContextStore } from "@shopana/shared-context";
-import { InventoryCheckoutActionNames, type Inventory } from "@shopana/broker-types";
+import {
+  InventoryCheckoutActionNames,
+  InventoryOrderActionNames,
+  type Inventory,
+} from "@shopana/broker-types";
 import { Kernel } from "../kernel/Kernel.js";
 import { runWithContext, ServiceContext } from "../context/index.js";
 import { Loader } from "../loaders/Loader.js";
@@ -9,6 +19,7 @@ import type { VariantCost, CurrencyCode } from "../resolvers/admin/interfaces/in
 import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
 import { InventoryItemUpdateDimensionsScript } from "../scripts/inventory-item/InventoryItemUpdateDimensionsScript.js";
 import { CheckoutInventoryReservationService } from "../application/CheckoutInventoryReservationService.js";
+import { OrderReturnInventoryService } from "../application/OrderReturnInventoryService.js";
 
 type GetStoreByIdResult = {
   store: ContextStore | null;
@@ -73,6 +84,19 @@ export class InventoryBrokerActions extends BrokerActions {
   ): Promise<Inventory.ConfirmCheckoutInventoryResult> {
     return this.runWithStoreContext(params.storeId, () =>
       new CheckoutInventoryReservationService(this.kernel).confirm(params),
+    );
+  }
+
+  @Action(InventoryOrderActionNames.restockReturn)
+  restockOrderReturnInventory(
+    params: Inventory.RestockOrderReturnInventoryParams,
+    context: BrokerCallContext,
+  ): Promise<Inventory.RestockOrderReturnInventoryResult> {
+    if (context.caller.kind !== "action" || context.caller.service !== "order") {
+      throw new Error("ORDER_RETURN_INVENTORY_CALLER_FORBIDDEN");
+    }
+    return this.runWithStoreContext(params.storeId, () =>
+      new OrderReturnInventoryService(this.kernel).restock(params),
     );
   }
 

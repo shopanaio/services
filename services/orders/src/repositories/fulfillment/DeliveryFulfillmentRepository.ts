@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { Delivery, Orders } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
@@ -364,8 +364,123 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         payload: params.update,
         createdAt: params.update.occurredAt,
       });
+      await this.applyOrderProjectionAndAudit(params.storeId, row.orderId, params.update);
       return { status: "APPLIED", fulfillmentOrderRevision: nextRevision };
     });
+  }
+
+  private async applyOrderProjectionAndAudit(
+    storeId: string,
+    orderId: string,
+    update: Delivery.DeliveryFulfillmentShipmentUpdate,
+  ): Promise<void> {
+    const shipmentStatus =
+      update.state === "SHIPMENT_CREATED"
+        ? "LABEL_CREATED"
+        : update.state === "DELIVERY_FAILED"
+          ? "EXCEPTION"
+          : update.state;
+    await this.connection.execute(sql`
+      UPDATE orders.order_shipments
+      SET status = ${shipmentStatus}::orders.order_shipment_status,
+        shipped_at = CASE WHEN ${update.state === "IN_TRANSIT"}
+          THEN COALESCE(shipped_at, ${update.occurredAt}::timestamptz) ELSE shipped_at END,
+        delivered_at = CASE WHEN ${update.state === "DELIVERED"}
+          THEN ${update.occurredAt}::timestamptz ELSE delivered_at END,
+        metadata = jsonb_set(metadata, '{providerRevision}', to_jsonb(${update.shipmentRevision}), true),
+        updated_at = ${update.occurredAt}
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND external_id = ${update.shipmentId}
+    `);
+    const updated = await this.connection.execute<{ version: number }>(sql`
+      WITH fulfillment AS (
+        SELECT count(*)::integer AS total,
+          count(*) FILTER (WHERE status = 'CLOSED')::integer AS closed,
+          count(*) FILTER (WHERE status IN ('IN_PROGRESS', 'INCOMPLETE'))::integer AS active
+        FROM orders.order_fulfillment_orders
+        WHERE store_id = ${storeId} AND order_id = ${orderId}
+      ), shipment AS (
+        SELECT count(*) FILTER (WHERE status <> 'CANCELLED')::integer AS total,
+          count(*) FILTER (WHERE status = 'DELIVERED')::integer AS delivered,
+          count(*) FILTER (WHERE status IN ('IN_TRANSIT', 'OUT_FOR_DELIVERY'))::integer AS moving,
+          count(*) FILTER (WHERE status IN ('SHIPPED', 'LABEL_CREATED'))::integer AS shipped,
+          count(*) FILTER (WHERE status IN ('EXCEPTION', 'DELIVERY_ATTEMPTED', 'DELAYED'))::integer AS failed
+        FROM orders.order_shipments
+        WHERE store_id = ${storeId} AND order_id = ${orderId}
+      )
+      UPDATE orders.orders current_order
+      SET version = version + 1,
+        fulfillment_status = CASE
+          WHEN fulfillment.total > 0 AND fulfillment.closed = fulfillment.total THEN 'FULFILLED'
+          WHEN fulfillment.active > 0 OR fulfillment.closed > 0 THEN 'PARTIALLY_FULFILLED'
+          ELSE current_order.fulfillment_status
+        END::orders.order_fulfillment_status,
+        delivery_status = CASE
+          WHEN shipment.total > 0 AND shipment.delivered = shipment.total THEN 'DELIVERED'
+          WHEN shipment.delivered > 0 THEN 'PARTIALLY_SHIPPED'
+          WHEN shipment.failed > 0 THEN 'EXCEPTION'
+          WHEN shipment.moving > 0 THEN 'IN_TRANSIT'
+          WHEN shipment.shipped > 0 THEN 'SHIPPED'
+          ELSE current_order.delivery_status
+        END::orders.order_delivery_status,
+        updated_at = GREATEST(updated_at, ${update.occurredAt}::timestamptz)
+      FROM fulfillment, shipment
+      WHERE current_order.store_id = ${storeId} AND current_order.id = ${orderId}
+      RETURNING current_order.version
+    `);
+    const version = updated[0]?.version;
+    if (!version) throw new Error("ORDER_NOT_FOUND");
+    const eventType = `delivery.shipment.${update.state.toLowerCase()}`;
+    const idempotencyKey = `delivery:${update.shipmentId}:${update.shipmentRevision}`;
+    const payload = JSON.stringify({
+      shipmentId: update.shipmentId,
+      shipmentRevision: update.shipmentRevision,
+      fulfillmentOrderId: update.fulfillmentOrderId,
+      state: update.state,
+      lineItems: update.lineItems,
+    });
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_revisions (
+        store_id, order_id, version, status, payment_status, fulfillment_status,
+        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
+        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
+        snapshot, reason, created_by_type, created_at
+      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
+        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
+        jsonb_build_object('eventType', ${eventType}, 'payload', ${payload}::jsonb),
+        ${eventType}, 'SYSTEM', ${update.occurredAt}
+      FROM orders.orders
+      WHERE store_id = ${storeId} AND id = ${orderId} AND version = ${version}
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_events (
+        store_id, order_id, event_type, order_version, visibility, actor_type,
+        idempotency_key, payload, happened_at
+      ) VALUES (
+        ${storeId}, ${orderId}, ${eventType}, ${version}, 'INTERNAL', 'SYSTEM',
+        ${idempotencyKey}, ${payload}::jsonb, ${update.occurredAt}
+      )
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_status_history (
+        store_id, order_id, order_version, order_status, payment_status,
+        fulfillment_status, delivery_status, return_status, reason_code,
+        actor_type, metadata, happened_at
+      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+        delivery_status, return_status, ${eventType}, 'SYSTEM', ${payload}::jsonb,
+        ${update.occurredAt}
+      FROM orders.orders
+      WHERE store_id = ${storeId} AND id = ${orderId} AND version = ${version}
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_activity (
+        store_id, order_id, order_version, activity_type, visibility, actor_type,
+        payload, happened_at
+      ) VALUES (
+        ${storeId}, ${orderId}, ${version}, ${eventType}, 'INTERNAL', 'SYSTEM',
+        ${payload}::jsonb, ${update.occurredAt}
+      )
+    `);
   }
 
   private async getRow(storeId: string, fulfillmentOrderId: string) {

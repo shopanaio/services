@@ -14,6 +14,10 @@ const paymentProjection = readFileSync(
   resolve(ordersSource, "handlers/OrderPaymentEventHandlers.ts"),
   "utf8",
 );
+const providerWorkflows = readFileSync(
+  resolve(here, "../integration/OrderProviderCallbackWorkflows.ts"),
+  "utf8",
+);
 
 describe("Orders Admin phase 3 architecture gate", () => {
   test("routes every Admin write through ServiceBroker and a policy-protected workflow", () => {
@@ -50,5 +54,27 @@ describe("Orders Admin phase 3 architecture gate", () => {
   test("does not introduce a local delivery queue or lease/poller state", () => {
     const combined = `${repository}\n${workflows}`;
     expect(combined).not.toMatch(/outbox|local_queue|lease_until|poller/i);
+  });
+
+  test("publishes only after commit and checkpoints provider delivery", () => {
+    expect(workflows).toContain("await this.commit(input, workflowId)");
+    expect(workflows).toContain("await this.publishCommandEvent(input, result, workflowId)");
+    expect(workflows).toContain('"events.emit"');
+    expect(workflows).toContain("@WorkflowStep()\n  private publishCommandEvent");
+  });
+
+  test("persists shipment packages and orchestrates return restock/refund", () => {
+    expect(repository).toContain("INSERT INTO orders.order_shipment_packages");
+    expect(repository).toContain("INSERT INTO orders.order_shipment_package_lines");
+    expect(repository).toContain("inventory.restockOrderReturnInventory");
+    expect(repository).toContain("payments.refundPayment");
+    expect(repository).toContain("INSERT INTO orders.order_return_shipments");
+  });
+
+  test("uses content-idempotent provider callback workflows", () => {
+    expect(providerWorkflows).toContain('@Workflow("completeOrderFulfillmentServiceOperationV1"');
+    expect(providerWorkflows).toContain('@Workflow("applyOrderIntegrationEventV1"');
+    expect(providerWorkflows).toContain('idempotencyStrategy: "content"');
+    expect(providerWorkflows).toContain("@TransactionalStep({");
   });
 });

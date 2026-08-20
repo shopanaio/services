@@ -16,6 +16,14 @@ export const InventoryCheckoutActions = {
   release: `inventory.${InventoryCheckoutActionNames.release}`,
 } as const;
 
+export const InventoryOrderActionNames = {
+  restockReturn: "restockOrderReturnInventory",
+} as const;
+
+export const InventoryOrderActions = {
+  restockReturn: `inventory.${InventoryOrderActionNames.restockReturn}`,
+} as const;
+
 export interface ReserveCheckoutInventoryParams {
   storeId: string;
   orderId: string;
@@ -70,6 +78,31 @@ export interface ReleaseCheckoutInventoryParams {
 
 export interface ReleaseCheckoutInventoryResult {
   releasedReservationIds: readonly string[];
+}
+
+export interface RestockOrderReturnInventoryParams {
+  storeId: string;
+  orderId: string;
+  returnId: string;
+  idempotencyKey: string;
+  correlationId: string;
+  lines: readonly Readonly<{
+    orderLineId: string;
+    variantId: string;
+    warehouseId: string;
+    /** Cumulative restockable quantity accepted by Orders for this return line. */
+    targetQuantity: number;
+    /** Positive delta between the prior and target cumulative quantity. */
+    quantity: number;
+  }>[];
+}
+
+export interface RestockOrderReturnInventoryResult {
+  changes: readonly Readonly<{
+    orderLineId: string;
+    status: "APPLIED" | "DUPLICATE";
+    changeId: string;
+  }>[];
 }
 
 // ============================================================================

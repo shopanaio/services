@@ -3,13 +3,20 @@
 **Дата аудита:** 2026-08-20  
 **Статус:** service not ready  
 **Оценка готовности:** 55% ± 10%  
-**Критерий оценки:** всё заявленное публичное API и связанная с ним бизнес-логика должны быть завершены и подтверждены автоматизированными проверками.
+**Критерий оценки:** всё заявленное публичное API и связанная с ним бизнес-логика должны быть
+завершены и подтверждены автоматизированными проверками.
 
 ## 1. Итоговый вывод
 
-Catalog Service содержит значительный объём рабочего кода: модели и миграции основных доменов, Admin и Storefront GraphQL, DBOS workflows, broker actions, checkout snapshots, inventory reservations, comparison и configurable product components. Это уже не прототип.
+Catalog Service содержит значительный объём рабочего кода: модели и миграции основных доменов, Admin
+и Storefront GraphQL, DBOS workflows, broker actions, checkout snapshots, inventory reservations,
+comparison и configurable product components. Это уже не прототип.
 
-При этом сервис не удовлетворяет строгому критерию завершённости. В публичном контракте присутствует как минимум одна гарантированно неработающая операция, Relay Node API покрывает лишь часть объявленных Node-типов, media lifecycle допускает некорректные и висячие ссылки, создание вариантов не обеспечивает целостность option selections, а значительная часть e2e-набора либо является placeholder, либо рассинхронизирована с текущей схемой.
+При этом сервис не удовлетворяет строгому критерию завершённости. В публичном контракте присутствует
+как минимум одна гарантированно неработающая операция, Relay Node API покрывает лишь часть
+объявленных Node-типов, media lifecycle допускает некорректные и висячие ссылки, создание вариантов
+не обеспечивает целостность option selections, а значительная часть e2e-набора либо является
+placeholder, либо рассинхронизирована с текущей схемой.
 
 До устранения блокирующих findings сервис нельзя считать API-complete или production-ready.
 
@@ -34,7 +41,9 @@ Catalog Service содержит значительный объём рабоч�
 - browser;
 - schema/codegen commands.
 
-Build также не запускался: новая версия кода не создавалась, аудит не изменяет runtime implementation. Поэтому оценка отражает статически подтверждённую готовность, а не результат выполнения полного runtime acceptance suite.
+Build также не запускался: новая версия кода не создавалась, аудит не изменяет runtime
+implementation. Поэтому оценка отражает статически подтверждённую готовность, а не результат
+выполнения полного runtime acceptance suite.
 
 ## 3. Фактический scope сервиса
 
@@ -114,7 +123,8 @@ Storefront API объявляет:
 - category/collection/product/variant media connections;
 - federated `Customer.productComparisons`.
 
-Buyer-side Catalog mutations намеренно отсутствуют, кроме технического `_catalog` field. Это соответствует заявленному разделению ответственности между Catalog и Checkout/Cart.
+Buyer-side Catalog mutations намеренно отсутствуют, кроме технического `_catalog` field. Это
+соответствует заявленному разделению ответственности между Catalog и Checkout/Cart.
 
 ### 3.4. Broker API и workflows
 
@@ -144,20 +154,22 @@ Buyer-side Catalog mutations намеренно отсутствуют, кром
 
 ## 4. Сводная оценка
 
-| Область | Оценка | Статус | Основная причина |
-| --- | ---: | --- | --- |
-| Products / variants / options / features | ~65% | Частично готово | Большой CRUD/update workflow, но create-path не гарантирует корректные option selections и атомарность |
-| Categories / tags / vendors | ~75% | Близко к готовности | Основные операции реализованы; остаются Node/media/integration gaps |
-| Collections | ~40% | Не готово | `collections` отсутствует, acceptance specs являются placeholder |
-| Inventory / stock / pricing | ~65% | Частично готово | Основная логика присутствует, но контракт и e2e-набор рассинхронизированы; low-stock handler пуст |
-| Storefront API | ~60% | Частично готово | Publication filtering реализован, media polymorphism нарушен |
-| Comparison | ~65% | Частично готово | Существенная реализация есть, но интеграционное покрытие недостаточно |
-| Product components | ~65% | Частично готово | Модель и resolver layer широкие, Node API и acceptance confidence неполны |
-| Broker/checkout integration | ~70% | Частично готово | Контракты и services реализованы, но нет достаточного полного evidence |
-| Media lifecycle/federation | ~40% | Не готово | Raw IDs, неверный concrete media type, неполная cleanup-логика, слабая preflight validation |
-| Automated verification | ~35% | Не готово | Placeholder suites, conditional skips и schema drift |
+| Область                                  | Оценка | Статус              | Основная причина                                                                                       |
+| ---------------------------------------- | -----: | ------------------- | ------------------------------------------------------------------------------------------------------ |
+| Products / variants / options / features |   ~65% | Частично готово     | Большой CRUD/update workflow, но create-path не гарантирует корректные option selections и атомарность |
+| Categories / tags / vendors              |   ~75% | Близко к готовности | Основные операции реализованы; остаются Node/media/integration gaps                                    |
+| Collections                              |   ~40% | Не готово           | `collections` отсутствует, acceptance specs являются placeholder                                       |
+| Inventory / stock / pricing              |   ~65% | Частично готово     | Основная логика присутствует, но контракт и e2e-набор рассинхронизированы; low-stock handler пуст      |
+| Storefront API                           |   ~60% | Частично готово     | Publication filtering реализован, media polymorphism нарушен                                           |
+| Comparison                               |   ~65% | Частично готово     | Существенная реализация есть, но интеграционное покрытие недостаточно                                  |
+| Product components                       |   ~65% | Частично готово     | Модель и resolver layer широкие, Node API и acceptance confidence неполны                              |
+| Broker/checkout integration              |   ~70% | Частично готово     | Контракты и services реализованы, но нет достаточного полного evidence                                 |
+| Media lifecycle/federation               |   ~40% | Не готово           | Raw IDs, неверный concrete media type, неполная cleanup-логика, слабая preflight validation            |
+| Automated verification                   |   ~35% | Не готово           | Placeholder suites, conditional skips и schema drift                                                   |
 
-Итоговая оценка 55% является инженерной оценкой, а не арифметическим средним. Блокирующие контрактные и data-integrity defects имеют больший вес, чем количество уже написанных классов и миграций.
+Итоговая оценка 55% является инженерной оценкой, а не арифметическим средним. Блокирующие
+контрактные и data-integrity defects имеют больший вес, чем количество уже написанных классов и
+миграций.
 
 ## 5. Блокирующие findings
 
@@ -178,7 +190,8 @@ collections(first: Int, after: String, last: Int, before: String): CollectionCon
 // TODO: Implement collections() with keyset pagination
 ```
 
-**Эффект:** GraphQL default field resolution не найдёт функцию/значение `collections`. Поскольку return type non-null, запрос завершится execution error и null-propagation.
+**Эффект:** GraphQL default field resolution не найдёт функцию/значение `collections`. Поскольку
+return type non-null, запрос завершится execution error и null-propagation.
 
 **Что должно быть завершено:**
 
@@ -216,27 +229,34 @@ collections(first: Int, after: String, last: Int, before: String): CollectionCon
 - VariantPrice и VariantCost;
 - все ProductComponent Node-типы.
 
-Inventory namespace отдельно покрывает Warehouse, InventoryItem и WarehouseStock, но это не исправляет контракт `catalogQuery.node` для catalog-owned типов.
+Inventory namespace отдельно покрывает Warehouse, InventoryItem и WarehouseStock, но это не
+исправляет контракт `catalogQuery.node` для catalog-owned типов.
 
-**Эффект:** корректный Global ID существующего объекта возвращает `null`, хотя тот же объект доступен через dedicated query или nested field.
+**Эффект:** корректный Global ID существующего объекта возвращает `null`, хотя тот же объект
+доступен через dedicated query или nested field.
 
-**Что должно быть завершено:** единый registry `GlobalIdEntity -> existence loader -> resolver`, используемый и `node`, и `nodes`, с tests для каждого Node type, malformed ID, wrong namespace, deleted entity и tenant isolation.
+**Что должно быть завершено:** единый registry `GlobalIdEntity -> existence loader -> resolver`,
+используемый и `node`, и `nodes`, с tests для каждого Node type, malformed ID, wrong namespace,
+deleted entity и tenant isolation.
 
 ### CAT-003 — Нарушена сериализация Global ID для части Admin media API
 
 **Severity:** High  
 **Область:** Admin GraphQL / Federation
 
-`CollectionResolver.media` возвращает `row.fileId` как обычный UUID, хотя federated `File.id` должен использовать `GlobalIdEntity.File` encoding.
+`CollectionResolver.media` возвращает `row.fileId` как обычный UUID, хотя federated `File.id` должен
+использовать `GlobalIdEntity.File` encoding.
 
 `OptionValueResolver.swatch` аналогично возвращает:
 
 - raw `swatch.id`, хотя `ProductOptionSwatch implements Node`;
 - raw `swatch.imageId` для federated File reference.
 
-Product, Variant, Category и SEO resolvers используют Global ID encoding корректно, поэтому поведение внутри одного API непоследовательно.
+Product, Variant, Category и SEO resolvers используют Global ID encoding корректно, поэтому
+поведение внутри одного API непоследовательно.
 
-**Эффект:** federation reference resolution и Relay clients получают ID неправильного формата; file lookup может завершаться decode error.
+**Эффект:** federation reference resolution и Relay clients получают ID неправильного формата; file
+lookup может завершаться decode error.
 
 ### CAT-004 — Storefront media всегда объявляется как `MediaImage`
 
@@ -249,22 +269,26 @@ Catalog хранит только file UUID, но `mediaReference()` безус�
 { __typename: "MediaImage", id: encodeGlobalIdByType(fileId, GlobalIdEntity.File) }
 ```
 
-При этом storefront schema явно допускает `MediaImage`, `Video`, `ExternalVideo` и `Model3d`. Media subgraph проверяет concrete content type в соответствующем resolver preload.
+При этом storefront schema явно допускает `MediaImage`, `Video`, `ExternalVideo` и `Model3d`. Media
+subgraph проверяет concrete content type в соответствующем resolver preload.
 
-**Эффект:** video/external video/model3d, прикреплённые к product, variant, category или collection, будут запрошены через `MediaImageResolver` и не смогут корректно разрешиться.
+**Эффект:** video/external video/model3d, прикреплённые к product, variant, category или collection,
+будут запрошены через `MediaImageResolver` и не смогут корректно разрешиться.
 
 **Возможные решения:**
 
 1. Хранить immutable media kind вместе с Catalog reference.
 2. Получать batch media descriptors из Media service перед формированием connection.
-3. Пересмотреть федеративный контракт так, чтобы concrete type определялся owning Media subgraph без ложного typename со стороны Catalog.
+3. Пересмотреть федеративный контракт так, чтобы concrete type определялся owning Media subgraph без
+   ложного typename со стороны Catalog.
 
 ### CAT-005 — Media reference validation выполняется после persistence и не является обязательной
 
 **Severity:** High  
 **Область:** Product creation / Media integration
 
-Product create-path декодирует File Global IDs и сразу сохраняет UUID в `product_media`. Предварительный вызов `media.validateOwnedFile` отсутствует.
+Product create-path декодирует File Global IDs и сразу сохраняет UUID в `product_media`.
+Предварительный вызов `media.validateOwnedFile` отсутствует.
 
 После commit вызывается `media.syncEntityFiles`, но:
 
@@ -273,11 +297,15 @@ Product create-path декодирует File Global IDs и сразу сохр�
 - `SyncEntityFilesResult.skippedCount` не проверяется;
 - GraphQL mutation всё равно может вернуть успешный Product.
 
-Category и Collection media/SEO paths также сохраняют file UUID локально без доказанной обязательной ownership validation.
+Category и Collection media/SEO paths также сохраняют file UUID локально без доказанной обязательной
+ownership validation.
 
-**Эффект:** Catalog может сохранить неизвестный, inactive или принадлежащий другому store file ID; API будет содержать dangling/cross-owner reference.
+**Эффект:** Catalog может сохранить неизвестный, inactive или принадлежащий другому store file ID;
+API будет содержать dangling/cross-owner reference.
 
-**Требуемый invariant:** каждый новый media/OG/swatch reference должен быть validated для `{ owner: store }` до Catalog commit. Любой invalid reference должен возвращать typed `userErrors` и откатывать всю mutation.
+**Требуемый invariant:** каждый новый media/OG/swatch reference должен быть validated для
+`{ owner: store }` до Catalog commit. Любой invalid reference должен возвращать typed `userErrors` и
+откатывать всю mutation.
 
 ### CAT-006 — Hard-delete cleanup покрывает только product media registry
 
@@ -295,9 +323,11 @@ Category и Collection media/SEO paths также сохраняют file UUID �
 - `collection_seo.og_image_id`;
 - `product_option_swatch.image_id`.
 
-**Эффект:** после hard delete API продолжает публиковать ссылки на отсутствующий File. Некоторые non-null nested selections способны вызвать GraphQL errors.
+**Эффект:** после hard delete API продолжает публиковать ссылки на отсутствующий File. Некоторые
+non-null nested selections способны вызвать GraphQL errors.
 
-**Что должно быть завершено:** одна transactional cleanup operation по всем Catalog-owned reference tables плюс событие/refresh для затронутых storefront projections.
+**Что должно быть завершено:** одна transactional cleanup operation по всем Catalog-owned reference
+tables плюс событие/refresh для затронутых storefront projections.
 
 ### CAT-007 — ProductCreate выводит option selections из строки handle
 
@@ -310,7 +340,8 @@ Category и Collection media/SEO paths также сохраняют file UUID �
 const valueSlugs = variantInput.handle.split("-");
 ```
 
-После этого option/value mapping ищется позиционно. Если значение не найдено, link просто не создаётся; user error отсутствует.
+После этого option/value mapping ищется позиционно. Если значение не найдено, link просто не
+создаётся; user error отсутствует.
 
 Проблемы:
 
@@ -321,26 +352,32 @@ const valueSlugs = variantInput.handle.split("-");
 - correctness зависит от порядка options;
 - handle одновременно используется как identity и как скрытый transport format.
 
-**Требуемый контракт:** Variant create input должен содержать явный полный набор `{ optionId/valueId }` либо стабильных `{ optionHandle/valueHandle }`. Handle должен вычисляться после валидации, а не использоваться для восстановления доменной связи.
+**Требуемый контракт:** Variant create input должен содержать явный полный набор
+`{ optionId/valueId }` либо стабильных `{ optionHandle/valueHandle }`. Handle должен вычисляться
+после валидации, а не использоваться для восстановления доменной связи.
 
 ### CAT-008 — ProductCreate saga может оставить частично созданный агрегат
 
 **Severity:** High  
 **Область:** DBOS / Product lifecycle
 
-Product, variants и options фиксируются в первом saga step. Затем inventory items создаются отдельными broker calls по одному variant.
+Product, variants и options фиксируются в первом saga step. Затем inventory items создаются
+отдельными broker calls по одному variant.
 
-Для inventory step существует compensation, но для уже выполненного product creation step нет компенсации. Ошибка после Catalog commit может оставить:
+Для inventory step существует compensation, но для уже выполненного product creation step нет
+компенсации. Ошибка после Catalog commit может оставить:
 
 - Product и variants без полного набора InventoryItem;
 - часть variants с InventoryItem, часть без;
 - успешный durable Catalog state без завершённой интеграции.
 
-Дополнительный риск: product-level `inventoryItem.sku` применяется ко всем создаваемым variants. При нескольких variants один и тот же non-null SKU конфликтует с unique constraint.
+Дополнительный риск: product-level `inventoryItem.sku` применяется ко всем создаваемым variants. При
+нескольких variants один и тот же non-null SKU конфликтует с unique constraint.
 
 **Что должно быть завершено:** формально определить aggregate boundary и один из вариантов:
 
-- создавать Catalog + Inventory records в одной локальной transaction, поскольку сейчас обе области находятся в одном service/database;
+- создавать Catalog + Inventory records в одной локальной transaction, поскольку сейчас обе области
+  находятся в одном service/database;
 - либо реализовать полноценную компенсацию Product aggregate;
 - либо хранить explicit creation status и запрещать чтение/публикацию до завершения всех steps.
 
@@ -349,9 +386,12 @@ Product, variants и options фиксируются в первом saga step. �
 **Severity:** Medium  
 **Область:** Inventory events
 
-`handleStockLevelChanged` содержит TODO для low-stock alerts и всегда возвращает `{ success: true }`.
+`handleStockLevelChanged` содержит TODO для low-stock alerts и всегда возвращает
+`{ success: true }`.
 
-Если low-stock notifications входят в заявленную бизнес-логику Inventory/Catalog, событие сейчас фактически поглощается. Если не входят, handler и комментарий следует удалить, а ответственность явно передать Notifications/Automation service.
+Если low-stock notifications входят в заявленную бизнес-логику Inventory/Catalog, событие сейчас
+фактически поглощается. Если не входят, handler и комментарий следует удалить, а ответственность
+явно передать Notifications/Automation service.
 
 ## 6. Проблемы automated verification
 
@@ -362,7 +402,8 @@ Product, variants и options фиксируются в первом saga step. �
 - `e2e/tests/collections-admin-api/`;
 - `e2e/tests/collections-storefront-api/`.
 
-Они объявляют `test(...)`, внутри которого находится только комментарий вида `// Verify ...`. Такой test будет отмечен как passed, хотя ничего не проверяет.
+Они объявляют `test(...)`, внутри которого находится только комментарий вида `// Verify ...`. Такой
+test будет отмечен как passed, хотя ничего не проверяет.
 
 Это объясняет, почему отсутствующий `CatalogQuery.collections` не был обнаружен suite.
 
@@ -373,7 +414,8 @@ Product, variants и options фиксируются в первом saga step. �
 - `catalogMutation.variantUpdatePricing`;
 - `inventoryMutation.inventoryItemUpdate`.
 
-В текущем Catalog SDL эти поля отсутствуют: pricing/inventory updates перенесены в unified `productUpdate` operation.
+В текущем Catalog SDL эти поля отсутствуют: pricing/inventory updates перенесены в unified
+`productUpdate` operation.
 
 Следовательно, по крайней мере одна из систем устарела:
 
@@ -383,7 +425,8 @@ Product, variants и options фиксируются в первом saga step. �
 - query documents;
 - tests/Admin consumers.
 
-До reconciliation результаты старых e2e нельзя использовать как доказательство готовности текущего API.
+До reconciliation результаты старых e2e нельзя использовать как доказательство готовности текущего
+API.
 
 ### 6.3. Product create fixtures не соответствуют текущему input contract
 
@@ -392,11 +435,14 @@ Product, variants и options фиксируются в первом saga step. �
 - `InventoryItemInput.requiresShipping: Boolean!`;
 - `ProductCreateOptionInput.categoryId: ID!`.
 
-Несколько активных product creation tests передают inventory/options без этих обязательных fields. При текущей схеме такие requests должны быть отклонены на GraphQL validation до resolver.
+Несколько активных product creation tests передают inventory/options без этих обязательных fields.
+При текущей схеме такие requests должны быть отклонены на GraphQL validation до resolver.
 
 ### 6.4. Conditional `test.skip()` маскирует фундаментальные regressions
 
-Inventory, stock и pricing tests часто выполняют `test.skip()`, если product create не вернул variant/inventoryItem/warehouse. Отсутствие основного prerequisite должно приводить к hard assertion failure, а не к skipped test.
+Inventory, stock и pricing tests часто выполняют `test.skip()`, если product create не вернул
+variant/inventoryItem/warehouse. Отсутствие основного prerequisite должно приводить к hard assertion
+failure, а не к skipped test.
 
 Иначе поломка Product creation способна скрыть большую часть downstream suite.
 
@@ -441,7 +487,8 @@ Inventory, stock и pricing tests часто выполняют `test.skip()`, �
 - нет явного per-variant create payload для SKU, price, inventory и selections;
 - media validation не является commit gate;
 - partial saga state возможен;
-- create-side business validation в основном полагается на generated Zod structural schemas и DB constraints.
+- create-side business validation в основном полагается на generated Zod structural schemas и DB
+  constraints.
 
 ### 7.2. Categories
 
@@ -498,7 +545,8 @@ Inventory, stock и pricing tests часто выполняют `test.skip()`, �
 - active e2e опирается на старые direct mutations;
 - conditional skips ослабляют evidence;
 - low-stock handler пуст;
-- нужно отдельное concurrency/idempotency acceptance evidence для stock reservations и release/confirm races.
+- нужно отдельное concurrency/idempotency acceptance evidence для stock reservations и
+  release/confirm races.
 
 ### 7.5. Pricing
 
@@ -531,7 +579,8 @@ Inventory, stock и pricing tests часто выполняют `test.skip()`, �
 Риски:
 
 - ограниченное unit/integration evidence относительно размера подсистемы;
-- Node coverage работает лишь для comparison types и тем самым непоследовательно с остальным Catalog;
+- Node coverage работает лишь для comparison types и тем самым непоследовательно с остальным
+  Catalog;
 - cache invalidation и stale selection behavior должны подтверждаться runtime tests.
 
 ### 7.7. Product components
@@ -555,7 +604,8 @@ Inventory, stock и pricing tests часто выполняют `test.skip()`, �
 
 ### 8.1. Multi-tenancy
 
-Положительно: большинство repository queries явно добавляют `storeId` и используют context-bound `BaseRepository`.
+Положительно: большинство repository queries явно добавляют `storeId` и используют context-bound
+`BaseRepository`.
 
 Перед release необходим отдельный automated tenancy audit для всех public reads/writes, включая:
 
@@ -568,11 +618,13 @@ Inventory, stock и pricing tests часто выполняют `test.skip()`, �
 - broker action storeId/caller authorization;
 - media references.
 
-Особенно важно не считать Global ID достаточной авторизацией: каждый decoded UUID должен заново проверяться внутри текущего store scope.
+Особенно важно не считать Global ID достаточной авторизацией: каждый decoded UUID должен заново
+проверяться внутри текущего store scope.
 
 ### 8.2. Validation и error contracts
 
-Generated Zod schemas в основном проверяют структуру GraphQL input, но не доменные ограничения. Business validation распределена между resolvers, scripts, workflows и DB constraints.
+Generated Zod schemas в основном проверяют структуру GraphQL input, но не доменные ограничения.
+Business validation распределена между resolvers, scripts, workflows и DB constraints.
 
 Требования к завершению:
 
@@ -580,19 +632,24 @@ Generated Zod schemas в основном проверяют структуру 
 - Global ID decode errors должны нормализоваться одинаково;
 - duplicate handles/SKU/option combinations должны иметь стабильные codes и field paths;
 - mutations должны быть atomic относительно всех заявленных synchronous effects;
-- background/best-effort effects должны быть явно отражены в API status или operational recovery model.
+- background/best-effort effects должны быть явно отражены в API status или operational recovery
+  model.
 
 ### 8.3. Migration/model drift
 
-Drizzle model `product_title_bm25_search_index` присутствует в Catalog models, но соответствующая Catalog migration не найдена и сам model не используется runtime code. Это выглядит как orphaned/dead schema artifact после переноса search responsibility в Listing.
+Drizzle model `product_title_bm25_search_index` присутствует в Catalog models, но соответствующая
+Catalog migration не найдена и сам model не используется runtime code. Это выглядит как
+orphaned/dead schema artifact после переноса search responsibility в Listing.
 
-Перед готовностью следует либо удалить model из Catalog, либо добавить документированного owner и migration/use path. Мёртвые модели не должны выглядеть как поддерживаемый Catalog schema contract.
+Перед готовностью следует либо удалить model из Catalog, либо добавить документированного owner и
+migration/use path. Мёртвые модели не должны выглядеть как поддерживаемый Catalog schema contract.
 
 ## 9. Рекомендуемая последовательность завершения
 
 ### Phase 0 — Зафиксировать canonical contract
 
-1. Выбрать current Admin API: unified `productUpdate` либо legacy direct inventory/pricing mutations.
+1. Выбрать current Admin API: unified `productUpdate` либо legacy direct inventory/pricing
+   mutations.
 2. Перегенерировать federation schema, Admin types и e2e types из одного source of truth.
 3. Исправить все query documents и consumers.
 4. Запретить merge при schema/codegen drift.
@@ -617,7 +674,8 @@ Drizzle model `product_title_bm25_search_index` присутствует в Cata
 
 1. Заменить handle parsing на explicit selected options.
 2. Валидировать полный option set и уникальность combination.
-3. Добавить per-variant inventory/SKU/price/media payload либо явно ограничить create API и документировать follow-up update.
+3. Добавить per-variant inventory/SKU/price/media payload либо явно ограничить create API и
+   документировать follow-up update.
 4. Сделать creation atomic или добавить полную compensation/state machine.
 5. Возвращать typed user errors для всех expected failures.
 
@@ -650,7 +708,8 @@ Catalog можно считать завершённым только если �
 
 ### Business logic
 
-- Product, variant, category, tag, option, feature, collection, inventory, pricing, component и comparison invariants перечислены и покрыты tests.
+- Product, variant, category, tag, option, feature, collection, inventory, pricing, component и
+  comparison invariants перечислены и покрыты tests.
 - Expected failures возвращают стабильные typed user errors.
 - Optimistic locking работает для всех revisioned aggregates.
 - Cross-service references validated до commit.
@@ -671,7 +730,8 @@ Catalog можно считать завершённым только если �
 - Targeted unit, integration и Playwright suites проходят.
 - Schema composition/codegen verification проходит.
 - Build проходит через `shopana-cli`.
-- Для reservations, bulk edit, collection sync и product workflows есть concurrency/idempotency tests.
+- Для reservations, bulk edit, collection sync и product workflows есть concurrency/idempotency
+  tests.
 
 ## 11. Release gate
 
@@ -686,7 +746,9 @@ Catalog можно считать завершённым только если �
 5. CAT-007/CAT-008: ProductCreate option integrity и atomicity.
 6. Замена collection placeholder suites и reconciliation текущего e2e GraphQL contract.
 
-После их исправления требуется повторный audit с targeted runtime verification. До этого количественная оценка выше 70% не будет обоснованной, даже если остальные feature paths продолжают расширяться.
+После их исправления требуется повторный audit с targeted runtime verification. До этого
+количественная оценка выше 70% не будет обоснованной, даже если остальные feature paths продолжают
+расширяться.
 
 ## 12. Ключевые ссылки на код
 
@@ -700,5 +762,7 @@ Catalog можно считать завершённым только если �
 - Product create saga boundaries/backrefs: `src/sagas/ProductCreateSaga.ts`.
 - Incomplete hard-delete cleanup: `src/scripts/media/FileHardDeletedScript.ts`.
 - Empty low-stock handler: `src/handlers/InventoryEventHandlers.ts`.
-- Placeholder collection specs: `../../../e2e/tests/collections-admin-api/` и `../../../e2e/tests/collections-storefront-api/`.
-- Stale direct mutation operations: `../../../e2e/queries/inventory-api/VariantSetPricing.gql` и `VariantSetStock.gql`.
+- Placeholder collection specs: `../../../e2e/tests/collections-admin-api/` и
+  `../../../e2e/tests/collections-storefront-api/`.
+- Stale direct mutation operations: `../../../e2e/queries/inventory-api/VariantSetPricing.gql` и
+  `VariantSetStock.gql`.

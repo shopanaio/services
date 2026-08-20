@@ -24,6 +24,7 @@ import type {
   AdminOrderBulkTarget,
   AdminOrderExternalEffect,
 } from "../../repositories/admin/AdminOrderCommandRepository.js";
+import type { EventEmitResult } from "@shopana/events";
 
 abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
   AdminOrderCommandInput,
@@ -60,6 +61,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
               effect,
               response,
             );
+            await this.applyExternalEffectResult(input, result, effect, response);
           } catch (error) {
             await this.recordAttempt(
               input.context.storeId,
@@ -73,10 +75,13 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
           }
         }
         await this.finishOperation(input, result, true);
+        await this.publishCommandEvent(input, result, workflowId);
       } catch (error) {
         await this.finishOperation(input, result, false, error);
         throw error;
       }
+    } else {
+      await this.publishCommandEvent(input, result, workflowId);
     }
     return result;
   }
@@ -88,6 +93,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
   ): Promise<AdminOrderCommandResult> {
     if (!result.operationId) throw new Error("ORDER_BULK_OPERATION_MISSING");
     const targets = await this.loadBulkTargets(input);
+    const bulkResults: NonNullable<AdminOrderCommandResult["bulkResults"]>[number][] = [];
     await this.updateProgress(input.context.storeId, result.operationId, 0, targets.length);
     for (let index = 0; index < targets.length; index += 1) {
       const target = targets[index]!;
@@ -98,6 +104,12 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
       };
       try {
         const response = await this.runBulkChild(child.command, child.input, workflowId, target.id);
+        bulkResults.push({
+          orderId: target.id,
+          success: true,
+          orderVersion: response.orderVersion,
+          errorCode: null,
+        });
         await this.recordAttempt(
           input.context.storeId,
           result.operationId,
@@ -115,6 +127,12 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
           null,
           error,
         );
+        bulkResults.push({
+          orderId: target.id,
+          success: false,
+          orderVersion: null,
+          errorCode: error instanceof Error ? error.message : "ORDER_BULK_CHILD_FAILED",
+        });
       }
       await this.updateProgress(
         input.context.storeId,
@@ -124,7 +142,8 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
       );
     }
     await this.finishOperation(input, result, true);
-    return result;
+    await this.publishCommandEvent(input, result, workflowId);
+    return { ...result, bulkResults };
   }
 
   @TransactionalStep({
@@ -194,6 +213,47 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     return this.broker.call(effect.route, effect.params);
   }
 
+  @WorkflowStep()
+  private publishCommandEvent(
+    input: AdminOrderCommandInput,
+    result: AdminOrderCommandResult,
+    workflowId: string,
+  ): Promise<EventEmitResult> {
+    const subjectId = result.orderId ?? result.resourceId ?? result.operationId;
+    if (!subjectId) throw new Error("ORDER_COMMAND_EVENT_SUBJECT_MISSING");
+    return this.broker.runWorkflow<EventEmitResult>(
+      "events.emit",
+      {
+        eventType: `order.admin.${this.command}`,
+        payload: {
+          schemaVersion: 1,
+          organizationId: input.context.organizationId,
+          storeId: input.context.storeId,
+          command: this.command,
+          orderId: result.orderId,
+          orderVersion: result.orderVersion,
+          resourceId: result.resourceId,
+          operationId: result.operationId,
+          deleted: result.deleted,
+        },
+        context: {
+          organizationId: input.context.organizationId,
+          correlationId: input.context.correlationId,
+        },
+        subject: { type: result.orderId ? "order" : "order-operation", id: subjectId },
+        actor: { type: "service" },
+        emitKey: `order:${subjectId}`,
+      },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId,
+        stepId: `emit:${this.command}`,
+        callId: subjectId,
+      },
+    );
+  }
+
   @TransactionalStep({
     txManager: (self: AdminOrderCommandWorkflowBase) => self.repository.txManager,
     bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
@@ -213,6 +273,25 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
       effect,
       response,
       error,
+    );
+  }
+
+  @TransactionalStep({
+    txManager: (self: AdminOrderCommandWorkflowBase) => self.repository.txManager,
+    bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
+  })
+  private applyExternalEffectResult(
+    input: AdminOrderCommandInput,
+    result: AdminOrderCommandResult,
+    effect: AdminOrderExternalEffect,
+    response: unknown,
+  ) {
+    return this.repository.adminCommand.applyExternalEffectResult(
+      this.command,
+      input,
+      result,
+      effect,
+      response,
     );
   }
 

@@ -3282,8 +3282,19 @@ side effects — через отдельные idempotent workflow steps. Обы
 - payment/delivery/3PL/CRM side effects выполняются отдельными checkpointed workflow steps; attempts
   сохраняются append-only, terminal operation/domain transition фиксируется отдельным transactional
   step, а payment/provider callbacks проходят versioned Zod boundary;
+- fulfillment-service и CRM callbacks имеют отдельные versioned broker contracts, strict Zod
+  envelopes, trusted App installation/scope/resource binding, content-idempotent DBOS workflows и
+  provider-event inbox deduplication; внешнее CRM изменение переводит link в `OUT_OF_SYNC`, но не
+  переписывает canonical Order;
 - cancellation собирает shipment, 3PL, inventory и payment compensation steps до atomic terminal
   cancellation; return receive может оркестрировать refund;
+- shipment create сохраняет связанную с Delivery shipment локальную normalized projection пакетов,
+  размеров, declared value и allocations; return approval материализует requested return shipment, а
+  cumulative return receive выполняет atomic idempotent Catalog restock только для новой restockable
+  delta и затем опциональный refund;
+- exchange create проверяет quantity conservation с учётом активных returns, сохраняет inbound
+  return-line linkage, outbound variant snapshots и денежный balance; cancel атомарно закрывает
+  связанный return request;
 - bulk coordinator материализует tenant-scoped selection и запускает отдельный child `order.*`
   workflow на каждый order с уникальным `callId`; domain conflicts записываются как partial attempts
   и не получают automatic coordinator retry;
@@ -3297,9 +3308,9 @@ side effects — через отдельные idempotent workflow steps. Обы
 - подготовлены contract/gate artifacts для workflow coverage, tenant boundary, input validation,
   idempotency/version conflicts, atomic audit и recovery; согласно правилу плана suites не
   запускались;
-- разрешённый production build `shopana build -s orders checkout --parallel` проходит formatting,
-  lint, packages build, type checking и production build; migrations и Admin SDL копируются в
-  `dist`.
+- разрешённый production build `shopana build -s orders catalog checkout --parallel` проходит
+  formatting, lint, packages build, type checking и production build; migrations и Admin SDL
+  копируются в `dist`.
 
 Gate каждого slice: operation зарегистрирована как `order.*` DBOS workflow и запускается через
 `ServiceBroker`; root/internal/App authorization boundary проверена; отсутствуют raw

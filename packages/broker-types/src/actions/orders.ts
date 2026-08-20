@@ -239,6 +239,54 @@ export type OrderCheckoutPlacementV1Result = Readonly<{
   orderVersion: number;
 }>;
 
+export const OrderProviderActionNames = {
+  completeFulfillmentServiceOperation: "completeOrderFulfillmentServiceOperationV1",
+  applyIntegrationEvent: "applyOrderIntegrationEventV1",
+} as const;
+
+export const OrderProviderActions = {
+  completeFulfillmentServiceOperation: `order.${OrderProviderActionNames.completeFulfillmentServiceOperation}`,
+  applyIntegrationEvent: `order.${OrderProviderActionNames.applyIntegrationEvent}`,
+} as const;
+
+export interface CompleteOrderFulfillmentServiceOperationV1Params {
+  contractVersion: 1;
+  operationId: string;
+  providerEventId: string;
+  providerSequence: number | null;
+  status: "ACCEPTED" | "REJECTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  externalId: string;
+  externalRevision: string | null;
+  occurredAt: string;
+  payload: Readonly<Record<string, unknown>>;
+}
+
+export interface CompleteOrderFulfillmentServiceOperationV1Result {
+  orderId: string;
+  fulfillmentOrderId: string;
+  orderVersion: number;
+  duplicate: boolean;
+}
+
+export interface ApplyOrderIntegrationEventV1Params {
+  contractVersion: 1;
+  integrationLinkId: string;
+  providerEventId: string;
+  externalOrderId: string;
+  externalRevision: string;
+  eventType: "SYNC_ACKNOWLEDGED" | "EXTERNAL_CHANGED" | "EXTERNAL_DELETED";
+  occurredAt: string;
+  payload: Readonly<Record<string, unknown>>;
+}
+
+export interface ApplyOrderIntegrationEventV1Result {
+  orderId: string;
+  integrationLinkId: string;
+  orderVersion: number;
+  duplicate: boolean;
+  reconciliationRequired: boolean;
+}
+
 export const OrderFulfillmentActionNames = {
   listForOrder: "listDeliveryFulfillmentOrders",
   getShipmentPlan: "getDeliveryShipmentPlan",

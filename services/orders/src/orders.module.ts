@@ -23,6 +23,10 @@ import {
 import { ProjectOrderPaymentEventWorkflow } from "./workflows/payment/ProjectOrderPaymentEventWorkflow.js";
 import { ApplyDeliveryShipmentUpdateWorkflow } from "./workflows/fulfillment/ApplyDeliveryShipmentUpdateWorkflow.js";
 import { adminOrderCommandWorkflowProviders } from "./workflows/admin/AdminOrderCommandWorkflows.js";
+import {
+  ApplyOrderIntegrationEventWorkflow,
+  CompleteOrderFulfillmentServiceOperationWorkflow,
+} from "./workflows/integration/OrderProviderCallbackWorkflows.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "order" })],
@@ -45,6 +49,8 @@ import { adminOrderCommandWorkflowProviders } from "./workflows/admin/AdminOrder
     CancelOrderFromCheckoutPlacementWorkflow,
     ProjectOrderPaymentEventWorkflow,
     ApplyDeliveryShipmentUpdateWorkflow,
+    CompleteOrderFulfillmentServiceOperationWorkflow,
+    ApplyOrderIntegrationEventWorkflow,
     ...adminOrderCommandWorkflowProviders,
   ],
   exports: [Repository],

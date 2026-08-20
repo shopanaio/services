@@ -50,12 +50,52 @@ describe("Admin order business-logic contract", () => {
         returnId: id,
         locationId: id,
         expectedVersion: 2,
-        lines: [],
+        lines: [
+          {
+            orderLineId: id,
+            receivedQuantity: 2,
+            restockableQuantity: 1,
+            damagedQuantity: 1,
+          },
+        ],
         idempotencyKey: "receive-1",
       }),
     ).toMatchObject({ returnId: id, expectedVersion: 2 });
     expect(() => parseAdminOrderPublicInput("ordersBulkAction", { action: "ARCHIVE" })).toThrow(
       "idempotencyKey is required",
     );
+  });
+
+  test("rejects malformed nested money, package and disposition values", () => {
+    expect(() =>
+      parseAdminOrderPublicInput("orderCreate", {
+        idempotencyKey: "create-1",
+        lines: [{ title: "Item", quantity: 1, unitPrice: { amount: "1e2", currencyCode: "USD" } }],
+      }),
+    ).toThrow("non-negative decimal");
+    expect(() =>
+      parseAdminOrderPublicInput("shipmentCreate", {
+        fulfillmentId: id,
+        expectedVersion: 1,
+        idempotencyKey: "shipment-1",
+        packages: [{ items: [{ orderLineId: id, quantity: 0 }] }],
+      }),
+    ).toThrow("quantity must be positive");
+    expect(() =>
+      parseAdminOrderPublicInput("orderReturnReceive", {
+        returnId: id,
+        locationId: id,
+        expectedVersion: 1,
+        idempotencyKey: "receive-2",
+        lines: [
+          {
+            orderLineId: id,
+            receivedQuantity: 2,
+            restockableQuantity: 2,
+            damagedQuantity: 1,
+          },
+        ],
+      }),
+    ).toThrow("disposition quantities are inconsistent");
   });
 });

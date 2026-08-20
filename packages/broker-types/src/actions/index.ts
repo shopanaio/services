@@ -216,6 +216,8 @@ export {
   OrderFulfillmentActions,
   OrderReviewActionNames,
   OrderReviewActions,
+  OrderProviderActionNames,
+  OrderProviderActions,
 } from "./orders.js";
 export type {
   OrderPlacementMoneyV1,
@@ -236,6 +238,10 @@ export type {
   CancelOrderFromCheckoutPlacementV1Params,
   GetOrderCheckoutPlacementV1Params,
   OrderCheckoutPlacementV1Result,
+  CompleteOrderFulfillmentServiceOperationV1Params,
+  CompleteOrderFulfillmentServiceOperationV1Result,
+  ApplyOrderIntegrationEventV1Params,
+  ApplyOrderIntegrationEventV1Result,
 } from "./orders.js";
 export type {
   GetOrderDeliveryShipmentPlanParams,
@@ -626,7 +632,12 @@ export type {
 
 // Inventory service actions
 export * as Inventory from "./inventory.js";
-export { InventoryCheckoutActionNames, InventoryCheckoutActions } from "./inventory.js";
+export {
+  InventoryCheckoutActionNames,
+  InventoryCheckoutActions,
+  InventoryOrderActionNames,
+  InventoryOrderActions,
+} from "./inventory.js";
 export type {
   ReserveCheckoutInventoryParams,
   CheckoutInventoryReservationAllocation,
@@ -637,6 +648,8 @@ export type {
   ConfirmCheckoutInventoryResult,
   ReleaseCheckoutInventoryParams,
   ReleaseCheckoutInventoryResult,
+  RestockOrderReturnInventoryParams,
+  RestockOrderReturnInventoryResult,
   FileHardDeletedParams,
   FileHardDeletedResult,
   CreateItemParams,
