@@ -46,7 +46,7 @@ type BatchWriteDecision = {
 
 type ProductMembershipReplacement = {
   productDocId: number;
-  field: "category" | "vendor" | "facet";
+  field: "category" | "vendor" | "facet" | "status";
   nextValueKeys: readonly string[];
 };
 
@@ -343,7 +343,12 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       productMemberships.push(
         buildProductMembership(productDocId, "category", writeModel),
         buildProductMembership(productDocId, "vendor", writeModel),
-        buildProductMembership(productDocId, "facet", writeModel)
+        buildProductMembership(productDocId, "facet", writeModel),
+        {
+          productDocId,
+          field: "status",
+          nextValueKeys: [writeModel.product.status],
+        }
       );
 
       for (const variant of writeModel.variants) {
@@ -578,7 +583,7 @@ function stateKey(key: ListingIndexItemStateKey): string {
 
 function buildProductMembership(
   productDocId: number,
-  field: ProductMembershipReplacement["field"],
+  field: Exclude<ProductMembershipReplacement["field"], "status">,
   writeModel: ListingSyncWriteModelJson
 ): ProductMembershipReplacement {
   return {

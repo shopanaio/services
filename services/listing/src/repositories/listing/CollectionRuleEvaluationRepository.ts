@@ -95,21 +95,8 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
     const publishedBitmap = this.universeBitmapSql(
       input.universe ?? "storefront",
     );
-    const productVariantExclusions =
-      plan.productVariantExclusionGroups.map((group) => {
-        const excludedVariants = combineBitmaps(
-          group.valueKeys.map((valueKey) =>
-            this.postingBitmap("variant", group.field, valueKey)
-          ),
-          group.operator,
-        );
-        return sql`(
-          ${publishedBitmap}
-          - ${this.projectVariants(excludedVariants)}
-        )`;
-      });
     const productBitmap = combineBitmaps(
-      [publishedBitmap, ...productParts, ...productVariantExclusions],
+      [publishedBitmap, ...productParts],
       "and",
     );
     const membershipBitmap = variantBitmap
@@ -176,14 +163,10 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
   }
 
   private universeBitmapSql(universe: "storefront" | "admin"): SQL {
-    return sql`COALESCE((
-      SELECT rb_build_agg(p.product_doc_id)
-      FROM listing.product_listing_index p
-      WHERE p.store_id = ${this.storeId}::uuid
-        AND p.status ${universe === "storefront"
-          ? sql`= 'published'`
-          : sql`IN ('draft', 'published')`}
-    ), ${emptyBitmapSql()})`;
+    const published = this.postingBitmap("product", "status", "published");
+    return universe === "storefront"
+      ? published
+      : sql`(${published} | ${this.postingBitmap("product", "status", "draft")})`;
   }
 
   private postingBitmap(
@@ -211,13 +194,23 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
       predicateInput.maxValue,
     );
     return sql`COALESCE((
-      SELECT rb_build_agg(p.variant_doc_id)
-      FROM listing.variant_listing_price_index p
-      WHERE p.store_id = ${this.storeId}::uuid
-        AND p.currency = ${predicateInput.currencyCode}
-        AND p.has_price = true
-        AND p.price_minor IS NOT NULL
-        AND ${predicate}
+      SELECT rb_or_agg(price_segment.bitmap)
+      FROM (
+        SELECT
+          projection.block_id,
+          rb_build_agg(p.variant_doc_id) AS bitmap
+        FROM listing.listing_posting_variant_storeion_block projection
+        JOIN listing.variant_listing_price_index p
+          ON p.store_id = projection.store_id
+         AND p.variant_doc_id >= projection.variant_doc_from
+         AND p.variant_doc_id < projection.variant_doc_to
+        WHERE projection.store_id = ${this.storeId}::uuid
+          AND p.currency = ${predicateInput.currencyCode}
+          AND p.has_price = true
+          AND p.price_minor IS NOT NULL
+          AND ${predicate}
+        GROUP BY projection.block_id
+      ) price_segment
     ), ${emptyBitmapSql()})`;
   }
 
@@ -231,10 +224,16 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
       predicateInput.maxValue,
     );
     return sql`COALESCE((
-      SELECT rb_build_agg(p.product_doc_id)
-      FROM listing.product_listing_index p
-      WHERE p.store_id = ${this.storeId}::uuid
-        AND ${predicate}
+      SELECT rb_or_agg(created_segment.bitmap)
+      FROM (
+        SELECT
+          ((p.product_doc_id - 1) / 65536)::int AS segment_id,
+          rb_build_agg(p.product_doc_id) AS bitmap
+        FROM listing.product_listing_index p
+        WHERE p.store_id = ${this.storeId}::uuid
+          AND ${predicate}
+        GROUP BY ((p.product_doc_id - 1) / 65536)::int
+      ) created_segment
     ), ${emptyBitmapSql()})`;
   }
 
@@ -325,4 +324,3 @@ function countBy(values: readonly string[]): Record<string, number> {
   for (const value of values) counts[value] = (counts[value] ?? 0) + 1;
   return counts;
 }
-

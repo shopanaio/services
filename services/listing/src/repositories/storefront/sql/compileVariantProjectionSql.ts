@@ -2,6 +2,7 @@ import { sql, type SQL } from "drizzle-orm";
 import { coalesceBitmapSql } from "../sqlHelpers.js";
 
 export const NARROW_VARIANT_PROJECTION_THRESHOLD = 10_000;
+export const NARROW_VARIANT_PROJECTION_BATCH_THRESHOLD = 100_000;
 
 export function compileVariantProjectionSql(input: {
   projectIdSql: SQL;
@@ -52,15 +53,13 @@ export function compileVariantProjectionSql(input: {
     ),
     partial_block_products AS (
       SELECT rb_build_agg(vli.product_doc_id) AS product_bitmap
-      FROM (
-        SELECT block_match
-        FROM matched_blocks
-        WHERE rb_cardinality(block_match) < variant_count
-      ) mb
-      CROSS JOIN LATERAL rb_iterate(mb.block_match) AS matched(variant_doc_id)
+      FROM matched_blocks mb
       JOIN listing.variant_listing_index vli
         ON vli.store_id = ${input.projectIdSql}
-       AND vli.variant_doc_id = matched.variant_doc_id
+       AND vli.variant_doc_id >= mb.variant_doc_from
+       AND vli.variant_doc_id < mb.variant_doc_to
+       AND mb.block_match @> vli.variant_doc_id
+      WHERE rb_cardinality(mb.block_match) < mb.variant_count
       HAVING COUNT(vli.product_doc_id) > 0
     ),
     projected AS (

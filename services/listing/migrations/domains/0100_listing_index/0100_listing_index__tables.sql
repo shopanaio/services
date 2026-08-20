@@ -300,7 +300,7 @@ CREATE TABLE listing.listing_posting_bitmap (
     CHECK (entity_type IN ('product', 'variant')),
   CONSTRAINT chk_listing_posting_bitmap_entity_field
     CHECK (
-      (entity_type = 'product' AND field IN ('category', 'vendor', 'facet', 'collection', 'rule_term'))
+      (entity_type = 'product' AND field IN ('category', 'vendor', 'facet', 'collection', 'rule_term', 'status'))
       OR
       (entity_type = 'variant' AND field IN ('term', 'variant_product', 'rule_term'))
     )

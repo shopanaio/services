@@ -13,7 +13,8 @@ export type ProductPostingField =
   | "vendor"
   | "facet"
   | "collection"
-  | "rule_term";
+  | "rule_term"
+  | "status";
 export type VariantPostingField = "term" | "variant_product" | "rule_term";
 export type PostingField = ProductPostingField | VariantPostingField;
 
@@ -238,12 +239,20 @@ export function assertPostingKey(input: PostingKeyInput): void {
       input.field !== "vendor" &&
       input.field !== "facet" &&
       input.field !== "collection" &&
-      input.field !== "rule_term"
+      input.field !== "rule_term" &&
+      input.field !== "status"
     ) {
       throw new Error(`Unsupported product posting field: ${input.field}`);
     }
     if (input.field === "rule_term") {
       decodeCollectionRuleTerm("product", input.valueKey);
+    }
+    if (
+      input.field === "status" &&
+      input.valueKey !== "published" &&
+      input.valueKey !== "draft"
+    ) {
+      throw new Error(`Unsupported product status posting: ${input.valueKey}`);
     }
     return;
   }

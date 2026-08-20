@@ -8,7 +8,10 @@ import {
   compileVariantCandidatesBitmapSql,
   hasVariantPredicate,
 } from "./compileListingProductMatchesSql.js";
-import { NARROW_VARIANT_PROJECTION_THRESHOLD } from "./compileVariantProjectionSql.js";
+import {
+  NARROW_VARIANT_PROJECTION_BATCH_THRESHOLD,
+  NARROW_VARIANT_PROJECTION_THRESHOLD,
+} from "./compileVariantProjectionSql.js";
 import { compileEligibleFacetIdsSql } from "../../facet/facetScopes.js";
 
 const PRODUCT_FACET_VARIANT_BASE_KEY = "__product_facet_variant_base__";
@@ -225,12 +228,18 @@ export function compileFacetsWithCountsQuerySql(
         rb_cardinality(input.bitmap) AS matched_count
       FROM variant_projection_inputs input
     ),
+    variant_projection_work AS MATERIALIZED (
+      SELECT COALESCE(SUM(matches.matched_count), 0)::bigint AS matched_count
+      FROM variant_projection_matches matches
+    ),
     narrow_variant_projection_matches AS MATERIALIZED (
       SELECT
         matches.projection_key,
         matches.bitmap
       FROM variant_projection_matches matches
+      CROSS JOIN variant_projection_work work
       WHERE matches.matched_count BETWEEN 1 AND ${NARROW_VARIANT_PROJECTION_THRESHOLD}
+        AND work.matched_count <= ${NARROW_VARIANT_PROJECTION_BATCH_THRESHOLD}
     ),
     narrow_projected_variant_values AS (
       SELECT
@@ -247,15 +256,19 @@ export function compileFacetsWithCountsQuerySql(
     matched_projection_blocks AS MATERIALIZED (
       SELECT
         matches.projection_key,
+        block.variant_doc_from,
+        block.variant_doc_to,
         block.variant_bitmap,
         block.product_bitmap,
         block.variant_count,
         matches.bitmap & block.variant_bitmap AS block_match
       FROM variant_projection_matches matches
+      CROSS JOIN variant_projection_work work
       JOIN listing.listing_posting_variant_storeion_block block
         ON block.store_id = ${request.storeId}::uuid
        AND rb_cardinality(matches.bitmap & block.variant_bitmap) > 0
       WHERE matches.matched_count > ${NARROW_VARIANT_PROJECTION_THRESHOLD}
+         OR work.matched_count > ${NARROW_VARIANT_PROJECTION_BATCH_THRESHOLD}
     ),
     full_block_projected_variant_values AS (
       SELECT
@@ -270,10 +283,11 @@ export function compileFacetsWithCountsQuerySql(
         blocks.projection_key,
         rb_build_agg(vli.product_doc_id) AS product_bitmap
       FROM matched_projection_blocks blocks
-      CROSS JOIN LATERAL rb_iterate(blocks.block_match) AS matched(variant_doc_id)
       JOIN listing.variant_listing_index vli
         ON vli.store_id = ${request.storeId}::uuid
-       AND vli.variant_doc_id = matched.variant_doc_id
+       AND vli.variant_doc_id >= blocks.variant_doc_from
+       AND vli.variant_doc_id < blocks.variant_doc_to
+       AND blocks.block_match @> vli.variant_doc_id
       WHERE rb_cardinality(blocks.block_match) < blocks.variant_count
       GROUP BY blocks.projection_key
     ),

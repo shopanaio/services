@@ -44,18 +44,14 @@ export function compileVirtualFacetsQuerySql(request: ListingSqlRequest): SQL {
   const priceBoundsSource = hasVariantTermPredicate
     ? sql`
       FROM matching_term_variants mtv
-      CROSS JOIN LATERAL rb_iterate(mtv.bitmap) AS matched(variant_doc_id)
-      JOIN listing.variant_listing_index vli
-        ON vli.store_id = ${request.storeId}::uuid
-       AND vli.variant_doc_id = matched.variant_doc_id
       JOIN listing.variant_listing_price_index vp
         ON vp.store_id = ${request.storeId}::uuid
-       AND vp.variant_id = vli.variant_id
        AND vp.currency = ${request.currency}
        AND vp.has_price = true
        AND vp.price_minor IS NOT NULL
+       AND mtv.bitmap @> vp.variant_doc_id
       CROSS JOIN product_base pb
-      WHERE pb.bitmap @> vli.product_doc_id
+      WHERE pb.bitmap @> vp.product_doc_id
     `
     : sql`
       FROM input i

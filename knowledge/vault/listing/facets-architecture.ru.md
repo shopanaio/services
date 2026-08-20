@@ -47,11 +47,14 @@ Virtual availability facet возвращает оба declared states (`true`, 
 | product | category | category UUID | product_doc_id |
 | product | vendor | vendor UUID | product_doc_id |
 | product | facet | `<facetId>:<facetValueId>` | product_doc_id |
+| product | status | `published` / `draft` | product_doc_id |
 | variant | term | `JSON.stringify(["v1", fieldKey, valueKey])` | variant_doc_id |
 | variant | variant_product | product UUID | variant_doc_id |
 
 Product `field=facet` используется только TAG/FEATURE. `variant + facet` и
 `product + term` запрещены repository и DB constraints.
+Product status posting является canonical read projection для storefront/admin
+universe и устраняет request-time `rb_build_agg(product_listing_index)`.
 
 ## Universal variant terms
 

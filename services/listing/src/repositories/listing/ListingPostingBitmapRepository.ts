@@ -59,6 +59,7 @@ export interface ListingVariantTermAuditIssue {
     | "PRODUCT_AVAILABILITY_SORT_MISSING"
     | "PRODUCT_AVAILABILITY_SORT_NULL"
     | "PRODUCT_AVAILABILITY_SORT_INCONSISTENT"
+    | "PRODUCT_STATUS_POSTING_MISMATCH"
     | "REGISTRY_DIVERGENCE";
   storeId: string;
   encodedKey?: string;
@@ -241,6 +242,23 @@ export class ListingPostingBitmapRepository extends BaseRepository {
             AND p.value_key = ${unavailableKey}
         ), (SELECT bitmap FROM empty_bitmap)) AS bitmap
       ),
+      product_status AS (
+        SELECT
+          requested.status,
+          COALESCE((
+            SELECT rb_build_agg(pli.product_doc_id)
+            FROM listing.product_listing_index pli
+            WHERE pli.store_id = ${this.storeId}::uuid
+              AND pli.status = requested.status
+          ), (SELECT bitmap FROM empty_bitmap)) AS expected_bitmap,
+          COALESCE(posting.bitmap, (SELECT bitmap FROM empty_bitmap)) AS actual_bitmap
+        FROM (VALUES ('published'::text), ('draft'::text)) requested(status)
+        LEFT JOIN listing.listing_posting_bitmap posting
+          ON posting.store_id = ${this.storeId}::uuid
+         AND posting.entity_type = 'product'
+         AND posting.field = 'status'
+         AND posting.value_key = requested.status
+      ),
       product_availability AS (
         SELECT
           pli.product_id,
@@ -382,6 +400,17 @@ export class ListingPostingBitmapRepository extends BaseRepository {
         WHERE pa.availability_sort_row_count > 0
         GROUP BY pa.product_id, pa.actual
         HAVING BOOL_OR(product_sort.bool_value IS DISTINCT FROM pa.actual)
+
+        UNION ALL
+
+        SELECT
+          'PRODUCT_STATUS_POSTING_MISMATCH',
+          status,
+          rb_cardinality(expected_bitmap)::text,
+          rb_cardinality(actual_bitmap)::text
+        FROM product_status
+        WHERE rb_cardinality(expected_bitmap - actual_bitmap) > 0
+           OR rb_cardinality(actual_bitmap - expected_bitmap) > 0
       )
       SELECT
         code AS "code",
@@ -561,7 +590,8 @@ export class ListingPostingBitmapRepository extends BaseRepository {
       (input.entityType === "product" &&
         input.field !== "category" &&
         input.field !== "vendor" &&
-        input.field !== "facet") ||
+        input.field !== "facet" &&
+        input.field !== "status") ||
       (input.entityType === "variant" &&
         input.field !== "term" &&
         input.field !== "variant_product")

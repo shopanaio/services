@@ -281,6 +281,11 @@ export class ListingWriteIndexActionScript extends BaseScript<
       field: "rule_term",
       nextValueKeys: writeModel.productPostingValueKeys.ruleTerm,
     });
+    await this.repository.listingPostingBitmap.replaceProductMemberships({
+      productDocId,
+      field: "status",
+      nextValueKeys: [writeModel.product.status],
+    });
   }
 
   private async deleteVariantDependencies(

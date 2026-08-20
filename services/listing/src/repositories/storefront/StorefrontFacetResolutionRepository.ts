@@ -264,10 +264,12 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
 
   private publishedProductBitmapSql(): SQL {
     return coalesceScopeBitmapSql(sql`(
-      SELECT rb_build_agg(pli.product_doc_id)
-      FROM listing.product_listing_index pli
-      WHERE pli.store_id = ${this.storeId}::uuid
-        AND pli.status = 'published'
+      SELECT p.bitmap
+      FROM listing.listing_posting_bitmap p
+      WHERE p.store_id = ${this.storeId}::uuid
+        AND p.entity_type = 'product'
+        AND p.field = 'status'
+        AND p.value_key = 'published'
     )`);
   }
 

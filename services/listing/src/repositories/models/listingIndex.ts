@@ -411,7 +411,7 @@ export const listingPostingBitmap = listingSchema.table(
     check(
       "chk_listing_posting_bitmap_entity_field",
       sql`(
-        (${table.entityType} = 'product' AND ${table.field} IN ('category', 'vendor', 'facet', 'collection', 'rule_term'))
+        (${table.entityType} = 'product' AND ${table.field} IN ('category', 'vendor', 'facet', 'collection', 'rule_term', 'status'))
         OR
         (${table.entityType} = 'variant' AND ${table.field} IN ('term', 'variant_product', 'rule_term'))
       )`,

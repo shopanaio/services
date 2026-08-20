@@ -345,10 +345,12 @@ function compileProductStatusBitmapSql(
   const statuses = request.request.filterPlan.productStatuses;
   if (statuses.length === 0) return null;
   return coalesceBitmapSql(sql`(
-    SELECT rb_build_agg(p.product_doc_id)
-    FROM listing.product_listing_index p
+    SELECT rb_or_agg(p.bitmap)
+    FROM listing.listing_posting_bitmap p
     WHERE p.store_id = ${request.storeId}::uuid
-      AND p.status IN (${joinTextValues(statuses)})
+      AND p.entity_type = 'product'
+      AND p.field = 'status'
+      AND p.value_key IN (${joinTextValues(statuses)})
   )`);
 }
 
@@ -436,10 +438,12 @@ function compileSearchMembershipBitmapSql(request: ListingSqlRequest): SQL {
 
 function compilePublishedProductBitmapSql(request: ListingSqlRequest): SQL {
   return coalesceBitmapSql(sql`(
-    SELECT rb_build_agg(pli.product_doc_id)
-    FROM listing.product_listing_index pli
-    WHERE pli.store_id = ${request.storeId}::uuid
-      AND pli.status = 'published'
+    SELECT p.bitmap
+    FROM listing.listing_posting_bitmap p
+    WHERE p.store_id = ${request.storeId}::uuid
+      AND p.entity_type = 'product'
+      AND p.field = 'status'
+      AND p.value_key = 'published'
   )`);
 }
 

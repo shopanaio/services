@@ -37,7 +37,6 @@ export interface CollectionRulePlan {
   matchesNothing: boolean;
   productPostingGroups: readonly CollectionPostingGroup[];
   productCreatedAtPredicates: readonly CollectionCreatedAtPredicate[];
-  productVariantExclusionGroups: readonly CollectionPostingGroup[];
   variantPostingGroups: readonly CollectionPostingGroup[];
   variantPricePredicates: readonly CollectionPricePredicate[];
   hasVariantPredicates: boolean;
@@ -54,7 +53,6 @@ export function compileCollectionRules(input: {
     };
   const productPostingGroups: CollectionPostingGroup[] = [];
   const productCreatedAtPredicates: CollectionCreatedAtPredicate[] = [];
-  const productVariantExclusionGroups: CollectionPostingGroup[] = [];
   const variantPostingGroups: CollectionPostingGroup[] = [];
   const variantPricePredicates: CollectionPricePredicate[] = [];
 
@@ -102,20 +100,15 @@ export function compileCollectionRules(input: {
       continue;
     }
     if (rule.field === "in_stock") {
-      const group: CollectionPostingGroup = {
+      variantPostingGroups.push({
         field: "term",
         operator: "and",
         valueKeys: [
           encodeListingVariantTerm(
-            buildAvailabilityVariantTerm(true),
+            buildAvailabilityVariantTerm(rule.value.value),
           ),
         ],
-      };
-      if (rule.value.value) {
-        variantPostingGroups.push(group);
-      } else {
-        productVariantExclusionGroups.push(group);
-      }
+      });
       continue;
     }
     if (rule.field === "price") {
@@ -154,13 +147,9 @@ export function compileCollectionRules(input: {
     matchesNothing: input.rules.length === 0,
     productPostingGroups: Object.freeze(productPostingGroups),
     productCreatedAtPredicates: Object.freeze(productCreatedAtPredicates),
-    productVariantExclusionGroups: Object.freeze(
-      productVariantExclusionGroups,
-    ),
     variantPostingGroups: Object.freeze(variantPostingGroups),
     variantPricePredicates: Object.freeze(variantPricePredicates),
     hasVariantPredicates:
-      productVariantExclusionGroups.length > 0 ||
       variantPostingGroups.length > 0 ||
       variantPricePredicates.length > 0,
   });
