@@ -1,7 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
-  index,
   integer,
   jsonb,
   primaryKey,
@@ -11,235 +11,280 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { ordersSchema } from "./schema.js";
 
-const auditColumns = () => ({
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+const instant = (name: string) => timestamp(name, { withTimezone: true, mode: "string" });
+const money = (name: string) => bigint(name, { mode: "bigint" });
+const record = (name: string) => jsonb(name).$type<Record<string, unknown>>();
 
 export const orders = ordersSchema.table(
   "orders",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
-    orderNumber: bigint("order_number", { mode: "bigint" }).notNull(),
-    apiKeyId: uuid("api_key_id"),
-    userId: uuid("user_id"),
-    salesChannel: varchar("sales_channel", { length: 32 }),
-    externalSource: text("external_source"),
+    orderNumber: money("order_number").notNull(),
+    version: integer("version").notNull().default(1),
+    status: text("status").notNull().default("DRAFT"),
+    paymentStatus: text("payment_status").notNull().default("PENDING"),
+    fulfillmentStatus: text("fulfillment_status").notNull().default("UNFULFILLED"),
+    deliveryStatus: text("delivery_status").notNull().default("NOT_SHIPPED"),
+    returnStatus: text("return_status").notNull().default("NONE"),
+    riskLevel: text("risk_level").notNull().default("NONE"),
+    origin: text("origin").notNull(),
+    customerId: uuid("customer_id"),
+    createdByType: text("created_by_type").notNull(),
+    createdById: uuid("created_by_id"),
+    salesChannel: varchar("sales_channel", { length: 64 }),
+    checkoutId: uuid("checkout_id"),
+    externalSource: varchar("external_source", { length: 128 }),
     externalId: text("external_id"),
     localeCode: varchar("locale_code", { length: 16 }),
     currencyCode: varchar("currency_code", { length: 3 }).notNull(),
-    subtotal: bigint("subtotal", { mode: "bigint" }).notNull(),
-    shippingTotal: bigint("shipping_total", { mode: "bigint" }).notNull(),
-    discountTotal: bigint("discount_total", { mode: "bigint" }).notNull(),
-    taxTotal: bigint("tax_total", { mode: "bigint" }).notNull(),
-    grandTotal: bigint("grand_total", { mode: "bigint" }).notNull(),
-    status: varchar("status", { length: 255 }).notNull(),
-    placedAt: timestamp("placed_at", { withTimezone: true }),
-    closedAt: timestamp("closed_at", { withTimezone: true }),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    checkoutSnapshot: jsonb("checkout_snapshot").$type<Record<string, unknown>>().notNull(),
-    ...auditColumns(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    subtotalAmount: money("subtotal_amount").notNull(),
+    discountAmount: money("discount_amount").notNull().default(0n),
+    shippingAmount: money("shipping_amount").notNull().default(0n),
+    taxAmount: money("tax_amount").notNull().default(0n),
+    dutyAmount: money("duty_amount").notNull().default(0n),
+    adjustmentAmount: money("adjustment_amount").notNull().default(0n),
+    totalAmount: money("total_amount").notNull(),
+    checkoutSnapshot: record("checkout_snapshot").notNull(),
+    metadata: record("metadata").notNull().default({}),
+    placedAt: instant("placed_at"),
+    cancelledAt: instant("cancelled_at"),
+    closedAt: instant("closed_at"),
+    expiresAt: instant("expires_at"),
+    archivedAt: instant("archived_at"),
+    createdAt: instant("created_at").notNull().defaultNow(),
+    updatedAt: instant("updated_at").notNull().defaultNow(),
   },
   (table) => [
+    unique("orders_store_id_id_unique").on(table.storeId, table.id),
     unique("orders_store_number_unique").on(table.storeId, table.orderNumber),
-    index("orders_store_created_at_idx").on(table.storeId, table.createdAt),
   ],
 );
 
 export const orderNumberCounters = ordersSchema.table("order_number_counters", {
+  storeId: uuid("store_id").primaryKey(),
+  lastNumber: money("last_number").notNull().default(0n),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
+});
+
+export const orderLines = ordersSchema.table("order_lines", {
   id: uuid("id")
     .primaryKey()
     .default(sql`uuidv7()`),
-  storeId: uuid("store_id").notNull().unique(),
-  lastNumber: bigint("last_number", { mode: "bigint" }).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+  parentLineId: uuid("parent_line_id"),
+  purchasableId: text("purchasable_id").notNull(),
+  purchasableType: varchar("purchasable_type", { length: 64 }).notNull().default("VARIANT"),
+  title: text("title").notNull(),
+  sku: text("sku"),
+  imageUrl: text("image_url"),
+  quantity: integer("quantity").notNull(),
+  cancelledQuantity: integer("cancelled_quantity").notNull().default(0),
+  requiresShipping: boolean("requires_shipping").notNull().default(true),
+  taxable: boolean("taxable").notNull().default(true),
+  unitPriceAmount: money("unit_price_amount").notNull(),
+  unitCompareAtPriceAmount: money("unit_compare_at_price_amount"),
+  subtotalAmount: money("subtotal_amount").notNull(),
+  discountAmount: money("discount_amount").notNull().default(0n),
+  taxAmount: money("tax_amount").notNull().default(0n),
+  dutyAmount: money("duty_amount").notNull().default(0n),
+  totalAmount: money("total_amount").notNull(),
+  purchasableSnapshot: record("purchasable_snapshot").notNull(),
+  metadata: record("metadata").notNull().default({}),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
 });
 
-export const orderItems = ordersSchema.table(
-  "order_items",
+export const orderContacts = ordersSchema.table(
+  "order_contacts",
   {
-    id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-    quantity: integer("quantity").notNull(),
-    subtotalAmount: bigint("subtotal_amount", { mode: "bigint" }).notNull(),
-    discountAmount: bigint("discount_amount", { mode: "bigint" }).notNull(),
-    taxAmount: bigint("tax_amount", { mode: "bigint" }).notNull(),
-    totalAmount: bigint("total_amount", { mode: "bigint" }).notNull(),
-    unitId: text("unit_id"),
-    unitTitle: text("unit_title"),
-    unitPrice: bigint("unit_price", { mode: "bigint" }),
-    unitCompareAtPrice: bigint("unit_compare_at_price", { mode: "bigint" }),
-    unitSku: text("unit_sku"),
-    unitImageUrl: text("unit_image_url"),
-    unitSnapshot: jsonb("unit_snapshot").$type<Record<string, unknown> | null>(),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    ...auditColumns(),
-    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    orderId: uuid("order_id").notNull(),
+    type: text("type").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    middleName: text("middle_name"),
+    email: text("email"),
+    phoneE164: text("phone_e164"),
+    customerNote: text("customer_note"),
+    countryCode: varchar("country_code", { length: 2 }),
+    emailHash: text("email_hash"),
+    phoneHash: text("phone_hash"),
+    metadata: record("metadata").notNull().default({}),
+    expiresAt: instant("expires_at"),
+    redactedAt: instant("redacted_at"),
+    createdAt: instant("created_at").notNull().defaultNow(),
+    updatedAt: instant("updated_at").notNull().defaultNow(),
   },
-  (table) => [index("order_items_order_id_idx").on(table.orderId)],
+  (table) => [primaryKey({ columns: [table.storeId, table.orderId] })],
 );
 
-export const orderDeliveryAddresses = ordersSchema.table("order_delivery_addresses", {
-  id: uuid("id").primaryKey(),
+export const orderAddresses = ordersSchema.table("order_addresses", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  type: text("type").notNull(),
   address1: text("address1"),
   address2: text("address2"),
   city: text("city"),
   countryCode: varchar("country_code", { length: 2 }),
   provinceCode: text("province_code"),
   postalCode: text("postal_code"),
-  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-  ...auditColumns(),
+  company: text("company"),
+  metadata: record("metadata").notNull().default({}),
+  expiresAt: instant("expires_at"),
+  redactedAt: instant("redacted_at"),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
 });
 
-export const orderRecipients = ordersSchema.table(
-  "order_recipients",
-  {
-    id: uuid("id").primaryKey(),
-    storeId: uuid("store_id").notNull(),
-    firstName: text("first_name"),
-    lastName: text("last_name"),
-    middleName: text("middle_name"),
-    email: text("email"),
-    phone: text("phone"),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    ...auditColumns(),
-  },
-  (table) => [index("order_recipients_store_id_idx").on(table.storeId)],
-);
+export const orderRecipients = ordersSchema.table("order_recipients", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  middleName: text("middle_name"),
+  email: text("email"),
+  phone: text("phone"),
+  metadata: record("metadata").notNull().default({}),
+  expiresAt: instant("expires_at"),
+  redactedAt: instant("redacted_at"),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
+});
 
-export const ordersPiiRecords = ordersSchema.table(
-  "orders_pii_records",
-  {
-    storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id")
-      .primaryKey()
-      .references(() => orders.id, { onDelete: "cascade" }),
-    firstName: text("first_name"),
-    lastName: text("last_name"),
-    middleName: text("middle_name"),
-    customerId: uuid("customer_id"),
-    customerEmail: text("customer_email"),
-    customerPhoneE164: text("customer_phone_e164"),
-    customerNote: text("customer_note"),
-    countryCode: varchar("country_code", { length: 2 }),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    expiresAt: timestamp("expires_at", { withTimezone: true }),
-    ...auditColumns(),
-  },
-  (table) => [index("orders_pii_records_store_id_idx").on(table.storeId)],
-);
+export const orderDeliveryGroups = ordersSchema.table("order_delivery_groups", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+  status: text("status").notNull().default("OPEN"),
+  addressId: uuid("address_id"),
+  recipientId: uuid("recipient_id"),
+  requiresShipping: boolean("requires_shipping").notNull().default(true),
+  subtotalAmount: money("subtotal_amount").notNull().default(0n),
+  discountAmount: money("discount_amount").notNull().default(0n),
+  taxAmount: money("tax_amount").notNull().default(0n),
+  totalAmount: money("total_amount").notNull().default(0n),
+  metadata: record("metadata").notNull().default({}),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
+});
 
-export const orderDeliveryGroups = ordersSchema.table(
-  "order_delivery_groups",
+export const orderDeliveryGroupLines = ordersSchema.table(
+  "order_delivery_group_lines",
   {
-    id: uuid("id").primaryKey(),
     storeId: uuid("store_id").notNull(),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-    addressId: uuid("address_id").references(() => orderDeliveryAddresses.id, {
-      onDelete: "set null",
-    }),
-    recipientId: uuid("recipient_id").references(() => orderRecipients.id, {
-      onDelete: "set null",
-    }),
-    selectedDeliveryMethodCode: text("selected_delivery_method_code"),
-    selectedDeliveryMethodProvider: text("selected_delivery_method_provider"),
-    lineItemIds: uuid("line_item_ids").array().notNull(),
-    ...auditColumns(),
-  },
-  (table) => [index("order_delivery_groups_order_id_idx").on(table.orderId)],
-);
-
-export const orderDeliveryMethods = ordersSchema.table(
-  "order_delivery_methods",
-  {
-    code: text("code").notNull(),
-    provider: text("provider").notNull(),
-    storeId: uuid("store_id").notNull(),
-    deliveryGroupId: uuid("delivery_group_id")
-      .notNull()
-      .references(() => orderDeliveryGroups.id, { onDelete: "cascade" }),
-    deliveryMethodType: varchar("delivery_method_type", { length: 32 }),
-    paymentModel: varchar("payment_model", { length: 32 }),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
-    customerInput: jsonb("customer_input").$type<Record<string, unknown>>().notNull().default({}),
-  },
-  (table) => [primaryKey({ columns: [table.code, table.provider, table.deliveryGroupId] })],
-);
-
-export const orderPaymentMethods = ordersSchema.table(
-  "order_payment_methods",
-  {
-    id: uuid("id")
-      .primaryKey()
-      .default(sql`uuidv7()`),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-    storeId: uuid("store_id").notNull(),
-    billingAddressId: uuid("billing_address_id"),
-    code: text("code").notNull(),
-    provider: text("provider").notNull(),
-    title: text("title"),
-    flow: varchar("flow", { length: 32 }).notNull(),
-    isSelected: boolean("is_selected").notNull().default(false),
-    providerData: jsonb("provider_data").$type<Record<string, unknown>>().notNull().default({}),
-    customerInputSnapshot: jsonb("customer_input_snapshot")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
-    ...auditColumns(),
+    orderId: uuid("order_id").notNull(),
+    deliveryGroupId: uuid("delivery_group_id").notNull(),
+    orderLineId: uuid("order_line_id").notNull(),
+    quantity: integer("quantity").notNull(),
   },
   (table) => [
-    index("order_payment_methods_store_order_idx").on(table.storeId, table.orderId, table.id),
+    primaryKey({
+      columns: [table.storeId, table.orderId, table.deliveryGroupId, table.orderLineId],
+    }),
   ],
 );
 
-export const orderAppliedDiscounts = ordersSchema.table(
-  "order_applied_discounts",
-  {
-    id: uuid("id")
-      .primaryKey()
-      .default(sql`uuidv7()`),
-    orderId: uuid("order_id")
-      .notNull()
-      .references(() => orders.id, { onDelete: "cascade" }),
-    storeId: uuid("store_id").notNull(),
-    code: text("code"),
-    discountType: varchar("discount_type", { length: 32 }),
-    value: bigint("value", { mode: "bigint" }).notNull(),
-    provider: text("provider"),
-    conditions: jsonb("conditions").$type<Record<string, unknown> | null>(),
-    appliedAt: timestamp("applied_at", { withTimezone: true }),
-  },
-  (table) => [index("order_applied_discounts_order_id_idx").on(table.orderId)],
-);
+export const orderDeliveryMethods = ordersSchema.table("order_delivery_methods", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  deliveryGroupId: uuid("delivery_group_id").notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+  code: text("code").notNull(),
+  provider: text("provider").notNull(),
+  title: text("title"),
+  type: text("type").notNull(),
+  paymentModel: text("payment_model"),
+  quotedAmount: money("quoted_amount").notNull().default(0n),
+  isSelected: boolean("is_selected").notNull().default(false),
+  providerData: record("provider_data").notNull().default({}),
+  customerInputSnapshot: record("customer_input_snapshot").notNull().default({}),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
+});
 
-export const idempotency = ordersSchema.table(
-  "idempotency",
+export const orderPaymentMethods = ordersSchema.table("order_payment_methods", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  billingAddressId: uuid("billing_address_id"),
+  code: text("code").notNull(),
+  provider: text("provider").notNull(),
+  title: text("title"),
+  flow: text("flow").notNull(),
+  isSelected: boolean("is_selected").notNull().default(false),
+  providerData: record("provider_data").notNull().default({}),
+  customerInputSnapshot: record("customer_input_snapshot").notNull().default({}),
+  createdAt: instant("created_at").notNull().defaultNow(),
+  updatedAt: instant("updated_at").notNull().defaultNow(),
+});
+
+export const orderDiscountApplications = ordersSchema.table("order_discount_applications", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuidv7()`),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  currencyCode: varchar("currency_code", { length: 3 }).notNull(),
+  targetType: text("target_type").notNull(),
+  valueType: text("value_type").notNull(),
+  code: text("code"),
+  title: text("title").notNull(),
+  provider: text("provider"),
+  valuePercentage: text("value_percentage"),
+  valueAmount: money("value_amount"),
+  totalAllocatedAmount: money("total_allocated_amount").notNull().default(0n),
+  conditions: record("conditions"),
+  metadata: record("metadata").notNull().default({}),
+  appliedAt: instant("applied_at").notNull().defaultNow(),
+});
+
+export const idempotencyRecords = ordersSchema.table(
+  "idempotency_records",
   {
     id: uuid("id")
       .primaryKey()
       .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
+    operation: varchar("operation", { length: 128 }).notNull(),
     idempotencyKey: text("idempotency_key").notNull(),
-    requestHash: text("request_hash").notNull(),
-    response: jsonb("response").$type<{ id: string }>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    requestHash: varchar("request_hash", { length: 64 }).notNull(),
+    status: text("status").notNull().default("IN_PROGRESS"),
+    resourceType: varchar("resource_type", { length: 128 }),
+    resourceId: uuid("resource_id"),
+    responseStatus: integer("response_status"),
+    response: jsonb("response").$type<{ id: string }>(),
+    failureCode: text("failure_code"),
+    lockedUntil: instant("locked_until"),
+    expiresAt: instant("expires_at"),
+    createdAt: instant("created_at").notNull().defaultNow(),
+    updatedAt: instant("updated_at").notNull().defaultNow(),
   },
   (table) => [
-    unique("orders_idempotency_store_key_unique").on(table.storeId, table.idempotencyKey),
-    index("orders_idempotency_expires_at_idx").on(table.expiresAt),
+    unique("idempotency_records_store_operation_key_unique").on(
+      table.storeId,
+      table.operation,
+      table.idempotencyKey,
+    ),
   ],
 );

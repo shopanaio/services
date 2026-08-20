@@ -1,9 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  orderDeliveryAddresses,
-  orderRecipients,
-  ordersPiiRecords,
-} from "@src/repositories/models/index";
+import { orderAddresses, orderRecipients, orderContacts } from "@src/repositories/models/index";
 import { BaseRepository } from "@src/repositories/BaseRepository";
 
 export type OrderContactPII = {
@@ -51,29 +47,36 @@ export class OrdersPiiRepository extends BaseRepository {
       firstName: input.firstName ?? null,
       lastName: input.lastName ?? null,
       middleName: input.middleName ?? null,
-      customerId: input.customerId ?? null,
-      customerEmail: input.customerEmail,
-      customerPhoneE164: input.customerPhoneE164,
+      type: "SHIPPING",
+      email: input.customerEmail,
+      phoneE164: input.customerPhoneE164,
       customerNote: input.customerNote,
       countryCode: input.countryCode ?? null,
       metadata: input.metadata ?? {},
-      expiresAt: input.expiresAt ?? null,
+      expiresAt: input.expiresAt?.toISOString() ?? null,
     };
 
     await this.connection
-      .insert(ordersPiiRecords)
+      .insert(orderContacts)
       .values(values)
       .onConflictDoUpdate({
-        target: ordersPiiRecords.orderId,
+        target: [orderContacts.storeId, orderContacts.orderId],
         set: { ...values, updatedAt: sql`now()` },
       });
   }
 
-  async insertDeliveryAddresses(addresses: DeliveryAddressPII[]): Promise<string[]> {
+  async insertDeliveryAddresses(
+    storeId: string,
+    orderId: string,
+    addresses: DeliveryAddressPII[],
+  ): Promise<string[]> {
     if (addresses.length === 0) return [];
-    await this.connection.insert(orderDeliveryAddresses).values(
+    await this.connection.insert(orderAddresses).values(
       addresses.map((address) => ({
         id: address.id,
+        storeId,
+        orderId,
+        type: "SHIPPING",
         address1: address.address1,
         address2: address.address2 ?? null,
         city: address.city,
@@ -86,12 +89,13 @@ export class OrdersPiiRepository extends BaseRepository {
     return addresses.map(({ id }) => id);
   }
 
-  async insertRecipients(recipients: RecipientPII[]): Promise<string[]> {
+  async insertRecipients(orderId: string, recipients: RecipientPII[]): Promise<string[]> {
     if (recipients.length === 0) return [];
     await this.connection.insert(orderRecipients).values(
       recipients.map((recipient) => ({
         id: recipient.id,
         storeId: recipient.storeId,
+        orderId,
         firstName: recipient.firstName ?? null,
         lastName: recipient.lastName ?? null,
         middleName: recipient.middleName ?? null,

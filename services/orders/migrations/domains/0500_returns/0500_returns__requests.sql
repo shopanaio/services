@@ -5,7 +5,7 @@ CREATE TABLE "orders"."order_return_requests" (
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
   "status" "orders"."order_return_request_status" NOT NULL DEFAULT 'REQUESTED',
-  "revision" integer NOT NULL DEFAULT 1,
+  "version" integer NOT NULL DEFAULT 1,
   "customer_note" text,
   "merchant_note" text,
   "idempotency_key" text NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE "orders"."order_return_requests" (
   CONSTRAINT "order_return_requests_order_fk"
     FOREIGN KEY ("store_id", "order_id")
     REFERENCES "orders"."orders" ("store_id", "id"),
-  CONSTRAINT "order_return_requests_revision_check" CHECK ("revision" > 0),
+  CONSTRAINT "order_return_requests_version_check" CHECK ("version" > 0),
   CONSTRAINT "order_return_requests_requested_actor_check" CHECK (
     "requested_by_type" = 'SYSTEM' OR "requested_by_id" IS NOT NULL
   ),
@@ -62,6 +62,9 @@ CREATE TABLE "orders"."order_return_request_lines" (
   "requested_quantity" integer NOT NULL,
   "approved_quantity" integer NOT NULL DEFAULT 0,
   "received_quantity" integer NOT NULL DEFAULT 0,
+  "restockable_quantity" integer NOT NULL DEFAULT 0,
+  "damaged_quantity" integer NOT NULL DEFAULT 0,
+  "other_disposition_quantity" integer NOT NULL DEFAULT 0,
   "reason" "orders"."order_return_reason" NOT NULL,
   "note" text,
   "disposition" "orders"."order_return_disposition" NOT NULL DEFAULT 'PENDING',
@@ -70,6 +73,8 @@ CREATE TABLE "orders"."order_return_request_lines" (
   CONSTRAINT "order_return_request_lines_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "order_return_request_lines_store_order_return_id_id_unique"
     UNIQUE ("store_id", "order_id", "return_request_id", "id"),
+  CONSTRAINT "order_return_request_lines_store_order_id_unique"
+    UNIQUE ("store_id", "order_id", "id"),
   CONSTRAINT "order_return_request_lines_request_fk"
     FOREIGN KEY ("store_id", "order_id", "return_request_id")
     REFERENCES "orders"."order_return_requests" ("store_id", "order_id", "id"),
@@ -82,6 +87,10 @@ CREATE TABLE "orders"."order_return_request_lines" (
     AND "approved_quantity" <= "requested_quantity"
     AND "received_quantity" >= 0
     AND "received_quantity" <= "approved_quantity"
+    AND "restockable_quantity" >= 0
+    AND "damaged_quantity" >= 0
+    AND "other_disposition_quantity" >= 0
+    AND "received_quantity" = "restockable_quantity" + "damaged_quantity" + "other_disposition_quantity"
   ),
   CONSTRAINT "order_return_request_lines_business_key"
     UNIQUE ("store_id", "order_id", "return_request_id", "order_line_id")

@@ -11,14 +11,14 @@ import type {
   OrderDeliveryGroup,
 } from "@src/application/read/orderReadRepository";
 import {
-  orderAppliedDiscounts,
-  orderDeliveryAddresses,
+  orderDiscountApplications,
+  orderAddresses,
   orderDeliveryGroups,
   orderDeliveryMethods,
   orderPaymentMethods,
   orderRecipients,
   orders,
-  ordersPiiRecords,
+  orderContacts,
 } from "@src/repositories/models/index";
 import { coerceToDate } from "@src/utils/date";
 import { BaseRepository } from "@src/repositories/BaseRepository";
@@ -28,17 +28,17 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     const [row] = await this.connection
       .select({
         order: orders,
-        customerId: ordersPiiRecords.customerId,
-        customerEmail: ordersPiiRecords.customerEmail,
-        customerPhoneE164: ordersPiiRecords.customerPhoneE164,
-        customerCountryCode: ordersPiiRecords.countryCode,
-        customerFirstName: ordersPiiRecords.firstName,
-        customerLastName: ordersPiiRecords.lastName,
-        customerMiddleName: ordersPiiRecords.middleName,
-        customerNote: ordersPiiRecords.customerNote,
+        customerId: orders.customerId,
+        customerEmail: orderContacts.email,
+        customerPhoneE164: orderContacts.phoneE164,
+        customerCountryCode: orderContacts.countryCode,
+        customerFirstName: orderContacts.firstName,
+        customerLastName: orderContacts.lastName,
+        customerMiddleName: orderContacts.middleName,
+        customerNote: orderContacts.customerNote,
       })
       .from(orders)
-      .leftJoin(ordersPiiRecords, eq(ordersPiiRecords.orderId, orders.id))
+      .leftJoin(orderContacts, eq(orderContacts.orderId, orders.id))
       .where(eq(orders.id, id))
       .limit(1);
 
@@ -83,8 +83,8 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     return {
       id: order.id,
       store_id: order.storeId,
-      api_key_id: order.apiKeyId,
-      user_id: order.userId,
+      api_key_id: null,
+      user_id: order.createdById,
       sales_channel: order.salesChannel,
       external_source: order.externalSource,
       order_number: orderNumber,
@@ -99,11 +99,11 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       customer_note: row.customerNote,
       locale_code: order.localeCode,
       currency_code: order.currencyCode,
-      subtotal: order.subtotal,
-      shipping_total: order.shippingTotal,
-      discount_total: order.discountTotal,
-      tax_total: order.taxTotal,
-      grand_total: order.grandTotal,
+      subtotal: order.subtotalAmount,
+      shipping_total: order.shippingAmount,
+      discount_total: order.discountAmount,
+      tax_total: order.taxAmount,
+      grand_total: order.totalAmount,
       status: order.status,
       payment_status: lifecycle.paymentStatus,
       fulfillment_status: lifecycle.fulfillmentStatus,
@@ -118,7 +118,7 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       metadata: order.metadata,
       created_at: coerceToDate(order.createdAt),
       updated_at: coerceToDate(order.updatedAt),
-      deleted_at: order.deletedAt == null ? null : coerceToDate(order.deletedAt),
+      deleted_at: null,
     };
   }
 
@@ -126,8 +126,8 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
     if (addressIds.length === 0) return [];
     const rows = await this.connection
       .select()
-      .from(orderDeliveryAddresses)
-      .where(inArray(orderDeliveryAddresses.id, addressIds));
+      .from(orderAddresses)
+      .where(inArray(orderAddresses.id, addressIds));
     return rows.map((row) => ({
       id: row.id,
       address1: row.address1 ?? "",
@@ -165,15 +165,15 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
   async findAppliedPromoCodes(orderId: string): Promise<OrderPromoCode[]> {
     const rows = await this.connection
       .select()
-      .from(orderAppliedDiscounts)
-      .where(eq(orderAppliedDiscounts.orderId, orderId))
-      .orderBy(asc(orderAppliedDiscounts.appliedAt));
+      .from(orderDiscountApplications)
+      .where(eq(orderDiscountApplications.orderId, orderId))
+      .orderBy(asc(orderDiscountApplications.appliedAt));
     return rows.map((row) => ({
       orderId: row.orderId,
       storeId: row.storeId,
       code: row.code ?? "",
-      discountType: row.discountType ?? "",
-      value: row.value.toString(),
+      discountType: row.valueType,
+      value: (row.valueAmount ?? row.valuePercentage ?? "0").toString(),
       provider: row.provider ?? "",
       conditions: row.conditions,
       appliedAt: coerceToDate(row.appliedAt),
@@ -192,9 +192,9 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       orderId: row.orderId,
       addressId: row.addressId,
       recipientId: row.recipientId,
-      selectedDeliveryMethodCode: row.selectedDeliveryMethodCode,
-      selectedDeliveryMethodProvider: row.selectedDeliveryMethodProvider,
-      lineItemIds: row.lineItemIds,
+      selectedDeliveryMethodCode: null,
+      selectedDeliveryMethodProvider: null,
+      lineItemIds: [],
       createdAt: coerceToDate(row.createdAt),
       updatedAt: coerceToDate(row.updatedAt),
     }));
@@ -211,10 +211,10 @@ export class OrderReadRepository extends BaseRepository implements OrderReadPort
       provider: row.provider,
       store_id: row.storeId,
       delivery_group_id: row.deliveryGroupId,
-      delivery_method_type: row.deliveryMethodType ?? "",
+      delivery_method_type: row.type,
       payment_model: row.paymentModel,
-      metadata: row.metadata,
-      customer_input: row.customerInput,
+      metadata: row.providerData,
+      customer_input: row.customerInputSnapshot,
     }));
   }
 

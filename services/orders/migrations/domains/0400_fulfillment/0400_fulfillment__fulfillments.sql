@@ -5,6 +5,7 @@ CREATE TABLE "orders"."order_fulfillment_orders" (
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
   "delivery_group_id" uuid,
+  "version" integer NOT NULL DEFAULT 1,
   "status" "orders"."order_fulfillment_order_status" NOT NULL DEFAULT 'OPEN',
   "request_status" "orders"."order_fulfillment_request_status" NOT NULL DEFAULT 'UNSUBMITTED',
   "assigned_location_id" uuid,
@@ -12,6 +13,7 @@ CREATE TABLE "orders"."order_fulfillment_orders" (
   "external_source" varchar(128),
   "external_id" text,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "provider_snapshot" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "scheduled_at" timestamp with time zone,
   "closed_at" timestamp with time zone,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
@@ -28,6 +30,8 @@ CREATE TABLE "orders"."order_fulfillment_orders" (
   CONSTRAINT "order_fulfillment_orders_external_identity_check" CHECK (
     ("external_source" IS NULL) = ("external_id" IS NULL)
   ),
+  CONSTRAINT "order_fulfillment_orders_version_check" CHECK ("version" > 0),
+  CONSTRAINT "order_fulfillment_orders_provider_snapshot_check" CHECK (jsonb_typeof("provider_snapshot") = 'object'),
   CONSTRAINT "order_fulfillment_orders_hold_reason_check" CHECK (
     "status" <> 'ON_HOLD' OR "hold_reason" IS NOT NULL
   ),

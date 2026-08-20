@@ -2,12 +2,13 @@
 
 CREATE TYPE "orders"."order_status" AS ENUM (
   'DRAFT',
-  'ACTIVE',
+  'OPEN',
   'CLOSED',
   'CANCELLED'
 );
 
 CREATE TYPE "orders"."order_payment_status" AS ENUM (
+  'NOT_REQUIRED',
   'PENDING',
   'AUTHORIZED',
   'PARTIALLY_PAID',
@@ -45,9 +46,8 @@ CREATE TYPE "orders"."order_delivery_status" AS ENUM (
 CREATE TYPE "orders"."order_return_status" AS ENUM (
   'NONE',
   'REQUESTED',
-  'IN_PROGRESS',
-  'COMPLETED',
-  'CANCELLED'
+  'PARTIALLY_RETURNED',
+  'RETURNED'
 );
 
 CREATE TYPE "orders"."order_actor_type" AS ENUM (
@@ -56,6 +56,15 @@ CREATE TYPE "orders"."order_actor_type" AS ENUM (
   'API_KEY',
   'APP',
   'SYSTEM'
+);
+
+CREATE TYPE "orders"."order_origin" AS ENUM (
+  'CHECKOUT',
+  'ADMIN',
+  'API',
+  'IMPORT',
+  'MARKETPLACE',
+  'CRM'
 );
 
 CREATE TYPE "orders"."order_cancellation_reason" AS ENUM (
@@ -145,8 +154,8 @@ CREATE TYPE "orders"."order_payment_transaction_kind" AS ENUM (
   'SALE',
   'REFUND',
   'VOID',
-  'CHARGEBACK',
-  'CHARGEBACK_REVERSAL'
+  'MANUAL',
+  'ADJUSTMENT'
 );
 
 CREATE TYPE "orders"."order_payment_transaction_status" AS ENUM (
@@ -177,8 +186,7 @@ CREATE TYPE "orders"."order_risk_level" AS ENUM (
   'NONE',
   'LOW',
   'MEDIUM',
-  'HIGH',
-  'PENDING'
+  'HIGH'
 );
 
 CREATE TYPE "orders"."order_fulfillment_operation_status" AS ENUM (
@@ -205,11 +213,11 @@ CREATE TYPE "orders"."order_fulfillment_request_status" AS ENUM (
   'REJECTED',
   'CANCELLATION_REQUESTED',
   'CANCELLATION_ACCEPTED',
-  'CANCELLATION_REJECTED',
-  'CLOSED'
+  'CANCELLATION_REJECTED'
 );
 
 CREATE TYPE "orders"."order_shipment_status" AS ENUM (
+  'DRAFT',
   'LABEL_CREATED',
   'READY_FOR_PICKUP',
   'PICKED_UP',
@@ -254,8 +262,8 @@ CREATE TYPE "orders"."order_return_disposition" AS ENUM (
 
 CREATE TYPE "orders"."order_exchange_status" AS ENUM (
   'REQUESTED',
-  'APPROVED',
-  'FULFILLED',
+  'OPEN',
+  'COMPLETED',
   'CANCELLED'
 );
 
@@ -295,5 +303,73 @@ CREATE TYPE "orders"."order_idempotency_status" AS ENUM (
 CREATE TYPE "orders"."order_outbox_status" AS ENUM (
   'PENDING',
   'PUBLISHED',
+  'FAILED'
+);
+
+CREATE TYPE "orders"."order_placement_status" AS ENUM (
+  'AWAITING_FINALIZATION',
+  'CONFIRMED',
+  'FAILED'
+);
+
+CREATE TYPE "orders"."order_edit_status" AS ENUM (
+  'ACTIVE',
+  'COMMITTED',
+  'ABORTED',
+  'EXPIRED'
+);
+
+CREATE TYPE "orders"."order_operation_kind" AS ENUM (
+  'ORDER_CANCEL',
+  'ORDER_EDIT_COMMIT',
+  'PAYMENT_CAPTURE',
+  'PAYMENT_VOID',
+  'PAYMENT_REFUND',
+  'PAYMENT_RETRY',
+  'FULFILLMENT_SUBMIT',
+  'FULFILLMENT_CANCEL',
+  'SHIPMENT_CREATE',
+  'SHIPMENT_CANCEL',
+  'SHIPMENT_RECONCILE',
+  'RETURN_RECEIVE',
+  'INTEGRATION_SYNC',
+  'BULK_ACTION'
+);
+
+CREATE TYPE "orders"."order_operation_status" AS ENUM (
+  'PENDING',
+  'RUNNING',
+  'SUCCEEDED',
+  'FAILED',
+  'CANCELLED'
+);
+
+CREATE TYPE "orders"."order_integration_kind" AS ENUM (
+  'CRM',
+  'ERP',
+  'MARKETPLACE',
+  'WMS',
+  'ANALYTICS'
+);
+
+CREATE TYPE "orders"."order_integration_sync_status" AS ENUM (
+  'NEVER_SYNCED',
+  'PENDING',
+  'SYNCED',
+  'OUT_OF_SYNC',
+  'FAILED',
+  'DISABLED'
+);
+
+CREATE TYPE "orders"."order_sync_direction" AS ENUM (
+  'EXPORT',
+  'IMPORT',
+  'BIDIRECTIONAL'
+);
+
+CREATE TYPE "orders"."order_inbox_status" AS ENUM (
+  'RECEIVED',
+  'APPLIED',
+  'IGNORED',
   'FAILED'
 );

@@ -1,37 +1,48 @@
 # Orders Admin API: contract-first RFC и план реализации
 
-Статус: **accepted — Stage 1 complete**
-Область: `services/orders`, Admin GraphQL Federation subgraph, PostgreSQL, DBOS, provider Apps, CRM integrations  
+Статус: **accepted — Stage 2 complete** Область: `services/orders`, Admin GraphQL Federation
+subgraph, PostgreSQL, DBOS, provider Apps, CRM integrations
 Порядок разработки: **GraphQL SDL → PostgreSQL schema → domain/business logic → resolvers/API**
 
 ## 1. Решение
 
-Orders должен стать владельцем коммерческого факта заказа и полной истории его изменений. Admin API проектируется не как CRUD над одной записью, а как набор явных бизнес-команд над следующими capability:
+Orders должен стать владельцем коммерческого факта заказа и полной истории его изменений. Admin API
+проектируется не как CRUD над одной записью, а как набор явных бизнес-команд над следующими
+capability:
 
 1. order core — создание, lifecycle, customer/contact snapshots, tags, notes;
 2. order editing — draft editing и staged edit размещённого заказа;
 3. payment state — финансовое состояние заказа и команды к Payments;
-4. fulfillment — allocation/work units, fulfillments, shipments и интеграции с 3PL/fulfillment services;
+4. fulfillment — allocation/work units, fulfillments, shipments и интеграции с 3PL/fulfillment
+   services;
 5. returns, exchanges и refunds;
 6. activity/audit — immutable timeline и audit log;
 7. integrations — внешние идентификаторы, CRM/ERP sync и reconciliation.
 
-Ключевой принцип: `status`, `paymentStatus`, `fulfillmentStatus`, `deliveryStatus` и `returnStatus` не являются произвольно редактируемыми полями. Они меняются только через разрешённые команды или вычисляются из дочерних фактов.
+Ключевой принцип: `status`, `paymentStatus`, `fulfillmentStatus`, `deliveryStatus` и `returnStatus`
+не являются произвольно редактируемыми полями. Они меняются только через разрешённые команды или
+вычисляются из дочерних фактов.
 
 ## 2. Цели
 
 - Поддержать все операции, уже заявленные в черновом Admin UI.
-- Дать полный enterprise-контракт для draft orders, placed orders, оплат, fulfillment, returns и интеграций.
+- Дать полный enterprise-контракт для draft orders, placed orders, оплат, fulfillment, returns и
+  интеграций.
 - Разделить коммерческий order aggregate, fulfillment work и provider execution.
 - Поддержать merchant-managed, third-party fulfillment service и carrier shipment provider.
-- Подготовить безопасную двустороннюю интеграцию с CRM/ERP без прямого доступа интеграций к таблицам Orders.
-- Обеспечить optimistic concurrency, idempotency, tenant isolation, RBAC, audit и read-after-write consistency.
-- Сохранить исторические snapshots независимо от изменений Catalog, Customer, Pricing, Delivery и Payments.
-- Следовать существующим правилам Shopana: Federation, Global IDs, Relay connections, Scripts, DBOS, transactional outbox, Zod и DataLoader.
+- Подготовить безопасную двустороннюю интеграцию с CRM/ERP без прямого доступа интеграций к таблицам
+  Orders.
+- Обеспечить optimistic concurrency, idempotency, tenant isolation, RBAC, audit и read-after-write
+  consistency.
+- Сохранить исторические snapshots независимо от изменений Catalog, Customer, Pricing, Delivery и
+  Payments.
+- Следовать существующим правилам Shopana: Federation, Global IDs, Relay connections, Scripts, DBOS,
+  transactional outbox, Zod и DataLoader.
 
 ## 3. Не цели первой версии
 
-- Workflow-конструктор произвольных merchant states. В V1 используется фиксированный lifecycle и явные actions.
+- Workflow-конструктор произвольных merchant states. В V1 используется фиксированный lifecycle и
+  явные actions.
 - Синхронный fan-out GraphQL resolver в CRM, carrier или 3PL.
 - Хранение CRM-specific полей в core-таблице `orders`.
 - Изменение заказа прямым generic patch/JSON Patch.
@@ -40,18 +51,18 @@ Orders должен стать владельцем коммерческого �
 
 ## 4. Архитектурные границы
 
-| Область | Владелец | Что хранит Orders |
-| --- | --- | --- |
-| Checkout | `checkout` | immutable placement snapshot и `checkoutId` |
-| Catalog | `catalog` | snapshot title/SKU/image/product/variant targeting на order line |
-| Pricing | `pricing` | окончательные amounts, discounts, taxes и quote references |
-| Inventory | `catalog`/inventory capability | reservation/allocation references и recorded release/restock results |
-| Payments | `payments` | выбранный method snapshot, attempts/transactions/refunds state |
-| Delivery rates | `delivery.carrier-service` | выбранный delivery method/destination snapshot |
-| Shipment execution | `delivery.shipment-provider` | provider route/reference/status/tracking state |
-| Fulfillment work | `orders.fulfillment` | fulfillment orders, line allocations, holds, service requests, fulfillments |
-| Customer | `iam`/customers | customer federation reference плюс immutable contact snapshot |
-| CRM/ERP | provider App | external links, sync state, attempts и last exported/imported revisions |
+| Область            | Владелец                       | Что хранит Orders                                                           |
+| ------------------ | ------------------------------ | --------------------------------------------------------------------------- |
+| Checkout           | `checkout`                     | immutable placement snapshot и `checkoutId`                                 |
+| Catalog            | `catalog`                      | snapshot title/SKU/image/product/variant targeting на order line            |
+| Pricing            | `pricing`                      | окончательные amounts, discounts, taxes и quote references                  |
+| Inventory          | `catalog`/inventory capability | reservation/allocation references и recorded release/restock results        |
+| Payments           | `payments`                     | выбранный method snapshot, attempts/transactions/refunds state              |
+| Delivery rates     | `delivery.carrier-service`     | выбранный delivery method/destination snapshot                              |
+| Shipment execution | `delivery.shipment-provider`   | provider route/reference/status/tracking state                              |
+| Fulfillment work   | `orders.fulfillment`           | fulfillment orders, line allocations, holds, service requests, fulfillments |
+| Customer           | `iam`/customers                | customer federation reference плюс immutable contact snapshot               |
+| CRM/ERP            | provider App                   | external links, sync state, attempts и last exported/imported revisions     |
 
 Правила границ:
 
@@ -73,7 +84,8 @@ DRAFT ──complete──> OPEN ──close──> CLOSED
                      CLOSED ──reopen─> OPEN
 ```
 
-`ARCHIVED` не является lifecycle status. Архивирование задаётся отдельным `archivedAt`, поэтому закрытый или отменённый заказ не теряет своё настоящее состояние.
+`ARCHIVED` не является lifecycle status. Архивирование задаётся отдельным `archivedAt`, поэтому
+закрытый или отменённый заказ не теряет своё настоящее состояние.
 
 ### 5.2. Derived aggregate statuses
 
@@ -83,34 +95,35 @@ DRAFT ──complete──> OPEN ──close──> CLOSED
 - `returnStatus` выводится из return requests и received quantities;
 - `riskLevel` выводится из risk assessments/disputes.
 
-Ручной override допускается только для offline/imported financial facts, требует отдельного permission, причины и audit event. Provider-managed online payment нельзя сделать `PAID` обычным status update.
+Ручной override допускается только для offline/imported financial facts, требует отдельного
+permission, причины и audit event. Provider-managed online payment нельзя сделать `PAID` обычным
+status update.
 
 ## 6. Интеграция с настоящим Checkout `placeOrder` pipeline
 
-Этот раздел является нормативной частью Orders design. Storefront не вызывает Admin
-`orderCreate` и не создаёт draft order. Единственная точка входа Storefront — существующая
-мутация Checkout `placeOrder(input: PlaceOrderInput!)`. Checkout остаётся владельцем
-durable placement saga, а Orders принимает один уже зафиксированный immutable commerce
-snapshot и создаёт из него размещённый заказ.
+Этот раздел является нормативной частью Orders design. Storefront не вызывает Admin `orderCreate` и
+не создаёт draft order. Единственная точка входа Storefront — существующая мутация Checkout
+`placeOrder(input: PlaceOrderInput!)`. Checkout остаётся владельцем durable placement saga, а Orders
+принимает один уже зафиксированный immutable commerce snapshot и создаёт из него размещённый заказ.
 
 ### 6.1. Владение процессом
 
-| Ответственность | Владелец | Правило |
-| --- | --- | --- |
-| Storefront mutation, visitor ownership и stale checkout detection | `checkout` | `checkoutId + expectedResultRevision + idempotencyKey` |
-| Placement state machine и DBOS recovery | `checkout` | `checkout_placements` — operational source of truth saga |
-| Pricing/discount, loyalty, inventory и delivery reservations до Order commit | `checkout` | Checkout создаёт и компенсирует свои commitments |
-| Коммерческий факт размещённого заказа | `orders` | atomic state transaction + audit/outbox event |
-| Order number и Order version | `orders` | не вычисляются Checkout |
-| Payment collection/session orchestration | `checkout` → `payments` | создаётся только после Order commit, потому что требует `orderId` |
-| Payment facts | `payments` → events → `orders` | Checkout status не патчит `paymentStatus` |
-| Разрешение fulfillment после успешной placement finalization | `orders` | fulfillment orders до этого находятся на system hold |
-| Отмена уже созданного Order при terminal placement failure | `orders` | отдельная internal command; Order нельзя удалить или оставить `OPEN` после release ресурсов |
+| Ответственность                                                              | Владелец                       | Правило                                                                                     |
+| ---------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
+| Storefront mutation, visitor ownership и stale checkout detection            | `checkout`                     | `checkoutId + expectedResultRevision + idempotencyKey`                                      |
+| Placement state machine и DBOS recovery                                      | `checkout`                     | `checkout_placements` — operational source of truth saga                                    |
+| Pricing/discount, loyalty, inventory и delivery reservations до Order commit | `checkout`                     | Checkout создаёт и компенсирует свои commitments                                            |
+| Коммерческий факт размещённого заказа                                        | `orders`                       | atomic state transaction + audit/outbox event                                               |
+| Order number и Order version                                                 | `orders`                       | не вычисляются Checkout                                                                     |
+| Payment collection/session orchestration                                     | `checkout` → `payments`        | создаётся только после Order commit, потому что требует `orderId`                           |
+| Payment facts                                                                | `payments` → events → `orders` | Checkout status не патчит `paymentStatus`                                                   |
+| Разрешение fulfillment после успешной placement finalization                 | `orders`                       | fulfillment orders до этого находятся на system hold                                        |
+| Отмена уже созданного Order при terminal placement failure                   | `orders`                       | отдельная internal command; Order нельзя удалить или оставить `OPEN` после release ресурсов |
 
-Checkout и Orders не используют distributed SQL transaction. Согласованность достигается
-immutable snapshot, deterministic IDs, idempotent broker commands, DBOS recovery и
-reconciliation. `checkout_placements` не копируется целиком в Orders: Orders хранит только
-immutable provenance и состояние собственной стороны placement handshake.
+Checkout и Orders не используют distributed SQL transaction. Согласованность достигается immutable
+snapshot, deterministic IDs, idempotent broker commands, DBOS recovery и reconciliation.
+`checkout_placements` не копируется целиком в Orders: Orders хранит только immutable provenance и
+состояние собственной стороны placement handshake.
 
 ### 6.2. Существующий Storefront contract
 
@@ -140,15 +153,13 @@ type PlaceOrderPayload {
 }
 ```
 
-`expectedResultRevision` фиксирует именно результат всего checkout pipeline, а не только
-версию cart draft. Повтор с тем же `idempotencyKey` и идентичным public input возвращает тот
-же placement/result. Тот же ключ с другим input возвращает
-`IDEMPOTENCY_KEY_PARAMETER_MISMATCH`. Второй ключ для уже claimed checkout возвращает
-`CHECKOUT_ALREADY_PLACED`.
+`expectedResultRevision` фиксирует именно результат всего checkout pipeline, а не только версию cart
+draft. Повтор с тем же `idempotencyKey` и идентичным public input возвращает тот же
+placement/result. Тот же ключ с другим input возвращает `IDEMPOTENCY_KEY_PARAMETER_MISMATCH`. Второй
+ключ для уже claimed checkout возвращает `CHECKOUT_ALREADY_PLACED`.
 
-Admin GraphQL Orders не дублирует `placeOrder`. После получения `orderId` Storefront может
-читать customer-facing Order через Storefront subgraph, а Admin — тот же aggregate через
-SDL этого RFC.
+Admin GraphQL Orders не дублирует `placeOrder`. После получения `orderId` Storefront может читать
+customer-facing Order через Storefront subgraph, а Admin — тот же aggregate через SDL этого RFC.
 
 ### 6.3. Что Checkout обязан зафиксировать в `claim`
 
@@ -222,32 +233,32 @@ sequenceDiagram
     CO-->>SF: stable PlaceOrderPayload
 ```
 
-Правило порядка после Order commit принципиально: сначала Orders фиксирует confirm/cancel,
-затем Checkout освобождает или финализирует внешние commitments. Нельзя освободить inventory
-и delivery под всё ещё `OPEN` и fulfillable Order.
+Правило порядка после Order commit принципиально: сначала Orders фиксирует confirm/cancel, затем
+Checkout освобождает или финализирует внешние commitments. Нельзя освободить inventory и delivery
+под всё ещё `OPEN` и fulfillable Order.
 
 ### 6.5. Placement state mapping
 
-| `checkout_placements.status` | Order существует | Orders placement status | Order lifecycle | Разрешённое действие |
-| --- | --- | --- | --- | --- |
-| `CLAIMED` | нет | — | — | reserve resources или pre-commit compensation |
-| `RESOURCES_RESERVED` | нет | — | — | replay order creation с тем же `requestedOrderId` |
-| `ORDER_CREATED` | да | `AWAITING_FINALIZATION` | `OPEN` | payment creation/finalization; fulfillment держится на system hold |
-| `PAYMENT_CREATED` | да | `AWAITING_FINALIZATION` | `OPEN` | вернуть customer action либо monitor payment |
-| `PLACED`, payment acceptable | да | `CONFIRMED` | `OPEN` | обычный payment/fulfillment lifecycle |
-| `PLACED`, terminal payment failure | да | `FAILED` | `CANCELLED` | audit/read/refund reconciliation; fulfillment запрещён |
-| `FAILED` | нет | — | — | terminal pre-commit failure; новый checkout либо explicit recovery policy |
+| `checkout_placements.status`       | Order существует | Orders placement status | Order lifecycle | Разрешённое действие                                                      |
+| ---------------------------------- | ---------------- | ----------------------- | --------------- | ------------------------------------------------------------------------- |
+| `CLAIMED`                          | нет              | —                       | —               | reserve resources или pre-commit compensation                             |
+| `RESOURCES_RESERVED`               | нет              | —                       | —               | replay order creation с тем же `requestedOrderId`                         |
+| `ORDER_CREATED`                    | да               | `AWAITING_FINALIZATION` | `OPEN`          | payment creation/finalization; fulfillment держится на system hold        |
+| `PAYMENT_CREATED`                  | да               | `AWAITING_FINALIZATION` | `OPEN`          | вернуть customer action либо monitor payment                              |
+| `PLACED`, payment acceptable       | да               | `CONFIRMED`             | `OPEN`          | обычный payment/fulfillment lifecycle                                     |
+| `PLACED`, terminal payment failure | да               | `FAILED`                | `CANCELLED`     | audit/read/refund reconciliation; fulfillment запрещён                    |
+| `FAILED`                           | нет              | —                       | —               | terminal pre-commit failure; новый checkout либо explicit recovery policy |
 
-В существующем Checkout значение placement `PLACED` означает «workflow имеет persisted
-terminal result», а не обязательно успешную оплату. При `PlaceOrderStatus.PAYMENT_FAILED`
-checkout lifecycle становится `ABANDONED`, а уже созданный Order обязан быть `CANCELLED`.
+В существующем Checkout значение placement `PLACED` означает «workflow имеет persisted terminal
+result», а не обязательно успешную оплату. При `PlaceOrderStatus.PAYMENT_FAILED` checkout lifecycle
+становится `ABANDONED`, а уже созданный Order обязан быть `CANCELLED`.
 `checkout_placements.status = FAILED` после появления Order запрещён новым constraint/invariant.
 
 ### 6.6. Versioned internal broker contract
 
-Текущий untyped вызов `order.createOrderFromCheckoutPlacement(params: any)` заменяется
-контрактами в `@shopana/broker-types`. Orders не должен импортировать runtime DTO Checkout SDK:
-форма placement snapshot versioned независимо и является межсервисным контрактом.
+Текущий untyped вызов `order.createOrderFromCheckoutPlacement(params: any)` заменяется контрактами в
+`@shopana/broker-types`. Orders не должен импортировать runtime DTO Checkout SDK: форма placement
+snapshot versioned независимо и является межсервисным контрактом.
 
 ```ts
 export const OrderCheckoutActionNames = {
@@ -357,39 +368,38 @@ export interface CancelOrderFromCheckoutPlacementV1Params {
 }
 ```
 
-Полные nested types (`OrderPlacementLineV1`, allocations, addresses, packages и payment
-method public snapshot) также живут в `broker-types`; `any`, class instances и SDK-specific
-`Money` запрещены. Money передаётся как `{ amountMinor: string, currencyCode }`, timestamps —
-ISO-8601 UTC, IDs — plain UUID/opaque typed references согласно owning service contract.
+Полные nested types (`OrderPlacementLineV1`, allocations, addresses, packages и payment method
+public snapshot) также живут в `broker-types`; `any`, class instances и SDK-specific `Money`
+запрещены. Money передаётся как `{ amountMinor: string, currencyCode }`, timestamps — ISO-8601 UTC,
+IDs — plain UUID/opaque typed references согласно owning service contract.
 
-Raw card/bank credentials, secret provider tokens и private payment `customerInput` не входят
-в Orders snapshot. Orders получает только method code/title/provider/flow и разрешённый
-redacted public snapshot. Полный private input передаётся Checkout напрямую Payments.
+Raw card/bank credentials, secret provider tokens и private payment `customerInput` не входят в
+Orders snapshot. Orders получает только method code/title/provider/flow и разрешённый redacted
+public snapshot. Полный private input передаётся Checkout напрямую Payments.
 
 `requestHash` Checkout защищает внешний `PlaceOrderInput`. `snapshotHash` защищает внутренний
-commerce commit package и вычисляется как lowercase SHA-256 от canonical JSON следующего
-набора: contract version, tenant/placement/checkout IDs и revisions, requested Order ID,
-normalized snapshot и commitments. Operational поля `workflowId`, `correlationId` и
-`idempotencyKey` в snapshot hash не входят. Object keys сортируются, money остаётся minor-unit
-string, массивы сохраняют доменно определённый порядок; перед hash запрещены locale-dependent
-number/date conversions.
+commerce commit package и вычисляется как lowercase SHA-256 от canonical JSON следующего набора:
+contract version, tenant/placement/checkout IDs и revisions, requested Order ID, normalized snapshot
+и commitments. Operational поля `workflowId`, `correlationId` и `idempotencyKey` в snapshot hash не
+входят. Object keys сортируются, money остаётся minor-unit string, массивы сохраняют доменно
+определённый порядок; перед hash запрещены locale-dependent number/date conversions.
 
 ### 6.7. Snapshot → Order mapping
 
-| Placement snapshot | Orders state/audit | Инвариант |
-| --- | --- | --- |
-| placement/checkout IDs и revisions | `order_checkout_placements` + audit metadata | immutable, unique per store |
-| `requestedOrderId` | `orders.id`, inventory reservation key | сохраняется Checkout до reservation и никогда не генерируется повторно |
-| `capturedAt` | `placed_at`, audit `occurredAt` | storefront order создаётся сразу `OPEN`, не `DRAFT` |
-| customer identity | customer reference + `order_contacts` snapshot | дальнейшее изменение Customer не переписывает snapshot |
-| lines | `order_lines` + purchasable snapshot | checkout line ID становится стабильным order line ID либо сохраняется отдельный sourceLineId; правило едино для всех children |
-| final quote totals | order/line financial state | суммы не пересчитываются Orders при placement |
-| discounts/taxes/duties | typed allocations | сумма allocations равна aggregate amounts |
-| delivery groups | `order_delivery_groups` | каждая shippable line входит ровно в одну committed group |
-| delivery commitments | delivery method snapshot + initial fulfillment orders | provider route/revision фиксируются; fulfillment получает system hold |
-| selected payment | payment method snapshot | private payment input не хранится |
-| resource references | placement state/audit metadata | нужны для audit и reconciliation, не являются mutable order fields |
-| loyalty eligibility | immutable order snapshot | publication/commit имеет собственную idempotency |
+| Placement snapshot                 | Orders state/audit                                    | Инвариант                                                                                                                     |
+| ---------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| placement/checkout IDs и revisions | `order_checkout_placements` + audit metadata          | immutable, unique per store                                                                                                   |
+| `requestedOrderId`                 | `orders.id`, inventory reservation key                | сохраняется Checkout до reservation и никогда не генерируется повторно                                                        |
+| `capturedAt`                       | `placed_at`, audit `occurredAt`                       | storefront order создаётся сразу `OPEN`, не `DRAFT`                                                                           |
+| customer identity                  | customer reference + `order_contacts` snapshot        | дальнейшее изменение Customer не переписывает snapshot                                                                        |
+| lines                              | `order_lines` + purchasable snapshot                  | checkout line ID становится стабильным order line ID либо сохраняется отдельный sourceLineId; правило едино для всех children |
+| final quote totals                 | order/line financial state                            | суммы не пересчитываются Orders при placement                                                                                 |
+| discounts/taxes/duties             | typed allocations                                     | сумма allocations равна aggregate amounts                                                                                     |
+| delivery groups                    | `order_delivery_groups`                               | каждая shippable line входит ровно в одну committed group                                                                     |
+| delivery commitments               | delivery method snapshot + initial fulfillment orders | provider route/revision фиксируются; fulfillment получает system hold                                                         |
+| selected payment                   | payment method snapshot                               | private payment input не хранится                                                                                             |
+| resource references                | placement state/audit metadata                        | нужны для audit и reconciliation, не являются mutable order fields                                                            |
+| loyalty eligibility                | immutable order snapshot                              | publication/commit имеет собственную idempotency                                                                              |
 
 Order source получает `origin = CHECKOUT`, `source.code = "storefront"`. Admin-created draft
 использует `origin = ADMIN` и не имеет `checkoutPlacement`.
@@ -403,7 +413,8 @@ Order source получает `origin = CHECKOUT`, `source.code = "storefront"`.
 3. Проверяет idempotency record по `(store_id, operation, idempotency_key)` и request hash.
 4. Проверяет uniqueness `(store_id, placement_id)` и `(store_id, checkout_id)`.
 5. Резервирует per-store order number.
-6. Создаёт `orders` с `version = 1` и связанные core, line, money, PII, delivery и payment-method records.
+6. Создаёт `orders` с `version = 1` и связанные core, line, money, PII, delivery и payment-method
+   records.
 7. Записывает immutable audit record о размещении заказа.
 8. Создаёт initial fulfillment orders из committed delivery groups с system hold
    `CHECKOUT_PLACEMENT_AWAITING_FINALIZATION`.
@@ -411,8 +422,8 @@ Order source получает `origin = CHECKOUT`, `source.code = "storefront"`.
 10. Записывает outbox events и idempotency response.
 11. Commit и только затем возвращает result Checkout.
 
-Ни один внешний broker/provider вызов внутри этой транзакции не разрешён. Если transaction
-не committed, Order не существует. Если response потерян после commit, повтор того же command
+Ни один внешний broker/provider вызов внутри этой транзакции не разрешён. Если transaction не
+committed, Order не существует. Если response потерян после commit, повтор того же command
 возвращает сохранённый result с `duplicate = true`; ресурсы не освобождаются.
 
 Audit record `order.placed` содержит self-contained snapshot, достаточный для расследования и
@@ -423,35 +434,34 @@ Audit record `order.placed` содержит self-contained snapshot, доста
 
 Создание Order — точка необратимости identity/history, но не разрешение fulfillment:
 
-- `AWAITING_FINALIZATION`: заказ видим Admin/Customer, payment может требовать action;
-  fulfillment orders существуют, но system hold нельзя снять вручную;
-- `confirmOrderFromCheckoutPlacementV1`: после подтверждения inventory/loyalty и допустимого
-  payment outcome атомарно переводит placement в
-  `CONFIRMED` и снимает только system placement hold;
+- `AWAITING_FINALIZATION`: заказ видим Admin/Customer, payment может требовать action; fulfillment
+  orders существуют, но system hold нельзя снять вручную;
+- `confirmOrderFromCheckoutPlacementV1`: после подтверждения inventory/loyalty и допустимого payment
+  outcome атомарно переводит placement в `CONFIRMED` и снимает только system placement hold;
 - `cancelOrderFromCheckoutPlacementV1`: атомарно переводит placement в `FAILED`, заказ в
-  `CANCELLED`, закрывает unfulfilled fulfillment orders и пишет audit/outbox records;
-  физического удаления Order нет.
+  `CANCELLED`, закрывает unfulfilled fulfillment orders и пишет audit/outbox records; физического
+  удаления Order нет.
 
-Обе команды idempotent по placement и evidence. Для system/event command Orders блокирует
-текущую строку `orders` и выполняет conditional update по `orders.version`; version conflict повторяется внутри
-ограниченного DBOS retry. Конкурирующая merchant cancellation возвращает уже существующий
+Обе команды idempotent по placement и evidence. Для system/event command Orders блокирует текущую
+строку `orders` и выполняет conditional update по `orders.version`; version conflict повторяется
+внутри ограниченного DBOS retry. Конкурирующая merchant cancellation возвращает уже существующий
 terminal state, но не создаёт вторую cancellation.
 
 `availableActions` учитывает placement gate. Пока placement не `CONFIRMED`, запрещены shipment,
-external fulfillment submit и merchant fulfillment. Ручная payment retry допустима только
-после того, как исходный Checkout workflow достиг terminal/recoverable state по policy.
+external fulfillment submit и merchant fulfillment. Ручная payment retry допустима только после
+того, как исходный Checkout workflow достиг terminal/recoverable state по policy.
 
 ### 6.10. Payment и placement semantics
 
 - Нулевой payable amount даёт `paymentStatus = NOT_REQUIRED`, а не искусственный `PAID`.
 - Для online payment сразу после создания заказа используется `PENDING`; дальнейшее состояние
   выводится только из Payments events.
-- `AUTHORIZED` может подтвердить placement только если store capture policy разрешает
-  fulfillment по authorization; иначе требуется capture.
-- `OFFLINE` и `ON_DELIVERY` подтверждаются отдельным evidence kind и остаются `PENDING`, пока
-  не появится manual/provider transaction.
-- Payment event может прийти раньше, чем Checkout запишет `PAYMENT_CREATED`; Orders inbox
-  применяет его по `orderId/paymentSessionId`, а Checkout recovery затем догоняет state.
+- `AUTHORIZED` может подтвердить placement только если store capture policy разрешает fulfillment по
+  authorization; иначе требуется capture.
+- `OFFLINE` и `ON_DELIVERY` подтверждаются отдельным evidence kind и остаются `PENDING`, пока не
+  появится manual/provider transaction.
+- Payment event может прийти раньше, чем Checkout запишет `PAYMENT_CREATED`; Orders inbox применяет
+  его по `orderId/paymentSessionId`, а Checkout recovery затем догоняет state.
 - Terminal payment failure после создания Order не означает «order never existed»: сохраняется
   отменённый Order, payment attempt/failure и полный audit trail.
 - Settled payment с ошибкой loyalty/inventory finalization не отменяет Order и не освобождает
@@ -459,23 +469,23 @@ external fulfillment submit и merchant fulfillment. Ручная payment retry 
 
 ### 6.11. Compensation matrix
 
-| Failure point | Order | Обязательная реакция |
-| --- | --- | --- |
-| Claim/validation | отсутствует | placement `FAILED`; external compensation не нужна |
-| Discount/loyalty reserve | отсутствует | release уже созданных reservations |
-| Inventory reserve | отсутствует | release inventory + pricing/loyalty |
-| Discount commit/delivery commit | отсутствует | reverse redemption, release inventory/loyalty/delivery |
-| Orders command до DB commit | отсутствует | выполнить все pre-commit compensation |
-| Orders response потерян после commit | существует | replay create command; **не** освобождать ресурсы |
-| `markOrderCreated` не записался в Checkout | существует | найти по `(storeId, placementId)`, догнать placement state |
-| Payment collection/session не создана | существует | сначала idempotent Order placement cancellation, затем release/reverse commitments |
-| Pending payment expired/failed/cancelled | существует | тот же cancellation handshake, затем compensation |
-| Payment settled, inventory/loyalty confirm временно упал | существует | сохранить holds, retry/reconcile; не cancel и не release |
-| Order confirm response потерян | существует | replay confirm; event не дублируется |
-| Checkout terminal result не записался | существует | recovery читает Orders placement + Payments и завершает placement |
+| Failure point                                            | Order       | Обязательная реакция                                                               |
+| -------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------- |
+| Claim/validation                                         | отсутствует | placement `FAILED`; external compensation не нужна                                 |
+| Discount/loyalty reserve                                 | отсутствует | release уже созданных reservations                                                 |
+| Inventory reserve                                        | отсутствует | release inventory + pricing/loyalty                                                |
+| Discount commit/delivery commit                          | отсутствует | reverse redemption, release inventory/loyalty/delivery                             |
+| Orders command до DB commit                              | отсутствует | выполнить все pre-commit compensation                                              |
+| Orders response потерян после commit                     | существует  | replay create command; **не** освобождать ресурсы                                  |
+| `markOrderCreated` не записался в Checkout               | существует  | найти по `(storeId, placementId)`, догнать placement state                         |
+| Payment collection/session не создана                    | существует  | сначала idempotent Order placement cancellation, затем release/reverse commitments |
+| Pending payment expired/failed/cancelled                 | существует  | тот же cancellation handshake, затем compensation                                  |
+| Payment settled, inventory/loyalty confirm временно упал | существует  | сохранить holds, retry/reconcile; не cancel и не release                           |
+| Order confirm response потерян                           | существует  | replay confirm; event не дублируется                                               |
+| Checkout terminal result не записался                    | существует  | recovery читает Orders placement + Payments и завершает placement                  |
 
-Checkout хранит failed compensation attempts и повторяет их отдельным maintenance workflow.
-Orders хранит cancellation/placement event, но не считает release успешным без соответствующего
+Checkout хранит failed compensation attempts и повторяет их отдельным maintenance workflow. Orders
+хранит cancellation/placement event, но не считает release успешным без соответствующего
 acknowledgement/event от owning service. Alerts строятся отдельно на stuck placement и unresolved
 compensation.
 
@@ -503,17 +513,17 @@ Recovery выполняется по persisted state, а не по предпо�
 - committed delivery group IDs ↔ Orders delivery/fulfillment groups;
 - terminal Checkout result ↔ Orders placement status/lifecycle.
 
-Reconciler не исправляет данные direct SQL update. Он вызывает те же idempotent broker commands
-или создаёт typed operational incident, если автоматическая компенсация небезопасна.
+Reconciler не исправляет данные direct SQL update. Он вызывает те же idempotent broker commands или
+создаёт typed operational incident, если автоматическая компенсация небезопасна.
 
 ### 6.13. PostgreSQL additions в Orders
 
 К целевой схеме добавляются нормализованные таблицы состояния:
 
-| Таблица | Ключевые поля |
-| --- | --- |
-| `order_checkout_placements` | `store_id`, `order_id`, `placement_id`, `checkout_id`, checkout/result/quote/payment/delivery revisions, contract version, snapshot hash, status, confirmed/failed timestamps |
-| `order_checkout_commitments` | immutable inventory reservation key, pricing reservation/redemption refs, loyalty commitment snapshot, delivery commitment refs |
+| Таблица                      | Ключевые поля                                                                                                                                                                 |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `order_checkout_placements`  | `store_id`, `order_id`, `placement_id`, `checkout_id`, checkout/result/quote/payment/delivery revisions, contract version, snapshot hash, status, confirmed/failed timestamps |
+| `order_checkout_commitments` | immutable inventory reservation key, pricing reservation/redemption refs, loyalty commitment snapshot, delivery commitment refs                                               |
 
 Constraints:
 
@@ -531,8 +541,8 @@ origin != CHECKOUT => placement record does not exist
 ```
 
 В Checkout schema добавляется invariant/constraint: placement `FAILED` не может иметь `order_id`.
-Terminal `PAYMENT_FAILED` с созданным Order сохраняется как placement `PLACED` result плюс
-Checkout lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
+Terminal `PAYMENT_FAILED` с созданным Order сохраняется как placement `PLACED` result плюс Checkout
+lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
 
 ### 6.14. Необходимые изменения существующего pipeline
 
@@ -540,39 +550,40 @@ Checkout lifecycle `ABANDONED` и Orders placement `FAILED/CANCELLED`.
 
 1. `order.createOrderFromCheckoutPlacement(params: any)` заменяется typed V1 action из
    `@shopana/broker-types` и canonical request hash.
-2. Текущий repository create не должен вставлять storefront order как `DRAFT`: command сразу
-   создаёт `OPEN`, `placedAt`, `version = 1` и audit/outbox record `order.placed`.
+2. Текущий repository create не должен вставлять storefront order как `DRAFT`: command сразу создаёт
+   `OPEN`, `placedAt`, `version = 1` и audit/outbox record `order.placed`.
 3. После Order commit любые payment failures больше не вызывают release ресурсов до фиксации
    `cancelOrderFromCheckoutPlacementV1`.
 4. Zero/authorized/paid/offline success и async payment monitor вызывают
    `confirmOrderFromCheckoutPlacementV1`; до этого fulfillment остаётся system-held.
 
-Эти изменения не создают compatibility branch или dual-write: проект работает на чистой БД,
-поэтому старый untyped handler и old Drizzle placement creation удаляются в том же vertical slice.
+Эти изменения не создают compatibility branch или dual-write: проект работает на чистой БД, поэтому
+старый untyped handler и old Drizzle placement creation удаляются в том же vertical slice.
 
 ### 6.15. Точки подключения в текущем коде
 
-| Текущий компонент | Роль после реализации RFC |
-| --- | --- |
-| `services/checkout/src/interfaces/gql-storefront-api/schema/checkoutPayment.graphql` | внешний `PlaceOrderInput/Payload` остаётся entry point; при необходимости только документируются новые error/state semantics |
-| `services/checkout/src/interfaces/gql-storefront-api/resolvers/checkout/placeOrder.ts` | trusted context → DBOS workflow input; Orders напрямую не вызывается |
-| `services/checkout/src/workflows/PlaceOrderWorkflow.ts` | сохраняет saga ownership; вызывает typed create, а затем confirm/cancel handshake в правильной ветке |
-| `services/checkout/src/workflows/MonitorPlacedPaymentWorkflow.ts` | при settlement финализирует commitments и подтверждает Order; при terminal failure сначала отменяет Order, затем компенсирует |
-| `services/checkout/src/infrastructure/mutations/CheckoutPlacementRepository.ts` | durable operational state/recovery; вводится invariant `FAILED => order_id IS NULL` |
-| `services/orders/src/orders.nest-service.ts` | регистрирует typed action constants без `any`; thin adapter в Scripts/workflows |
-| `services/orders/src/application/usecases/orderCreate.ts` | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/outbox transaction |
-| `services/orders/src/repositories/fulfillment/DeliveryFulfillmentRepository.ts` | snapshot runtime model удаляется; initial normalized fulfillment orders строятся той же order creation transaction |
-| `@shopana/broker-types` | единственный source of truth для V1 create/confirm/cancel/get DTO и action names |
+| Текущий компонент                                                                      | Роль после реализации RFC                                                                                                     |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `services/checkout/src/interfaces/gql-storefront-api/schema/checkoutPayment.graphql`   | внешний `PlaceOrderInput/Payload` остаётся entry point; при необходимости только документируются новые error/state semantics  |
+| `services/checkout/src/interfaces/gql-storefront-api/resolvers/checkout/placeOrder.ts` | trusted context → DBOS workflow input; Orders напрямую не вызывается                                                          |
+| `services/checkout/src/workflows/PlaceOrderWorkflow.ts`                                | сохраняет saga ownership; вызывает typed create, а затем confirm/cancel handshake в правильной ветке                          |
+| `services/checkout/src/workflows/MonitorPlacedPaymentWorkflow.ts`                      | при settlement финализирует commitments и подтверждает Order; при terminal failure сначала отменяет Order, затем компенсирует |
+| `services/checkout/src/infrastructure/mutations/CheckoutPlacementRepository.ts`        | durable operational state/recovery; вводится invariant `FAILED => order_id IS NULL`                                           |
+| `services/orders/src/orders.nest-service.ts`                                           | регистрирует typed action constants без `any`; thin adapter в Scripts/workflows                                               |
+| `services/orders/src/application/usecases/orderCreate.ts`                              | старый checkout-specific create удаляется; заменяется placement Script с atomic state/audit/outbox transaction                |
+| `services/orders/src/repositories/fulfillment/DeliveryFulfillmentRepository.ts`        | snapshot runtime model удаляется; initial normalized fulfillment orders строятся той же order creation transaction            |
+| `@shopana/broker-types`                                                                | единственный source of truth для V1 create/confirm/cancel/get DTO и action names                                              |
 
 Storefront request не должен ждать async payment settlement. Для `REQUIRES_ACTION`,
 `REQUIRES_CONFIRMATION` и `PAYMENT_PENDING` mutation возвращает persisted payload и monitor
-продолжает работу durable. Order уже читаем, но fulfillment gated до confirm. Admin видит
-placement status, payment action/failure и activity events без доступа к Checkout operational
-JSON.
+продолжает работу durable. Order уже читаем, но fulfillment gated до confirm. Admin видит placement
+status, payment action/failure и activity events без доступа к Checkout operational JSON.
 
 ## 7. Канонический Admin GraphQL SDL
 
-Ниже — целевой V1 SDL. `Node`, `Connection`, `PageInfo`, `DisplayableError`, `Money`, `Customer`, `User`, `ApiKey`, `CurrencyCode`, `CountryCode`, `LocaleCode`, `DateTime`, `Cursor`, `Decimal`, `JSON` и `URL` должны приходить из shared/federated schemas.
+Ниже — целевой V1 SDL. `Node`, `Connection`, `PageInfo`, `DisplayableError`, `Money`, `Customer`,
+`User`, `ApiKey`, `CurrencyCode`, `CountryCode`, `LocaleCode`, `DateTime`, `Cursor`, `Decimal`,
+`JSON` и `URL` должны приходить из shared/federated schemas.
 
 ```graphql
 extend type Query {
@@ -583,7 +594,9 @@ extend type Mutation {
   ordersMutation: OrdersMutation!
 }
 
-"""Read namespace for the Orders Admin API."""
+"""
+Read namespace for the Orders Admin API.
+"""
 type OrdersQuery {
   order(id: ID!): Order
   orderByNumber(number: BigInt!): Order
@@ -599,7 +612,9 @@ type OrdersQuery {
   orderOperation(id: ID!): OrderOperation
 }
 
-"""Command namespace. Every command is store-scoped from trusted context."""
+"""
+Command namespace. Every command is store-scoped from trusted context.
+"""
 type OrdersMutation {
   # Draft and core lifecycle
   orderCreate(input: OrderCreateInput!): OrderPayload!
@@ -993,7 +1008,9 @@ type OrderSource {
   externalUrl: URL
 }
 
-"""Checkout-owned placement provenance recorded in Orders."""
+"""
+Checkout-owned placement provenance recorded in Orders.
+"""
 type OrderCheckoutPlacement {
   placementId: ID!
   checkoutId: ID!
@@ -1460,15 +1477,50 @@ type OrderConnection implements Connection {
   totalCount: Int!
 }
 
-type OrderEdge { cursor: Cursor!, node: Order! }
-type OrderReturnConnection implements Connection { edges: [OrderReturnEdge!]!, nodes: [OrderReturn!]!, pageInfo: PageInfo!, totalCount: Int! }
-type OrderReturnEdge { cursor: Cursor!, node: OrderReturn! }
-type OrderExchangeConnection implements Connection { edges: [OrderExchangeEdge!]!, nodes: [OrderExchange!]!, pageInfo: PageInfo!, totalCount: Int! }
-type OrderExchangeEdge { cursor: Cursor!, node: OrderExchange! }
-type OrderRefundConnection implements Connection { edges: [OrderRefundEdge!]!, nodes: [OrderRefund!]!, pageInfo: PageInfo!, totalCount: Int! }
-type OrderRefundEdge { cursor: Cursor!, node: OrderRefund! }
-type OrderActivityConnection implements Connection { edges: [OrderActivityEdge!]!, nodes: [OrderActivity!]!, pageInfo: PageInfo!, totalCount: Int! }
-type OrderActivityEdge { cursor: Cursor!, node: OrderActivity! }
+type OrderEdge {
+  cursor: Cursor!
+  node: Order!
+}
+type OrderReturnConnection implements Connection {
+  edges: [OrderReturnEdge!]!
+  nodes: [OrderReturn!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type OrderReturnEdge {
+  cursor: Cursor!
+  node: OrderReturn!
+}
+type OrderExchangeConnection implements Connection {
+  edges: [OrderExchangeEdge!]!
+  nodes: [OrderExchange!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type OrderExchangeEdge {
+  cursor: Cursor!
+  node: OrderExchange!
+}
+type OrderRefundConnection implements Connection {
+  edges: [OrderRefundEdge!]!
+  nodes: [OrderRefund!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type OrderRefundEdge {
+  cursor: Cursor!
+  node: OrderRefund!
+}
+type OrderActivityConnection implements Connection {
+  edges: [OrderActivityEdge!]!
+  nodes: [OrderActivity!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+type OrderActivityEdge {
+  cursor: Cursor!
+  node: OrderActivity!
+}
 
 input OrderWhereInput {
   and: [OrderWhereInput!]
@@ -1501,24 +1553,89 @@ input OrderWhereInput {
   placedAt: DateTimeFilterInput
 }
 
-input OrderOrderByInput { field: OrderSortField!, direction: SortDirection! }
-input IDFilterInput { eq: ID, in: [ID!], notIn: [ID!] }
-input BigIntFilterInput { eq: BigInt, gt: BigInt, gte: BigInt, lt: BigInt, lte: BigInt }
-input DecimalFilterInput { eq: Decimal, gt: Decimal, gte: Decimal, lt: Decimal, lte: Decimal }
-input StringFilterInput { eq: String, in: [String!], contains: String, startsWith: String }
-input DateTimeFilterInput { eq: DateTime, gt: DateTime, gte: DateTime, lt: DateTime, lte: DateTime }
-input OrderStatusFilterInput { eq: OrderStatus, in: [OrderStatus!] }
-input OrderPaymentStatusFilterInput { eq: OrderPaymentStatus, in: [OrderPaymentStatus!] }
-input OrderFulfillmentStatusFilterInput { eq: OrderFulfillmentStatus, in: [OrderFulfillmentStatus!] }
-input OrderDeliveryStatusFilterInput { eq: OrderDeliveryStatus, in: [OrderDeliveryStatus!] }
-input OrderReturnStatusFilterInput { eq: OrderReturnStatus, in: [OrderReturnStatus!] }
-input OrderPlacementStatusFilterInput { eq: OrderPlacementStatus, in: [OrderPlacementStatus!] }
-input CurrencyCodeFilterInput { eq: CurrencyCode, in: [CurrencyCode!] }
-input CountryCodeFilterInput { eq: CountryCode, in: [CountryCode!] }
+input OrderOrderByInput {
+  field: OrderSortField!
+  direction: SortDirection!
+}
+input IDFilterInput {
+  eq: ID
+  in: [ID!]
+  notIn: [ID!]
+}
+input BigIntFilterInput {
+  eq: BigInt
+  gt: BigInt
+  gte: BigInt
+  lt: BigInt
+  lte: BigInt
+}
+input DecimalFilterInput {
+  eq: Decimal
+  gt: Decimal
+  gte: Decimal
+  lt: Decimal
+  lte: Decimal
+}
+input StringFilterInput {
+  eq: String
+  in: [String!]
+  contains: String
+  startsWith: String
+}
+input DateTimeFilterInput {
+  eq: DateTime
+  gt: DateTime
+  gte: DateTime
+  lt: DateTime
+  lte: DateTime
+}
+input OrderStatusFilterInput {
+  eq: OrderStatus
+  in: [OrderStatus!]
+}
+input OrderPaymentStatusFilterInput {
+  eq: OrderPaymentStatus
+  in: [OrderPaymentStatus!]
+}
+input OrderFulfillmentStatusFilterInput {
+  eq: OrderFulfillmentStatus
+  in: [OrderFulfillmentStatus!]
+}
+input OrderDeliveryStatusFilterInput {
+  eq: OrderDeliveryStatus
+  in: [OrderDeliveryStatus!]
+}
+input OrderReturnStatusFilterInput {
+  eq: OrderReturnStatus
+  in: [OrderReturnStatus!]
+}
+input OrderPlacementStatusFilterInput {
+  eq: OrderPlacementStatus
+  in: [OrderPlacementStatus!]
+}
+input CurrencyCodeFilterInput {
+  eq: CurrencyCode
+  in: [CurrencyCode!]
+}
+input CountryCodeFilterInput {
+  eq: CountryCode
+  in: [CountryCode!]
+}
 
-input MoneyInput { amount: Decimal!, currencyCode: CurrencyCode! }
-input WeightInput { value: Float!, unit: WeightUnit! }
-input DimensionsInput { width: Float!, height: Float!, length: Float!, unit: DimensionUnit! }
+input MoneyInput {
+  amount: Decimal!
+  currencyCode: CurrencyCode!
+}
+input WeightInput {
+  value: Float!
+  unit: WeightUnit!
+}
+input DimensionsInput {
+  width: Float!
+  height: Float!
+  length: Float!
+  unit: DimensionUnit!
+}
 
 input OrderAddressInput {
   firstName: String
@@ -1595,12 +1712,39 @@ input OrderUpdateInput {
   customerNote: String
 }
 
-input OrderDeleteInput { id: ID!, expectedVersion: Int!, idempotencyKey: String! }
-input OrderCompleteDraftInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, notifyCustomer: Boolean = false }
-input OrderCloseInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, reason: String }
-input OrderReopenInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, reason: String! }
-input OrderArchiveInput { id: ID!, expectedVersion: Int!, idempotencyKey: String! }
-input OrderUnarchiveInput { id: ID!, expectedVersion: Int!, idempotencyKey: String! }
+input OrderDeleteInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
+input OrderCompleteDraftInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  notifyCustomer: Boolean = false
+}
+input OrderCloseInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reason: String
+}
+input OrderReopenInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reason: String!
+}
+input OrderArchiveInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
+input OrderUnarchiveInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
 
 input OrderCancelInput {
   id: ID!
@@ -1613,13 +1757,44 @@ input OrderCancelInput {
   refundMode: String = "ORIGINAL_PAYMENT_METHODS"
 }
 
-input OrderCustomerSetInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, customerId: ID }
-input OrderTagsUpdateInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, tags: [String!]! }
-input OrderAdminNoteUpdateInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, adminNote: String }
-input OrderCommentAddInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, comment: String!, visibility: String = "STAFF" }
-input OrderCustomFieldsUpdateInput { id: ID!, expectedVersion: Int!, idempotencyKey: String!, customFields: JSON! }
+input OrderCustomerSetInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  customerId: ID
+}
+input OrderTagsUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  tags: [String!]!
+}
+input OrderAdminNoteUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  adminNote: String
+}
+input OrderCommentAddInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  comment: String!
+  visibility: String = "STAFF"
+}
+input OrderCustomFieldsUpdateInput {
+  id: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  customFields: JSON!
+}
 
-input OrderLineAddInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, line: OrderLineCreateInput! }
+input OrderLineAddInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  line: OrderLineCreateInput!
+}
 input OrderLineUpdateInput {
   orderId: ID!
   lineId: ID!
@@ -1630,23 +1805,111 @@ input OrderLineUpdateInput {
   weight: WeightInput
   customFields: JSON
 }
-input OrderLineDeleteInput { orderId: ID!, lineId: ID!, expectedVersion: Int!, idempotencyKey: String! }
+input OrderLineDeleteInput {
+  orderId: ID!
+  lineId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
 
-input OrderEditBeginInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String! }
-input OrderEditLineAddInput { editId: ID!, expectedEditVersion: Int!, idempotencyKey: String!, line: OrderLineCreateInput! }
-input OrderEditLineUpdateInput { editId: ID!, lineId: ID!, expectedEditVersion: Int!, idempotencyKey: String!, quantity: Int, unitPrice: MoneyInput }
-input OrderEditLineRemoveInput { editId: ID!, lineId: ID!, expectedEditVersion: Int!, idempotencyKey: String! }
-input OrderEditShippingUpdateInput { editId: ID!, expectedEditVersion: Int!, idempotencyKey: String!, shipping: OrderDeliveryInput! }
-input OrderEditDiscountAddInput { editId: ID!, expectedEditVersion: Int!, idempotencyKey: String!, title: String!, amount: MoneyInput!, reasonCode: String! }
-input OrderEditDiscountRemoveInput { editId: ID!, discountId: ID!, expectedEditVersion: Int!, idempotencyKey: String! }
-input OrderEditCommitInput { editId: ID!, expectedEditVersion: Int!, expectedOrderVersion: Int!, idempotencyKey: String!, notifyCustomer: Boolean = false, staffNote: String }
-input OrderEditAbandonInput { editId: ID!, expectedEditVersion: Int!, idempotencyKey: String! }
+input OrderEditBeginInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
+input OrderEditLineAddInput {
+  editId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+  line: OrderLineCreateInput!
+}
+input OrderEditLineUpdateInput {
+  editId: ID!
+  lineId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+  quantity: Int
+  unitPrice: MoneyInput
+}
+input OrderEditLineRemoveInput {
+  editId: ID!
+  lineId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+}
+input OrderEditShippingUpdateInput {
+  editId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+  shipping: OrderDeliveryInput!
+}
+input OrderEditDiscountAddInput {
+  editId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+  title: String!
+  amount: MoneyInput!
+  reasonCode: String!
+}
+input OrderEditDiscountRemoveInput {
+  editId: ID!
+  discountId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+}
+input OrderEditCommitInput {
+  editId: ID!
+  expectedEditVersion: Int!
+  expectedOrderVersion: Int!
+  idempotencyKey: String!
+  notifyCustomer: Boolean = false
+  staffNote: String
+}
+input OrderEditAbandonInput {
+  editId: ID!
+  expectedEditVersion: Int!
+  idempotencyKey: String!
+}
 
-input OrderManualPaymentRecordInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, amount: MoneyInput!, methodCode: String!, reference: String, paidAt: DateTime!, note: String }
-input OrderPaymentCaptureInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, transactionId: ID!, amount: MoneyInput }
-input OrderPaymentVoidInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, transactionId: ID!, reason: String! }
-input OrderPaymentRetryInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, paymentMethodCode: String, returnUrl: URL }
-input OrderPaymentStatusOverrideInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, status: OrderPaymentStatus!, reasonCode: String!, note: String! }
+input OrderManualPaymentRecordInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  amount: MoneyInput!
+  methodCode: String!
+  reference: String
+  paidAt: DateTime!
+  note: String
+}
+input OrderPaymentCaptureInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  transactionId: ID!
+  amount: MoneyInput
+}
+input OrderPaymentVoidInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  transactionId: ID!
+  reason: String!
+}
+input OrderPaymentRetryInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  paymentMethodCode: String
+  returnUrl: URL
+}
+input OrderPaymentStatusOverrideInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  status: OrderPaymentStatus!
+  reasonCode: String!
+  note: String!
+}
 
 input OrderRefundCreateInput {
   orderId: ID!
@@ -1659,46 +1922,232 @@ input OrderRefundCreateInput {
   lines: [OrderRefundLineInput!]
   transactionAllocations: [OrderRefundTransactionAllocationInput!]
 }
-input OrderRefundLineInput { orderLineId: ID!, quantity: Int!, amount: MoneyInput! }
-input OrderRefundTransactionAllocationInput { transactionId: ID!, amount: MoneyInput! }
+input OrderRefundLineInput {
+  orderLineId: ID!
+  quantity: Int!
+  amount: MoneyInput!
+}
+input OrderRefundTransactionAllocationInput {
+  transactionId: ID!
+  amount: MoneyInput!
+}
 
-input FulfillmentOrderLineQuantityInput { fulfillmentOrderLineId: ID!, quantity: Int! }
-input FulfillmentOrderSplitInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String!, lines: [FulfillmentOrderLineQuantityInput!]! }
-input FulfillmentOrderMoveInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String!, locationId: ID!, serviceCode: String }
-input FulfillmentOrderHoldInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String!, note: String }
-input FulfillmentOrderReleaseHoldInput { fulfillmentOrderId: ID!, holdId: ID!, expectedVersion: Int!, idempotencyKey: String! }
-input FulfillmentOrderSubmitInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String! }
-input FulfillmentOrderCancelRequestInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String!, note: String }
-input FulfillmentCreateInput { fulfillmentOrderId: ID!, expectedVersion: Int!, idempotencyKey: String!, lines: [FulfillmentOrderLineQuantityInput!]!, notifyCustomer: Boolean = false }
-input FulfillmentCancelInput { fulfillmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String!, restock: Boolean = true }
+input FulfillmentOrderLineQuantityInput {
+  fulfillmentOrderLineId: ID!
+  quantity: Int!
+}
+input FulfillmentOrderSplitInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  lines: [FulfillmentOrderLineQuantityInput!]!
+}
+input FulfillmentOrderMoveInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  locationId: ID!
+  serviceCode: String
+}
+input FulfillmentOrderHoldInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+  note: String
+}
+input FulfillmentOrderReleaseHoldInput {
+  fulfillmentOrderId: ID!
+  holdId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
+input FulfillmentOrderSubmitInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
+input FulfillmentOrderCancelRequestInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+  note: String
+}
+input FulfillmentCreateInput {
+  fulfillmentOrderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  lines: [FulfillmentOrderLineQuantityInput!]!
+  notifyCustomer: Boolean = false
+}
+input FulfillmentCancelInput {
+  fulfillmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+  restock: Boolean = true
+}
 
-input ShipmentCreateInput { fulfillmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, providerCode: String, serviceCode: String, packages: [ShipmentPackageInput!]!, notifyCustomer: Boolean = false }
-input ShipmentPackageInput { weight: WeightInput, dimensions: DimensionsInput, declaredValue: MoneyInput, items: [ShipmentPackageItemInput!]! }
-input ShipmentPackageItemInput { orderLineId: ID!, quantity: Int! }
-input ShipmentTrackingUpdateInput { shipmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, tracking: [ShipmentTrackingInput!]! }
-input ShipmentTrackingInput { number: String!, url: URL, company: String }
-input ShipmentMarkShippedInput { shipmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, shippedAt: DateTime! }
-input ShipmentMarkDeliveredInput { shipmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, deliveredAt: DateTime! }
-input ShipmentCancelInput { shipmentId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String! }
-input ShipmentReconcileInput { shipmentId: ID!, expectedVersion: Int!, idempotencyKey: String! }
+input ShipmentCreateInput {
+  fulfillmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  providerCode: String
+  serviceCode: String
+  packages: [ShipmentPackageInput!]!
+  notifyCustomer: Boolean = false
+}
+input ShipmentPackageInput {
+  weight: WeightInput
+  dimensions: DimensionsInput
+  declaredValue: MoneyInput
+  items: [ShipmentPackageItemInput!]!
+}
+input ShipmentPackageItemInput {
+  orderLineId: ID!
+  quantity: Int!
+}
+input ShipmentTrackingUpdateInput {
+  shipmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  tracking: [ShipmentTrackingInput!]!
+}
+input ShipmentTrackingInput {
+  number: String!
+  url: URL
+  company: String
+}
+input ShipmentMarkShippedInput {
+  shipmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  shippedAt: DateTime!
+}
+input ShipmentMarkDeliveredInput {
+  shipmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  deliveredAt: DateTime!
+}
+input ShipmentCancelInput {
+  shipmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+}
+input ShipmentReconcileInput {
+  shipmentId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+}
 
-input OrderReturnLineInput { orderLineId: ID!, quantity: Int!, reasonCode: String!, note: String }
-input OrderReturnCreateInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, lines: [OrderReturnLineInput!]!, customerNote: String, staffNote: String, notifyCustomer: Boolean = false }
-input OrderReturnApproveInput { returnId: ID!, expectedVersion: Int!, idempotencyKey: String!, locationId: ID!, createReturnShipment: Boolean = false, staffNote: String }
-input OrderReturnRejectInput { returnId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String!, staffNote: String }
-input OrderReturnCancelInput { returnId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String! }
-input OrderReturnReceiveInput { returnId: ID!, expectedVersion: Int!, idempotencyKey: String!, locationId: ID!, lines: [OrderReturnReceiveLineInput!]!, refund: OrderReturnRefundInput }
-input OrderReturnReceiveLineInput { orderLineId: ID!, receivedQuantity: Int!, restockableQuantity: Int!, damagedQuantity: Int! }
-input OrderReturnRefundInput { amount: MoneyInput!, reasonCode: String!, notifyCustomer: Boolean = false }
+input OrderReturnLineInput {
+  orderLineId: ID!
+  quantity: Int!
+  reasonCode: String!
+  note: String
+}
+input OrderReturnCreateInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  lines: [OrderReturnLineInput!]!
+  customerNote: String
+  staffNote: String
+  notifyCustomer: Boolean = false
+}
+input OrderReturnApproveInput {
+  returnId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  locationId: ID!
+  createReturnShipment: Boolean = false
+  staffNote: String
+}
+input OrderReturnRejectInput {
+  returnId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+  staffNote: String
+}
+input OrderReturnCancelInput {
+  returnId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+}
+input OrderReturnReceiveInput {
+  returnId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  locationId: ID!
+  lines: [OrderReturnReceiveLineInput!]!
+  refund: OrderReturnRefundInput
+}
+input OrderReturnReceiveLineInput {
+  orderLineId: ID!
+  receivedQuantity: Int!
+  restockableQuantity: Int!
+  damagedQuantity: Int!
+}
+input OrderReturnRefundInput {
+  amount: MoneyInput!
+  reasonCode: String!
+  notifyCustomer: Boolean = false
+}
 
-input OrderExchangeCreateInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, inboundLines: [OrderReturnLineInput!]!, outboundLines: [OrderLineCreateInput!]!, notifyCustomer: Boolean = false, staffNote: String }
-input OrderExchangeCancelInput { exchangeId: ID!, expectedVersion: Int!, idempotencyKey: String!, reasonCode: String! }
+input OrderExchangeCreateInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  inboundLines: [OrderReturnLineInput!]!
+  outboundLines: [OrderLineCreateInput!]!
+  notifyCustomer: Boolean = false
+  staffNote: String
+}
+input OrderExchangeCancelInput {
+  exchangeId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  reasonCode: String!
+}
 
-input OrderIntegrationSyncRequestInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, integrationLinkId: ID!, force: Boolean = false }
-input OrderIntegrationSyncRetryInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, operationId: ID! }
-input OrderIntegrationLinkDetachInput { orderId: ID!, expectedVersion: Int!, idempotencyKey: String!, integrationLinkId: ID!, reason: String! }
-input OrdersBulkActionInput { selection: OrderBulkSelectionInput!, action: OrdersBulkActionKind!, idempotencyKey: String!, reasonCode: String, tags: [String!], integrationLinkId: ID }
-input OrderBulkSelectionInput { ids: [ID!], where: OrderWhereInput, excludedIds: [ID!] }
+input OrderIntegrationSyncRequestInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  integrationLinkId: ID!
+  force: Boolean = false
+}
+input OrderIntegrationSyncRetryInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  operationId: ID!
+}
+input OrderIntegrationLinkDetachInput {
+  orderId: ID!
+  expectedVersion: Int!
+  idempotencyKey: String!
+  integrationLinkId: ID!
+  reason: String!
+}
+input OrdersBulkActionInput {
+  selection: OrderBulkSelectionInput!
+  action: OrdersBulkActionKind!
+  idempotencyKey: String!
+  reasonCode: String
+  tags: [String!]
+  integrationLinkId: ID
+}
+input OrderBulkSelectionInput {
+  ids: [ID!]
+  where: OrderWhereInput
+  excludedIds: [ID!]
+}
 
 type OrderUserError implements DisplayableError {
   field: [String!]
@@ -1708,56 +2157,106 @@ type OrderUserError implements DisplayableError {
   currentVersion: Int
 }
 
-type OrderPayload { order: Order, userErrors: [OrderUserError!]!, clientMutationId: String }
-type OrderDeletePayload { deletedId: ID, order: Order, userErrors: [OrderUserError!]! }
-type OrderLinePayload { order: Order, line: OrderLine, userErrors: [OrderUserError!]! }
-type OrderActivityPayload { order: Order, activity: OrderActivity, userErrors: [OrderUserError!]! }
-type OrderEditPayload { order: Order, edit: OrderEditSession, userErrors: [OrderUserError!]! }
-type OrderOperationPayload { order: Order, operation: OrderOperation, userErrors: [OrderUserError!]! }
-type FulfillmentOrderPayload { order: Order, fulfillmentOrder: FulfillmentOrder, userErrors: [OrderUserError!]! }
-type FulfillmentPayload { order: Order, fulfillment: Fulfillment, userErrors: [OrderUserError!]! }
-type ShipmentPayload { order: Order, shipment: Shipment, userErrors: [OrderUserError!]! }
-type OrderReturnPayload { order: Order, return: OrderReturn, userErrors: [OrderUserError!]! }
-type OrderExchangePayload { order: Order, exchange: OrderExchange, userErrors: [OrderUserError!]! }
+type OrderPayload {
+  order: Order
+  userErrors: [OrderUserError!]!
+  clientMutationId: String
+}
+type OrderDeletePayload {
+  deletedId: ID
+  order: Order
+  userErrors: [OrderUserError!]!
+}
+type OrderLinePayload {
+  order: Order
+  line: OrderLine
+  userErrors: [OrderUserError!]!
+}
+type OrderActivityPayload {
+  order: Order
+  activity: OrderActivity
+  userErrors: [OrderUserError!]!
+}
+type OrderEditPayload {
+  order: Order
+  edit: OrderEditSession
+  userErrors: [OrderUserError!]!
+}
+type OrderOperationPayload {
+  order: Order
+  operation: OrderOperation
+  userErrors: [OrderUserError!]!
+}
+type FulfillmentOrderPayload {
+  order: Order
+  fulfillmentOrder: FulfillmentOrder
+  userErrors: [OrderUserError!]!
+}
+type FulfillmentPayload {
+  order: Order
+  fulfillment: Fulfillment
+  userErrors: [OrderUserError!]!
+}
+type ShipmentPayload {
+  order: Order
+  shipment: Shipment
+  userErrors: [OrderUserError!]!
+}
+type OrderReturnPayload {
+  order: Order
+  return: OrderReturn
+  userErrors: [OrderUserError!]!
+}
+type OrderExchangePayload {
+  order: Order
+  exchange: OrderExchange
+  userErrors: [OrderUserError!]!
+}
 ```
 
 ### 7.1. SDL validation notes
 
-- Если shared Admin schema ещё не содержит `Cursor`, `Connection`, `PageInfo`, `DisplayableError`, `Money`, `Weight`, `Dimensions` и соответствующие unit enums, они сначала добавляются в `packages/shared-references`, а не дублируются в Orders.
+- Если shared Admin schema ещё не содержит `Cursor`, `Connection`, `PageInfo`, `DisplayableError`,
+  `Money`, `Weight`, `Dimensions` и соответствующие unit enums, они сначала добавляются в
+  `packages/shared-references`, а не дублируются в Orders.
 - `BigInt` сериализуется строкой, чтобы order number/sequence не теряли точность.
-- `Money.amount` и `MoneyInput.amount` — decimal string; в PostgreSQL суммы сохраняются minor-unit `bigint` и currency code.
-- `Order.version` — integer revision строки заказа для optimistic concurrency; `updatedAt` не используется как concurrency token.
+- `Money.amount` и `MoneyInput.amount` — decimal string; в PostgreSQL суммы сохраняются minor-unit
+  `bigint` и currency code.
+- `Order.version` — integer revision строки заказа для optimistic concurrency; `updatedAt` не
+  используется как concurrency token.
 - Global IDs декодируются с проверкой entity type до вызова Script.
-- `userErrors` используются для validation/business/permission conflicts; transport/system failures остаются GraphQL errors.
-- `orderOperation` нужен для long-running DBOS operations и polling. Mutation может вернуть уже `SUCCEEDED` operation для синхронно завершившейся команды.
+- `userErrors` используются для validation/business/permission conflicts; transport/system failures
+  остаются GraphQL errors.
+- `orderOperation` нужен для long-running DBOS operations и polling. Mutation может вернуть уже
+  `SUCCEEDED` operation для синхронно завершившейся команды.
 
 ## 8. Как черновые Admin UI операции отображаются на enterprise API
 
-| Операция чернового UI | Целевой GraphQL contract | Правило |
-| --- | --- | --- |
-| Список заказов | `ordersQuery.orders` | Relay pagination, server filter/search/sort |
-| Заказ по ID | `ordersQuery.order` | store-scoped lookup, inaccessible → `null` |
-| Создать заказ | `orderCreate` | создаёт `DRAFT`; totals рассчитывает сервер |
-| Полностью обновить заказ | `orderUpdate` для реквизитов; draft line mutations; staged edit для `OPEN` | generic aggregate overwrite запрещён |
-| Удалить заказ | `orderDelete` | только `DRAFT`, placed order физически не удаляется |
-| Отменить заказ | `orderCancel` | durable workflow: fulfillment cancellation, void/refund, restock, notifications |
-| Изменить order status | `orderCompleteDraft`, `orderClose`, `orderReopen`, `orderCancel` | arbitrary `nextStatus` заменён явными командами |
-| Archive/unarchive | `orderArchive`, `orderUnarchive` | `archivedAt`, не lifecycle status |
-| Изменить payment status | capture/void/refund/manual payment/retry | provider-managed status всегда derived |
-| Ручной payment override | `orderPaymentStatusOverride` | только offline/import, elevated permission и причина |
-| Изменить fulfillment status | hold/release/create/cancel/ship/deliver | aggregate status derived из фактов |
-| Attach/detach customer | `orderCustomerSet` | customer reference меняется; historical contact snapshot сохраняется |
-| Tags | `orderTagsUpdate` | нормализация, лимиты, audit event |
-| Admin note | `orderAdminNoteUpdate` | mutable current note + immutable event |
-| Comment | `orderCommentAdd` | append-only activity, staff/customer visibility |
-| Add/update/delete line | direct mutations для `DRAFT`; staged edit для `OPEN` | shipped/returned quantities нельзя переписать |
-| Изменить weight/cost | `orderLineUpdate` или staged edit | cost admin-only; financial recalculation server-side |
-| Split fulfillment | `fulfillmentOrderSplit` | делится work unit, а не исходная order line |
-| Undo split | новый split/move/merge policy | исторический split не удаляется; создаётся compensating event |
-| Создать shipment | `shipmentCreate` | merchant managed или provider workflow |
-| Изменить tracking | `shipmentTrackingUpdate` | provider-managed tracking может быть read-only |
-| Shipping details | `orderUpdate` для draft/pre-shipment; staged edit для placed order | destination snapshot versioned |
-| Payment details | draft `orderUpdate`; placed `orderPaymentRetry` с новым method | существующую provider attempt не перепривязываем |
+| Операция чернового UI       | Целевой GraphQL contract                                                   | Правило                                                                         |
+| --------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Список заказов              | `ordersQuery.orders`                                                       | Relay pagination, server filter/search/sort                                     |
+| Заказ по ID                 | `ordersQuery.order`                                                        | store-scoped lookup, inaccessible → `null`                                      |
+| Создать заказ               | `orderCreate`                                                              | создаёт `DRAFT`; totals рассчитывает сервер                                     |
+| Полностью обновить заказ    | `orderUpdate` для реквизитов; draft line mutations; staged edit для `OPEN` | generic aggregate overwrite запрещён                                            |
+| Удалить заказ               | `orderDelete`                                                              | только `DRAFT`, placed order физически не удаляется                             |
+| Отменить заказ              | `orderCancel`                                                              | durable workflow: fulfillment cancellation, void/refund, restock, notifications |
+| Изменить order status       | `orderCompleteDraft`, `orderClose`, `orderReopen`, `orderCancel`           | arbitrary `nextStatus` заменён явными командами                                 |
+| Archive/unarchive           | `orderArchive`, `orderUnarchive`                                           | `archivedAt`, не lifecycle status                                               |
+| Изменить payment status     | capture/void/refund/manual payment/retry                                   | provider-managed status всегда derived                                          |
+| Ручной payment override     | `orderPaymentStatusOverride`                                               | только offline/import, elevated permission и причина                            |
+| Изменить fulfillment status | hold/release/create/cancel/ship/deliver                                    | aggregate status derived из фактов                                              |
+| Attach/detach customer      | `orderCustomerSet`                                                         | customer reference меняется; historical contact snapshot сохраняется            |
+| Tags                        | `orderTagsUpdate`                                                          | нормализация, лимиты, audit event                                               |
+| Admin note                  | `orderAdminNoteUpdate`                                                     | mutable current note + immutable event                                          |
+| Comment                     | `orderCommentAdd`                                                          | append-only activity, staff/customer visibility                                 |
+| Add/update/delete line      | direct mutations для `DRAFT`; staged edit для `OPEN`                       | shipped/returned quantities нельзя переписать                                   |
+| Изменить weight/cost        | `orderLineUpdate` или staged edit                                          | cost admin-only; financial recalculation server-side                            |
+| Split fulfillment           | `fulfillmentOrderSplit`                                                    | делится work unit, а не исходная order line                                     |
+| Undo split                  | новый split/move/merge policy                                              | исторический split не удаляется; создаётся compensating event                   |
+| Создать shipment            | `shipmentCreate`                                                           | merchant managed или provider workflow                                          |
+| Изменить tracking           | `shipmentTrackingUpdate`                                                   | provider-managed tracking может быть read-only                                  |
+| Shipping details            | `orderUpdate` для draft/pre-shipment; staged edit для placed order         | destination snapshot versioned                                                  |
+| Payment details             | draft `orderUpdate`; placed `orderPaymentRetry` с новым method             | существующую provider attempt не перепривязываем                                |
 
 ### 8.1. Намеренно отсутствующий generic status update
 
@@ -1769,7 +2268,9 @@ type OrderExchangePayload { order: Order, exchange: OrderExchange, userErrors: [
 - return `RETURNED` без received quantities;
 - order `CANCELLED` без cancellation workflow.
 
-Admin UI должен отображать `availableActions` и открывать command-specific modal. Это устраняет невозможные комбинации вроде `PAID + payment transactions = []` или `FULFILLED + fulfilledQuantity = 0`.
+Admin UI должен отображать `availableActions` и открывать command-specific modal. Это устраняет
+невозможные комбинации вроде `PAID + payment transactions = []` или
+`FULFILLED + fulfilledQuantity = 0`.
 
 ## 9. Целевая PostgreSQL-модель
 
@@ -1778,24 +2279,26 @@ Admin UI должен отображать `availableActions` и открыва�
 - Все persisted IDs — PostgreSQL UUIDv7.
 - Каждая store-scoped таблица содержит `store_id`; все repository predicates включают `store_id`.
 - Межтабличные FK внутри Orders составные: `(store_id, id)` или `(store_id, order_id, id)`.
-- FK в другие сервисы не создаются. Customer, Checkout, app installation, location, catalog IDs являются typed references.
+- FK в другие сервисы не создаются. Customer, Checkout, app installation, location, catalog IDs
+  являются typed references.
 - Денежные суммы: `bigint` minor units + `currency_code varchar(3)`.
 - Queryable business state не прячется в JSONB.
 - JSONB используется для immutable provider snapshots, custom fields и versioned event payloads.
 - Все lifecycle timestamps — `timestamptz`.
-- Канонические state tables, audit records и outbox обновляются в одной локальной транзакции, чтобы mutation обеспечивала read-after-write.
+- Канонические state tables, audit records и outbox обновляются в одной локальной транзакции, чтобы
+  mutation обеспечивала read-after-write.
 - Outbound side effects идут только после commit через outbox/DBOS.
 
 ### 9.2. Concurrency, audit и operational control
 
-| Таблица | Назначение | Ключевые поля/constraints |
-| --- | --- | --- |
-| `orders` | canonical state и concurrency revision | `version > 0`; conditional update по `(store_id, id, version)` |
-| `order_events` | immutable audit/integration log, не source of truth | `event_id`, `order_version`, `global_position`, `event_type`, `schema_version`, actor/correlation/causation, payload; unique event ID и order-version/type key |
-| `order_outbox` | committed outbound facts | event/topic/status/attempts/available_at; unique event destination |
-| `order_idempotency_records` | replay command result | `(store_id, operation, idempotency_key)`, request hash, status, response, expiry |
-| `order_operations` | DBOS/Admin async jobs | kind/status/order/resource/workflow UUID/failure/progress |
-| `order_operation_attempts` | provider/worker attempts | operation, attempt number, route, request/response hashes, error, duration |
+| Таблица                     | Назначение                                          | Ключевые поля/constraints                                                                                                                                      |
+| --------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orders`                    | canonical state и concurrency revision              | `version > 0`; conditional update по `(store_id, id, version)`                                                                                                 |
+| `order_events`              | immutable audit/integration log, не source of truth | `event_id`, `order_version`, `global_position`, `event_type`, `schema_version`, actor/correlation/causation, payload; unique event ID и order-version/type key |
+| `order_outbox`              | committed outbound facts                            | event/topic/status/attempts/available_at; unique event destination                                                                                             |
+| `order_idempotency_records` | replay command result                               | `(store_id, operation, idempotency_key)`, request hash, status, response, expiry                                                                               |
+| `order_operations`          | DBOS/Admin async jobs                               | kind/status/order/resource/workflow UUID/failure/progress                                                                                                      |
+| `order_operation_attempts`  | provider/worker attempts                            | operation, attempt number, route, request/response hashes, error, duration                                                                                     |
 
 Command transaction algorithm:
 
@@ -1811,25 +2314,26 @@ Command transaction algorithm:
 
 ### 9.3. Core state
 
-| Таблица | Содержание |
-| --- | --- |
-| `orders` | current lifecycle/derived statuses, order number, source, checkout/customer refs, totals, timestamps, current version |
-| `order_lines` | immutable identity/snapshots + current quantities and amounts |
-| `order_line_discount_allocations` | discount application → line allocations |
-| `order_line_tax_lines` | title/rate/jurisdiction/included/amount |
-| `order_line_duties` | duties/customs allocations |
-| `order_adjustments` | authorized manual/system adjustments with reason and actor |
-| `order_contacts` | current PII snapshot, retention and redaction markers |
-| `order_addresses` | versioned billing/shipping/return address snapshots |
-| `order_delivery_groups` | lines, address, recipient and selected method snapshot |
-| `order_delivery_methods` | provider/method/customer input and quoted amount snapshot |
-| `order_checkout_placements` | Checkout placement provenance, revisions, snapshot hash и handshake status |
-| `order_checkout_commitments` | immutable references на inventory/pricing/loyalty/delivery commitments |
-| `order_tags` | normalized tags and actor |
-| `order_admin_notes` | current admin note state |
-| `order_activity` | query-optimized immutable timeline |
+| Таблица                           | Содержание                                                                                                            |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `orders`                          | current lifecycle/derived statuses, order number, source, checkout/customer refs, totals, timestamps, current version |
+| `order_lines`                     | immutable identity/snapshots + current quantities and amounts                                                         |
+| `order_line_discount_allocations` | discount application → line allocations                                                                               |
+| `order_line_tax_lines`            | title/rate/jurisdiction/included/amount                                                                               |
+| `order_line_duties`               | duties/customs allocations                                                                                            |
+| `order_adjustments`               | authorized manual/system adjustments with reason and actor                                                            |
+| `order_contacts`                  | current PII snapshot, retention and redaction markers                                                                 |
+| `order_addresses`                 | versioned billing/shipping/return address snapshots                                                                   |
+| `order_delivery_groups`           | lines, address, recipient and selected method snapshot                                                                |
+| `order_delivery_methods`          | provider/method/customer input and quoted amount snapshot                                                             |
+| `order_checkout_placements`       | Checkout placement provenance, revisions, snapshot hash и handshake status                                            |
+| `order_checkout_commitments`      | immutable references на inventory/pricing/loyalty/delivery commitments                                                |
+| `order_tags`                      | normalized tags and actor                                                                                             |
+| `order_admin_notes`               | current admin note state                                                                                              |
+| `order_activity`                  | query-optimized immutable timeline                                                                                    |
 
-`orders` не хранит поля старой Drizzle-модели `subtotal`, `shipping_total`, `grand_total`. Канонические имена:
+`orders` не хранит поля старой Drizzle-модели `subtotal`, `shipping_total`, `grand_total`.
+Канонические имена:
 
 ```text
 subtotal_amount
@@ -1843,75 +2347,81 @@ total_amount
 
 ### 9.4. Order editing
 
-| Таблица | Назначение |
-| --- | --- |
-| `order_edit_sessions` | base order version, session version, status, expiry, calculated totals |
-| `order_edit_changes` | ordered staged commands; append-only within active session |
-| `order_edit_line_read_model` | optional fast calculated view for large edits |
+| Таблица                      | Назначение                                                             |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `order_edit_sessions`        | base order version, session version, status, expiry, calculated totals |
+| `order_edit_changes`         | ordered staged commands; append-only within active session             |
+| `order_edit_line_read_model` | optional fast calculated view for large edits                          |
 
-Edit session никогда не меняет placed order до `orderEditCommit`. Commit повторно проверяет base order version, availability of affected quantities, pricing/tax result и финансовый balance delta.
+Edit session никогда не меняет placed order до `orderEditCommit`. Commit повторно проверяет base
+order version, availability of affected quantities, pricing/tax result и финансовый balance delta.
 
 ### 9.5. Payment state
 
-| Таблица | Назначение |
-| --- | --- |
-| `order_payment_methods` | immutable method/provider/customer-input snapshots |
-| `order_payment_attempts` | session/attempt lifecycle and customer action |
-| `order_payment_transactions` | authorization/capture/sale/refund/void/manual facts |
-| `order_payment_transaction_fees` | processor fees |
-| `order_payment_disputes` | dispute/chargeback state |
-| `order_refunds` | customer-visible refund request/result |
-| `order_refund_lines` | quantity/amount attribution |
-| `order_refund_transaction_allocations` | refund → captured transaction allocation |
-| `order_payment_event_inbox` | provider/payment event deduplication and ordering |
+| Таблица                                | Назначение                                          |
+| -------------------------------------- | --------------------------------------------------- |
+| `order_payment_methods`                | immutable method/provider/customer-input snapshots  |
+| `order_payment_attempts`               | session/attempt lifecycle and customer action       |
+| `order_payment_transactions`           | authorization/capture/sale/refund/void/manual facts |
+| `order_payment_transaction_fees`       | processor fees                                      |
+| `order_payment_disputes`               | dispute/chargeback state                            |
+| `order_refunds`                        | customer-visible refund request/result              |
+| `order_refund_lines`                   | quantity/amount attribution                         |
+| `order_refund_transaction_allocations` | refund → captured transaction allocation            |
+| `order_payment_event_inbox`            | provider/payment event deduplication and ordering   |
 
-Payments service остаётся authoritative executor. Orders не вызывает provider App напрямую и не изменяет transaction outcome задним числом.
+Payments service остаётся authoritative executor. Orders не вызывает provider App напрямую и не
+изменяет transaction outcome задним числом.
 
 ### 9.6. Fulfillment capability
 
-| Таблица | Назначение |
-| --- | --- |
-| `order_fulfillment_orders` | work unit per order/delivery group/location/service |
-| `order_fulfillment_order_lines` | allocated and remaining quantities |
-| `order_fulfillment_holds` | active/released holds with reasons |
+| Таблица                              | Назначение                                              |
+| ------------------------------------ | ------------------------------------------------------- |
+| `order_fulfillment_orders`           | work unit per order/delivery group/location/service     |
+| `order_fulfillment_order_lines`      | allocated and remaining quantities                      |
+| `order_fulfillment_holds`            | active/released holds with reasons                      |
 | `order_fulfillment_service_requests` | submit/cancel/revision state pinned to App installation |
-| `order_fulfillments` | merchant/service completion unit |
-| `order_fulfillment_lines` | fulfilled quantities by order line |
-| `order_shipments` | shipment lifecycle and provider route/reference |
-| `order_shipment_packages` | physical packages |
-| `order_shipment_package_lines` | package content quantities |
-| `order_shipment_tracking_numbers` | one or more tracking IDs/URLs |
-| `order_shipment_tracking_events` | append-only carrier timeline |
-| `order_shipment_provider_operations` | create/cancel/reconcile idempotent operation state |
-| `order_fulfillment_event_inbox` | 3PL/carrier event dedupe and sequence control |
+| `order_fulfillments`                 | merchant/service completion unit                        |
+| `order_fulfillment_lines`            | fulfilled quantities by order line                      |
+| `order_shipments`                    | shipment lifecycle and provider route/reference         |
+| `order_shipment_packages`            | physical packages                                       |
+| `order_shipment_package_lines`       | package content quantities                              |
+| `order_shipment_tracking_numbers`    | one or more tracking IDs/URLs                           |
+| `order_shipment_tracking_events`     | append-only carrier timeline                            |
+| `order_shipment_provider_operations` | create/cancel/reconcile idempotent operation state      |
+| `order_fulfillment_event_inbox`      | 3PL/carrier event dedupe and sequence control           |
 
-Старые `delivery_fulfillment_snapshots` и `delivery_fulfillment_updates` не должны существовать параллельно с нормализованным capability. На чистой БД выбирается одна модель: нормализованные fulfillment tables + immutable event payloads.
+Старые `delivery_fulfillment_snapshots` и `delivery_fulfillment_updates` не должны существовать
+параллельно с нормализованным capability. На чистой БД выбирается одна модель: нормализованные
+fulfillment tables + immutable event payloads.
 
 ### 9.7. Returns, exchanges и refunds
 
-| Таблица | Назначение |
-| --- | --- |
-| `order_return_requests` | RMA lifecycle |
-| `order_return_request_lines` | requested/received/restockable/damaged quantities |
-| `order_return_shipments` | inbound shipment link |
-| `order_return_tracking_events` | inbound tracking timeline |
-| `order_exchanges` | exchange lifecycle and balance |
-| `order_exchange_inbound_lines` | links to return lines |
-| `order_exchange_outbound_lines` | replacement line snapshots |
-| `order_refunds` and children | common financial refund shared by return/exchange/correction |
+| Таблица                         | Назначение                                                   |
+| ------------------------------- | ------------------------------------------------------------ |
+| `order_return_requests`         | RMA lifecycle                                                |
+| `order_return_request_lines`    | requested/received/restockable/damaged quantities            |
+| `order_return_shipments`        | inbound shipment link                                        |
+| `order_return_tracking_events`  | inbound tracking timeline                                    |
+| `order_exchanges`               | exchange lifecycle and balance                               |
+| `order_exchange_inbound_lines`  | links to return lines                                        |
+| `order_exchange_outbound_lines` | replacement line snapshots                                   |
+| `order_refunds` and children    | common financial refund shared by return/exchange/correction |
 
-Return и refund — разные сущности: товар может быть возвращён без refund, а refund может быть создан без physical return.
+Return и refund — разные сущности: товар может быть возвращён без refund, а refund может быть создан
+без physical return.
 
 ### 9.8. CRM/ERP integration state
 
-| Таблица | Назначение |
-| --- | --- |
-| `order_external_references` | unique `(store, system_code, external_id)` mapping |
-| `order_integration_links` | App installation, direction, sync status, external URL/revisions |
+| Таблица                           | Назначение                                                                 |
+| --------------------------------- | -------------------------------------------------------------------------- |
+| `order_external_references`       | unique `(store, system_code, external_id)` mapping                         |
+| `order_integration_links`         | App installation, direction, sync status, external URL/revisions           |
 | `order_integration_sync_attempts` | exported order version, external revision, request/response hashes, result |
-| `order_integration_event_inbox` | inbound provider event dedupe |
+| `order_integration_event_inbox`   | inbound provider event dedupe                                              |
 
-CRM-specific fields остаются в App configuration/mapping. Core Orders знает только stable link, revisions, sync health и external reference.
+CRM-specific fields остаются в App configuration/mapping. Core Orders знает только stable link,
+revisions, sync health и external reference.
 
 ### 9.9. Основные database constraints
 
@@ -1935,7 +2445,9 @@ received = restockable + damaged + other disposition quantities
 external reference unique per installation/system
 ```
 
-Append-only triggers запрещают `UPDATE/DELETE` для event, status history, tracking event и finalized transaction rows. PII redaction выполняется отдельной разрешённой function/command и никогда не изменяет financial facts.
+Append-only triggers запрещают `UPDATE/DELETE` для event, status history, tracking event и finalized
+transaction rows. PII redaction выполняется отдельной разрешённой function/command и никогда не
+изменяет financial facts.
 
 ### 9.10. Предлагаемый migration layout
 
@@ -1982,25 +2494,31 @@ services/orders/migrations/domains/
     0802_integrity__audit.sql
 ```
 
-Так как production/stage данных нет, реализация не добавляет compatibility views или rename migrations поверх несовместимых `order_items`/старых amount columns. Существующие migrations и Drizzle models приводятся к одному контракту до первого эксплуатационного релиза.
+Так как production/stage данных нет, реализация не добавляет compatibility views или rename
+migrations поверх несовместимых `order_items`/старых amount columns. Существующие migrations и
+Drizzle models приводятся к одному контракту до первого эксплуатационного релиза.
 
 ## 10. Доменные инварианты и команды
 
 ### 10.1. Draft order
 
 - `orderCreate` всегда создаёт `DRAFT`.
-- Минимум одна line обязательна перед `orderCompleteDraft`, но draft можно временно сохранить пустым только если это явно понадобится UX; V1 SDL требует непустой create input.
+- Минимум одна line обязательна перед `orderCompleteDraft`, но draft можно временно сохранить пустым
+  только если это явно понадобится UX; V1 SDL требует непустой create input.
 - Currency берётся из store context; input currency обязан совпасть, если MoneyInput содержит code.
-- Totals, taxes, discounts и shipping пересчитываются сервером; client totals игнорируются и не принимаются SDL.
+- Totals, taxes, discounts и shipping пересчитываются сервером; client totals игнорируются и не
+  принимаются SDL.
 - Прямые add/update/delete line разрешены только в `DRAFT`.
-- `orderDelete` tombstone/удаляет только draft без external operations. Placed order отменяется или архивируется.
+- `orderDelete` tombstone/удаляет только draft без external operations. Placed order отменяется или
+  архивируется.
 
 ### 10.2. Placed order edits
 
 - `OPEN` order line changes выполняются через `OrderEditSession`.
 - Редактировать можно только quantity, не участвующую в shipment/return/refund.
 - Edit session содержит calculated preview и balance delta.
-- Positive delta создаёт outstanding balance/payment flow; negative delta создаёт refundable credit, но не автоматический refund без policy.
+- Positive delta создаёт outstanding balance/payment flow; negative delta создаёт refundable credit,
+  но не автоматический refund без policy.
 - Commit атомарен относительно order version и inventory reallocation workflow.
 - Session имеет TTL и только один active session на order.
 
@@ -2015,10 +2533,12 @@ services/orders/migrations/domains/
 5. void active authorizations;
 6. calculate and optionally create refund;
 7. release/restock inventory according to input/policy;
-8. atomically set order state to `CANCELLED` and increment version only после выполнения обязательных шагов;
+8. atomically set order state to `CANCELLED` and increment version only после выполнения
+   обязательных шагов;
 9. publish self-contained event and notification request.
 
-Если external service ещё рассматривает cancellation, operation остаётся `RUNNING`, а order не объявляется окончательно cancelled преждевременно.
+Если external service ещё рассматривает cancellation, operation остаётся `RUNNING`, а order не
+объявляется окончательно cancelled преждевременно.
 
 ### 10.4. Payment
 
@@ -2027,7 +2547,8 @@ services/orders/migrations/domains/
 - Каждая provider operation pinned к original provider installation/account.
 - Duplicate provider events безопасны; out-of-order events сравниваются по sequence.
 - Manual payment создаёт transaction kind `MANUAL`, actor, reference и paidAt.
-- Override не создаёт фиктивную provider transaction и помечается отдельным audited adjustment event.
+- Override не создаёт фиктивную provider transaction и помечается отдельным audited adjustment
+  event.
 
 ### 10.5. Quantity conservation
 
@@ -2047,7 +2568,8 @@ captured value
   >= allocated successful refunds
 ```
 
-Split/move fulfillment не меняет ordered quantity: он только перераспределяет remaining fulfillment work.
+Split/move fulfillment не меняет ordered quantity: он только перераспределяет remaining fulfillment
+work.
 
 ## 11. Отдельный fulfillment capability
 
@@ -2057,16 +2579,17 @@ Split/move fulfillment не меняет ordered quantity: он только п�
 2. `Fulfillment` — зафиксированное выполнение конкретных quantities.
 3. `Shipment` — физическая перевозка fulfillment packages.
 
-Их нельзя объединять в один `shippingItem`: один order может иметь несколько locations, fulfillments, packages, tracking numbers и providers.
+Их нельзя объединять в один `shippingItem`: один order может иметь несколько locations,
+fulfillments, packages, tracking numbers и providers.
 
 ### 11.2. Режимы выполнения
 
-| Режим | Исполнитель | Поведение |
-| --- | --- | --- |
-| Merchant managed | staff/Admin | create fulfillment и shipment вручную |
-| Fulfillment service / 3PL | `fulfillment.service` App | submit work request, accept/reject/cancel asynchronously |
-| Carrier shipment | `delivery.shipment-provider` App | label/create/cancel/get/reconcile shipment |
-| Pickup/local | merchant/location | shipment может отсутствовать; используется picked-up/delivered fact |
+| Режим                     | Исполнитель                      | Поведение                                                           |
+| ------------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| Merchant managed          | staff/Admin                      | create fulfillment и shipment вручную                               |
+| Fulfillment service / 3PL | `fulfillment.service` App        | submit work request, accept/reject/cancel asynchronously            |
+| Carrier shipment          | `delivery.shipment-provider` App | label/create/cancel/get/reconcile shipment                          |
+| Pickup/local              | merchant/location                | shipment может отсутствовать; используется picked-up/delivered fact |
 
 ### 11.3. Новый App capability: `fulfillment.service`
 
@@ -2088,7 +2611,8 @@ Split/move fulfillment не меняет ordered quantity: он только п�
 
 Semantics:
 
-- `validateConfiguration` возвращает provider/service identity, locations, supported actions и revision;
+- `validateConfiguration` возвращает provider/service identity, locations, supported actions и
+  revision;
 - `getServices` — discovery без mutation;
 - `submitFulfillmentRequest` идемпотентно создаёт work у 3PL;
 - `requestCancellation` может вернуть pending request;
@@ -2105,7 +2629,9 @@ orders.reportFulfillmentProviderEvent
 
 ### 11.4. Carrier integration
 
-Существующий `delivery.shipment-provider` остаётся отдельным capability. Fulfillment service может подготовить packages, а carrier App — создать label/shipment. Один App может реализовывать оба capability только если это один внешний provider с едиными credentials и lifecycle.
+Существующий `delivery.shipment-provider` остаётся отдельным capability. Fulfillment service может
+подготовить packages, а carrier App — создать label/shipment. Один App может реализовывать оба
+capability только если это один внешний provider с едиными credentials и lifecycle.
 
 ### 11.5. Durable workflows
 
@@ -2122,13 +2648,17 @@ orders.reportFulfillmentProviderEvent
 - `orders.syncExternalOrder`;
 - `orders.bulkAction`.
 
-Provider calls являются workflow steps с idempotency key, timeout, retry policy и persisted operation result. Компенсация не должна притворяться, что необратимое действие отменено: например, already shipped shipment требует exception/manual resolution, а не локального rollback.
+Provider calls являются workflow steps с idempotency key, timeout, retry policy и persisted
+operation result. Компенсация не должна притворяться, что необратимое действие отменено: например,
+already shipped shipment требует exception/manual resolution, а не локального rollback.
 
 ## 12. CRM/ERP integration design
 
 ### 12.1. Принцип
 
-Orders публикует commerce facts. CRM App преобразует их в собственную модель: order/deal, line items, contact association, owner/pipeline/custom fields. Orders не знает, использует ли CRM отдельный Order object, Deal или custom object.
+Orders публикует commerce facts. CRM App преобразует их в собственную модель: order/deal, line
+items, contact association, owner/pipeline/custom fields. Orders не знает, использует ли CRM
+отдельный Order object, Deal или custom object.
 
 ### 12.2. App capability: `crm.order-sync`
 
@@ -2152,7 +2682,8 @@ Optional capability для inbound changes должен быть отдельн�
 crm.order-import
 ```
 
-Он не может передавать generic patch. Он вызывает versioned Shopana commands с `sourceSystem`, `externalRevision`, `idempotencyKey` и normal authorization/policy validation.
+Он не может передавать generic patch. Он вызывает versioned Shopana commands с `sourceSystem`,
+`externalRevision`, `idempotencyKey` и normal authorization/policy validation.
 
 ### 12.3. Self-contained export snapshot
 
@@ -2202,7 +2733,8 @@ interface OrderSyncSnapshotV1 {
 }
 ```
 
-Snapshot не требует runtime fan-out в Catalog/Customer. PII включается только при наличии granted scopes и store policy.
+Snapshot не требует runtime fan-out в Catalog/Customer. PII включается только при наличии granted
+scopes и store policy.
 
 ### 12.4. Sync correctness
 
@@ -2210,10 +2742,12 @@ Snapshot не требует runtime fan-out в Catalog/Customer. PII включ
 - Inbound key: `(installationId, externalId, externalRevision)`.
 - App возвращает `externalId`, `externalUrl`, `externalRevision`.
 - Orders обновляет link только после успешного provider result.
-- Echo-loop prevention: imported event хранит source installation/revision; тот же revision не экспортируется обратно без реального Shopana change.
+- Echo-loop prevention: imported event хранит source installation/revision; тот же revision не
+  экспортируется обратно без реального Shopana change.
 - `lastExportedOrderVersion < order.version` означает `OUT_OF_SYNC`.
 - Retry использует тот же snapshot/version; force sync создаёт новую operation, но не меняет order.
-- Reconciliation сравнивает external revision/hash и создаёт discrepancy record, а не молча перезаписывает commerce truth.
+- Reconciliation сравнивает external revision/hash и создаёт discrepancy record, а не молча
+  перезаписывает commerce truth.
 - Uninstall App не удаляет order history/external IDs; link становится `DISABLED`.
 
 ### 12.5. PII и CRM
@@ -2222,7 +2756,8 @@ Snapshot не требует runtime fan-out в Catalog/Customer. PII включ
 - masking в GraphQL и export snapshot;
 - secrets только в App installation secret store;
 - provider request/response logging redacts PII и credentials;
-- right-to-erasure redacts contact/address fields, сохраняя order number, sums, taxes и audit hashes.
+- right-to-erasure redacts contact/address fields, сохраняя order number, sums, taxes и audit
+  hashes.
 
 ## 13. Domain events и outbox
 
@@ -2249,9 +2784,9 @@ interface OrderIntegrationEvent<TType extends string, TPayload> {
 
 ### 13.2. Минимальный audit/integration event catalog
 
-Эти события фиксируют уже committed изменения канонических state tables и доставляются через
-outbox. Они не используются как журнал восстановления aggregate и не заменяют строки `orders`
-и дочерних таблиц.
+Эти события фиксируют уже committed изменения канонических state tables и доставляются через outbox.
+Они не используются как журнал восстановления aggregate и не заменяют строки `orders` и дочерних
+таблиц.
 
 Core:
 
@@ -2325,7 +2860,9 @@ order.integration_sync_completed
 order.integration_sync_failed
 ```
 
-Events, которые потребляют другие bounded contexts, должны быть self-contained. Internal aggregate events и public integration facts могут иметь разные payload schemas, но public event всегда ссылается на source event ID/version.
+Events, которые потребляют другие bounded contexts, должны быть self-contained. Internal aggregate
+events и public integration facts могут иметь разные payload schemas, но public event всегда
+ссылается на source event ID/version.
 
 ## 14. Business/application layer
 
@@ -2380,9 +2917,11 @@ services/orders/src/
 
 - Resolver декодирует Global IDs, но не содержит бизнес-правил.
 - Zod schema валидирует форму input и cross-field shape.
-- Script выполняет Policy, загружает current state, применяет command и атомарно сохраняет state, audit и outbox records.
+- Script выполняет Policy, загружает current state, применяет command и атомарно сохраняет state,
+  audit и outbox records.
 - Repository не решает lifecycle policy; он только сохраняет/читает tenant-scoped data.
-- DBOS workflow используется, если команда вызывает другой service/provider, ждёт callback или требует compensation/recovery.
+- DBOS workflow используется, если команда вызывает другой service/provider, ждёт callback или
+  требует compensation/recovery.
 - Resolver возвращает resolver instances, а relations загружаются DataLoader-ами.
 
 ### 14.3. RBAC permissions
@@ -2408,7 +2947,8 @@ orders.audit.read
 orders.bulk.manage
 ```
 
-Permissions проверяются на Script/type-policy уровне. Provider App получает только capability scopes конкретной installation, а не staff permissions.
+Permissions проверяются на Script/type-policy уровне. Provider App получает только capability scopes
+конкретной installation, а не staff permissions.
 
 ## 15. GraphQL resolver/read design
 
@@ -2420,7 +2960,8 @@ Permissions проверяются на Script/type-policy уровне. Provide
 - максимальная page size: 100;
 - backward pagination поддерживается;
 - `totalCount` считается по полному tenant-scoped filter до pagination;
-- full-text customer/order search при росте данных выносится в отдельный search index/read table, не в `%LIKE%` по join-ам;
+- full-text customer/order search при росте данных выносится в отдельный search index/read table, не
+  в `%LIKE%` по join-ам;
 - archived по умолчанию исключаются, если filter явно не запросил их.
 
 ### 15.2. Detail query
@@ -2429,11 +2970,13 @@ Permissions проверяются на Script/type-policy уровне. Provide
 - PII fields имеют отдельную authorization policy;
 - lines, payments, fulfillment, shipments, activity и integrations используют batch loaders;
 - unavailable federation reference возвращает `null`, но historical snapshot остаётся доступен;
-- `availableActions` вычисляется server-side из aggregate snapshot, permissions и provider capabilities.
+- `availableActions` вычисляется server-side из aggregate snapshot, permissions и provider
+  capabilities.
 
 ### 15.3. Mutation freshness
 
-Каждый successful synchronous payload возвращает текущий `Order`. Async payload возвращает `operation` и последний committed `Order`. UI:
+Каждый successful synchronous payload возвращает текущий `Order`. Async payload возвращает
+`operation` и последний committed `Order`. UI:
 
 1. обновляет detail из payload;
 2. poll/subscription для operation;
@@ -2484,7 +3027,9 @@ INTEGRATION_PROVIDER_UNAVAILABLE
 PERMISSION_DENIED
 ```
 
-`retryable` описывает возможность повторить ту же команду без изменения input. Version conflict и validation errors не retryable; provider timeout обычно retryable через operation retry, а не повторный client mutation с новым key.
+`retryable` описывает возможность повторить ту же команду без изменения input. Version conflict и
+validation errors не retryable; provider timeout обычно retryable через operation retry, а не
+повторный client mutation с новым key.
 
 ## 17. Security, audit и operational requirements
 
@@ -2518,7 +3063,8 @@ orders_checkout_placement_reconciliation_total{result,reason}
 orders_checkout_snapshot_mismatch_total{contractVersion}
 ```
 
-Logs используют `orderId`, `storeId`, `operationId`, `workflowId`, `correlationId`, provider code и order version, но не raw PII/provider secrets.
+Logs используют `orderId`, `storeId`, `operationId`, `workflowId`, `correlationId`, provider code и
+order version, но не raw PII/provider secrets.
 
 ### 17.4. Retention
 
@@ -2532,7 +3078,8 @@ Logs используют `orderId`, `storeId`, `operationId`, `workflowId`, `co
 ### Этап 1. GraphQL SDL
 
 1. [x] Зафиксировать этот RFC и naming review.
-2. [x] Вынести отсутствующие shared primitives (`Cursor`, `Money`, connections/errors) в shared schemas.
+2. [x] Вынести отсутствующие shared primitives (`Cursor`, `Money`, connections/errors) в shared
+       schemas.
 3. [x] Разделить фактический SDL на файлы:
 
 ```text
@@ -2551,38 +3098,59 @@ schema/
 
 4. [x] Удалить конфликтующие legacy Admin schema types.
 5. [x] Выполнить schema codegen и Federation composition через `shopana-cli`.
-6. [x] Добавить schema-level contract tests: no orphan types, payload/error consistency, Global ID mapping, deprecated-field policy.
+6. [x] Добавить schema-level contract tests: no orphan types, payload/error consistency, Global ID
+       mapping, deprecated-field policy.
 
-Gate: Admin supergraph compose проходит; generated resolver types не используют handwritten `any`; все 20 UI write capabilities имеют command mapping.
+Gate: Admin supergraph compose проходит; generated resolver types не используют handwritten `any`;
+все 20 UI write capabilities имеют command mapping.
 
 Stage 1 implementation record:
 
 - shared Admin primitives находятся в `@shopana/admin-graphql`;
-- Admin cursors остаются opaque `String`, потому что canonical `PageInfo`
-  существующих Admin subgraphs уже использует `String`; отдельный `Cursor`
-  требует coordinated platform migration;
-- конфликтующие глобальные имена из RFC namespaced как
-  `OrderSortDirection`, `OrderWeightInput` и `OrderDimensionsInput`;
+- Admin cursors остаются opaque `String`, потому что canonical `PageInfo` существующих Admin
+  subgraphs уже использует `String`; отдельный `Cursor` требует coordinated platform migration;
+- конфликтующие глобальные имена из RFC namespaced как `OrderSortDirection`, `OrderWeightInput` и
+  `OrderDimensionsInput`;
 - Orders SDL разделён по capability-файлам из этого раздела;
-- contract tests находятся рядом со schema и проверяют reachability,
-  payload/error consistency, idempotency/concurrency inputs, Global ID registry
-  и deprecated-field policy;
+- contract tests находятся рядом со schema и проверяют reachability, payload/error consistency,
+  idempotency/concurrency inputs, Global ID registry и deprecated-field policy;
 - codegen и Federation composition выполняются только через `shopana-cli`.
 
 ### Этап 2. PostgreSQL schema
 
-1. Зафиксировать row-version optimistic concurrency и atomic state/audit/outbox transaction model.
-2. Переписать несовместимые migrations и Drizzle models под один canonical schema.
-3. Реализовать core/audit/outbox/idempotency tables.
-4. Реализовать `order_checkout_placements` и immutable commitment tables.
-5. Реализовать payment state tables.
-6. Реализовать normalized fulfillment/shipments.
-7. Реализовать returns/exchanges/refunds.
-8. Реализовать integration links/sync attempts.
-9. Добавить all constraints, append-only/redaction triggers и indexes.
-10. Выполнить migration/schema validation через `shopana-cli`.
+1. [x] Зафиксировать row-version optimistic concurrency и atomic state/audit/outbox transaction
+       model.
+2. [x] Переписать несовместимые migrations и Drizzle models под один canonical schema.
+3. [x] Реализовать core/audit/outbox/idempotency tables.
+4. [x] Реализовать `order_checkout_placements` и immutable commitment tables.
+5. [x] Реализовать payment state tables.
+6. [x] Реализовать normalized fulfillment/shipments.
+7. [x] Реализовать returns/exchanges/refunds.
+8. [x] Реализовать integration links/sync attempts.
+9. [x] Добавить all constraints, append-only/redaction triggers и indexes.
+10. [x] Выполнить migration/schema validation и production build через `shopana-cli`.
 
-Gate: clean database строится одной migration chain; Drizzle table/column names 1:1 совпадают с SQL; constraint tests доказывают money/quantity/tenant invariants.
+Gate: clean database строится одной migration chain; Drizzle table/column names 1:1 совпадают с SQL;
+constraint tests доказывают money/quantity/tenant invariants.
+
+Stage 2 implementation record:
+
+- canonical aggregate использует `orders.version`; audit/outbox связываются с `order_version`, а
+  `order_events` имеет UUID `event_id` и monotonic `global_position`;
+- migration chain содержит 69 tenant-scoped tables для core, checkout placement, edits, payments,
+  normalized fulfillment/shipments, returns/exchanges/refunds, operations и outbound integrations;
+- snapshot-only `delivery_fulfillment_snapshots`/`delivery_fulfillment_updates` удалены; runtime
+  delivery projection переведён на `order_fulfillment_orders` и versioned fulfillment inbox;
+- все SQL tables отражены в Drizzle physical contract; `db:models` детерминированно регенерирует
+  non-runtime declarations, а `db:validate:static` проверяет SQL/Drizzle parity, forbidden legacy
+  tables и обязательные tenant/money/quantity invariants;
+- append-only audit/activity/tracking/attempt facts, finalized payment protection и one-way PII
+  redaction реализованы PostgreSQL triggers/functions;
+- clean chain применена к одноразовой PostgreSQL 17 database: создано 69 tables; для validation
+  использован только test-scope `uuidv7()` shim, потому что целевой runtime предоставляет `uuidv7()`
+  как platform database primitive;
+- `shopana build -s orders` проходит formatting, lint, packages build, type checking и production
+  service build; migrations копируются в `dist/migrations`.
 
 ### Этап 3. Business logic
 
@@ -2590,7 +3158,8 @@ Gate: clean database строится одной migration chain; Drizzle table/
 
 1. Canonical order repositories + row-version concurrency + idempotency.
 2. Versioned broker-types для Checkout placement create/confirm/cancel/get.
-3. Order creation transaction: snapshot validation, normalized state, audit/outbox records, initial fulfillment holds и replay.
+3. Order creation transaction: snapshot validation, normalized state, audit/outbox records, initial
+   fulfillment holds и replay.
 4. Интегрировать существующий `checkout.placeOrder` и `monitorPlacedPayment` с placement handshake.
 5. Реализовать Checkout ↔ Orders reconciler и post-commit compensation rules.
 6. Draft create/update/line mutations/complete/delete.
@@ -2606,7 +3175,8 @@ Gate: clean database строится одной migration chain; Drizzle table/
 16. CRM integration/outbox/reconciliation.
 17. Bulk operations.
 
-Gate каждого slice: domain invariant tests, repository integration tests, idempotency replay, version conflict, state/audit/outbox atomicity и workflow recovery.
+Gate каждого slice: domain invariant tests, repository integration tests, idempotency replay,
+version conflict, state/audit/outbox atomicity и workflow recovery.
 
 ### Этап 4. GraphQL resolvers/API
 
@@ -2619,7 +3189,8 @@ Gate каждого slice: domain invariant tests, repository integration tests,
 7. Перевести Admin UI с mock request layer на generated GraphQL operations.
 8. Удалить mock-only `operation-types.ts`, seed и repository.
 
-Gate: UI не содержит ad-hoc API models, все операции используют generated types, active order E2E suites заполнены, IDOR/permission tests проходят.
+Gate: UI не содержит ad-hoc API models, все операции используют generated types, active order E2E
+suites заполнены, IDOR/permission tests проходят.
 
 ### Этап 5. Hardening
 
@@ -2635,30 +3206,34 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 
 ## 19. Test matrix
 
-| Слой | Обязательные проверки |
-| --- | --- |
-| SDL | codegen, federation compose, schema lint, payload consistency |
-| Domain | transitions, amounts, quantity conservation, actions availability |
-| Concurrency/audit | expected version, conditional update, audit/outbox atomicity, duplicate key, replay |
+| Слой               | Обязательные проверки                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| SDL                | codegen, federation compose, schema lint, payload consistency                                                                             |
+| Domain             | transitions, amounts, quantity conservation, actions availability                                                                         |
+| Concurrency/audit  | expected version, conditional update, audit/outbox atomicity, duplicate key, replay                                                       |
 | Checkout placement | stale revision, same/different idempotency replay, lost Order response, pre/post-commit failure, confirm/cancel handshake, reconciliation |
-| Repository | tenant isolation, transactions, indexes, constraints |
-| Payment state | duplicate/out-of-order events, partial capture/refund/void |
-| Fulfillment | split/move/hold, partial quantities, external request states |
-| Shipment | provider sync/async, tracking order, cancellation limitations |
-| Returns | eligibility, partial receive, damage/restock allocation |
-| CRM | snapshot stability, echo prevention, retry, reconciliation |
-| DBOS | crash/restart, retry, timeout, compensation, terminal operation |
-| GraphQL | permissions, Global IDs, Relay cursors, version/user errors |
-| Security | cross-store IDOR, PII masking, forged callback, secret redaction |
+| Repository         | tenant isolation, transactions, indexes, constraints                                                                                      |
+| Payment state      | duplicate/out-of-order events, partial capture/refund/void                                                                                |
+| Fulfillment        | split/move/hold, partial quantities, external request states                                                                              |
+| Shipment           | provider sync/async, tracking order, cancellation limitations                                                                             |
+| Returns            | eligibility, partial receive, damage/restock allocation                                                                                   |
+| CRM                | snapshot stability, echo prevention, retry, reconciliation                                                                                |
+| DBOS               | crash/restart, retry, timeout, compensation, terminal operation                                                                           |
+| GraphQL            | permissions, Global IDs, Relay cursors, version/user errors                                                                               |
+| Security           | cross-store IDOR, PII masking, forged callback, secret redaction                                                                          |
 
 ## 20. Acceptance criteria
 
-- Admin SDL поддерживает полный draft/open/cancel/edit/payment/fulfillment/return/integration lifecycle.
-- Storefront `checkout.placeOrder` создаёт `OPEN` Order через typed V1 broker contract, а не Admin draft mutation.
-- Order, initial normalized state, audit/outbox records и fulfillment holds создаются одной Orders transaction.
+- Admin SDL поддерживает полный draft/open/cancel/edit/payment/fulfillment/return/integration
+  lifecycle.
+- Storefront `checkout.placeOrder` создаёт `OPEN` Order через typed V1 broker contract, а не Admin
+  draft mutation.
+- Order, initial normalized state, audit/outbox records и fulfillment holds создаются одной Orders
+  transaction.
 - После Order commit ни одна compensation не освобождает ресурсы до Orders confirm/cancel handshake.
 - Повтор placement после lost response возвращает тот же `orderId`, number, version и snapshot hash.
-- Terminal payment failure сохраняет `CANCELLED` Order и audit trail; orphan `OPEN/DRAFT` order невозможен.
+- Terminal payment failure сохраняет `CANCELLED` Order и audit trail; orphan `OPEN/DRAFT` order
+  невозможен.
 - Fulfillment недоступен до `OrderPlacementStatus.CONFIRMED`.
 - Ни один aggregate status не может стать противоречивым произвольным update.
 - Все mutation inputs имеют idempotency; state-changing commands имеют optimistic concurrency.
@@ -2666,8 +3241,10 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 - Cancellation, payment, provider fulfillment, shipment и CRM sync являются durable operations.
 - Merchant fulfillment и external fulfillment service используют один domain model.
 - Shipment provider отделён от fulfillment service.
-- CRM integration не добавляет provider-specific columns и не блокирует order transaction сетевым вызовом.
-- Канонические state tables являются source of truth; immutable audit log используется для расследования и интеграционной доставки, но не для построения состояния заказа.
+- CRM integration не добавляет provider-specific columns и не блокирует order transaction сетевым
+  вызовом.
+- Канонические state tables являются source of truth; immutable audit log используется для
+  расследования и интеграционной доставки, но не для построения состояния заказа.
 - Все reads tenant-scoped; PII имеет отдельные permissions/retention.
 - Admin UI может заменить mocks без сохранения legacy `ApiOrder` как второго source of truth.
 - Старая Drizzle-модель и новые migrations больше не расходятся.
@@ -2677,9 +3254,11 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 Зафиксировано:
 
 - order lifecycle: `DRAFT/OPEN/CLOSED/CANCELLED`, archive отдельно;
-- Storefront placement создаёт Order сразу `OPEN`; `DRAFT` создаётся только Admin/import workflow, который явно требует draft;
+- Storefront placement создаёт Order сразу `OPEN`; `DRAFT` создаётся только Admin/import workflow,
+  который явно требует draft;
 - Checkout владеет placement saga, Orders владеет order state и placement confirm/cancel handshake;
-- Order commit является границей: до него Checkout компенсирует отсутствие Order, после него Order никогда физически не удаляется;
+- Order commit является границей: до него Checkout компенсирует отсутствие Order, после него Order
+  никогда физически не удаляется;
 - zero-total order имеет payment status `NOT_REQUIRED`;
 - payment/fulfillment/delivery/return statuses derived;
 - placed edits staged;
@@ -2690,38 +3269,51 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 
 Дополнительно решено для V1:
 
-1. `Money`, `Connection`, `DisplayableError`, common scalars и measurement
-   value types принадлежат `@shopana/admin-graphql`.
-2. Orders использует обычные нормализованные PostgreSQL state tables; `orders.version`
-   обеспечивает optimistic concurrency, а append-only `order_events` служит только audit/integration log.
-3. Fulfillment location в V1 передаётся как opaque typed Global ID.
-   Federation entity Location добавляется только вместе с owning Inventory API.
-4. Номер заказа выдаётся per-store monotonic counter; prefix/suffix относятся
-   только к presentation.
-5. Универсального legal retention default нет. Deployment обязан выбрать
-   региональный retention profile; development profile — `MANUAL_ONLY`.
-   Immutable commerce facts не удаляются вместе с PII, redaction фиксируется
-   отдельным audit event.
-6. Invoice и credit-note documents не входят в Orders V1 и проектируются
-   отдельным subsequent capability.
-7. V1 включает outbound `crm.order-sync`; inbound `crm.order-import`
-   отложен и не расширяет core Order columns.
+1. `Money`, `Connection`, `DisplayableError`, common scalars и measurement value types принадлежат
+   `@shopana/admin-graphql`.
+2. Orders использует обычные нормализованные PostgreSQL state tables; `orders.version` обеспечивает
+   optimistic concurrency, а append-only `order_events` служит только audit/integration log.
+3. Fulfillment location в V1 передаётся как opaque typed Global ID. Federation entity Location
+   добавляется только вместе с owning Inventory API.
+4. Номер заказа выдаётся per-store monotonic counter; prefix/suffix относятся только к presentation.
+5. Универсального legal retention default нет. Deployment обязан выбрать региональный retention
+   profile; development profile — `MANUAL_ONLY`. Immutable commerce facts не удаляются вместе с PII,
+   redaction фиксируется отдельным audit event.
+6. Invoice и credit-note documents не входят в Orders V1 и проектируются отдельным subsequent
+   capability.
+7. V1 включает outbound `crm.order-sync`; inbound `crm.order-import` отложен и не расширяет core
+   Order columns.
 
 ## 22. Референсные модели
 
 Решения сверены с официальными commerce API:
 
-- [Shopify Admin GraphQL Order](https://shopify.dev/docs/api/admin-graphql/latest/objects/Order) — order как hub коммерческого lifecycle, отдельные payment/fulfillment/return surfaces.
-- [Shopify order cancellation](https://shopify.dev/docs/api/admin-graphql/latest/mutations/orderCancel) — cancellation как необратимая операция с refund/restock/notification options, а не status field update.
-- [Shopify staged order edits](https://shopify.dev/docs/api/admin-graphql/latest/payloads/OrderEditBeginPayload) — begin/stage/commit для изменения placed order.
-- [Shopify fulfillment order cancellation](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentOrderCancel) — work object и request status для external fulfillment services.
-- [commercetools Orders](https://docs.commercetools.com/api/projects/orders) — optimistic `version`, explicit update actions, separate payment/shipment states, returns и `SyncInfo`.
-- [commercetools Order Edits](https://docs.commercetools.com/api/projects/order-edits) — staged actions и calculated preview.
-- [Saleor Order](https://docs.saleor.io/api-reference/orders/objects/order) — GraphQL-first order surface, events, transactions, fulfillments и metadata.
-- [Saleor orderFulfill](https://docs.saleor.io/api-reference/orders/mutations/order-fulfill) и [return products](https://docs.saleor.io/api-reference/orders/mutations/order-fulfillment-return-products) — explicit fulfillment/return commands.
-- [Medusa Order Module](https://docs.medusajs.com/resources/commerce-modules/order) — isolated order module, version-controlled edits/returns/exchanges/claims и workflow-based orchestration.
-- [Medusa fulfillment management](https://docs.medusajs.com/user-guide/orders/fulfillments) — partial fulfillment, shipment, delivery/pickup и cancellation lifecycle.
-- [Medusa returns](https://docs.medusajs.com/user-guide/orders/returns) — RMA, receive, damaged/restockable quantities и refund separation.
-- [HubSpot CRM object associations](https://developers.hubspot.com/changelog/announcing-a-change-to-how-v3-crm-apis-return-association-data) — CRM data as associated objects rather than one flattened order record.
+- [Shopify Admin GraphQL Order](https://shopify.dev/docs/api/admin-graphql/latest/objects/Order) —
+  order как hub коммерческого lifecycle, отдельные payment/fulfillment/return surfaces.
+- [Shopify order cancellation](https://shopify.dev/docs/api/admin-graphql/latest/mutations/orderCancel)
+  — cancellation как необратимая операция с refund/restock/notification options, а не status field
+  update.
+- [Shopify staged order edits](https://shopify.dev/docs/api/admin-graphql/latest/payloads/OrderEditBeginPayload)
+  — begin/stage/commit для изменения placed order.
+- [Shopify fulfillment order cancellation](https://shopify.dev/docs/api/admin-graphql/latest/mutations/fulfillmentOrderCancel)
+  — work object и request status для external fulfillment services.
+- [commercetools Orders](https://docs.commercetools.com/api/projects/orders) — optimistic `version`,
+  explicit update actions, separate payment/shipment states, returns и `SyncInfo`.
+- [commercetools Order Edits](https://docs.commercetools.com/api/projects/order-edits) — staged
+  actions и calculated preview.
+- [Saleor Order](https://docs.saleor.io/api-reference/orders/objects/order) — GraphQL-first order
+  surface, events, transactions, fulfillments и metadata.
+- [Saleor orderFulfill](https://docs.saleor.io/api-reference/orders/mutations/order-fulfill) и
+  [return products](https://docs.saleor.io/api-reference/orders/mutations/order-fulfillment-return-products)
+  — explicit fulfillment/return commands.
+- [Medusa Order Module](https://docs.medusajs.com/resources/commerce-modules/order) — isolated order
+  module, version-controlled edits/returns/exchanges/claims и workflow-based orchestration.
+- [Medusa fulfillment management](https://docs.medusajs.com/user-guide/orders/fulfillments) —
+  partial fulfillment, shipment, delivery/pickup и cancellation lifecycle.
+- [Medusa returns](https://docs.medusajs.com/user-guide/orders/returns) — RMA, receive,
+  damaged/restockable quantities и refund separation.
+- [HubSpot CRM object associations](https://developers.hubspot.com/changelog/announcing-a-change-to-how-v3-crm-apis-return-association-data)
+  — CRM data as associated objects rather than one flattened order record.
 
-Используются общие паттерны референсных систем, но SDL остаётся Shopana-native: Federation, store context, DBOS, provider Apps и project-specific shared types имеют приоритет.
+Используются общие паттерны референсных систем, но SDL остаётся Shopana-native: Federation, store
+context, DBOS, provider Apps и project-specific shared types имеют приоритет.

@@ -13,10 +13,11 @@ import {
   type RecipientPII,
 } from "@src/repositories/pii/OrdersPiiRepository";
 import {
-  orderAppliedDiscounts,
+  orderDiscountApplications,
   orderDeliveryGroups,
+  orderDeliveryGroupLines,
   orderDeliveryMethods,
-  orderItems,
+  orderLines,
   orderPaymentMethods,
   orders,
 } from "@src/repositories/models/index";
@@ -154,27 +155,31 @@ export class OrderRepository extends BaseRepository {
       id: input.id,
       storeId: input.storeId,
       orderNumber: BigInt(orderNumber),
-      apiKeyId: null,
-      userId: input.userId,
+      createdByType: input.userId ? "STAFF" : "SYSTEM",
+      createdById: input.userId,
+      origin: "CHECKOUT",
       salesChannel: input.salesChannel,
       externalSource: input.externalSource,
       externalId: input.externalId,
       localeCode: input.localeCode,
       currencyCode: input.currencyCode,
-      subtotal: input.subtotalAmount.amountMinor(),
-      shippingTotal: input.totalShippingAmount.amountMinor(),
-      discountTotal: input.totalDiscountAmount.amountMinor(),
-      taxTotal: input.totalTaxAmount.amountMinor(),
-      grandTotal: input.totalAmount.amountMinor(),
+      subtotalAmount: input.subtotalAmount.amountMinor(),
+      shippingAmount: input.totalShippingAmount.amountMinor(),
+      discountAmount: input.totalDiscountAmount.amountMinor(),
+      taxAmount: input.totalTaxAmount.amountMinor(),
+      dutyAmount: 0n,
+      adjustmentAmount: 0n,
+      totalAmount: input.totalAmount.amountMinor(),
       status: "DRAFT",
+      paymentStatus: input.totalAmount.amountMinor() === 0n ? "NOT_REQUIRED" : "PENDING",
       metadata: {},
       checkoutSnapshot: jsonSafe(input.checkoutSnapshot),
-      createdAt: input.createdAt,
-      updatedAt: input.createdAt,
+      createdAt: input.createdAt.toISOString(),
+      updatedAt: input.createdAt.toISOString(),
     });
 
     if (input.lines.length > 0) {
-      await this.connection.insert(orderItems).values(
+      await this.connection.insert(orderLines).values(
         input.lines.map((line) => {
           const unitPrice = coerceMoney(line.unit.price);
           const compareAtPrice = coerceNullableMoney(line.unit.compareAtPrice);
@@ -184,49 +189,59 @@ export class OrderRepository extends BaseRepository {
             id: line.lineId,
             storeId: input.storeId,
             orderId: input.id,
+            currencyCode: input.currencyCode,
             quantity: line.quantity,
             subtotalAmount: minor(subtotal) ?? 0n,
             discountAmount: minor(zero) ?? 0n,
             taxAmount: minor(zero) ?? 0n,
             totalAmount: minor(subtotal) ?? 0n,
-            unitId: line.unit.id,
-            unitTitle: line.unit.title,
-            unitPrice: minor(unitPrice),
-            unitCompareAtPrice: minor(compareAtPrice),
-            unitSku: line.unit.sku,
-            unitImageUrl: line.unit.imageUrl,
-            unitSnapshot: line.unit.snapshot,
+            purchasableId: line.unit.id,
+            title: line.unit.title,
+            unitPriceAmount: minor(unitPrice) ?? 0n,
+            unitCompareAtPriceAmount: minor(compareAtPrice),
+            sku: line.unit.sku,
+            imageUrl: line.unit.imageUrl,
+            purchasableSnapshot: line.unit.snapshot ?? {},
             metadata: {},
-            createdAt: input.createdAt,
-            updatedAt: input.createdAt,
+            createdAt: input.createdAt.toISOString(),
+            updatedAt: input.createdAt.toISOString(),
           };
         }),
       );
     }
 
     if (input.deliveryAddresses.length > 0) {
-      await this.pii.insertDeliveryAddresses(input.deliveryAddresses);
+      await this.pii.insertDeliveryAddresses(input.storeId, input.id, input.deliveryAddresses);
     }
     if (input.recipients.length > 0) {
-      await this.pii.insertRecipients(input.recipients);
+      await this.pii.insertRecipients(input.id, input.recipients);
     }
 
     if (input.deliveryGroups.length > 0) {
       const mappings = new Map(
         input.deliveryGroupMappings.map((value) => [value.deliveryGroupId, value]),
       );
+      await this.connection.insert(orderDeliveryGroupLines).values(
+        input.deliveryGroups.flatMap((group) =>
+          group.orderLineIds.map((orderLineId) => ({
+            storeId: input.storeId,
+            orderId: input.id,
+            deliveryGroupId: group.id,
+            orderLineId,
+            quantity: input.lines.find((line) => line.lineId === orderLineId)?.quantity ?? 1,
+          })),
+        ),
+      );
       await this.connection.insert(orderDeliveryGroups).values(
         input.deliveryGroups.map((group) => ({
           id: group.id,
           storeId: input.storeId,
           orderId: input.id,
+          currencyCode: input.currencyCode,
           addressId: mappings.get(group.id)?.addressId ?? null,
           recipientId: mappings.get(group.id)?.recipientId ?? null,
-          selectedDeliveryMethodCode: null,
-          selectedDeliveryMethodProvider: null,
-          lineItemIds: group.orderLineIds,
-          createdAt: input.createdAt,
-          updatedAt: input.createdAt,
+          createdAt: input.createdAt.toISOString(),
+          updatedAt: input.createdAt.toISOString(),
         })),
       );
     }
@@ -237,24 +252,25 @@ export class OrderRepository extends BaseRepository {
           code: method.code,
           provider: method.provider,
           storeId: input.storeId,
+          orderId: input.id,
+          currencyCode: input.currencyCode,
           deliveryGroupId: method.deliveryGroupId,
-          deliveryMethodType: method.deliveryMethodType,
+          type: method.deliveryMethodType,
           paymentModel: method.paymentModel,
-          metadata: method.metadata ?? {},
-          customerInput: method.customerInput ?? {},
+          providerData: method.metadata ?? {},
+          customerInputSnapshot: method.customerInput ?? {},
         })),
       );
     }
 
     for (const selected of input.selectedDeliveryMethods) {
       await this.connection
-        .update(orderDeliveryGroups)
+        .update(orderDeliveryMethods)
         .set({
-          selectedDeliveryMethodCode: selected.code,
-          selectedDeliveryMethodProvider: selected.provider,
-          updatedAt: input.createdAt,
+          isSelected: true,
+          updatedAt: input.createdAt.toISOString(),
         })
-        .where(eq(orderDeliveryGroups.id, selected.deliveryGroupId));
+        .where(eq(orderDeliveryMethods.deliveryGroupId, selected.deliveryGroupId));
     }
 
     if (input.paymentMethods.length > 0) {
@@ -276,19 +292,20 @@ export class OrderRepository extends BaseRepository {
     }
 
     if (input.appliedDiscounts.length > 0) {
-      await this.connection.insert(orderAppliedDiscounts).values(
+      await this.connection.insert(orderDiscountApplications).values(
         input.appliedDiscounts.map((discount) => ({
           orderId: input.id,
           storeId: input.storeId,
+          currencyCode: input.currencyCode,
           code: discount.code,
-          discountType: discount.type,
-          value:
-            typeof discount.value === "number"
-              ? BigInt(discount.value)
-              : discount.value.amountMinor(),
+          title: discount.code,
+          targetType: "ORDER_LINES",
+          valueType: typeof discount.value === "number" ? "PERCENTAGE" : "FIXED_AMOUNT",
+          valuePercentage: typeof discount.value === "number" ? String(discount.value) : null,
+          valueAmount: typeof discount.value === "number" ? null : discount.value.amountMinor(),
           provider: discount.provider,
           conditions: null,
-          appliedAt: discount.appliedAt,
+          appliedAt: discount.appliedAt.toISOString(),
         })),
       );
     }

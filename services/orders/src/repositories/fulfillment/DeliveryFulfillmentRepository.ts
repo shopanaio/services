@@ -3,8 +3,8 @@ import { and, asc, eq } from "drizzle-orm";
 import type { Delivery, Orders } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
-  deliveryFulfillmentSnapshots,
-  deliveryFulfillmentUpdates,
+  orderFulfillmentOrders,
+  orderFulfillmentEventInbox,
   type OrderDeliveryFulfillmentPayload,
 } from "../models/index.js";
 
@@ -13,15 +13,15 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
     params: Orders.ListOrderDeliveryFulfillmentOrdersParams,
   ): Promise<Orders.ListOrderDeliveryFulfillmentOrdersResult> {
     const rows = await this.connection
-      .select({ payload: deliveryFulfillmentSnapshots.payload })
-      .from(deliveryFulfillmentSnapshots)
+      .select({ payload: orderFulfillmentOrders.payload })
+      .from(orderFulfillmentOrders)
       .where(
         and(
-          eq(deliveryFulfillmentSnapshots.storeId, params.storeId),
-          eq(deliveryFulfillmentSnapshots.orderId, params.orderId),
+          eq(orderFulfillmentOrders.storeId, params.storeId),
+          eq(orderFulfillmentOrders.orderId, params.orderId),
         ),
       )
-      .orderBy(asc(deliveryFulfillmentSnapshots.createdAt));
+      .orderBy(asc(orderFulfillmentOrders.createdAt));
     return { fulfillmentOrders: rows.map(({ payload }) => payload.snapshot) };
   }
 
@@ -83,12 +83,10 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         updatedAt: input.createdAt,
       };
       const payload: OrderDeliveryFulfillmentPayload = { snapshot, source };
-      await this.connection.insert(deliveryFulfillmentSnapshots).values({
+      await this.connection.insert(orderFulfillmentOrders).values({
         id: fulfillmentOrderId,
-        organizationId: input.organizationId,
         storeId: input.storeId,
         orderId: input.orderId,
-        checkoutId: input.checkoutId,
         deliveryGroupId: source.groupId,
         revision: snapshot.revision,
         status: snapshot.status,
@@ -255,11 +253,11 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
     return this.txManager.run(async () => {
       const [row] = await this.connection
         .select()
-        .from(deliveryFulfillmentSnapshots)
+        .from(orderFulfillmentOrders)
         .where(
           and(
-            eq(deliveryFulfillmentSnapshots.storeId, params.storeId),
-            eq(deliveryFulfillmentSnapshots.id, params.update.fulfillmentOrderId),
+            eq(orderFulfillmentOrders.storeId, params.storeId),
+            eq(orderFulfillmentOrders.id, params.update.fulfillmentOrderId),
           ),
         )
         .limit(1)
@@ -268,12 +266,12 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       const requestHash = digest("ofupdate_v1", params.update);
       const [existing] = await this.connection
         .select()
-        .from(deliveryFulfillmentUpdates)
+        .from(orderFulfillmentEventInbox)
         .where(
           and(
-            eq(deliveryFulfillmentUpdates.storeId, params.storeId),
-            eq(deliveryFulfillmentUpdates.shipmentId, params.update.shipmentId),
-            eq(deliveryFulfillmentUpdates.shipmentRevision, params.update.shipmentRevision),
+            eq(orderFulfillmentEventInbox.storeId, params.storeId),
+            eq(orderFulfillmentEventInbox.shipmentId, params.update.shipmentId),
+            eq(orderFulfillmentEventInbox.shipmentRevision, params.update.shipmentRevision),
           ),
         )
         .limit(1);
@@ -288,16 +286,16 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       let lineItems = [...payload.snapshot.lineItems];
       const history = await this.connection
         .select()
-        .from(deliveryFulfillmentUpdates)
+        .from(orderFulfillmentEventInbox)
         .where(
           and(
-            eq(deliveryFulfillmentUpdates.storeId, params.storeId),
-            eq(deliveryFulfillmentUpdates.fulfillmentOrderId, row.id),
+            eq(orderFulfillmentEventInbox.storeId, params.storeId),
+            eq(orderFulfillmentEventInbox.fulfillmentOrderId, row.id),
           ),
         )
         .orderBy(
-          asc(deliveryFulfillmentUpdates.createdAt),
-          asc(deliveryFulfillmentUpdates.shipmentRevision),
+          asc(orderFulfillmentEventInbox.createdAt),
+          asc(orderFulfillmentEventInbox.shipmentRevision),
         );
       if (params.update.state === "SHIPMENT_CREATED")
         lineItems = allocate(lineItems, params.update.lineItems, -1);
@@ -345,23 +343,26 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         updatedAt: params.update.occurredAt,
       };
       await this.connection
-        .update(deliveryFulfillmentSnapshots)
+        .update(orderFulfillmentOrders)
         .set({
           revision: nextRevision,
           status,
           payload: { ...payload, snapshot },
           updatedAt: params.update.occurredAt,
         })
-        .where(eq(deliveryFulfillmentSnapshots.id, row.id));
-      await this.connection.insert(deliveryFulfillmentUpdates).values({
+        .where(eq(orderFulfillmentOrders.id, row.id));
+      await this.connection.insert(orderFulfillmentEventInbox).values({
         id: await this.generateUuidV7(),
         storeId: params.storeId,
+        orderId: row.orderId,
+        providerCode: "delivery",
         fulfillmentOrderId: row.id,
         shipmentId: params.update.shipmentId,
         shipmentRevision: params.update.shipmentRevision,
         state: params.update.state,
         requestHash,
         payload: params.update,
+        createdAt: params.update.occurredAt,
       });
       return { status: "APPLIED", fulfillmentOrderRevision: nextRevision };
     });
@@ -372,11 +373,11 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       (
         await this.connection
           .select()
-          .from(deliveryFulfillmentSnapshots)
+          .from(orderFulfillmentOrders)
           .where(
             and(
-              eq(deliveryFulfillmentSnapshots.storeId, storeId),
-              eq(deliveryFulfillmentSnapshots.id, fulfillmentOrderId),
+              eq(orderFulfillmentOrders.storeId, storeId),
+              eq(orderFulfillmentOrders.id, fulfillmentOrderId),
             ),
           )
           .limit(1)
@@ -389,12 +390,12 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       (
         await this.connection
           .select()
-          .from(deliveryFulfillmentSnapshots)
+          .from(orderFulfillmentOrders)
           .where(
             and(
-              eq(deliveryFulfillmentSnapshots.storeId, storeId),
-              eq(deliveryFulfillmentSnapshots.orderId, orderId),
-              eq(deliveryFulfillmentSnapshots.deliveryGroupId, groupId),
+              eq(orderFulfillmentOrders.storeId, storeId),
+              eq(orderFulfillmentOrders.orderId, orderId),
+              eq(orderFulfillmentOrders.deliveryGroupId, groupId),
             ),
           )
           .limit(1)

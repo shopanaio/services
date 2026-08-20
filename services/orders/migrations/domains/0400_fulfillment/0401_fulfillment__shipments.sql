@@ -5,7 +5,7 @@ CREATE TABLE "orders"."order_shipments" (
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
   "fulfillment_id" uuid NOT NULL,
-  "status" "orders"."order_shipment_status" NOT NULL DEFAULT 'LABEL_CREATED',
+  "status" "orders"."order_shipment_status" NOT NULL DEFAULT 'DRAFT',
   "carrier_code" text,
   "carrier_name" text,
   "service_code" text,

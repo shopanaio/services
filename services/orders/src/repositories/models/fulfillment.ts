@@ -1,5 +1,15 @@
-import { index, integer, jsonb, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import type { Delivery } from "@shopana/broker-types";
+import {
+  bigint,
+  index,
+  integer,
+  jsonb,
+  text,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { ordersSchema } from "./schema.js";
 
 export interface OrderDeliveryFulfillmentPayload {
@@ -7,62 +17,51 @@ export interface OrderDeliveryFulfillmentPayload {
   source: Delivery.DeliveryCommittedGroupSnapshot;
 }
 
-export const deliveryFulfillmentSnapshots = ordersSchema.table(
-  "delivery_fulfillment_snapshots",
+export const orderFulfillmentOrders = ordersSchema.table("order_fulfillment_orders", {
+  id: uuid("id").primaryKey(),
+  storeId: uuid("store_id").notNull(),
+  orderId: uuid("order_id").notNull(),
+  deliveryGroupId: uuid("delivery_group_id"),
+  revision: integer("version").notNull().default(1),
+  status: text("status").notNull(),
+  requestStatus: text("request_status").notNull(),
+  assignedLocationId: uuid("assigned_location_id"),
+  holdReason: text("hold_reason"),
+  externalSource: varchar("external_source", { length: 128 }),
+  externalId: text("external_id"),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+  payload: jsonb("provider_snapshot").$type<OrderDeliveryFulfillmentPayload>().notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true, mode: "string" }),
+  closedAt: timestamp("closed_at", { withTimezone: true, mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
+});
+
+export const orderFulfillmentEventInbox = ordersSchema.table(
+  "order_fulfillment_event_inbox",
   {
     id: uuid("id").primaryKey(),
-    organizationId: uuid("organization_id").notNull(),
     storeId: uuid("store_id").notNull(),
     orderId: uuid("order_id").notNull(),
-    checkoutId: uuid("checkout_id").notNull(),
-    deliveryGroupId: text("delivery_group_id").notNull(),
-    revision: integer("revision").notNull(),
-    status: text("status").notNull(),
-    requestStatus: text("request_status").notNull(),
-    payload: jsonb("payload").$type<OrderDeliveryFulfillmentPayload>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull(),
-  },
-  (table) => [
-    unique("delivery_fulfillment_snapshots_group_key").on(
-      table.storeId,
-      table.orderId,
-      table.deliveryGroupId,
-    ),
-    index("delivery_fulfillment_snapshots_order_idx").on(table.storeId, table.orderId),
-    index("delivery_fulfillment_snapshots_status_idx").on(
-      table.storeId,
-      table.status,
-      table.updatedAt,
-    ),
-  ],
-);
-
-export const deliveryFulfillmentUpdates = ordersSchema.table(
-  "delivery_fulfillment_updates",
-  {
-    id: uuid("id").primaryKey(),
-    storeId: uuid("store_id").notNull(),
-    fulfillmentOrderId: uuid("fulfillment_order_id").notNull(),
-    shipmentId: uuid("shipment_id").notNull(),
-    shipmentRevision: integer("shipment_revision").notNull(),
-    state: text("state").notNull(),
-    requestHash: text("request_hash").notNull(),
+    providerCode: varchar("provider_code", { length: 128 }).notNull(),
+    fulfillmentOrderId: text("provider_resource_id").notNull(),
+    shipmentId: text("provider_event_id").notNull(),
+    shipmentRevision: bigint("provider_sequence", { mode: "number" }),
+    state: varchar("event_type", { length: 128 }).notNull(),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    requestHash: varchar("request_hash", { length: 64 }).notNull(),
+    status: text("status").notNull().default("RECEIVED"),
     payload: jsonb("payload").$type<Delivery.DeliveryFulfillmentShipmentUpdate>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp("received_at", { withTimezone: true, mode: "string" }).notNull(),
+    processedAt: timestamp("processed_at", { withTimezone: true, mode: "string" }),
+    failureCode: text("failure_code"),
   },
   (table) => [
-    unique("delivery_fulfillment_updates_shipment_revision_key").on(
+    unique("order_fulfillment_event_inbox_event_unique").on(
       table.storeId,
+      table.providerCode,
       table.shipmentId,
-      table.shipmentRevision,
     ),
-    index("delivery_fulfillment_updates_fulfillment_idx").on(
-      table.storeId,
-      table.fulfillmentOrderId,
-      table.createdAt,
-    ),
+    index("order_fulfillment_event_inbox_pending_idx").on(table.createdAt, table.id),
   ],
 );

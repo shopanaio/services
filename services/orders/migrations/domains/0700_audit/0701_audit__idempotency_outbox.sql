@@ -70,7 +70,7 @@ CREATE TABLE "orders"."order_outbox" (
   CONSTRAINT "order_outbox_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "order_outbox_event_fk"
     FOREIGN KEY ("store_id", "order_id", "event_id")
-    REFERENCES "orders"."order_events" ("store_id", "order_id", "id"),
+    REFERENCES "orders"."order_events" ("store_id", "order_id", "event_id"),
   CONSTRAINT "order_outbox_event_unique" UNIQUE ("event_id"),
   CONSTRAINT "order_outbox_topic_check" CHECK (btrim("topic") <> ''),
   CONSTRAINT "order_outbox_partition_key_check" CHECK (btrim("partition_key") <> ''),

@@ -51,7 +51,7 @@ BEGIN
       FROM "orders"."order_revisions" AS revision
      WHERE revision."store_id" = v_order."store_id"
        AND revision."order_id" = v_order."id"
-       AND revision."revision" = v_order."revision"
+       AND revision."version" = v_order."version"
        AND revision."status" = v_order."status"
        AND revision."payment_status" = v_order."payment_status"
        AND revision."fulfillment_status" = v_order."fulfillment_status"
@@ -71,7 +71,7 @@ BEGIN
   END IF;
 
   IF (
-    SELECT count(*) <> v_order."revision" OR max(revision."revision") <> v_order."revision"
+    SELECT count(*) <> v_order."version" OR max(revision."version") <> v_order."version"
       FROM "orders"."order_revisions" AS revision
      WHERE revision."store_id" = v_order."store_id"
        AND revision."order_id" = v_order."id"
@@ -85,7 +85,7 @@ BEGIN
       FROM "orders"."order_status_history" AS status_history
      WHERE status_history."store_id" = v_order."store_id"
        AND status_history."order_id" = v_order."id"
-       AND status_history."order_revision" = v_order."revision"
+       AND status_history."order_version" = v_order."version"
        AND status_history."order_status" = v_order."status"
        AND status_history."payment_status" = v_order."payment_status"
        AND status_history."fulfillment_status" = v_order."fulfillment_status"

@@ -9,6 +9,11 @@
       "source": "./src/orders.module.ts"
     }
   },
+  "scripts": {
+    "db:models": "tsx scripts/generate-physical-models.ts",
+    "db:validate": "tsx scripts/validate-schema-contract.ts",
+    "db:validate:static": "tsx scripts/validate-schema-contract.ts --static"
+  },
   "dependencies": {
     "@apollo/server": "^4.11.2",
     "@apollo/subgraph": "^2.7.4",
