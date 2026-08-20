@@ -75,7 +75,7 @@ export const facetScope = listingSchema.table(
     primaryKey({ columns: [table.facetId, table.scopeType] }),
     check(
       "facet_scope_type_check",
-      sql`${table.scopeType} IN ('SEARCH', 'CATEGORY')`
+      sql`${table.scopeType} IN ('SEARCH', 'CATEGORY', 'COLLECTION')`
     ),
     index("idx_facet_scope_store_lookup").on(
       table.storeId,

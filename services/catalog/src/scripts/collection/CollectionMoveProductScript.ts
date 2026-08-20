@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { LexoRankMoveFailureCode } from "../../repositories/LexoRankRepository.js";
 import type { CollectionMoveProductParams, CollectionResult } from "./dto/index.js";
 
@@ -6,12 +6,26 @@ export class CollectionMoveProductScript extends BaseScript<
   CollectionMoveProductParams,
   CollectionResult
 > {
+  @Transactional()
   protected async execute(params: CollectionMoveProductParams): Promise<CollectionResult> {
-    const collection = await this.repository.collection.findById(params.collectionId);
+    const collection =
+      await this.repository.collection.findByIdForUpdate(params.collectionId);
     if (!collection) {
       return {
         collection: undefined,
         userErrors: [{ message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" }],
+      };
+    }
+    if (collection.revision !== params.expectedRevision) {
+      return {
+        collection: undefined,
+        userErrors: [{ message: "Collection revision does not match", field: ["expectedRevision"], code: "REVISION_CONFLICT" }],
+      };
+    }
+    if (collection.revision >= 2_147_483_646) {
+      return {
+        collection: undefined,
+        userErrors: [{ message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" }],
       };
     }
 
@@ -22,6 +36,9 @@ export class CollectionMoveProductScript extends BaseScript<
       };
     }
 
+    const before = await this.repository.collectionItem.findByCollectionId(
+      params.collectionId
+    );
     const moveResult = await this.repository.collectionItem.moveProductRank(
       params.collectionId,
       params.productId,
@@ -31,9 +48,34 @@ export class CollectionMoveProductScript extends BaseScript<
     if (!moveResult.ok) {
       return this.moveError(moveResult.code);
     }
-
-    const refreshed = await this.repository.collection.findById(params.collectionId);
-    return { collection: refreshed ?? undefined, userErrors: [] };
+    const after = await this.repository.collectionItem.findByCollectionId(
+      params.collectionId
+    );
+    const beforeRanks = new Map(before.map((item) => [item.productId, item.lexoRank]));
+    const changedProductIds = after
+      .filter((item) => beforeRanks.get(item.productId) !== item.lexoRank)
+      .map((item) => item.productId);
+    if (changedProductIds.length === 0) return { collection, userErrors: [] };
+    const refreshed = await this.repository.collection.bumpRevision(
+      params.collectionId,
+      params.expectedRevision,
+      { listingChanged: false }
+    );
+    if (!refreshed) {
+      throw new Error("Collection rank compare-and-swap failed after row lock");
+    }
+    const operation = await this.repository.collectionSync.createOperation({
+      workflowId: `${this.context.requestId}:collection:move`,
+      collectionId: params.collectionId,
+      collectionRevision: refreshed.revision,
+      reason: "move",
+      productIds: changedProductIds,
+    });
+    return {
+      collection: refreshed,
+      syncOperationId: operation.operationId,
+      userErrors: [],
+    };
   }
 
   private moveError(code: LexoRankMoveFailureCode): CollectionResult {

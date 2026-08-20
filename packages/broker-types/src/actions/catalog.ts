@@ -540,7 +540,17 @@ export interface ProductSnapshotPopulate {
   tags?: CatalogProductTagSnapshotSelection;
   features?: CatalogProductFeatureSelectionSnapshotSelection;
   variants?: CatalogProductVariantSnapshotSelection;
+  collections?: CatalogProductCollectionSnapshotSelection;
 }
+
+export interface CatalogProductCollectionSnapshotSelection {
+  fields?: CatalogProductCollectionSnapshotField[];
+  populate?: never;
+  args?: never;
+  fieldName?: "collections";
+}
+
+export type CatalogProductCollectionSnapshotField = "id" | "manualRank";
 
 export interface CatalogProductVendorSnapshotSelection {
   fields?: CatalogProductVendorSnapshotField[];
@@ -728,7 +738,7 @@ export interface CatalogProductOptionValueRefSelection {
 
 export type CatalogProductOptionValueRefField = "id" | "handle";
 
-export type CatalogProductSnapshotVersion = "2026-07-13";
+export type CatalogProductSnapshotVersion = "2026-08-19";
 
 export type CatalogProductStatus = "draft" | "published";
 
@@ -771,6 +781,8 @@ export interface ProductSnapshot {
   features: CatalogProductFeatureSelectionSnapshot[];
   /** Source: catalog.variant plus variant-related pricing, inventory, and options. */
   variants: CatalogProductVariantSnapshot[];
+  /** Source: manual catalog.collection_item memberships. */
+  collections: CatalogProductCollectionSnapshot[];
 }
 
 export type CatalogProductSnapshot = ProductSnapshot;
@@ -901,6 +913,11 @@ export interface CatalogProductVariantPriceSnapshot {
   currencyCode: string;
   /** Source: catalog.variant_prices_current.amount_minor. */
   amountMinor: number | null;
+}
+
+export interface CatalogProductCollectionSnapshot {
+  id: string;
+  manualRank: string;
 }
 
 export interface CatalogProductVariantOptionSelectionSnapshot {

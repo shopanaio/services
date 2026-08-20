@@ -4,15 +4,15 @@ import {
   GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
 import { GraphQLError } from "graphql";
-import type {
-  CategoryMediaArgs,
-  ProductMediaArgs,
-  ProductVariantMediaArgs,
-} from "./generated/types.js";
 import { CatalogType } from "./CatalogType.js";
 
-type PaginationArgs = CategoryMediaArgs | ProductMediaArgs | ProductVariantMediaArgs;
-type MediaOwnerType = "category" | "product" | "variant";
+type PaginationArgs = {
+  first?: number | null;
+  after?: string | null;
+  last?: number | null;
+  before?: string | null;
+};
+type MediaOwnerType = "category" | "collection" | "product" | "variant";
 
 export type MediaConnectionInput = PaginationArgs & {
   ownerId: string;
@@ -87,6 +87,8 @@ export class MediaConnectionResolver extends CatalogType<
         return this.$ctx.loaders.variantMedia.load(this.$props.ownerId);
       case "category":
         return this.$ctx.loaders.categoryMedia.load(this.$props.ownerId);
+      case "collection":
+        return this.$ctx.loaders.collectionMedia.load(this.$props.ownerId);
     }
   }
 

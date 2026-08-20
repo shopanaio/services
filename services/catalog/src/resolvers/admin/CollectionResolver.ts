@@ -6,6 +6,7 @@ import { CatalogType } from "./CatalogType.js";
 import type { RichText } from "./interfaces/index.js";
 import type { Collection } from "../../repositories/models/index.js";
 import { toRichText } from "./helpers/richText.js";
+import { normalizeCanonicalCollectionRuleV1 } from "@shopana/broker-types";
 
 export class CollectionResolver extends CatalogType<string, Collection> {
   async $preload() {
@@ -110,20 +111,79 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     return this.$get("updatedAt");
   }
 
+  async revision() {
+    return this.$get("revision");
+  }
+
+  async listingRevision() {
+    return this.$get("listingRevision");
+  }
+
   async rules() {
     const rows = await this.$ctx.kernel.repository.collectionRule.findByCollectionId(
       this.$props
     );
-    return rows.map((row) => ({
-      id: row.id,
-      field: row.field,
-      operator: row.operator,
-      value: row.value,
-      sortIndex: row.sortIndex,
+    const normalized = rows.map((row) => ({
+      row,
+      rule: normalizeCanonicalCollectionRuleV1({
+        field: row.field,
+        operator: row.operator,
+        value: row.value,
+      }),
     }));
+    const idsByType = {
+      category: normalized.flatMap(({ rule }) =>
+        rule.field === "category" ? [...rule.value.ids] : []
+      ),
+      tag: normalized.flatMap(({ rule }) =>
+        rule.field === "tag" ? [...rule.value.ids] : []
+      ),
+      vendor: normalized.flatMap(({ rule }) =>
+        rule.field === "vendor" ? [...rule.value.ids] : []
+      ),
+    };
+    const [categories, tags, vendors] = await Promise.all([
+      this.$ctx.kernel.repository.category.getByIds(idsByType.category),
+      this.$ctx.kernel.repository.tag.getByIds(idsByType.tag),
+      this.$ctx.kernel.repository.vendor.getByIds(idsByType.vendor),
+    ]);
+    const existingIds = {
+      category: new Set(categories.map((item) => item.id)),
+      tag: new Set(tags.map((item) => item.id)),
+      vendor: new Set(vendors.map((item) => item.id)),
+    };
+    const result = normalized.map(({ row, rule }) => {
+      let referenceStatus = "NOT_APPLICABLE";
+      if (
+        rule.field === "category" ||
+        rule.field === "tag" ||
+        rule.field === "vendor"
+      ) {
+        referenceStatus = rule.value.ids.every((id) =>
+          existingIds[rule.field].has(id)
+        )
+          ? "VALID"
+          : "STALE";
+      }
+      return {
+        id: row.id,
+        field: row.field.toUpperCase(),
+        operator: row.operator.toUpperCase(),
+        value: row.value,
+        sortIndex: row.sortIndex,
+        referenceStatus,
+      };
+    });
+    const staleCount = result.filter(
+      (item) => item.referenceStatus === "STALE",
+    ).length;
+    if (staleCount > 0) {
+      this.$ctx.kernel.getServices().logger.warn(
+        { collectionId: this.$props, staleCount },
+        "Collection contains stale rule references",
+      );
+    }
+    return result;
   }
 
-  // TODO: Implement products() with keyset pagination
-
-  // TODO: Implement productsCount() with COUNT(*)
 }

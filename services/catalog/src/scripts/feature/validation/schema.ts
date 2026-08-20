@@ -1,5 +1,23 @@
 import { z } from "zod";
-import { SLUG_REGEX } from "../../shared/slug.js";
+import {
+  CollectionContractValidationError,
+  normalizeCollectionRuleHandleV1,
+} from "@shopana/broker-types";
+
+const CanonicalHandleSchema = z.string().transform((value, context) => {
+  try {
+    return normalizeCollectionRuleHandleV1(value);
+  } catch (error) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        error instanceof CollectionContractValidationError
+          ? error.message
+          : "Invalid handle",
+    });
+    return z.NEVER;
+  }
+});
 
 /**
  * Tree index as int[]:
@@ -15,28 +33,14 @@ const TreeIndexSchema = z
 const FeatureValueInputSchema = z.object({
   id: z.string().uuid().optional(),
   index: z.number().int().min(0),
-  slug: z
-    .string()
-    .min(1, "Value slug is required")
-    .max(255)
-    .regex(
-      SLUG_REGEX,
-      "Value slug must use lowercase letters, numbers, and hyphens"
-    ),
+  slug: CanonicalHandleSchema,
   name: z.string().min(1, "Value name is required").max(255),
 });
 
 const FeatureSyncItemSchema = z.object({
   id: z.string().uuid().optional(),
   index: TreeIndexSchema,
-  slug: z
-    .string()
-    .min(1, "Feature slug is required")
-    .max(255)
-    .regex(
-      SLUG_REGEX,
-      "Feature slug must use lowercase letters, numbers, and hyphens"
-    ),
+  slug: CanonicalHandleSchema,
   isGroup: z.boolean(),
   featured: z.boolean(),
   name: z.string().min(1, "Feature name is required").max(255),

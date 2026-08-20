@@ -36,6 +36,11 @@ export class ResolverRegistry {
     return new CategoryResolver(id, this.ctx);
   }
 
+  async collection(id: string) {
+    const { CollectionResolver } = await import("./CollectionResolver.js");
+    return new CollectionResolver(id, this.ctx);
+  }
+
   async categoryConnection(input: CategoryConnectionResolverInput) {
     const { CategoryConnectionResolver } = await import(
       "./CategoryConnectionResolver.js"

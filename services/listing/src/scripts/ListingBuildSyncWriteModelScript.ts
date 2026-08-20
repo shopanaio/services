@@ -1,5 +1,6 @@
 import { BaseScript } from "../kernel/BaseScript.js";
 import { hashContent } from "@shopana/shared-kernel";
+import { canonicalCollectionRuleTermKeys } from "@shopana/broker-types";
 import type {
   ListingPreparedSyncAction,
   ListingSyncWriteModelJson,
@@ -30,6 +31,14 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     const listingStatus: "published" | "draft" =
       item.status === "published" ? "published" : "draft";
     const indexableVariants = item.variants.filter(isIndexableVariant);
+    const knownVariantIds = new Set(item.variants.map((variant) => variant.id));
+    for (const facts of item.ruleFacts.variantTerms) {
+      if (!knownVariantIds.has(facts.variantId)) {
+        throw new Error(
+          `Rule facts reference unknown variant: ${facts.variantId}`,
+        );
+      }
+    }
     const variantTermsByVariantId: Record<
       string,
       readonly ListingVariantTerm[]
@@ -83,6 +92,26 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           .sort(),
         vendor: item.vendorId ? [item.vendorId] : [],
         facet: item.productFacets.flatMap(facetValueKeys).sort(),
+        collection: item.scopes
+          .filter((scope) => scope.scopeType === "collection")
+          .map((scope) => scope.collectionId)
+          .sort(),
+        ruleTerm: canonicalCollectionRuleTermKeys(
+          item.ruleFacts.productTerms.map((term) =>
+            term.kind === "tag"
+              ? {
+                  entityType: "product" as const,
+                  kind: "tag" as const,
+                  tagId: term.tagId,
+                }
+              : {
+                  entityType: "product" as const,
+                  kind: "feature" as const,
+                  sourceHandle: term.sourceHandle,
+                  valueHandle: term.valueHandle,
+                }
+          )
+        ),
       },
       variants: indexableVariants
         .map((variant) => {
@@ -111,6 +140,24 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
           .sort(([left], [right]) => String(left).localeCompare(String(right)))
       ),
       variantTermsByVariantId,
+      variantRuleTermValueKeysByVariantId: Object.fromEntries(
+        item.ruleFacts.variantTerms
+          .filter(({ variantId }) =>
+            indexableVariants.some((variant) => variant.id === variantId)
+          )
+          .map(({ variantId, terms }) => [
+            variantId,
+            canonicalCollectionRuleTermKeys(
+              terms.map((term) => ({
+                entityType: "variant" as const,
+                kind: "option" as const,
+                sourceHandle: term.sourceHandle,
+                valueHandle: term.valueHandle,
+              }))
+            ),
+          ])
+          .sort(([left], [right]) => String(left).localeCompare(String(right)))
+      ),
       variantProductValueKeysByVariantId: Object.fromEntries(
         indexableVariants
           .map((variant) => [variant.id, [item.id]])
@@ -119,11 +166,11 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
     };
 
     return {
-      version: 4,
+      version: 5,
       actionType: "syncSellableItem",
       writeModelJson,
       writeModelHash: hashContent({
-        v: 4,
+        v: 5,
         actionType: "syncSellableItem",
         writeModelJson,
       }),
@@ -353,11 +400,14 @@ function buildProductSortRows(
   }
 
   for (const scope of item.scopes) {
-    if (scope.scopeType === "category" && scope.manualRank) {
+    if (scope.manualRank) {
       rows.push({
         productId: item.id,
         sortKind: "manual",
-        manualScopeId: scope.categoryId,
+        manualScopeId:
+          scope.scopeType === "category"
+            ? scope.categoryId
+            : scope.collectionId,
         boolValue: productAvailable,
         textValue: scope.manualRank,
       });

@@ -1,5 +1,6 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Collection } from "../../../repositories/models/index.js";
+import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import type {
   ProductSortBy,
   ProductSortInput,
@@ -15,11 +16,7 @@ export type {
   SortDirection,
 } from "../../category/dto/index.js";
 
-export interface CollectionRuleInput {
-  field: string;
-  operator: string;
-  value: unknown;
-}
+export type CollectionRuleInput = CanonicalCollectionRule;
 
 export interface CollectionCreateParams {
   handle?: string | null;
@@ -38,6 +35,7 @@ export interface CollectionCreateParams {
 
 export interface CollectionUpdateParams {
   id: string;
+  expectedRevision: number;
   handle?: string | null;
   name?: string;
   description?: RichTextInput | null;
@@ -53,32 +51,43 @@ export interface CollectionUpdateParams {
 
 export interface CollectionDeleteParams {
   id: string;
+  expectedRevision: number;
 }
 
 export interface CollectionAddProductsParams {
   collectionId: string;
   productIds: string[];
+  expectedRevision: number;
 }
 
 export interface CollectionRemoveProductsParams {
   collectionId: string;
   productIds: string[];
+  expectedRevision: number;
 }
 
 export interface CollectionMoveProductParams {
   collectionId: string;
   productId: string;
+  expectedRevision: number;
   afterProductId?: string | null;
   beforeProductId?: string | null;
 }
 
 export interface CollectionRebalanceParams {
   collectionId: string;
+  expectedRevision: number;
+}
+
+export interface CollectionClearProductsParams {
+  collectionId: string;
+  expectedRevision: number;
 }
 
 export interface CollectionUpdateRulesParams {
   collectionId: string;
-  rules: CollectionRuleInput[];
+  expectedRevision: number;
+  rules: CanonicalCollectionRule[];
 }
 
 export interface CollectionProductsQueryParams {
@@ -106,10 +115,15 @@ export interface CollectionProductsQueryResult {
 
 export interface CollectionResult {
   collection?: Collection;
+  syncOperationId?: string;
   userErrors: UserError[];
 }
 
 export interface CollectionDeleteResult {
   deletedCollectionId?: string;
+  revision?: number;
+  listingRevision?: number;
+  deletedAt?: string;
+  syncOperationId?: string;
   userErrors: UserError[];
 }

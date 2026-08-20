@@ -1,10 +1,24 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { FeatureCreateParams, FeatureCreateResult } from "./dto/index.js";
-import { isValidSlug } from "../shared/slug.js";
+import { normalizeCollectionRuleHandleV1 } from "@shopana/broker-types";
 
 export class FeatureCreateScript extends BaseScript<FeatureCreateParams, FeatureCreateResult> {
   protected async execute(params: FeatureCreateParams): Promise<FeatureCreateResult> {
-    const { productId, slug, name, featured, values } = params;
+    const { productId, slug: rawSlug, name, featured } = params;
+    let slug: string;
+    let values: typeof params.values;
+    try {
+      slug = normalizeCollectionRuleHandleV1(rawSlug);
+      values = params.values.map((value) => ({
+        ...value,
+        slug: normalizeCollectionRuleHandleV1(value.slug),
+      }));
+    } catch {
+      return {
+        feature: undefined,
+        userErrors: [{ message: "Feature or value slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+      };
+    }
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);
@@ -12,13 +26,6 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
       return {
         feature: undefined,
         userErrors: [{ message: "Product not found", field: ["productId"], code: "NOT_FOUND" }],
-      };
-    }
-
-    if (!isValidSlug(slug)) {
-      return {
-        feature: undefined,
-        userErrors: [{ message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
       };
     }
 
@@ -33,18 +40,6 @@ export class FeatureCreateScript extends BaseScript<FeatureCreateParams, Feature
     const valueSlugs = new Set<string>();
     for (let i = 0; i < values.length; i++) {
       const valueSlug = values[i].slug;
-      if (!isValidSlug(valueSlug)) {
-        return {
-          feature: undefined,
-          userErrors: [
-            {
-              message: "Feature value slug format is invalid",
-              field: ["values", String(i), "slug"],
-              code: "INVALID_SLUG",
-            },
-          ],
-        };
-      }
       if (valueSlugs.has(valueSlug)) {
         return {
           feature: undefined,

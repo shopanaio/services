@@ -6,6 +6,7 @@ import { parseGraphqlInfo } from "@shopana/type-resolver";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
 import { CategoryResolver } from "../../../resolvers/storefront/CategoryResolver.js";
+import { CollectionResolver } from "../../../resolvers/storefront/CollectionResolver.js";
 import { FacetResolver } from "../../../resolvers/storefront/FacetResolver.js";
 import { FacetSwatchResolver } from "../../../resolvers/storefront/FacetSwatchResolver.js";
 import { FacetValueResolver } from "../../../resolvers/storefront/FacetValueResolver.js";
@@ -15,7 +16,7 @@ import type {
   ResolversTypes,
 } from "../../../resolvers/storefront/generated/types.js";
 
-export const typeResolvers: Partial<Resolvers> = {
+export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   Node: {
     __resolveType: (value) => {
       if (value instanceof FacetResolver) return "Facet";
@@ -46,6 +47,29 @@ export const typeResolvers: Partial<Resolvers> = {
         parseGraphqlInfo(info),
         ctx
       ),
+  },
+
+  Collection: {
+    __resolveReference: (
+      reference: { id: string; listingRevision: number },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo
+    ) => {
+      if (
+        !Number.isSafeInteger(reference.listingRevision) ||
+        reference.listingRevision < 0
+      ) {
+        return null;
+      }
+      return CollectionResolver.load(
+        {
+          id: decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection),
+          listingRevision: reference.listingRevision,
+        },
+        parseGraphqlInfo(info),
+        ctx
+      );
+    },
   },
 
   Facet: {

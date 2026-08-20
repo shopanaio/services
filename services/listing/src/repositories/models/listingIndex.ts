@@ -153,6 +153,11 @@ export const productListingIndex = listingSchema.table(
     index("idx_product_listing_vendor")
       .on(table.storeId, table.vendorId)
       .where(sql`${table.vendorId} IS NOT NULL`),
+    index("idx_product_listing_created_at").on(
+      table.storeId,
+      table.productCreatedAt,
+      table.productDocId,
+    ),
   ],
 );
 
@@ -404,15 +409,11 @@ export const listingPostingBitmap = listingSchema.table(
       sql`${table.entityType} IN ('product', 'variant')`,
     ),
     check(
-      "chk_listing_posting_bitmap_no_collection_field",
-      sql`${table.field} <> 'collection'`,
-    ),
-    check(
       "chk_listing_posting_bitmap_entity_field",
       sql`(
-        (${table.entityType} = 'product' AND ${table.field} IN ('category', 'vendor', 'facet'))
+        (${table.entityType} = 'product' AND ${table.field} IN ('category', 'vendor', 'facet', 'collection', 'rule_term'))
         OR
-        (${table.entityType} = 'variant' AND ${table.field} IN ('term', 'variant_product'))
+        (${table.entityType} = 'variant' AND ${table.field} IN ('term', 'variant_product', 'rule_term'))
       )`,
     ),
   ],

@@ -6,6 +6,7 @@ import { parseGraphqlInfo } from "@shopana/type-resolver";
 import { GraphQLError, type GraphQLResolveInfo } from "graphql";
 import type { ServiceContext } from "../../../context/types.js";
 import { CategoryResolver } from "../../../resolvers/storefront/CategoryResolver.js";
+import { CollectionResolver } from "../../../resolvers/storefront/CollectionResolver.js";
 import {
   InventoryItemResolver,
   ProductFeatureGroupResolver,
@@ -31,13 +32,14 @@ import type {
   ResolversTypes,
 } from "../../../resolvers/storefront/generated/types.js";
 
-export const typeResolvers: Partial<Resolvers> = {
+export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   Node: {
     __resolveType: (value) => {
       const typeName = (value as { __typename?: unknown }).__typename;
       if (typeName === "Product"
         || typeName === "ProductVariant"
         || typeName === "Category"
+        || typeName === "Collection"
         || typeName === "ProductOption"
         || typeName === "ProductOptionCategory"
         || typeName === "ProductOptionValue"
@@ -52,6 +54,7 @@ export const typeResolvers: Partial<Resolvers> = {
       if (value instanceof ProductResolver) return "Product";
       if (value instanceof ProductVariantResolver) return "ProductVariant";
       if (value instanceof CategoryResolver) return "Category";
+      if (value instanceof CollectionResolver) return "Collection";
       if (value instanceof ProductOptionResolver) return "ProductOption";
       if (value instanceof ProductOptionCategoryResolver)
         return "ProductOptionCategory";
@@ -83,6 +86,8 @@ export const typeResolvers: Partial<Resolvers> = {
             return "ProductVariantMediaConnection";
           case "category":
             return "CategoryMediaConnection";
+          case "collection":
+            return "CollectionMediaConnection";
         }
       }
       if (value instanceof ProductComparisonColumnConnectionResolver) {
@@ -142,6 +147,7 @@ export const typeResolvers: Partial<Resolvers> = {
   },
 
   Category: referenceResolver(CategoryResolver, GlobalIdEntity.Category),
+  Collection: referenceResolver(CollectionResolver, GlobalIdEntity.Collection),
   Vendor: referenceResolver(VendorResolver, GlobalIdEntity.Vendor),
   Tag: referenceResolver(TagResolver, GlobalIdEntity.Tag),
   ProductOption: referenceResolver(ProductOptionResolver, GlobalIdEntity.Option),

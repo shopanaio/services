@@ -1,4 +1,9 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import {
+  normalizeCollectionRuleHandleV1,
+  normalizeCollectionInstantV1,
+  CollectionContractValidationError,
+} from "@shopana/broker-types";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { CollectionCreateParams, CollectionResult } from "./dto/index.js";
 import {
   serializeRichTextJsonText,
@@ -6,18 +11,32 @@ import {
 } from "../shared/richText.js";
 
 const ALLOWED_SORTS = new Set(["manual", "price", "newest", "name"]);
-const HANDLE_REGEX = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 export class CollectionCreateScript extends BaseScript<
   CollectionCreateParams,
   CollectionResult
 > {
+  @Transactional()
   protected async execute(params: CollectionCreateParams): Promise<CollectionResult> {
     // Validate name
     if (!params.name || params.name.trim() === "") {
       return {
         collection: undefined,
         userErrors: [{ message: "Name is required", field: ["input", "name"], code: "REQUIRED" }],
+      };
+    }
+    if (
+      params.publish &&
+      (this.context.locale ?? this.context.store.defaultLocale) !==
+        this.context.store.defaultLocale
+    ) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message: "Published collection requires a default-locale name",
+          field: ["name"],
+          code: "NAME_REQUIRED",
+        }],
       };
     }
 
@@ -29,16 +48,25 @@ export class CollectionCreateScript extends BaseScript<
       };
     }
 
-    // Validate handle format
-    if (!HANDLE_REGEX.test(params.handle)) {
+    let handle: string;
+    try {
+      handle = normalizeCollectionRuleHandleV1(params.handle);
+    } catch (error) {
       return {
         collection: undefined,
-        userErrors: [{ message: "Invalid handle format", field: ["input", "handle"], code: "INVALID" }],
+        userErrors: [{
+          message:
+            error instanceof CollectionContractValidationError
+              ? error.message
+              : "Invalid handle format",
+          field: ["input", "handle"],
+          code: "INVALID_HANDLE",
+        }],
       };
     }
 
     // Check for duplicate handle
-    const existing = await this.repository.collection.findByHandle(params.handle);
+    const existing = await this.repository.collection.findByHandle(handle);
     if (existing) {
       return {
         collection: undefined,
@@ -49,7 +77,9 @@ export class CollectionCreateScript extends BaseScript<
     const defaultSort =
       params.defaultSort ??
       (params.type === "manual" ? "manual" : "newest");
-    const defaultSortDirection = params.defaultSortDirection ?? "asc";
+    const defaultSortDirection =
+      params.defaultSortDirection ??
+      (defaultSort === "newest" ? "desc" : "asc");
 
     if (!ALLOWED_SORTS.has(defaultSort)) {
       return {
@@ -64,15 +94,74 @@ export class CollectionCreateScript extends BaseScript<
         userErrors: [{ message: "Rule collection cannot use manual sort", field: ["defaultSort"], code: "INVALID" }],
       };
     }
+    if (
+      (defaultSort === "manual" && defaultSortDirection !== "asc") ||
+      (defaultSort === "newest" && defaultSortDirection !== "desc")
+    ) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message: "Invalid default sort direction",
+          field: ["defaultSortDirection"],
+          code: "INVALID",
+        }],
+      };
+    }
+    if (params.type === "rule" && params.publish) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message: "A rule collection must contain rules before publication",
+          field: ["publish"],
+          code: "RULES_REQUIRED",
+        }],
+      };
+    }
+    let effectiveFrom: string | null;
+    let effectiveTo: string | null;
+    try {
+      effectiveFrom =
+        params.activeFrom == null
+          ? null
+          : normalizeCollectionInstantV1(params.activeFrom);
+      effectiveTo =
+        params.activeTo == null
+          ? null
+          : normalizeCollectionInstantV1(params.activeTo);
+    } catch (error) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message:
+            error instanceof CollectionContractValidationError
+              ? error.message
+              : "Collection effective interval is invalid",
+          field: ["activeFrom"],
+          code: "INVALID_EFFECTIVE_INTERVAL",
+        }],
+      };
+    }
+    if (effectiveFrom && effectiveTo && effectiveFrom >= effectiveTo) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message: "Active-to must be later than active-from",
+          field: ["activeTo"],
+          code: "INVALID_EFFECTIVE_INTERVAL",
+        }],
+      };
+    }
 
     const collection = await this.repository.collection.create({
-      handle: params.handle,
+      handle,
       type: params.type,
       defaultSort,
       defaultSortDirection,
-      effectiveFrom: params.activeFrom ?? null,
-      effectiveTo: params.activeTo ?? null,
-      publishedAt: params.publish ? new Date().toISOString() : null,
+      effectiveFrom,
+      effectiveTo,
+      publishedAt: params.publish
+        ? await this.repository.collection.currentTimestamp()
+        : null,
     });
 
     const excerptStorage = toRichTextStorage(params.excerpt);
@@ -105,10 +194,29 @@ export class CollectionCreateScript extends BaseScript<
     return { collection, userErrors: [] };
   }
 
-  protected handleError(_error: unknown): CollectionResult {
+  protected handleError(error: unknown): CollectionResult {
+    if (isUniqueViolation(error)) {
+      return {
+        collection: undefined,
+        userErrors: [{
+          message: "Handle already exists",
+          field: ["input", "handle"],
+          code: "DUPLICATE",
+        }],
+      };
+    }
     return {
       collection: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "23505"
+  );
 }

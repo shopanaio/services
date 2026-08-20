@@ -71,6 +71,22 @@ export type CategoryProductsArgs = {
   sort?: InputMaybe<ListingSort>;
 };
 
+export type Collection = {
+  __typename?: 'Collection';
+  id: Scalars['ID']['output'];
+  listingRevision: Scalars['Int']['output'];
+  products: ProductConnection;
+};
+
+
+export type CollectionProductsArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  filters?: InputMaybe<Array<ListingFilterInput>>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  query?: InputMaybe<Scalars['String']['input']>;
+  sort?: InputMaybe<ListingSort>;
+};
+
 /** Shared fields exposed by every Relay-style connection. */
 export type Connection = {
   pageInfo: PageInfo;
@@ -1215,8 +1231,8 @@ export type ProductRelatedProductsArgs = {
 export type ProductConnection = Connection & {
   __typename?: 'ProductConnection';
   /**
-   * Sorts valid for this context. MANUAL is category-only. RELEVANCE is returned
-   * only when a non-empty query is active.
+   * Sorts valid for this context. MANUAL is available for categories and manual
+   * collections. RELEVANCE is returned only when a non-empty query is active.
    */
   availableSorts: Array<ListingSort>;
   /** A list of product edges. */
@@ -1470,6 +1486,7 @@ export type ResolversTypes = ResolversObject<{
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  Collection: ResolverTypeWrapper<Collection>;
   Color: ResolverTypeWrapper<Scalars['Color']['output']>;
   Connection: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Connection']>;
   CountryCode: CountryCode;
@@ -1530,6 +1547,7 @@ export type ResolversParentTypes = ResolversObject<{
   ID: Scalars['ID']['output'];
   Int: Scalars['Int']['output'];
   String: Scalars['String']['output'];
+  Collection: Collection;
   Color: Scalars['Color']['output'];
   Connection: ResolversInterfaceTypes<ResolversParentTypes>['Connection'];
   Cursor: Scalars['Cursor']['output'];
@@ -1574,6 +1592,14 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Category']>, { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
 
   products?: Resolver<ResolversTypes['ProductConnection'], { __typename: 'Category' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, RequireFields<CategoryProductsArgs, 'first'>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+
+  products?: Resolver<ResolversTypes['ProductConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}> & GraphQLRecursivePick<ParentType, {"listingRevision":true}>, ContextType, RequireFields<CollectionProductsArgs, 'first'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1795,6 +1821,7 @@ export type WeightResolvers<ContextType = ServiceContext, ParentType extends Res
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   Category?: CategoryResolvers<ContextType>;
+  Collection?: CollectionResolvers<ContextType>;
   Color?: GraphQLScalarType;
   Connection?: ConnectionResolvers<ContextType>;
   Cursor?: GraphQLScalarType;

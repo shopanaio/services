@@ -73,6 +73,10 @@ export type StorefrontListingFilterInput =
   | {
       kind: "in_stock";
       value: boolean;
+    }
+  | {
+      kind: "status";
+      statuses: Array<"draft" | "published">;
     };
 
 export interface StorefrontSortInput {
@@ -81,6 +85,16 @@ export interface StorefrontSortInput {
 
 export type StorefrontListingScope =
   | { kind: "category"; categoryId: string; manualSortScopeId?: string }
+  | {
+      kind: "collection";
+      collectionId: string;
+      listingRevision: number;
+      rulesHash: string;
+      productBitmap: string;
+      membershipBitmap: string;
+      variantBitmap?: string;
+      manualSortScopeId?: string;
+    }
   | { kind: "global" };
 
 export interface ResolvedFacetFilterGroup {
@@ -101,6 +115,7 @@ export interface StorefrontFilterPlan {
   /** @deprecated Use variantTermGroups. Retained only while old profiling labels are removed. */
   optionFacetGroups: ResolvedFacetFilterGroup[];
   vendorIds: string[];
+  productStatuses: Array<"draft" | "published">;
   userErrors: StorefrontListingUserError[];
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
   inStock?: boolean;
@@ -109,6 +124,7 @@ export interface StorefrontFilterPlan {
 export interface NormalizedStorefrontListingFilters {
   facetFilters: NormalizedStorefrontFacetFilter[];
   vendorIds: string[];
+  productStatuses: Array<"draft" | "published">;
   priceRange?: { minPriceMinor?: number; maxPriceMinor?: number };
   inStock?: boolean;
 }
@@ -141,7 +157,7 @@ export interface DecodedListingCursor {
 }
 
 export interface ListingCursorPayload {
-  version: 3;
+  version: 4;
   hash: string;
   sort: StorefrontSortKind;
   mode: SearchExecutionMode | null;

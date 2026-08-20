@@ -4,6 +4,11 @@ import type {
 } from "../../repositories/storefront/types.js";
 import { StorefrontRepositoryValidationError } from "../../repositories/storefront/types.js";
 import { decodeListingCursor } from "../../repositories/storefront/cursor.js";
+import {
+  decodeGlobalIdByType,
+  GlobalIdEntity,
+} from "@shopana/shared-graphql-guid";
+import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import { ListingType } from "./ListingType.js";
 import {
   type ListingFacet,
@@ -25,7 +30,8 @@ export class ListingConnectionResolver extends ListingType<
   async $preload() {
     try {
       const services = this.$ctx.kernel.getServices();
-      let repositoryInput = this.toRepositoryInput();
+      const resolvedArgs = await this.resolveCollectionScope(this.$props);
+      let repositoryInput = this.toRepositoryInput(resolvedArgs);
       if (repositoryInput.query) {
         const continuationMode = repositoryInput.after
           ? decodeListingCursor(repositoryInput.after).payload.mode
@@ -118,13 +124,13 @@ export class ListingConnectionResolver extends ListingType<
     }
   }
 
-  private toRepositoryInput(): StorefrontListingInput {
+  private toRepositoryInput(args: ListingQueryArgs): StorefrontListingInput {
     if (this.repositoryInput) {
       return this.repositoryInput;
     }
 
     try {
-      this.repositoryInput = toStorefrontListingInput(this.$props, {
+      this.repositoryInput = toStorefrontListingInput(args, {
         locale: this.$ctx.locale || this.$ctx.store.defaultLocale,
         currency: this.$ctx.currency || this.$ctx.store.currencyCode,
       });
@@ -132,6 +138,74 @@ export class ListingConnectionResolver extends ListingType<
     } catch (error) {
       throwGraphqlListingError(error);
     }
+  }
+
+  private async resolveCollectionScope(
+    args: ListingQueryArgs,
+  ): Promise<ListingQueryArgs> {
+    if (args.resolvedScope || args.scope?.kind !== "COLLECTION") return args;
+    if (!args.scope.collectionId) {
+      throw new StorefrontRepositoryValidationError(
+        "COLLECTION listing scope requires collectionId",
+      );
+    }
+    const collectionId = decodeGlobalIdByType(
+      args.scope.collectionId,
+      GlobalIdEntity.Collection,
+    );
+    const state =
+      await this.$ctx.kernel.repository.collectionState.findState(collectionId);
+    if (!state) {
+      throw new StorefrontRepositoryValidationError(
+        "Collection index is not ready",
+        ["scope", "collectionId"],
+        "COLLECTION_INDEX_NOT_READY",
+      );
+    }
+    const currency =
+      args.currency?.trim() ||
+      this.$ctx.currency ||
+      this.$ctx.store.currencyCode;
+    const evaluated =
+      state.collectionType === "rule"
+        ? await this.$ctx.kernel.repository.collectionRuleEvaluation.evaluate({
+            rules: state.rulesJson as CanonicalCollectionRule[],
+            currency,
+            universe: "admin",
+            definitionKey: {
+              kind: "persisted",
+              listingRevision: state.listingRevision,
+              rulesHash: state.rulesHash,
+            },
+          })
+        : null;
+    const productBitmap =
+      evaluated?.productBitmap ??
+      await this.$ctx.kernel.repository.collectionRuleEvaluation
+        .getManualMembership(collectionId, "admin");
+    return {
+      ...args,
+      orderBy:
+        args.orderBy ??
+        (args.query?.trim()
+          ? { by: "RELEVANCE" }
+          : collectionDefaultOrderBy(
+              state.defaultSort,
+              state.defaultSortDirection,
+            )),
+      resolvedScope: {
+        kind: "collection",
+        collectionId,
+        listingRevision: state.listingRevision,
+        rulesHash: state.rulesHash,
+        productBitmap,
+        membershipBitmap:
+          evaluated?.membershipBitmap ?? productBitmap,
+        variantBitmap: evaluated?.variantBitmap ?? undefined,
+        manualSortScopeId:
+          state.collectionType === "manual" ? collectionId : undefined,
+      },
+    };
   }
 
   private logListingError(error: unknown, message: string): void {
@@ -148,6 +222,22 @@ export class ListingConnectionResolver extends ListingType<
   }
 }
 
+function collectionDefaultOrderBy(
+  sort: string,
+  direction: string,
+): ListingQueryArgs["orderBy"] {
+  switch (sort) {
+    case "manual":
+      return { by: "MANUAL" };
+    case "price":
+      return { by: "PRICE", direction: direction as "asc" | "desc" };
+    case "name":
+      return { by: "NAME", direction: direction as "asc" | "desc" };
+    default:
+      return { by: "NEWEST", direction: "desc" };
+  }
+}
+
 function listingArgsToLogObject(args: ListingQueryArgs) {
   return {
     first: args.first ?? null,
@@ -161,6 +251,7 @@ function listingArgsToLogObject(args: ListingQueryArgs) {
     currency: args.currency ?? null,
     orderBy: args.orderBy ?? null,
     facets: (args.facets ?? []).map((filter) => ({
+      statuses: filter.statuses ?? null,
       available: filter.available ?? null,
       price: filter.price ?? null,
       productVendor: filter.productVendor ?? null,

@@ -4,10 +4,22 @@ import { buildVariantHandlesBatch } from "../variant/helpers/buildVariantHandle.
 import { eq, and, inArray } from "drizzle-orm";
 import { productOptionVariantLink, variant } from "../../repositories/models/index.js";
 import type { ProductOption, ProductOptionValue } from "../../repositories/models/index.js";
+import { normalizeCollectionRuleHandleV1 } from "@shopana/broker-types";
 
 export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpdateResult> {
   protected async execute(params: OptionUpdateParams): Promise<OptionUpdateResult> {
-    const { id, slug, name, categoryId, sortIndex, values } = params;
+    const { id, slug: rawSlug, name, categoryId, sortIndex, values } = params;
+    let slug = rawSlug;
+    if (rawSlug !== undefined) {
+      try {
+        slug = normalizeCollectionRuleHandleV1(rawSlug);
+      } catch {
+        return {
+          option: undefined,
+          userErrors: [{ message: "Option slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+        };
+      }
+    }
 
     // 1. Check option exists
     const existingOption = await this.repository.option.findById(id);
@@ -127,10 +139,20 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
           swatchId?: string | null;
         } = {};
 
-        if (valueUpdate.slug !== undefined && valueUpdate.slug !== existingValue.slug) {
-          updateData.slug = valueUpdate.slug;
-          // Track that this value's slug changed
-          changedValueIds.push(valueUpdate.id);
+        if (valueUpdate.slug !== undefined) {
+          let canonicalSlug: string;
+          try {
+            canonicalSlug = normalizeCollectionRuleHandleV1(valueUpdate.slug);
+          } catch {
+            return {
+              errors: [{ message: "Option value slug format is invalid", field: ["values", "update"], code: "INVALID_SLUG" }],
+            };
+          }
+          if (canonicalSlug !== existingValue.slug) {
+            updateData.slug = canonicalSlug;
+            // Track that this value's slug changed
+            changedValueIds.push(valueUpdate.id);
+          }
         }
         if (valueUpdate.sortIndex !== undefined) {
           updateData.sortIndex = valueUpdate.sortIndex;
@@ -167,6 +189,14 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         : 0;
 
       for (const valueInput of values.create) {
+        let canonicalSlug: string;
+        try {
+          canonicalSlug = normalizeCollectionRuleHandleV1(valueInput.slug);
+        } catch {
+          return {
+            errors: [{ message: "Option value slug format is invalid", field: ["values", "create"], code: "INVALID_SLUG" }],
+          };
+        }
         let swatchId: string | null = null;
         if (valueInput.swatch) {
           swatchId = await this.createSwatch(valueInput.swatch);
@@ -176,7 +206,7 @@ export class OptionUpdateScript extends BaseScript<OptionUpdateParams, OptionUpd
         sortIndex = Math.max(sortIndex + 1, resolvedSortIndex + 1);
 
         const optionValue = await this.repository.option.createValue(option.id, {
-          slug: valueInput.slug,
+          slug: canonicalSlug,
           sortIndex: resolvedSortIndex,
           swatchId,
         });

@@ -1,11 +1,22 @@
 import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
 import type { FeatureUpdateParams, FeatureUpdateResult, FeatureValuesInput } from "./dto/index.js";
-import { isValidSlug } from "../shared/slug.js";
+import { normalizeCollectionRuleHandleV1 } from "@shopana/broker-types";
 import type { ProductFeature, ProductFeatureValue } from "../../repositories/models/index.js";
 
 export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, FeatureUpdateResult> {
   protected async execute(params: FeatureUpdateParams): Promise<FeatureUpdateResult> {
-    const { id, slug, name, featured, values } = params;
+    const { id, slug: rawSlug, name, featured, values } = params;
+    let slug = rawSlug;
+    if (rawSlug !== undefined) {
+      try {
+        slug = normalizeCollectionRuleHandleV1(rawSlug);
+      } catch {
+        return {
+          feature: undefined,
+          userErrors: [{ message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+        };
+      }
+    }
 
     // 1. Check feature exists
     const existingFeature = await this.repository.feature.findById(id);
@@ -31,13 +42,6 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
       : await this.repository.feature.findValuesByFeatureId(id);
 
     if (slug !== undefined) {
-      if (!isValidSlug(slug)) {
-        return {
-          feature: undefined,
-          userErrors: [{ message: "Feature slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
-        };
-      }
-
       if (slug !== existingFeature.slug) {
         const duplicate = await this.repository.feature.findBySlug(
           existingFeature.productId,
@@ -135,7 +139,10 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         }
 
         if (valueUpdate.slug !== undefined) {
-          if (!isValidSlug(valueUpdate.slug)) {
+          let canonicalSlug: string;
+          try {
+            canonicalSlug = normalizeCollectionRuleHandleV1(valueUpdate.slug);
+          } catch {
             return {
               errors: [
                 {
@@ -146,17 +153,18 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
               ],
             };
           }
-          if (valueUpdate.slug !== existingValue.slug && occupiedSlugs.has(valueUpdate.slug)) {
+          if (canonicalSlug !== existingValue.slug && occupiedSlugs.has(canonicalSlug)) {
             return {
               errors: [
                 {
-                  message: `Feature value slug "${valueUpdate.slug}" already exists`,
+                  message: `Feature value slug "${canonicalSlug}" already exists`,
                   field: ["values", "update", String(i), "slug"],
                   code: "DUPLICATE",
                 },
               ],
             };
           }
+          valueUpdate.slug = canonicalSlug;
         }
 
         if (valueUpdate.slug !== undefined || valueUpdate.name !== undefined) {
@@ -189,7 +197,10 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
 
       for (let i = 0; i < values.create.length; i++) {
         const valueInput = values.create[i];
-        if (!isValidSlug(valueInput.slug)) {
+        let canonicalSlug: string;
+        try {
+          canonicalSlug = normalizeCollectionRuleHandleV1(valueInput.slug);
+        } catch {
             return {
               errors: [
                 {
@@ -200,11 +211,11 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
               ],
             };
         }
-        if (occupiedSlugs.has(valueInput.slug)) {
+        if (occupiedSlugs.has(canonicalSlug)) {
           return {
             errors: [
               {
-                message: `Feature value slug "${valueInput.slug}" already exists`,
+                message: `Feature value slug "${canonicalSlug}" already exists`,
                 field: ["values", "create", String(i), "slug"],
                 code: "DUPLICATE",
               },
@@ -213,10 +224,10 @@ export class FeatureUpdateScript extends BaseScript<FeatureUpdateParams, Feature
         }
 
         const featureValue = await this.repository.feature.createValue(feature.id, {
-          slug: valueInput.slug,
+          slug: canonicalSlug,
           index: index++,
         });
-        occupiedSlugs.add(valueInput.slug);
+        occupiedSlugs.add(canonicalSlug);
 
         await this.repository.translation.upsertFeatureValueTranslation({
           storeId: this.getProjectId(),

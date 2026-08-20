@@ -161,6 +161,9 @@ export class ProductConnectionResolver extends ListingType<
         listing: {
           entryPoint: this.$props.entryPoint,
           categoryId: this.$props.categoryId ?? null,
+          collectionId: this.$props.collectionId ?? null,
+          collectionListingRevision:
+            this.$props.collectionListingRevision ?? null,
           queryProvided: !!this.$props.query?.trim(),
           first: this.$props.first ?? null,
           afterProvided: !!this.$props.after,
@@ -213,6 +216,7 @@ function resolveSelections(filters: readonly StorefrontListingFilterInput[]) {
         }
         break;
       case "vendor":
+      case "status":
         break;
     }
   }

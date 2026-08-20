@@ -2,9 +2,18 @@ import { sql, type SQL } from "drizzle-orm";
 
 type FacetListingScope =
   | { kind: "category"; categoryId: string }
+  | {
+      kind: "collection";
+      collectionId: string;
+      listingRevision: number;
+      rulesHash: string;
+      productBitmap: string;
+      membershipBitmap: string;
+      variantBitmap?: string;
+    }
   | { kind: "global" };
 
-export const FACET_SCOPE_TYPES = ["SEARCH", "CATEGORY"] as const;
+export const FACET_SCOPE_TYPES = ["SEARCH", "CATEGORY", "COLLECTION"] as const;
 
 export type FacetScopeType = (typeof FACET_SCOPE_TYPES)[number];
 
@@ -16,9 +25,12 @@ export function compileEligibleFacetIdsSql(input: {
   storeIdSql: SQL;
   scope: FacetListingScope;
 }): SQL {
-  const scopeType: FacetScopeType = input.scope.kind === "category"
-    ? "CATEGORY"
-    : "SEARCH";
+  const scopeType: FacetScopeType =
+    input.scope.kind === "category"
+      ? "CATEGORY"
+      : input.scope.kind === "collection"
+        ? "COLLECTION"
+        : "SEARCH";
 
   return sql`
     SELECT DISTINCT fs.facet_id

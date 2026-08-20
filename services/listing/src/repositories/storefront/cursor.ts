@@ -37,7 +37,7 @@ export function decodeListingCursor(raw: string): DecodedListingCursor {
     ) as ListingCursorPayload;
 
     if (
-      decoded.version !== 3 ||
+      decoded.version !== 4 ||
       typeof decoded.hash !== "string" ||
       !/^[A-Za-z0-9_-]{32}$/u.test(decoded.hash)
     ) {
@@ -81,9 +81,22 @@ export function decodeListingCursor(raw: string): DecodedListingCursor {
 
 export function buildListingFilterHash(input: FilterHashInput): string {
   return createHash("sha256")
-    .update(stableStringify(input))
+    .update(stableStringify({
+      ...input,
+      scope: canonicalScopeHashInput(input.scope),
+    }))
     .digest("base64url")
     .slice(0, 32);
+}
+
+function canonicalScopeHashInput(scope: StorefrontListingScope): unknown {
+  if (scope.kind !== "collection") return scope;
+  return {
+    kind: scope.kind,
+    collectionId: scope.collectionId,
+    listingRevision: scope.listingRevision,
+    rulesHash: scope.rulesHash,
+  };
 }
 
 export function assertCursorMatches(

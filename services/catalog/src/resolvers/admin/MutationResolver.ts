@@ -6,6 +6,15 @@ import {
 } from "@shopana/shared-graphql-guid";
 import { ApolloMutation, ZodResolver } from "@shopana/type-resolver";
 import { z } from "zod";
+import {
+  COLLECTION_LISTING_CONTRACT_VERSION,
+  hashCanonicalCollectionRulesV1,
+  hashCanonicalJsonV1,
+  normalizeCanonicalCollectionRulesV1,
+  type CanonicalCollectionRule,
+  type PreviewCollectionRulesResult,
+} from "@shopana/broker-types";
+import type { CollectionUpdatedReason } from "@shopana/events";
 import { CatalogType } from "./CatalogType.js";
 import type { UserError } from "../../kernel/BaseScript.js";
 
@@ -108,15 +117,18 @@ import {
   WarehouseStockCreateScript,
   WarehouseStockDeleteScript,
 } from "../../scripts/stock/index.js";
-import {
-  CollectionCreateScript,
-  CollectionUpdateScript,
-  CollectionDeleteScript,
-  CollectionAddProductsScript,
-  CollectionRemoveProductsScript,
-  CollectionMoveProductScript,
-  CollectionUpdateRulesScript,
-} from "../../scripts/collection/index.js";
+import type {
+  CollectionMutationDispatchResult,
+  CollectionMutationOperation,
+} from "../../scripts/collection/CollectionMutationDispatchScript.js";
+import type {
+  CollectionMutationWorkflowInput,
+  CollectionRulesPreviewWorkflowInput,
+} from "../../workflows/CollectionMutationWorkflows.js";
+import type {
+  CollectionDeleteResult,
+  CollectionResult,
+} from "../../scripts/collection/dto/index.js";
 import type { ProductBulkUpdateItem } from "../../workflows/dto/BulkEditWorkflowDto.js";
 import type {
   ProductCreateInput,
@@ -1137,6 +1149,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionCreate(args: {
     input: {
+      clientMutationId: string;
       handle?: string | null;
       type: "MANUAL" | "RULE";
       name: string;
@@ -1160,7 +1173,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const mediaFileIds = (args.input.media ?? [])
       .map((item) => decodeGlobalIdByType(item.fileId, GlobalIdEntity.File));
 
-    const result = await this.$ctx.kernel.runScript(CollectionCreateScript, {
+    const result = await this.runCollectionMutation(args.input.clientMutationId, {
+      kind: "create",
+      params: {
       handle: args.input.handle ?? undefined,
       type: args.input.type.toLowerCase() as "manual" | "rule",
       name: args.input.name,
@@ -1200,10 +1215,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         | "asc"
         | "desc"
         | undefined,
-      activeFrom: args.input.activeFrom ?? undefined,
-      activeTo: args.input.activeTo ?? undefined,
-      publish: args.input.publish ?? undefined,
-    });
+      activeFrom: args.input.activeFrom,
+      activeTo: args.input.activeTo,
+        publish: args.input.publish ?? undefined,
+      },
+    }, ["metadata", "publication", "schedule", "sort"]);
 
     return {
       collection: result.collection
@@ -1215,7 +1231,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionUpdate(args: {
     input: {
+      clientMutationId: string;
       id: string;
+      expectedRevision: number;
       handle?: string | null;
       name?: string | null;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
@@ -1248,8 +1266,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         ).filter((id): id is string => id !== null)
       : undefined;
 
-    const result = await this.$ctx.kernel.runScript(CollectionUpdateScript, {
+    const result = await this.runCollectionMutation(args.input.clientMutationId, {
+      kind: "update",
+      params: {
       id,
+      expectedRevision: args.input.expectedRevision,
       handle: args.input.handle ?? undefined,
       name: args.input.name ?? undefined,
       description:
@@ -1297,10 +1318,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         | "asc"
         | "desc"
         | undefined,
-      activeFrom: args.input.activeFrom ?? undefined,
-      activeTo: args.input.activeTo ?? undefined,
-      publish: args.input.publish ?? undefined,
-    });
+      activeFrom: args.input.activeFrom,
+      activeTo: args.input.activeTo,
+        publish: args.input.publish ?? undefined,
+      },
+    }, collectionUpdateReasons(args.input));
 
     return {
       collection: result.collection
@@ -1310,7 +1332,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     };
   }
 
-  async collectionDelete(args: { input: { id: string } }) {
+  async collectionDelete(args: {
+    input: {
+      clientMutationId: string;
+      id: string;
+      expectedRevision: number;
+    };
+  }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Collection);
     if (!id) {
       return {
@@ -1318,9 +1346,14 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         userErrors: [{ message: "Invalid collection ID", field: ["input", "id"], code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(CollectionDeleteScript, {
-      id,
-    });
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "delete",
+        params: { id, expectedRevision: args.input.expectedRevision },
+      },
+      ["publication"]
+    );
     return {
       deletedCollectionId: result.deletedCollectionId ? args.input.id : null,
       userErrors: result.userErrors,
@@ -1328,7 +1361,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async collectionAddProducts(args: {
-    input: { collectionId: string; productIds: string[] };
+    input: {
+      clientMutationId: string;
+      collectionId: string;
+      expectedRevision: number;
+      productIds: string[];
+    };
   }) {
     let collectionId: string;
     let productIds: string[];
@@ -1343,10 +1381,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(CollectionAddProductsScript, {
-      collectionId,
-      productIds,
-    });
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "addProducts",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+          productIds,
+        },
+      },
+      ["items"]
+    );
     return {
       collection: result.collection
         ? await this.resolvers.collection(result.collection.id)
@@ -1356,7 +1402,12 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   async collectionRemoveProducts(args: {
-    input: { collectionId: string; productIds: string[] };
+    input: {
+      clientMutationId: string;
+      collectionId: string;
+      expectedRevision: number;
+      productIds: string[];
+    };
   }) {
     let collectionId: string;
     let productIds: string[];
@@ -1371,10 +1422,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(CollectionRemoveProductsScript, {
-      collectionId,
-      productIds,
-    });
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "removeProducts",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+          productIds,
+        },
+      },
+      ["items"]
+    );
     return {
       collection: result.collection
         ? await this.resolvers.collection(result.collection.id)
@@ -1385,7 +1444,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionMoveProduct(args: {
     input: {
+      clientMutationId: string;
       collectionId: string;
+      expectedRevision: number;
       productId: string;
       afterProductId?: string | null;
       beforeProductId?: string | null;
@@ -1410,12 +1471,20 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         userErrors: [{ message: "Invalid ID format", code: "INVALID_ID" }],
       };
     }
-    const result = await this.$ctx.kernel.runScript(CollectionMoveProductScript, {
-      collectionId,
-      productId,
-      afterProductId,
-      beforeProductId,
-    });
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "moveProduct",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+          productId,
+          afterProductId,
+          beforeProductId,
+        },
+      },
+      ["rank"]
+    );
     return {
       collection: result.collection
         ? await this.resolvers.collection(result.collection.id)
@@ -1426,20 +1495,374 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionUpdateRules(args: {
     input: {
+      clientMutationId: string;
       collectionId: string;
+      expectedRevision: number;
       rules: Array<{ field: string; operator: string; value: unknown }>;
     };
   }) {
-    const result = await this.$ctx.kernel.runScript(CollectionUpdateRulesScript, {
-      collectionId: decodeGlobalIdByType(args.input.collectionId, GlobalIdEntity.Collection),
-      rules: args.input.rules,
-    });
+    const collectionId = safeDecodeGlobalId(
+      args.input.collectionId,
+      GlobalIdEntity.Collection
+    );
+    if (!collectionId) {
+      return {
+        collection: null,
+        userErrors: [{
+          message: "Invalid collection ID",
+          field: ["input", "collectionId"],
+          code: "INVALID_ID",
+        }],
+      };
+    }
+    const normalized = await this.normalizeCollectionRules(args.input.rules);
+    if (normalized.userErrors.length > 0) {
+      return { collection: null, userErrors: normalized.userErrors };
+    }
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "updateRules",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+          rules: normalized.rules,
+        },
+      },
+      ["rules"]
+    );
     return {
       collection: result.collection
         ? await this.resolvers.collection(result.collection.id)
         : null,
       userErrors: result.userErrors,
     };
+  }
+
+  async collectionRebalance(args: {
+    input: {
+      clientMutationId: string;
+      collectionId: string;
+      expectedRevision: number;
+    };
+  }) {
+    const collectionId = safeDecodeGlobalId(
+      args.input.collectionId,
+      GlobalIdEntity.Collection
+    );
+    if (!collectionId) {
+      return {
+        collection: null,
+        userErrors: [{
+          message: "Invalid collection ID",
+          field: ["input", "collectionId"],
+          code: "INVALID_ID",
+        }],
+      };
+    }
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "rebalance",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+        },
+      },
+      ["rank"]
+    );
+    return {
+      collection: result.collection
+        ? await this.resolvers.collection(result.collection.id)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  async collectionRulesPreviewCount(args: {
+    input: {
+      rules: Array<{ field: string; operator: string; value: unknown }>;
+    };
+  }) {
+    const normalized = await this.normalizeCollectionRules(args.input.rules);
+    if (normalized.userErrors.length > 0) {
+      return {
+        count: null,
+        rulesHash: null,
+        indexObservedAt: null,
+        userErrors: normalized.userErrors,
+      };
+    }
+    const rulesHash = hashCanonicalCollectionRulesV1(normalized.rules);
+    const workflowInput: CollectionRulesPreviewWorkflowInput = {
+      organizationId: this.$ctx.store.organizationId,
+      storeId: this.$ctx.store.id,
+      params: {
+        contractVersion: COLLECTION_LISTING_CONTRACT_VERSION,
+        storeId: this.$ctx.store.id,
+        rules: normalized.rules,
+        rulesHash,
+      },
+    };
+    let result: PreviewCollectionRulesResult;
+    try {
+      result = await this.$ctx.kernel.getServices().broker.runWorkflow<
+        PreviewCollectionRulesResult,
+        CollectionRulesPreviewWorkflowInput
+      >("catalog.collectionRulesPreview", workflowInput, {
+        source: "content",
+        organizationId: this.$ctx.store.organizationId,
+        resourceId: `collection-preview:${this.$ctx.requestId}`,
+        operation: "catalog.collectionRulesPreview",
+        contentHash: hashCanonicalJsonV1({
+          requestId: this.$ctx.requestId,
+          rulesHash,
+        }),
+      }, {
+        adminContext: this.$ctx.adminContext,
+      });
+    } catch {
+      return {
+        count: null,
+        rulesHash,
+        indexObservedAt: null,
+        userErrors: [{
+          message: "Collection rule preview is temporarily unavailable",
+          code: "COLLECTION_PREVIEW_UNAVAILABLE",
+        }],
+      };
+    }
+    if (!result.ok) {
+      return {
+        count: null,
+        rulesHash,
+        indexObservedAt: null,
+        userErrors: [{
+          message: result.message,
+          field: result.field,
+          code: result.code,
+        }],
+      };
+    }
+    return {
+      count: result.count,
+      rulesHash: result.rulesHash,
+      indexObservedAt: result.indexObservedAt,
+      userErrors: [],
+    };
+  }
+
+  async collectionClearProducts(args: {
+    input: {
+      clientMutationId: string;
+      collectionId: string;
+      expectedRevision: number;
+    };
+  }) {
+    const collectionId = safeDecodeGlobalId(
+      args.input.collectionId,
+      GlobalIdEntity.Collection
+    );
+    if (!collectionId) {
+      return {
+        collection: null,
+        userErrors: [{
+          message: "Invalid collection ID",
+          field: ["input", "collectionId"],
+          code: "INVALID_ID",
+        }],
+      };
+    }
+    const result = await this.runCollectionMutation(
+      args.input.clientMutationId,
+      {
+        kind: "clearProducts",
+        params: {
+          collectionId,
+          expectedRevision: args.input.expectedRevision,
+        },
+      },
+      ["items"]
+    );
+    return {
+      collection: result.collection
+        ? await this.resolvers.collection(result.collection.id)
+        : null,
+      userErrors: result.userErrors,
+    };
+  }
+
+  private runCollectionMutation(
+    clientMutationId: string,
+    operation: Exclude<CollectionMutationOperation, { kind: "delete" }>,
+    reasons: CollectionUpdatedReason[]
+  ): Promise<CollectionResult>;
+  private runCollectionMutation(
+    clientMutationId: string,
+    operation: Extract<CollectionMutationOperation, { kind: "delete" }>,
+    reasons: CollectionUpdatedReason[]
+  ): Promise<CollectionDeleteResult>;
+  private async runCollectionMutation(
+    clientMutationId: string,
+    operation: CollectionMutationOperation,
+    reasons: CollectionUpdatedReason[]
+  ): Promise<CollectionMutationDispatchResult> {
+    const clientKey = clientMutationId.trim();
+    if (
+      clientKey.length === 0 ||
+      Buffer.byteLength(clientKey, "utf8") > 128
+    ) {
+      return operation.kind === "delete"
+        ? {
+            deletedCollectionId: undefined,
+            userErrors: [{
+              message: "clientMutationId must contain 1..128 UTF-8 bytes",
+              field: ["clientMutationId"],
+              code: "INVALID_IDEMPOTENCY_KEY",
+            }],
+          }
+        : {
+            collection: undefined,
+            userErrors: [{
+              message: "clientMutationId must contain 1..128 UTF-8 bytes",
+              field: ["clientMutationId"],
+              code: "INVALID_IDEMPOTENCY_KEY",
+            }],
+          };
+    }
+    const requestHash = hashCanonicalJsonV1({
+      operation: operation.kind,
+      params: operation.params,
+    });
+    const input: CollectionMutationWorkflowInput = {
+      operation,
+      requestHash,
+      reasons,
+      context: {
+        storeId: this.$ctx.store.id,
+        organizationId: this.$ctx.store.organizationId,
+        requestId: this.$ctx.requestId,
+        userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
+        locale: this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+        currency: this.$ctx.currency ?? this.$ctx.store.currencyCode,
+        defaultLocale: this.$ctx.store.defaultLocale,
+        defaultCurrency: this.$ctx.store.currencyCode,
+        locales: [...this.$ctx.store.locales],
+        currencies: [this.$ctx.store.currencyCode],
+      },
+    };
+    try {
+      return await this.$ctx.kernel.getServices().broker.runWorkflow<
+        CollectionMutationDispatchResult,
+        CollectionMutationWorkflowInput
+      >("catalog.collectionMutate", input, {
+        source: "client",
+        clientKey: `${this.$ctx.store.id}:${clientKey}`,
+        organizationId: this.$ctx.store.organizationId,
+        apiKeyId: this.$ctx.hasUser ? this.$ctx.user.id : this.$ctx.store.id,
+        requestHash,
+      }, {
+        adminContext: this.$ctx.adminContext,
+      });
+    } catch (error) {
+      const conflict =
+        error instanceof Error &&
+        (error.name === "IdempotencyConflictError" ||
+          /idempotency.*conflict|different request/i.test(error.message));
+      const userErrors = [{
+        message: conflict
+          ? "clientMutationId was reused with different input"
+          : "Collection mutation is temporarily unavailable",
+        field: ["clientMutationId"],
+        code: conflict ? "IDEMPOTENCY_KEY_REUSED" : "MUTATION_UNAVAILABLE",
+      }];
+      return operation.kind === "delete"
+        ? { deletedCollectionId: undefined, userErrors }
+        : { collection: undefined, userErrors };
+    }
+  }
+
+  private async normalizeCollectionRules(
+    inputs: readonly { field: string; operator: string; value: unknown }[]
+  ): Promise<{ rules: CanonicalCollectionRule[]; userErrors: UserError[] }> {
+    const prepared: unknown[] = [];
+    try {
+      for (const input of inputs) {
+        const field = input.field.toLowerCase();
+        const operator = input.operator.toLowerCase();
+        if (
+          field === "category" ||
+          field === "tag" ||
+          field === "vendor"
+        ) {
+          const value = input.value as { ids?: unknown };
+          if (!value || !Array.isArray(value.ids)) {
+            throw new Error(`${field} rule value must contain an ids array`);
+          }
+          const entityType =
+            field === "category"
+              ? GlobalIdEntity.Category
+              : field === "tag"
+                ? GlobalIdEntity.Tag
+                : GlobalIdEntity.Vendor;
+          const ids = value.ids.map((id) =>
+            decodeGlobalIdByType(String(id), entityType)
+          );
+          prepared.push({ field, operator, value: { ids } });
+        } else {
+          prepared.push({ field, operator, value: input.value });
+        }
+      }
+      const rules = normalizeCanonicalCollectionRulesV1(prepared);
+      const idsByType = {
+        category: rules.flatMap((rule) =>
+          rule.field === "category" ? [...rule.value.ids] : []
+        ),
+        tag: rules.flatMap((rule) =>
+          rule.field === "tag" ? [...rule.value.ids] : []
+        ),
+        vendor: rules.flatMap((rule) =>
+          rule.field === "vendor" ? [...rule.value.ids] : []
+        ),
+      };
+      const [categories, tags, vendors] = await Promise.all([
+        this.$ctx.kernel.repository.category.getByIds(idsByType.category),
+        this.$ctx.kernel.repository.tag.getByIds(idsByType.tag),
+        this.$ctx.kernel.repository.vendor.getByIds(idsByType.vendor),
+      ]);
+      const missingType =
+        new Set(categories.map((row) => row.id)).size !==
+        new Set(idsByType.category).size
+          ? "category"
+          : new Set(tags.map((row) => row.id)).size !==
+              new Set(idsByType.tag).size
+            ? "tag"
+            : new Set(vendors.map((row) => row.id)).size !==
+                new Set(idsByType.vendor).size
+              ? "vendor"
+              : null;
+      if (missingType) {
+        return {
+          rules: [],
+          userErrors: [{
+            message: `One or more ${missingType} references were not found`,
+            field: ["rules"],
+            code: "REFERENCE_NOT_FOUND",
+          }],
+        };
+      }
+      return { rules, userErrors: [] };
+    } catch (error) {
+      return {
+        rules: [],
+        userErrors: [{
+          message:
+            error instanceof Error ? error.message : "Invalid collection rule",
+          field: ["rules"],
+          code: "INVALID_RULE",
+        }],
+      };
+    }
   }
 
   // ---- Tag Mutations ----
@@ -3132,6 +3555,43 @@ function mapProductTagOperationAction(
     default:
       throw new Error(`Unsupported product tag action: ${String(action)}`);
   }
+}
+
+function collectionUpdateReasons(input: {
+  handle?: unknown;
+  name?: unknown;
+  description?: unknown;
+  excerpt?: unknown;
+  media?: unknown;
+  seo?: unknown;
+  defaultSort?: unknown;
+  defaultSortDirection?: unknown;
+  activeFrom?: unknown;
+  activeTo?: unknown;
+  publish?: unknown;
+}): CollectionUpdatedReason[] {
+  const reasons: CollectionUpdatedReason[] = [];
+  if (
+    input.handle !== undefined ||
+    input.name !== undefined ||
+    input.description !== undefined ||
+    input.excerpt !== undefined ||
+    input.media !== undefined ||
+    input.seo !== undefined
+  ) {
+    reasons.push("metadata");
+  }
+  if (
+    input.defaultSort !== undefined ||
+    input.defaultSortDirection !== undefined
+  ) {
+    reasons.push("sort");
+  }
+  if (input.activeFrom !== undefined || input.activeTo !== undefined) {
+    reasons.push("schedule");
+  }
+  if (input.publish !== undefined) reasons.push("publication");
+  return reasons.length > 0 ? reasons : ["metadata"];
 }
 
 function toGraphqlOperationType(type: ProductUpdateOperation["type"]) {

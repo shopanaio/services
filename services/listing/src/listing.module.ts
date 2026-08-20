@@ -3,6 +3,7 @@ import { BrokerModule } from "@shopana/shared-kernel";
 import { ListingProductBatchEventHandlers } from "./handlers/ListingProductBatchEventHandlers.js";
 import { ListingProductEventHandlers } from "./handlers/ListingProductEventHandlers.js";
 import { ListingStoreEventHandlers } from "./handlers/ListingStoreEventHandlers.js";
+import { ListingCollectionEventHandlers } from "./handlers/ListingCollectionEventHandlers.js";
 import { ListingNestService } from "./listing.nest-service.js";
 import { ListingBatchProductIndexWorkflow } from "./workflows/ListingBatchProductIndexWorkflow.js";
 import {
@@ -29,6 +30,8 @@ import {
   SearchSynonymGroupDeleteWorkflow,
   SearchSynonymGroupUpdateWorkflow,
 } from "./workflows/SearchResourceMutationWorkflows.js";
+import { ListingCollectionProjectionWorkflow } from "./workflows/ListingCollectionProjectionWorkflow.js";
+import { ListingBrokerActions } from "./actions/index.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "listing" })],
@@ -37,9 +40,12 @@ import {
     ListingProductEventHandlers,
     ListingProductBatchEventHandlers,
     ListingStoreEventHandlers,
+    ListingCollectionEventHandlers,
     ListingBatchProductIndexWorkflow,
     ListingSyncSellableItemIndexWorkflow,
     ListingDeleteSellableItemIndexWorkflow,
+    ListingCollectionProjectionWorkflow,
+    ListingBrokerActions,
     FacetReferenceStateSyncWorkflow,
     FacetAffectedProductsResyncWorkflow,
     FacetCreateWorkflow,

@@ -11,6 +11,8 @@ import {
   ListingPostingBitmapRepository,
   ListingPostingProductSortRepository,
   ListingPostingVariantProjectionBlockRepository,
+  CollectionStateRepository,
+  CollectionRuleEvaluationRepository,
 } from "./listing/index.js";
 import {
   StorefrontFacetResolutionRepository,
@@ -53,6 +55,8 @@ export class Repository {
   public readonly listingPostingBitmap: ListingPostingBitmapRepository;
   public readonly listingPostingProductSort: ListingPostingProductSortRepository;
   public readonly listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository;
+  public readonly collectionState: CollectionStateRepository;
+  public readonly collectionRuleEvaluation: CollectionRuleEvaluationRepository;
   public readonly facet: FacetRepository;
   public readonly facetValue: FacetValueRepository;
   public readonly facetSwatch: FacetSwatchRepository;
@@ -81,6 +85,8 @@ export class Repository {
     listingPostingBitmap: ListingPostingBitmapRepository,
     listingPostingProductSort: ListingPostingProductSortRepository,
     listingPostingVariantProjectionBlock: ListingPostingVariantProjectionBlockRepository,
+    collectionState: CollectionStateRepository,
+    collectionRuleEvaluation: CollectionRuleEvaluationRepository,
     facet: FacetRepository,
     facetValue: FacetValueRepository,
     facetSwatch: FacetSwatchRepository,
@@ -104,6 +110,8 @@ export class Repository {
     this.listingPostingBitmap = listingPostingBitmap;
     this.listingPostingProductSort = listingPostingProductSort;
     this.listingPostingVariantProjectionBlock = listingPostingVariantProjectionBlock;
+    this.collectionState = collectionState;
+    this.collectionRuleEvaluation = collectionRuleEvaluation;
     this.facet = facet;
     this.facetValue = facetValue;
     this.facetSwatch = facetSwatch;
@@ -163,6 +171,11 @@ export class Repository {
     );
     const listingPostingVariantProjectionBlock =
       new ListingPostingVariantProjectionBlockRepository(db, txManager);
+    const collectionState = new CollectionStateRepository(db, txManager);
+    const collectionRuleEvaluation = new CollectionRuleEvaluationRepository(
+      db,
+      txManager
+    );
     const facetCandidateClient = new CatalogFacetCandidateClient(broker);
     const facet = new FacetRepository(db, txManager, facetCandidateClient);
     const facetValue = new FacetValueRepository(db, txManager);
@@ -193,6 +206,8 @@ export class Repository {
       listingPostingBitmap,
       listingPostingProductSort,
       listingPostingVariantProjectionBlock,
+      collectionState,
+      collectionRuleEvaluation,
       facet,
       facetValue,
       facetSwatch,

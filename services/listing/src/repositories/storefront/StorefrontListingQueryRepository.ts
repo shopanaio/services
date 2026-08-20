@@ -176,6 +176,14 @@ export class StorefrontListingQueryRepository extends BaseRepository {
         this.debugListingQuery({
           storeId: this.storeId,
           scopeKind: request.input.scope.kind,
+          collectionId:
+            request.input.scope.kind === "collection"
+              ? request.input.scope.collectionId
+              : null,
+          collectionListingRevision:
+            request.input.scope.kind === "collection"
+              ? request.input.scope.listingRevision
+              : null,
           normalizedQueryHash: request.normalizedQuery
             ? buildListingFilterHash({
                 storeId: this.storeId,
@@ -530,6 +538,7 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     const normalized: NormalizedStorefrontListingFilters = {
       facetFilters: [],
       vendorIds: [],
+      productStatuses: [],
     };
 
     for (const filter of filters) {
@@ -553,6 +562,12 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           normalized.inStock = this.mergeInStock(
             normalized.inStock,
             filter.value
+          );
+          break;
+        case "status":
+          normalized.productStatuses = mergeUnique(
+            normalized.productStatuses,
+            filter.statuses,
           );
           break;
       }
@@ -581,6 +596,13 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return scope.manualSortScopeId ?? scope.categoryId;
+      case "collection":
+        if (!scope.manualSortScopeId) {
+          throw new StorefrontRepositoryValidationError(
+            "Manual sort requires a manual collection scope",
+          );
+        }
+        return scope.manualSortScopeId;
       case "global":
         throw new StorefrontRepositoryValidationError(
           "Manual sort requires category scope"
@@ -690,6 +712,12 @@ export class StorefrontListingQueryRepository extends BaseRepository {
     }
     if (filters.inStock !== undefined) {
       normalized.push({ kind: "in_stock", value: filters.inStock });
+    }
+    if (filters.productStatuses.length > 0) {
+      normalized.push({
+        kind: "status",
+        statuses: [...filters.productStatuses],
+      });
     }
 
     return normalized;

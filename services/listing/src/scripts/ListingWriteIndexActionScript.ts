@@ -190,6 +190,12 @@ export class ListingWriteIndexActionScript extends BaseScript<
         nextValueKeys:
           writeModel.variantProductValueKeysByVariantId[variant.variantId] ?? [],
       });
+      await this.repository.listingPostingBitmap.replaceVariantMemberships({
+        variantDocId: variant.variantDocId,
+        field: "rule_term",
+        nextValueKeys:
+          writeModel.variantRuleTermValueKeysByVariantId[variant.variantId] ?? [],
+      });
     }
 
     await this.repository.variantListingPriceIndex.replaceForVariants(
@@ -264,6 +270,16 @@ export class ListingWriteIndexActionScript extends BaseScript<
       productDocId,
       field: "facet",
       nextValueKeys: writeModel.productPostingValueKeys.facet,
+    });
+    await this.repository.listingPostingBitmap.replaceProductMemberships({
+      productDocId,
+      field: "collection",
+      nextValueKeys: writeModel.productPostingValueKeys.collection,
+    });
+    await this.repository.listingPostingBitmap.replaceProductMemberships({
+      productDocId,
+      field: "rule_term",
+      nextValueKeys: writeModel.productPostingValueKeys.ruleTerm,
     });
   }
 

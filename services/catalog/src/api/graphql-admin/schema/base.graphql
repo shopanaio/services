@@ -172,11 +172,6 @@ type CatalogQuery {
   collections(first: Int, after: String, last: Int, before: String): CollectionConnection!
 
   """
-  Preview count of products matching collection rules
-  """
-  collectionRulesPreviewCount(rules: [CollectionRuleInput!]!): Int!
-
-  """
   Get categories with Relay-style pagination
   """
   categories(
@@ -467,6 +462,12 @@ type CatalogMutation {
   Update collection rules for automatic product inclusion
   """
   collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
+
+  collectionRebalance(input: CollectionRebalanceInput!): CollectionRebalancePayload!
+
+  collectionClearProducts(input: CollectionClearProductsInput!): CollectionClearProductsPayload!
+
+  collectionRulesPreviewCount(input: CollectionRulesPreviewCountInput!): CollectionRulesPreviewCountPayload!
 
   # Tag mutations
 

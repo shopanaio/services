@@ -34,6 +34,9 @@
   ],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@shopana/shared-references": "*"
+  },
   "devDependencies": {
     "typescript": "^5.4.5"
   }

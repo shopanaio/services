@@ -23,6 +23,7 @@ import { ListingFacetAffectedProductRepository } from "./facet/ListingFacetAffec
 import { CollectionRepository } from "./collection/CollectionRepository.js";
 import { CollectionItemRepository } from "./collection/CollectionItemRepository.js";
 import { CollectionRuleRepository } from "./collection/CollectionRuleRepository.js";
+import { CollectionSyncRepository } from "./collection/CollectionSyncRepository.js";
 import { CostRepository } from "./cost/CostRepository.js";
 import { PhysicalRepository } from "./physical/PhysicalRepository.js";
 import { StockRepository } from "./stock/StockRepository.js";
@@ -62,6 +63,7 @@ export class Repository {
   public readonly collection: CollectionRepository;
   public readonly collectionItem: CollectionItemRepository;
   public readonly collectionRule: CollectionRuleRepository;
+  public readonly collectionSync: CollectionSyncRepository;
   public readonly inventoryItem: InventoryItemRepository;
   public readonly inventoryWidget: InventoryWidgetRepository;
   public readonly cost: CostRepository;
@@ -103,6 +105,7 @@ export class Repository {
     collection: CollectionRepository,
     collectionItem: CollectionItemRepository,
     collectionRule: CollectionRuleRepository,
+    collectionSync: CollectionSyncRepository,
     inventoryItem: InventoryItemRepository,
     inventoryWidget: InventoryWidgetRepository,
     cost: CostRepository,
@@ -135,6 +138,7 @@ export class Repository {
     this.collection = collection;
     this.collectionItem = collectionItem;
     this.collectionRule = collectionRule;
+    this.collectionSync = collectionSync;
     this.inventoryItem = inventoryItem;
     this.inventoryWidget = inventoryWidget;
     this.cost = cost;
@@ -178,6 +182,7 @@ export class Repository {
     const collection = new CollectionRepository(db, txManager);
     const collectionItem = new CollectionItemRepository(db, txManager);
     const collectionRule = new CollectionRuleRepository(db, txManager);
+    const collectionSync = new CollectionSyncRepository(db, txManager);
     const inventoryItem = new InventoryItemRepository(db, txManager);
     const inventoryWidget = new InventoryWidgetRepository(db, txManager);
     const cost = new CostRepository(db, txManager);
@@ -206,6 +211,7 @@ export class Repository {
       collection,
       collectionItem,
       collectionRule,
+      collectionSync,
       inventoryItem,
       inventoryWidget,
       cost,

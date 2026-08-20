@@ -108,6 +108,10 @@ function buildProductSnapshotSelectionFromArgs(
                       },
                     },
                   },
+                  collections: {
+                    fieldName: "collections",
+                    fields: ["id", "manualRank"],
+                  },
                   variants: {
                     fieldName: "variants",
                     fields: ["id", "handle", "isDefault", "createdAt", "updatedAt"],

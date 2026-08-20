@@ -1,4 +1,9 @@
-import type { Catalog, Listing } from "@shopana/broker-types";
+import {
+  normalizeCollectionRuleHandleV1,
+  type Catalog,
+  type Listing,
+} from "@shopana/broker-types";
+import { FatalError } from "@shopana/shared-kernel";
 
 export function mapCatalogProductToListingSnapshot(input: {
   product: Catalog.CatalogProductSnapshot;
@@ -6,6 +11,13 @@ export function mapCatalogProductToListingSnapshot(input: {
   locales: readonly string[];
 }): Listing.ListingSellableItemSnapshot {
   const product = input.product;
+  if (product.snapshotVersion !== "2026-08-19") {
+    throw new FatalError(
+      `Unsupported Catalog product snapshot version: ${product.snapshotVersion}`,
+      undefined,
+      "UNSUPPORTED_CATALOG_SNAPSHOT_VERSION",
+    );
+  }
 
   return {
     entityType: "product",
@@ -26,6 +38,7 @@ export function mapCatalogProductToListingSnapshot(input: {
     vendorId: product.vendorId ?? null,
     scopes: mapScopes(product),
     productFacets: mapProductFacets(product),
+    ruleFacts: mapRuleFacts(product),
     variants: product.variants.map(mapVariant),
   };
 }
@@ -105,7 +118,7 @@ function mapScopes(
 ): Listing.ListingScopeMembershipSnapshot[] {
   const primaryCategoryId = product.primaryCategory?.id ?? null;
 
-  return product.categories
+  const categories: Listing.ListingScopeMembershipSnapshot[] = product.categories
     .map((category) => ({
       scopeType: "category" as const,
       categoryId: category.id,
@@ -116,6 +129,98 @@ function mapScopes(
       if (left.primary !== right.primary) return left.primary ? -1 : 1;
       return left.categoryId.localeCompare(right.categoryId);
     });
+  const collections: Listing.ListingScopeMembershipSnapshot[] =
+    product.collections
+      .map((membership) => ({
+        scopeType: "collection" as const,
+        collectionId: membership.id,
+        manualRank: membership.manualRank,
+      }))
+      .sort((left, right) =>
+        left.collectionId.localeCompare(right.collectionId)
+      );
+  return [...categories, ...collections];
+}
+
+function mapRuleFacts(
+  product: Catalog.CatalogProductSnapshot
+): Listing.ListingRuleFactsSnapshot {
+  const productTerms: Listing.ListingProductRuleTermSnapshot[] = [
+    ...product.tags.map((tag) => {
+      if (!tag.id) {
+        throw new Error(
+          `Catalog tag snapshot has no id for product "${product.id}"`,
+        );
+      }
+      return { kind: "tag" as const, tagId: tag.id };
+    }),
+    ...product.features.flatMap((feature) => {
+      const sourceHandle = assertCanonicalHandle(feature.handle);
+      return feature.values.map((value) => ({
+        kind: "feature" as const,
+        sourceHandle,
+        valueHandle: assertCanonicalHandle(value.handle),
+      }));
+    }),
+  ];
+  const canonicalProductTerms = dedupeAndSort(productTerms);
+  if (canonicalProductTerms.length > 4_096) {
+    throw new FatalError(
+      "Catalog listing rule fact limit exceeded",
+      undefined,
+      "CATALOG_LISTING_RULE_FACT_LIMIT_EXCEEDED",
+    );
+  }
+
+  const variantTerms = product.variants
+    .map((variant) => {
+      const terms = dedupeAndSort(
+        variant.options.flatMap((option) => {
+          const sourceHandle = assertCanonicalHandle(option.handle);
+          return option.values.map((value) => ({
+            kind: "option" as const,
+            sourceHandle,
+            valueHandle: assertCanonicalHandle(value.handle),
+          }));
+        })
+      );
+      if (terms.length > 256) {
+        throw new FatalError(
+          "Catalog listing rule fact limit exceeded",
+          undefined,
+          "CATALOG_LISTING_RULE_FACT_LIMIT_EXCEEDED",
+        );
+      }
+      return { variantId: variant.id, terms };
+    })
+    .sort((left, right) => left.variantId.localeCompare(right.variantId));
+  const totalFacts =
+    canonicalProductTerms.length +
+    variantTerms.reduce((total, variant) => total + variant.terms.length, 0);
+  if (totalFacts > 16_384) {
+    throw new FatalError(
+      "Catalog listing rule fact limit exceeded",
+      undefined,
+      "CATALOG_LISTING_RULE_FACT_LIMIT_EXCEEDED",
+    );
+  }
+  return { productTerms: canonicalProductTerms, variantTerms };
+}
+
+function assertCanonicalHandle(value: string): string {
+  const canonical = normalizeCollectionRuleHandleV1(value);
+  if (canonical !== value) {
+    throw new Error(`Persisted rule handle "${value}" is not canonical`);
+  }
+  return canonical;
+}
+
+function dedupeAndSort<T>(values: readonly T[]): T[] {
+  return [
+    ...new Map(values.map((value) => [JSON.stringify(value), value])).entries(),
+  ]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, value]) => value);
 }
 
 function mapProductFacets(

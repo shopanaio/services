@@ -222,7 +222,7 @@ function toListingPageRow(
 
   const payload = {
     ...cursorValues,
-    version: 3,
+    version: 4,
     hash: request.filterHash,
     sort: request.sort.kind,
     mode: request.searchCandidates?.attempt.mode ?? null,

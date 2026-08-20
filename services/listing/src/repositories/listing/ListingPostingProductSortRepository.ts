@@ -296,6 +296,20 @@ export class ListingPostingProductSortRepository extends BaseRepository {
     return deleted;
   }
 
+  async deleteByManualScopeId(manualScopeId: string): Promise<number> {
+    const rows = await this.connection
+      .delete(listingPostingProductSort)
+      .where(
+        and(
+          eq(listingPostingProductSort.storeId, this.storeId),
+          eq(listingPostingProductSort.sortKind, "manual"),
+          eq(listingPostingProductSort.manualScopeId, manualScopeId)
+        )
+      )
+      .returning({ productDocId: listingPostingProductSort.productDocId });
+    return rows.length;
+  }
+
   async deleteAllForCurrentProject(): Promise<number> {
     const rows = await this.connection
       .delete(listingPostingProductSort)

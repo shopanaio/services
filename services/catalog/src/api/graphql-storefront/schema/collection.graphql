@@ -1,0 +1,53 @@
+type Collection implements Node @key(fields: "id") {
+  id: ID!
+  listingRevision: Int! @inaccessible
+  handle: String!
+  type: CollectionType!
+  name: String!
+  description: RichText
+  excerpt: RichText
+  seo: SEO!
+  media(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+  ): CollectionMediaConnection!
+  featuredMedia: Media
+  defaultSort: CollectionDefaultSort!
+  defaultSortDirection: CollectionSortDirection!
+  activeFrom: DateTime
+  activeTo: DateTime
+  publishedAt: DateTime!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type CollectionMediaConnection implements Connection {
+  edges: [CollectionMediaEdge!]!
+  nodes: [Media!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type CollectionMediaEdge {
+  cursor: Cursor!
+  node: Media!
+}
+
+enum CollectionDefaultSort {
+  MANUAL
+  PRICE
+  NEWEST
+  NAME
+}
+
+enum CollectionType {
+  MANUAL
+  RULE
+}
+
+enum CollectionSortDirection {
+  ASC
+  DESC
+}

@@ -8,6 +8,7 @@ import type { CatalogProductSeoSnapshotInput } from "./CatalogProductSeoSnapshot
 import type { CatalogProductVariantOptionSelectionSnapshotInput } from "./CatalogProductVariantOptionSelectionSnapshotResolver.js";
 import type { CatalogVariantLocalizedContentSnapshotInput } from "./CatalogVariantLocalizedContentSnapshotResolver.js";
 import type { CatalogRichTextSnapshotInput } from "./CatalogRichTextSnapshotResolver.js";
+import type { CatalogProductCollectionSnapshot } from "@shopana/broker-types";
 
 const registries = new WeakMap<ServiceContext, ServiceResolverRegistry>();
 
@@ -168,5 +169,14 @@ export class ServiceResolverRegistry {
       "./CatalogProductVendorSnapshotResolver.js"
     );
     return new CatalogProductVendorSnapshotResolver(vendorId, this.ctx);
+  }
+
+  async catalogProductCollectionSnapshot(
+    input: CatalogProductCollectionSnapshot
+  ) {
+    const { CatalogProductCollectionSnapshotResolver } = await import(
+      "./CatalogProductCollectionSnapshotResolver.js"
+    );
+    return new CatalogProductCollectionSnapshotResolver(input, this.ctx);
   }
 }

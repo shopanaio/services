@@ -6,11 +6,19 @@ import type {
   QuerySearchProductsArgs,
 } from "./generated/types.js";
 
-export type ListingEntryPoint = "products" | "search" | "category";
+export type ListingEntryPoint = "products" | "search" | "category" | "collection";
 
 export interface ProductConnectionInput {
   entryPoint: ListingEntryPoint;
   categoryId?: string;
+  collectionId?: string;
+  collectionListingRevision?: number;
+  collectionRulesHash?: string;
+  collectionMembershipBitmap?: string;
+  collectionProductBitmap?: string;
+  collectionVariantBitmap?: string;
+  collectionType?: "manual" | "rule";
+  collectionDefaultSort?: ListingSort;
   query?: string | null;
   first?: number | null;
   after?: string | null;

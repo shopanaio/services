@@ -3,12 +3,18 @@ import {
   decodeListingVariantTerm,
   type ListingVariantTerm,
 } from "../../listing/variantTerms/index.js";
+import { decodeCollectionRuleTerm } from "@shopana/broker-types";
 
 export type ProductEntityType = "product";
 export type ListingStatus = "published" | "draft";
 export type PostingEntityType = "product" | "variant";
-export type ProductPostingField = "category" | "vendor" | "facet";
-export type VariantPostingField = "term" | "variant_product";
+export type ProductPostingField =
+  | "category"
+  | "vendor"
+  | "facet"
+  | "collection"
+  | "rule_term";
+export type VariantPostingField = "term" | "variant_product" | "rule_term";
 export type PostingField = ProductPostingField | VariantPostingField;
 
 export type PostingKeyInput =
@@ -227,16 +233,32 @@ export function assertPostingKey(input: PostingKeyInput): void {
   assertWritablePostingField(input.field);
   assertNonEmptyString(input.valueKey, "valueKey");
   if (input.entityType === "product") {
-    if (input.field !== "category" && input.field !== "vendor" && input.field !== "facet") {
+    if (
+      input.field !== "category" &&
+      input.field !== "vendor" &&
+      input.field !== "facet" &&
+      input.field !== "collection" &&
+      input.field !== "rule_term"
+    ) {
       throw new Error(`Unsupported product posting field: ${input.field}`);
+    }
+    if (input.field === "rule_term") {
+      decodeCollectionRuleTerm("product", input.valueKey);
     }
     return;
   }
-  if (input.field !== "term" && input.field !== "variant_product") {
+  if (
+    input.field !== "term" &&
+    input.field !== "variant_product" &&
+    input.field !== "rule_term"
+  ) {
     throw new Error(`Unsupported variant posting field: ${input.field}`);
   }
   if (input.field === "term") {
     assertRegisteredListingVariantTerm(decodeListingVariantTerm(input.valueKey));
+  }
+  if (input.field === "rule_term") {
+    decodeCollectionRuleTerm("variant", input.valueKey);
   }
 }
 

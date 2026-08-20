@@ -54,6 +54,19 @@ extend type Category @key(fields: "id") {
   ): ProductConnection!
 }
 
+extend type Collection @key(fields: "id") {
+  id: ID! @external
+  listingRevision: Int! @external @inaccessible
+
+  products(
+    first: Int = 20
+    after: Cursor
+    query: String
+    filters: [ListingFilterInput!]
+    sort: ListingSort
+  ): ProductConnection! @requires(fields: "listingRevision")
+}
+
 # ---- Listing entry points ------------------------------------------------------
 
 type Query {
@@ -120,8 +133,8 @@ type ProductConnection implements Connection {
   sort: ListingSort!
 
   """
-  Sorts valid for this context. MANUAL is category-only. RELEVANCE is returned
-  only when a non-empty query is active.
+  Sorts valid for this context. MANUAL is available for categories and manual
+  collections. RELEVANCE is returned only when a non-empty query is active.
   """
   availableSorts: [ListingSort!]!
 }

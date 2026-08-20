@@ -8,4 +8,6 @@ export * from "./VariantListingIndexRepository.js";
 export * from "./VariantListingPriceIndexRepository.js";
 export * from "./ListingPostingBitmapRepository.js";
 export * from "./ListingPostingProductSortRepository.js";
+export * from "./CollectionStateRepository.js";
+export * from "./CollectionRuleEvaluationRepository.js";
 export * from "./ListingPostingVariantProjectionBlockRepository.js";

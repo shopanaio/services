@@ -2,7 +2,7 @@
  * Listing service broker action types.
  */
 
-export const LISTING_UPDATE_CONTRACT_VERSION = "2026-07-04" as const;
+export const LISTING_UPDATE_CONTRACT_VERSION = "2026-08-19" as const;
 
 export type ListingUpdateContractVersion =
   typeof LISTING_UPDATE_CONTRACT_VERSION;
@@ -59,6 +59,28 @@ export interface ListingPriceRangeSnapshot {
 export interface ListingVariantPriceSnapshot {
   currencyCode: string;
   amountMinor: number | null;
+}
+
+export type ListingProductRuleTermSnapshot =
+  | { kind: "tag"; tagId: string }
+  | {
+      kind: "feature";
+      sourceHandle: string;
+      valueHandle: string;
+    };
+
+export interface ListingVariantRuleTermSnapshot {
+  kind: "option";
+  sourceHandle: string;
+  valueHandle: string;
+}
+
+export interface ListingRuleFactsSnapshot {
+  productTerms: ListingProductRuleTermSnapshot[];
+  variantTerms: Array<{
+    variantId: string;
+    terms: ListingVariantRuleTermSnapshot[];
+  }>;
 }
 
 export type ListingScopeMembershipSnapshot =
@@ -137,6 +159,7 @@ export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
   vendorId?: string | null;
   scopes: ListingScopeMembershipSnapshot[];
   productFacets: ListingFacetSelectionSnapshot[];
+  ruleFacts: ListingRuleFactsSnapshot;
   variants: ListingVariantSnapshot[];
 }
 

@@ -1,4 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
+import type { CanonicalCollectionRule } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collectionRule,
@@ -22,7 +23,7 @@ export class CollectionRuleRepository extends BaseRepository {
 
   async replaceRules(
     collectionId: string,
-    rules: Array<{ field: string; operator: string; value: unknown }>
+    rules: readonly CanonicalCollectionRule[]
   ): Promise<CollectionRule[]> {
     await this.connection
       .delete(collectionRule)

@@ -1,7 +1,13 @@
 import {
   decodeGlobalId,
+  decodeGlobalIdByType,
   GLOBAL_ID_NAMESPACE,
+  GlobalIdEntity,
 } from "@shopana/shared-graphql-guid";
+import { parseGraphqlInfo } from "@shopana/type-resolver";
+import type { GraphQLResolveInfo } from "graphql";
+import type { ServiceContext } from "../../../context/types.js";
+import { CollectionResolver } from "../../../resolvers/admin/CollectionResolver.js";
 import { FacetResolver } from "../../../resolvers/admin/FacetResolver.js";
 import { FacetSwatchResolver } from "../../../resolvers/admin/FacetSwatchResolver.js";
 import { FacetValueResolver } from "../../../resolvers/admin/FacetValueResolver.js";
@@ -36,6 +42,32 @@ export const typeResolvers = {
       if (typename === "Product") return "Product";
 
       return resolveListingTypeById((obj as { id?: unknown }).id);
+    },
+  },
+
+  Collection: {
+    __resolveReference: (
+      reference: { id: string; listingRevision: number },
+      ctx: ServiceContext,
+      info: GraphQLResolveInfo,
+    ) => {
+      if (
+        !Number.isSafeInteger(reference.listingRevision) ||
+        reference.listingRevision < 0
+      ) {
+        return null;
+      }
+      return CollectionResolver.load(
+        {
+          id: decodeGlobalIdByType(
+            reference.id,
+            GlobalIdEntity.Collection,
+          ),
+          listingRevision: reference.listingRevision,
+        },
+        parseGraphqlInfo(info),
+        ctx,
+      );
     },
   },
 

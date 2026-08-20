@@ -286,7 +286,7 @@ export class FacetRepository extends BaseRepository {
     const now = new Date().toISOString();
     const lexoRank = data.lexoRank ?? (await this.getNextFacetRank());
     const scopes = normalizeFacetScopes(
-      data.scopes ?? ["SEARCH", "CATEGORY"]
+      data.scopes ?? ["SEARCH", "CATEGORY", "COLLECTION"]
     );
 
     const insert: NewFacet = {

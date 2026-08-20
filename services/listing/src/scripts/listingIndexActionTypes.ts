@@ -83,7 +83,7 @@ export type ListingIndexItemKey = {
 };
 
 export type ListingSyncWriteModel = {
-  version: 4;
+  version: 5;
   actionType: Extract<ListingIndexActionType, "syncSellableItem">;
   writeModelJson: ListingSyncWriteModelJson;
   writeModelHash: string;
@@ -100,6 +100,8 @@ export type ListingSyncWriteModelJson = {
     category: readonly string[];
     vendor: readonly string[];
     facet: readonly string[];
+    collection: readonly string[];
+    ruleTerm: readonly string[];
   };
   variants: readonly Omit<
     VariantListingIndexUpsertInput,
@@ -113,6 +115,7 @@ export type ListingSyncWriteModelJson = {
     >[]
   >;
   variantTermsByVariantId: Record<string, readonly ListingVariantTerm[]>;
+  variantRuleTermValueKeysByVariantId: Record<string, readonly string[]>;
   variantProductValueKeysByVariantId: Record<string, readonly string[]>;
 };
 

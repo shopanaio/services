@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collection,
@@ -19,6 +19,15 @@ export class CollectionRepository extends BaseRepository {
     return this.ctx.locale ?? this.ctx.store.defaultLocale;
   }
 
+  async currentTimestamp(): Promise<string> {
+    const rows = await this.connection.execute<{ value: string }>(sql`
+      SELECT now()::text AS value
+    `);
+    const value = rows[0]?.value;
+    if (!value) throw new Error("Database clock did not return a timestamp");
+    return new Date(value).toISOString();
+  }
+
   async findById(id: string): Promise<Collection | null> {
     const rows = await this.connection
       .select()
@@ -31,6 +40,31 @@ export class CollectionRepository extends BaseRepository {
         )
       )
       .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async findByIdIncludingDeleted(id: string): Promise<Collection | null> {
+    const rows = await this.connection
+      .select()
+      .from(collection)
+      .where(and(eq(collection.storeId, this.storeId), eq(collection.id, id)))
+      .limit(1);
+    return rows[0] ?? null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<Collection | null> {
+    const rows = await this.connection
+      .select()
+      .from(collection)
+      .where(
+        and(
+          eq(collection.storeId, this.storeId),
+          eq(collection.id, id),
+          isNull(collection.deletedAt)
+        )
+      )
+      .limit(1)
+      .for("update");
     return rows[0] ?? null;
   }
 
@@ -49,12 +83,57 @@ export class CollectionRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
+  async findVisibleById(id: string): Promise<Collection | null> {
+    return this.findVisible(sql`${collection.id} = ${id}::uuid`);
+  }
+
+  async findVisibleByHandle(handle: string): Promise<Collection | null> {
+    return this.findVisible(sql`${collection.handle} = ${handle}`);
+  }
+
   async findAll(): Promise<Collection[]> {
     return this.connection
       .select()
       .from(collection)
       .where(and(eq(collection.storeId, this.storeId), isNull(collection.deletedAt)))
       .orderBy(asc(collection.createdAt));
+  }
+
+  private async findVisible(predicate: SQL): Promise<Collection | null> {
+    const rows = await this.connection
+      .select()
+      .from(collection)
+      .where(
+        and(
+          eq(collection.storeId, this.storeId),
+          isNull(collection.deletedAt),
+          predicate,
+          sql`${collection.handle} <> ''`,
+          sql`${collection.publishedAt} IS NOT NULL`,
+          sql`${collection.publishedAt} <= now()`,
+          sql`(${collection.effectiveFrom} IS NULL OR ${collection.effectiveFrom} <= now())`,
+          sql`(${collection.effectiveTo} IS NULL OR ${collection.effectiveTo} > now())`,
+          sql`EXISTS (
+            SELECT 1
+            FROM catalog.collection_translation visible_translation
+            WHERE visible_translation.store_id = ${collection.storeId}
+              AND visible_translation.collection_id = ${collection.id}
+              AND visible_translation.locale = ${this.ctx.store.defaultLocale}
+              AND btrim(visible_translation.name) <> ''
+          )`,
+          sql`(
+            ${collection.type} <> 'rule'
+            OR EXISTS (
+              SELECT 1
+              FROM catalog.collection_rule visible_rule
+              WHERE visible_rule.store_id = ${collection.storeId}
+                AND visible_rule.collection_id = ${collection.id}
+            )
+          )`,
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
   }
 
   async getByIds(ids: readonly string[]): Promise<Collection[]> {
@@ -91,6 +170,8 @@ export class CollectionRepository extends BaseRepository {
       effectiveFrom: data.effectiveFrom ?? null,
       effectiveTo: data.effectiveTo ?? null,
       publishedAt: data.publishedAt ?? null,
+      revision: 0,
+      listingRevision: 0,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -102,6 +183,7 @@ export class CollectionRepository extends BaseRepository {
 
   async update(
     id: string,
+    expectedRevision: number,
     data: {
       handle?: string | null;
       defaultSort?: string;
@@ -109,11 +191,25 @@ export class CollectionRepository extends BaseRepository {
       effectiveFrom?: string | null;
       effectiveTo?: string | null;
       publishedAt?: string | null;
-    }
+    },
+    options: { listingChanged: boolean }
   ): Promise<Collection | null> {
-    const updates: Partial<NewCollection> = {
-      updatedAt: new Date().toISOString(),
+    const now = new Date().toISOString();
+    const updates: Omit<
+      Partial<NewCollection>,
+      "revision" | "listingRevision" | "listingUpdatedAt"
+    > & {
+      revision: SQL;
+      listingRevision?: SQL;
+      listingUpdatedAt?: SQL;
+    } = {
+      updatedAt: now,
+      revision: sql`${collection.revision} + 1`,
     };
+    if (options.listingChanged) {
+      updates.listingRevision = sql`${collection.listingRevision} + 1`;
+      updates.listingUpdatedAt = sql`now()`;
+    }
     if (data.handle !== undefined) updates.handle = data.handle;
     if (data.defaultSort !== undefined) updates.defaultSort = data.defaultSort;
     if (data.defaultSortDirection !== undefined)
@@ -125,24 +221,55 @@ export class CollectionRepository extends BaseRepository {
     const rows = await this.connection
       .update(collection)
       .set(updates)
-      .where(and(eq(collection.storeId, this.storeId), eq(collection.id, id)))
-      .returning();
-    return rows[0] ?? null;
-  }
-
-  async softDelete(id: string): Promise<boolean> {
-    const rows = await this.connection
-      .update(collection)
-      .set({ deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
       .where(
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
+          eq(collection.revision, expectedRevision),
+          isNull(collection.deletedAt),
+          sql`${collection.revision} < 2147483646`,
+          options.listingChanged
+            ? sql`${collection.listingRevision} < 2147483646`
+            : sql`true`
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async bumpRevision(
+    id: string,
+    expectedRevision: number,
+    options: { listingChanged: boolean }
+  ): Promise<Collection | null> {
+    return this.update(id, expectedRevision, {}, options);
+  }
+
+  async softDelete(
+    id: string,
+    expectedRevision: number
+  ): Promise<Collection | null> {
+    const rows = await this.connection
+      .update(collection)
+      .set({
+        deletedAt: sql`now()`,
+        updatedAt: sql`now()`,
+        listingUpdatedAt: sql`now()`,
+        revision: sql`${collection.revision} + 1`,
+        listingRevision: sql`${collection.listingRevision} + 1`,
+      })
+      .where(
+        and(
+          eq(collection.storeId, this.storeId),
+          eq(collection.id, id),
+          eq(collection.revision, expectedRevision),
+          sql`${collection.revision} < 2147483646`,
+          sql`${collection.listingRevision} < 2147483646`,
           isNull(collection.deletedAt)
         )
       )
-      .returning({ id: collection.id });
-    return rows.length > 0;
+      .returning();
+    return rows[0] ?? null;
   }
 
   async upsertTranslation(data: {
@@ -201,6 +328,26 @@ export class CollectionRepository extends BaseRepository {
           inArray(collectionTranslation.collectionId, [...collectionIds])
         )
       );
+  }
+
+  async findDefaultTranslation(
+    collectionId: string,
+  ): Promise<CollectionTranslation | null> {
+    const rows = await this.connection
+      .select()
+      .from(collectionTranslation)
+      .where(
+        and(
+          eq(collectionTranslation.storeId, this.storeId),
+          eq(collectionTranslation.collectionId, collectionId),
+          eq(
+            collectionTranslation.locale,
+            this.ctx.store.defaultLocale,
+          ),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
   }
 
   async upsertSeo(data: {

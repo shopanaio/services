@@ -46,7 +46,9 @@ export function toStorefrontListingInput(
   const query = args.query?.trim() || undefined;
 
   return {
-    scope: normalizeListingScope(args.scope ?? null, args.query),
+    scope:
+      args.resolvedScope ??
+      normalizeListingScope(args.scope ?? null, args.query),
     query,
     locale: args.locale?.trim() || defaults.locale,
     currency: args.currency?.trim() || defaults.currency,
@@ -62,6 +64,7 @@ export function normalizeListingFilters(
 ): StorefrontListingFilterInput[] {
   return filters.map((filter) => {
     const keys = [
+      filter.statuses?.length ? "statuses" : null,
       filter.available !== undefined && filter.available !== null
         ? "available"
         : null,
@@ -82,6 +85,14 @@ export function normalizeListingFilters(
 
     if (filter.available !== undefined && filter.available !== null) {
       return { kind: "in_stock", value: filter.available };
+    }
+    if (filter.statuses?.length) {
+      return {
+        kind: "status",
+        statuses: [...new Set(filter.statuses.map((status) =>
+          status.toLowerCase() as "draft" | "published"
+        ))],
+      };
     }
     if (filter.price) {
       const priceFilter = {
@@ -142,6 +153,9 @@ export function filterSelectionKey(
 
   if (filter.available !== undefined && filter.available !== null) {
     return `in_stock:${filter.available}`;
+  }
+  if (filter.statuses?.length) {
+    return `status:${[...filter.statuses].sort().join(",")}`;
   }
   if (filter.price) {
     return `price:${filter.price.min ?? ""}:${filter.price.max ?? ""}`;
@@ -207,6 +221,7 @@ function normalizeListingScope(
 ): StorefrontListingScope {
   const kind = scope?.kind ?? (query?.trim() ? "GLOBAL" : null);
   const categoryId = scope?.categoryId ?? null;
+  const collectionId = scope?.collectionId ?? null;
 
   if (!kind) {
     throw new ListingResolverInputError(
@@ -217,7 +232,7 @@ function normalizeListingScope(
 
   switch (kind) {
     case "GLOBAL":
-      assertNoScopeIds(categoryId);
+      assertNoScopeIds(categoryId, collectionId);
       return { kind: "global" };
     case "CATEGORY":
       if (!categoryId) {
@@ -234,6 +249,11 @@ function normalizeListingScope(
           ["scope", "categoryId"]
         ),
       };
+    case "COLLECTION":
+      throw new ListingResolverInputError(
+        "Collection scope must be resolved before input normalization",
+        ["scope", "collectionId"],
+      );
   }
 }
 
@@ -292,8 +312,11 @@ function normalizePageSize(args: ListingQueryArgs): number {
   return Math.min(value, MAX_LISTING_PAGE_SIZE);
 }
 
-function assertNoScopeIds(categoryId: string | null): void {
-  if (categoryId) {
+function assertNoScopeIds(
+  categoryId: string | null,
+  collectionId: string | null,
+): void {
+  if (categoryId || collectionId) {
     throw new ListingResolverInputError(
       "GLOBAL listing scope does not accept scope IDs",
       ["scope"]

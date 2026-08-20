@@ -1,5 +1,6 @@
 import type {
   CatalogProductLocalizedContentSnapshot,
+  CatalogProductCollectionSnapshot,
   CatalogProductSeoSnapshot,
   CatalogProductSnapshotVersion,
   CatalogProductStatus,
@@ -8,6 +9,7 @@ import { PreloadNotFoundError } from "@shopana/type-resolver";
 import type { Product } from "../../repositories/models/index.js";
 import type { CatalogProductAvailabilitySnapshotResolver } from "./CatalogProductAvailabilitySnapshotResolver.js";
 import type { CatalogProductCategorySnapshotResolver } from "./CatalogProductCategorySnapshotResolver.js";
+import type { CatalogProductCollectionSnapshotResolver } from "./CatalogProductCollectionSnapshotResolver.js";
 import type { CatalogProductFeatureSelectionSnapshotResolver } from "./CatalogProductFeatureSelectionSnapshotResolver.js";
 import type { CatalogProductLocalizedContentSnapshotResolver } from "./CatalogProductLocalizedContentSnapshotResolver.js";
 import type { CatalogProductSeoSnapshotResolver } from "./CatalogProductSeoSnapshotResolver.js";
@@ -32,7 +34,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
   }
 
   snapshotVersion(): CatalogProductSnapshotVersion {
-    return "2026-07-13";
+    return "2026-08-19";
   }
 
   async storeId(): Promise<string> {
@@ -155,6 +157,17 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     );
   }
 
+  async collections(): Promise<CatalogProductCollectionSnapshotResolver[]> {
+    const memberships =
+      await this.$ctx.kernel.repository.collectionItem
+        .findManualCollectionsByProductId(this.$props);
+    return Promise.all(
+      memberships.map((membership) =>
+        this.resolvers.catalogProductCollectionSnapshot(membership)
+      )
+    );
+  }
+
   async $snapshot() {
     const product = await this.$data;
     const [
@@ -167,6 +180,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       tags,
       features,
       variants,
+      collections,
     ] = await Promise.all([
       this.contentSnapshot(),
       this.seoSnapshot(),
@@ -177,6 +191,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       this.tagSnapshots(),
       this.featureSnapshots(),
       this.variantSnapshots(),
+      this.collectionSnapshots(),
     ]);
 
     return {
@@ -200,6 +215,7 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       tags,
       features,
       variants,
+      collections,
     };
   }
 
@@ -279,6 +295,13 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
 
   private async variantSnapshots() {
     const resolvers = await this.variants();
+    return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
+  }
+
+  private async collectionSnapshots(): Promise<
+    CatalogProductCollectionSnapshot[]
+  > {
+    const resolvers = await this.collections();
     return Promise.all(resolvers.map((resolver) => resolver.$snapshot()));
   }
 }

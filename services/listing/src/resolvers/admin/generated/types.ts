@@ -35,6 +35,24 @@ export type BooleanFilter = {
   _neq?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
+export type Collection = {
+  __typename?: 'Collection';
+  id: Scalars['ID']['output'];
+  listingRevision: Scalars['Int']['output'];
+  products: ListingConnection;
+};
+
+
+export type CollectionProductsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ListingProductFilter>>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ListingOrderByInput>;
+  query?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
   /** UAE Dirham (United Arab Emirates) - 2 decimals */
@@ -418,7 +436,7 @@ export type Facet = Node & {
 export type FacetCreateInput = {
   facetType: FacetType;
   label: Scalars['String']['input'];
-  /** Defaults to both SEARCH and CATEGORY when omitted. */
+  /** Defaults to SEARCH, CATEGORY, and COLLECTION when omitted. */
   scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
@@ -481,9 +499,11 @@ export type FacetRebalancePayload = {
  *
  * SEARCH applies to listing requests without a category context.
  * CATEGORY applies to every category-scoped listing request.
+ * COLLECTION applies to every collection-scoped listing request.
  */
 export enum FacetScopeType {
   Category = 'CATEGORY',
+  Collection = 'COLLECTION',
   Search = 'SEARCH'
 }
 
@@ -1109,6 +1129,8 @@ export type ListingProductFilter = {
   productFacet?: InputMaybe<ListingFacetValueFilter>;
   /** Filter by product vendor. */
   productVendor?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by indexed product status. */
+  statuses?: InputMaybe<Array<ListingProductStatus>>;
   /** Filter by product tag. */
   tag?: InputMaybe<Scalars['String']['input']>;
   /** Filter by variant-level listing facet value. */
@@ -1116,6 +1138,11 @@ export type ListingProductFilter = {
   /** Filter by variant option. */
   variantOption?: InputMaybe<ListingVariantOptionFilter>;
 };
+
+export enum ListingProductStatus {
+  Draft = 'DRAFT',
+  Published = 'PUBLISHED'
+}
 
 export type ListingQuery = {
   __typename?: 'ListingQuery';
@@ -1219,12 +1246,15 @@ export type ListingQueryNodesArgs = {
 export type ListingScopeInput = {
   /** Category global ID. Required for CATEGORY and forbidden for GLOBAL. */
   categoryId?: InputMaybe<Scalars['ID']['input']>;
+  /** Collection global ID. Required for COLLECTION. */
+  collectionId?: InputMaybe<Scalars['ID']['input']>;
   /** Scope kind for the listing request. */
   kind: ListingScopeKind;
 };
 
 export enum ListingScopeKind {
   Category = 'CATEGORY',
+  Collection = 'COLLECTION',
   Global = 'GLOBAL'
 }
 
@@ -2238,14 +2268,16 @@ export type ResolversTypes = ResolversObject<{
   BigInt: ResolverTypeWrapper<Scalars['BigInt']['output']>;
   BooleanFilter: BooleanFilter;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
+  Collection: ResolverTypeWrapper<Omit<Collection, 'products'> & { products: ResolversTypes['ListingConnection'] }>;
+  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
+  String: ResolverTypeWrapper<Scalars['String']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
   Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Facet: ResolverTypeWrapper<Facet>;
-  ID: ResolverTypeWrapper<Scalars['ID']['output']>;
-  String: ResolverTypeWrapper<Scalars['String']['output']>;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
   FacetCreateSourceInput: FacetCreateSourceInput;
@@ -2264,7 +2296,6 @@ export type ResolversTypes = ResolversObject<{
   FacetSource: ResolverTypeWrapper<FacetSource>;
   FacetSourceCandidate: ResolverTypeWrapper<FacetSourceCandidate>;
   FacetSourceCandidateConnection: ResolverTypeWrapper<FacetSourceCandidateConnection>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   FacetSourceCandidateEdge: ResolverTypeWrapper<FacetSourceCandidateEdge>;
   FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
   FacetSourceCandidateOrderField: FacetSourceCandidateOrderField;
@@ -2318,6 +2349,7 @@ export type ResolversTypes = ResolversObject<{
   ListingOrderByInput: ListingOrderByInput;
   ListingPriceRangeFilter: ListingPriceRangeFilter;
   ListingProductFilter: ListingProductFilter;
+  ListingProductStatus: ListingProductStatus;
   ListingQuery: ResolverTypeWrapper<Omit<ListingQuery, 'listing' | 'node' | 'nodes'> & { listing: ResolversTypes['ListingConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   ListingScopeInput: ListingScopeInput;
   ListingScopeKind: ListingScopeKind;
@@ -2388,12 +2420,14 @@ export type ResolversParentTypes = ResolversObject<{
   BigInt: Scalars['BigInt']['output'];
   BooleanFilter: BooleanFilter;
   Boolean: Scalars['Boolean']['output'];
+  Collection: Omit<Collection, 'products'> & { products: ResolversParentTypes['ListingConnection'] };
+  ID: Scalars['ID']['output'];
+  Int: Scalars['Int']['output'];
+  String: Scalars['String']['output'];
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
   Facet: Facet;
-  ID: Scalars['ID']['output'];
-  String: Scalars['String']['output'];
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: FacetCreatePayload;
   FacetCreateSourceInput: FacetCreateSourceInput;
@@ -2410,7 +2444,6 @@ export type ResolversParentTypes = ResolversObject<{
   FacetSource: FacetSource;
   FacetSourceCandidate: FacetSourceCandidate;
   FacetSourceCandidateConnection: FacetSourceCandidateConnection;
-  Int: Scalars['Int']['output'];
   FacetSourceCandidateEdge: FacetSourceCandidateEdge;
   FacetSourceCandidateOrderByInput: FacetSourceCandidateOrderByInput;
   FacetSourceCandidateWhereInput: FacetSourceCandidateWhereInput;
@@ -2507,6 +2540,14 @@ export type ResolversParentTypes = ResolversObject<{
 export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['BigInt'], any> {
   name: 'BigInt';
 }
+
+export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+
+
+  products?: Resolver<ResolversTypes['ListingConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}> & GraphQLRecursivePick<ParentType, {"listingRevision":true}>, ContextType, Partial<CollectionProductsArgs>>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
@@ -3013,6 +3054,7 @@ export type UserErrorResolvers<ContextType = ServiceContext, ParentType extends 
 
 export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
+  Collection?: CollectionResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
   Email?: GraphQLScalarType;
   Facet?: FacetResolvers<ContextType>;

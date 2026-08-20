@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   LexoRankRepository,
@@ -6,6 +6,7 @@ import {
 } from "../LexoRankRepository.js";
 import {
   collectionItem,
+  collection,
   type CollectionItem,
   type NewCollectionItem,
 } from "../models/index.js";
@@ -73,8 +74,35 @@ export class CollectionItemRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async addProducts(collectionId: string, productIds: string[]): Promise<void> {
-    if (productIds.length === 0) return;
+  async findManualCollectionsByProductId(
+    productId: string
+  ): Promise<Array<{ id: string; manualRank: string }>> {
+    return this.connection
+      .select({
+        id: collectionItem.collectionId,
+        manualRank: collectionItem.lexoRank,
+      })
+      .from(collectionItem)
+      .innerJoin(
+        collection,
+        and(
+          eq(collection.id, collectionItem.collectionId),
+          eq(collection.storeId, collectionItem.storeId)
+        )
+      )
+      .where(
+        and(
+          eq(collectionItem.storeId, this.storeId),
+          eq(collectionItem.productId, productId),
+          eq(collection.type, "manual"),
+          isNull(collection.deletedAt)
+        )
+      )
+      .orderBy(asc(collectionItem.collectionId));
+  }
+
+  async addProducts(collectionId: string, productIds: string[]): Promise<string[]> {
+    if (productIds.length === 0) return [];
 
     let rank = await this.getNextRank(collectionId);
     const rows: NewCollectionItem[] = [];
@@ -90,15 +118,17 @@ export class CollectionItemRepository extends BaseRepository {
       rank = nextRank(rank);
     }
 
-    await this.connection
+    const inserted = await this.connection
       .insert(collectionItem)
       .values(rows)
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ productId: collectionItem.productId });
+    return inserted.map((row) => row.productId);
   }
 
-  async removeProducts(collectionId: string, productIds: string[]): Promise<void> {
-    if (productIds.length === 0) return;
-    await this.connection
+  async removeProducts(collectionId: string, productIds: string[]): Promise<string[]> {
+    if (productIds.length === 0) return [];
+    const removed = await this.connection
       .delete(collectionItem)
       .where(
         and(
@@ -106,7 +136,9 @@ export class CollectionItemRepository extends BaseRepository {
           eq(collectionItem.collectionId, collectionId),
           inArray(collectionItem.productId, productIds)
         )
-      );
+      )
+      .returning({ productId: collectionItem.productId });
+    return removed.map((row) => row.productId);
   }
 
   async updateRank(

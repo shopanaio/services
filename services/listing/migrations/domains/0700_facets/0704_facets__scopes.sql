@@ -10,7 +10,7 @@ CREATE TABLE "listing"."facet_scope" (
     REFERENCES "listing"."facet" ("id")
     ON DELETE CASCADE,
   CONSTRAINT "facet_scope_type_check"
-    CHECK ("scope_type" IN ('SEARCH', 'CATEGORY'))
+    CHECK ("scope_type" IN ('SEARCH', 'CATEGORY', 'COLLECTION'))
 );
 
 CREATE INDEX "idx_facet_scope_store_lookup"

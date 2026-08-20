@@ -1,9 +1,24 @@
 import { BaseScript } from "../../kernel/BaseScript.js";
 import type { OptionCreateParams, OptionCreateResult, OptionSwatchInput } from "./dto/index.js";
+import { normalizeCollectionRuleHandleV1 } from "@shopana/broker-types";
 
 export class OptionCreateScript extends BaseScript<OptionCreateParams, OptionCreateResult> {
   protected async execute(params: OptionCreateParams): Promise<OptionCreateResult> {
-    const { productId, slug, name, categoryId, sortIndex, values } = params;
+    const { productId, slug: rawSlug, name, categoryId, sortIndex } = params;
+    let slug: string;
+    let values: typeof params.values;
+    try {
+      slug = normalizeCollectionRuleHandleV1(rawSlug);
+      values = params.values.map((value) => ({
+        ...value,
+        slug: normalizeCollectionRuleHandleV1(value.slug),
+      }));
+    } catch {
+      return {
+        option: undefined,
+        userErrors: [{ message: "Option or value slug format is invalid", field: ["slug"], code: "INVALID_SLUG" }],
+      };
+    }
 
     // 1. Validate: product exists
     const productExists = await this.repository.product.exists(productId);

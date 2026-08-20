@@ -52,6 +52,7 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
       variantTermGroups: [],
       optionFacetGroups: [],
       vendorIds: [],
+      productStatuses: [],
       userErrors: [],
     };
 
@@ -87,6 +88,12 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
           this.upsertVariantTermGroup(
             plan,
             buildAvailabilityVariantTermGroup(filter.value)
+          );
+          break;
+        case "status":
+          plan.productStatuses = this.mergeUnique(
+            plan.productStatuses,
+            filter.statuses,
           );
           break;
       }
@@ -231,6 +238,11 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     switch (scope.kind) {
       case "category":
         return this.productPostingScopeBitmapSql("category", scope.categoryId);
+      case "collection":
+        return sql`(
+          ${this.publishedProductBitmapSql()}
+          & ${scope.membershipBitmap}::roaringbitmap
+        )`;
       case "global":
         return this.publishedProductBitmapSql();
     }

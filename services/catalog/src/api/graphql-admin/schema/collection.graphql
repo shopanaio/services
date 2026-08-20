@@ -16,15 +16,9 @@ type Collection implements Node @key(fields: "id") {
   isPublished: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
+  revision: Int!
+  listingRevision: Int! @inaccessible
   rules: [CollectionRule!]!
-  products(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    sort: ProductSortInput
-  ): CollectionProductConnection!
-  productsCount: Int!
 }
 
 enum CollectionType {
@@ -34,10 +28,17 @@ enum CollectionType {
 
 type CollectionRule {
   id: ID!
-  field: String!
-  operator: String!
+  field: CollectionRuleField!
+  operator: CollectionRuleOperator!
   value: JSON!
   sortIndex: Int!
+  referenceStatus: CollectionRuleReferenceStatus!
+}
+
+enum CollectionRuleReferenceStatus {
+  VALID
+  STALE
+  NOT_APPLICABLE
 }
 
 type CollectionMediaItem {
@@ -56,24 +57,36 @@ type CollectionEdge {
   cursor: String!
 }
 
-type CollectionProductConnection {
-  edges: [CollectionProductEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
+enum CollectionRuleField {
+  CATEGORY
+  TAG
+  VENDOR
+  FEATURE
+  OPTION
+  PRICE
+  IN_STOCK
+  CREATED_AT
 }
 
-type CollectionProductEdge {
-  node: Product!
-  cursor: String!
+enum CollectionRuleOperator {
+  IN
+  ALL
+  EQ
+  GT
+  GTE
+  LT
+  LTE
+  BETWEEN
 }
 
 input CollectionRuleInput {
-  field: String!
-  operator: String!
+  field: CollectionRuleField!
+  operator: CollectionRuleOperator!
   value: JSON!
 }
 
 input CollectionCreateInput {
+  clientMutationId: String!
   handle: String
   type: CollectionType!
   name: String!
@@ -89,7 +102,9 @@ input CollectionCreateInput {
 }
 
 input CollectionUpdateInput {
+  clientMutationId: String!
   id: ID!
+  expectedRevision: Int!
   handle: String
   name: String
   description: RichTextInput
@@ -109,29 +124,55 @@ input CollectionMediaInput {
 }
 
 input CollectionDeleteInput {
+  clientMutationId: String!
   id: ID!
+  expectedRevision: Int!
 }
 
 input CollectionAddProductsInput {
+  clientMutationId: String!
   collectionId: ID!
+  expectedRevision: Int!
   productIds: [ID!]!
 }
 
 input CollectionRemoveProductsInput {
+  clientMutationId: String!
   collectionId: ID!
+  expectedRevision: Int!
   productIds: [ID!]!
 }
 
 input CollectionMoveProductInput {
+  clientMutationId: String!
   collectionId: ID!
+  expectedRevision: Int!
   productId: ID!
   afterProductId: ID
   beforeProductId: ID
 }
 
 input CollectionUpdateRulesInput {
+  clientMutationId: String!
   collectionId: ID!
+  expectedRevision: Int!
   rules: [CollectionRuleInput!]!
+}
+
+input CollectionRulesPreviewCountInput {
+  rules: [CollectionRuleInput!]!
+}
+
+input CollectionRebalanceInput {
+  clientMutationId: String!
+  collectionId: ID!
+  expectedRevision: Int!
+}
+
+input CollectionClearProductsInput {
+  clientMutationId: String!
+  collectionId: ID!
+  expectedRevision: Int!
 }
 
 type CollectionCreatePayload {
@@ -166,5 +207,22 @@ type CollectionMoveProductPayload {
 
 type CollectionUpdateRulesPayload {
   collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionRebalancePayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionClearProductsPayload {
+  collection: Collection
+  userErrors: [GenericUserError!]!
+}
+
+type CollectionRulesPreviewCountPayload {
+  count: Int
+  rulesHash: String
+  indexObservedAt: DateTime
   userErrors: [GenericUserError!]!
 }

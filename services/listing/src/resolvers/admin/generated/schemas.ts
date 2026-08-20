@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingProductStatus, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -32,6 +32,8 @@ export const FacetValueCandidateTypeSchema = z.nativeEnum(FacetValueCandidateTyp
 export const FacetValueKindSchema = z.nativeEnum(FacetValueKind);
 
 export const ListingFacetTypeSchema = z.nativeEnum(ListingFacetType);
+
+export const ListingProductStatusSchema = z.nativeEnum(ListingProductStatus);
 
 export const ListingScopeKindSchema = z.nativeEnum(ListingScopeKind);
 
@@ -356,6 +358,7 @@ export function ListingProductFilterSchema(): z.ZodObject<Properties<ListingProd
     price: z.lazy(() => ListingPriceRangeFilterSchema().nullish()),
     productFacet: z.lazy(() => ListingFacetValueFilterSchema().nullish()),
     productVendor: z.string().nullish(),
+    statuses: z.array(ListingProductStatusSchema).nullish(),
     tag: z.string().nullish(),
     variantFacet: z.lazy(() => ListingFacetValueFilterSchema().nullish()),
     variantOption: z.lazy(() => ListingVariantOptionFilterSchema().nullish())
@@ -365,6 +368,7 @@ export function ListingProductFilterSchema(): z.ZodObject<Properties<ListingProd
 export function ListingScopeInputSchema(): z.ZodObject<Properties<ListingScopeInput>> {
   return z.object({
     categoryId: z.string().nullish(),
+    collectionId: z.string().nullish(),
     kind: ListingScopeKindSchema
   })
 }

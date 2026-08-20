@@ -1,7 +1,7 @@
 export const DEFAULT_LISTING_PAGE_SIZE = 20;
 export const MAX_LISTING_PAGE_SIZE = 100;
 
-export type ListingScopeKind = "GLOBAL" | "CATEGORY";
+export type ListingScopeKind = "GLOBAL" | "CATEGORY" | "COLLECTION";
 export type ListingSortBy =
   | "MANUAL"
   | "RELEVANCE"
@@ -14,6 +14,7 @@ export type ListingSortDirection = "asc" | "desc";
 export interface ListingScopeInput {
   kind: ListingScopeKind;
   categoryId?: string | null;
+  collectionId?: string | null;
 }
 
 export interface ListingPriceRangeFilter {
@@ -32,6 +33,7 @@ export interface ListingFacetValueFilter {
 }
 
 export interface ListingProductFilter {
+  statuses?: Array<"DRAFT" | "PUBLISHED"> | null;
   available?: boolean | null;
   price?: ListingPriceRangeFilter | null;
   productVendor?: string | null;
@@ -47,6 +49,7 @@ export interface ListingOrderByInput {
 }
 
 export interface ListingQueryArgs {
+  resolvedScope?: import("../../repositories/storefront/types.js").StorefrontListingScope;
   first?: number | null;
   after?: string | null;
   last?: number | null;

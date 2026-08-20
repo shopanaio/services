@@ -108,6 +108,66 @@ export type CategoryMediaEdge = {
   node: Media;
 };
 
+export type Collection = Node & {
+  __typename?: 'Collection';
+  activeFrom: Maybe<Scalars['DateTime']['output']>;
+  activeTo: Maybe<Scalars['DateTime']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  defaultSort: CollectionDefaultSort;
+  defaultSortDirection: CollectionSortDirection;
+  description: Maybe<RichText>;
+  excerpt: Maybe<RichText>;
+  featuredMedia: Maybe<Media>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  listingRevision: Scalars['Int']['output'];
+  media: CollectionMediaConnection;
+  name: Scalars['String']['output'];
+  publishedAt: Scalars['DateTime']['output'];
+  seo: Seo;
+  type: CollectionType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+export type CollectionMediaArgs = {
+  after?: InputMaybe<Scalars['Cursor']['input']>;
+  before?: InputMaybe<Scalars['Cursor']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export enum CollectionDefaultSort {
+  Manual = 'MANUAL',
+  Name = 'NAME',
+  Newest = 'NEWEST',
+  Price = 'PRICE'
+}
+
+export type CollectionMediaConnection = Connection & {
+  __typename?: 'CollectionMediaConnection';
+  edges: Array<CollectionMediaEdge>;
+  nodes: Array<Media>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type CollectionMediaEdge = {
+  __typename?: 'CollectionMediaEdge';
+  cursor: Scalars['Cursor']['output'];
+  node: Media;
+};
+
+export enum CollectionSortDirection {
+  Asc = 'ASC',
+  Desc = 'DESC'
+}
+
+export enum CollectionType {
+  Manual = 'MANUAL',
+  Rule = 'RULE'
+}
+
 /** Shared fields exposed by every Relay-style connection. */
 export type Connection = {
   pageInfo: PageInfo;
@@ -1628,6 +1688,10 @@ export type Query = {
   category: Maybe<Category>;
   /** Returns a published category by its stable storefront handle. */
   categoryByHandle: Maybe<Category>;
+  /** Returns a visible collection by its globally unique Relay ID. */
+  collection: Maybe<Collection>;
+  /** Returns a visible collection by its stable storefront handle. */
+  collectionByHandle: Maybe<Collection>;
   /** Returns any catalog object by its globally unique Relay ID. */
   node: Maybe<Node>;
   /** Returns catalog objects in the same order as the supplied Relay IDs. */
@@ -1658,6 +1722,18 @@ export type QueryCategoryArgs = {
 
 /** Public Catalog entry points for the active storefront context. */
 export type QueryCategoryByHandleArgs = {
+  handle: Scalars['String']['input'];
+};
+
+
+/** Public Catalog entry points for the active storefront context. */
+export type QueryCollectionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+/** Public Catalog entry points for the active storefront context. */
+export type QueryCollectionByHandleArgs = {
   handle: Scalars['String']['input'];
 };
 
@@ -1850,10 +1926,10 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
-  Connection: ( Omit<CategoryConnection, 'nodes'> & { nodes: Array<_RefType['Category']> } ) | ( Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CategoryMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductComparisonColumnConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductComparisonColumnEdge']>, nodes: Array<_RefType['ProductComparisonColumn']> } ) | ( Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductVariantConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantEdge']>, nodes: Array<_RefType['ProductVariant']> } ) | ( Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantMediaEdge']>, nodes: Array<_RefType['Media']> } );
+  Connection: ( Omit<CategoryConnection, 'nodes'> & { nodes: Array<_RefType['Category']> } ) | ( Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CategoryMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<CollectionMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['CollectionMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductComparisonColumnConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductComparisonColumnEdge']>, nodes: Array<_RefType['ProductComparisonColumn']> } ) | ( Omit<ProductMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductMediaEdge']>, nodes: Array<_RefType['Media']> } ) | ( Omit<ProductVariantConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantEdge']>, nodes: Array<_RefType['ProductVariant']> } ) | ( Omit<ProductVariantMediaConnection, 'edges' | 'nodes'> & { edges: Array<_RefType['ProductVariantMediaEdge']>, nodes: Array<_RefType['Media']> } );
   DisplayableError: ( UserError );
   Media: ( ExternalVideo ) | ( MediaImage ) | ( Model3d ) | ( Video );
-  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'comparison' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions' | 'variants'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, comparison?: Maybe<_RefType['ProductComparison']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']>, variants: _RefType['ProductVariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'category' | 'optionValues'> & { category: _RefType['ProductOptionCategory'], optionValues: Array<_RefType['ProductOptionValue']> } ) | ( ProductOptionCategory ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
+  Node: ( Omit<Category, 'ancestors' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'parent' | 'seo'> & { ancestors: Array<_RefType['Category']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CategoryMediaConnection'], parent?: Maybe<_RefType['Category']>, seo: _RefType['SEO'] } ) | ( Omit<Collection, 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'seo'> & { description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['CollectionMediaConnection'], seo: _RefType['SEO'] } ) | ( Omit<InventoryItem, 'variant'> & { variant: _RefType['ProductVariant'] } ) | ( Omit<Product, 'compareAtPriceRange' | 'comparison' | 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'options' | 'priceRange' | 'primaryCategory' | 'selectedOrFirstAvailableVariant' | 'seo' | 'variantBySelectedOptions' | 'variants'> & { compareAtPriceRange?: Maybe<_RefType['ProductPriceRange']>, comparison?: Maybe<_RefType['ProductComparison']>, description?: Maybe<_RefType['RichText']>, excerpt?: Maybe<_RefType['RichText']>, featuredMedia?: Maybe<_RefType['Media']>, media: _RefType['ProductMediaConnection'], options: Array<_RefType['ProductOption']>, priceRange?: Maybe<_RefType['ProductPriceRange']>, primaryCategory?: Maybe<_RefType['Category']>, selectedOrFirstAvailableVariant?: Maybe<_RefType['ProductVariant']>, seo: _RefType['SEO'], variantBySelectedOptions?: Maybe<_RefType['ProductVariant']>, variants: _RefType['ProductVariantConnection'] } ) | ( ProductFeature ) | ( ProductFeatureGroup ) | ( ProductFeatureValue ) | ( Omit<ProductOption, 'category' | 'optionValues'> & { category: _RefType['ProductOptionCategory'], optionValues: Array<_RefType['ProductOptionValue']> } ) | ( ProductOptionCategory ) | ( Omit<ProductOptionValue, 'swatch'> & { swatch?: Maybe<_RefType['ProductOptionValueSwatch']> } ) | ( Omit<ProductVariant, 'compareAtPrice' | 'componentConfiguration' | 'featuredMedia' | 'inventoryItem' | 'media' | 'price' | 'product' | 'selectedOptions'> & { compareAtPrice?: Maybe<_RefType['Money']>, componentConfiguration?: Maybe<_RefType['ProductComponentConfiguration']>, featuredMedia?: Maybe<_RefType['Media']>, inventoryItem?: Maybe<_RefType['InventoryItem']>, media: _RefType['ProductVariantMediaConnection'], price?: Maybe<_RefType['Money']>, product: _RefType['Product'], selectedOptions: Array<_RefType['SelectedOption']> } ) | ( Tag ) | ( Vendor );
 }>;
 
 /** Mapping between all available schema types and the resolvers types */
@@ -1866,6 +1942,12 @@ export type ResolversTypes = ResolversObject<{
   CategoryEdge: ResolverTypeWrapper<Omit<CategoryEdge, 'node'> & { node: ResolversTypes['Category'] }>;
   CategoryMediaConnection: ResolverTypeWrapper<Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['CategoryMediaEdge']>, nodes: Array<ResolversTypes['Media']> }>;
   CategoryMediaEdge: ResolverTypeWrapper<Omit<CategoryMediaEdge, 'node'> & { node: ResolversTypes['Media'] }>;
+  Collection: ResolverTypeWrapper<Omit<Collection, 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'seo'> & { description?: Maybe<ResolversTypes['RichText']>, excerpt?: Maybe<ResolversTypes['RichText']>, featuredMedia?: Maybe<ResolversTypes['Media']>, media: ResolversTypes['CollectionMediaConnection'], seo: ResolversTypes['SEO'] }>;
+  CollectionDefaultSort: CollectionDefaultSort;
+  CollectionMediaConnection: ResolverTypeWrapper<Omit<CollectionMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversTypes['CollectionMediaEdge']>, nodes: Array<ResolversTypes['Media']> }>;
+  CollectionMediaEdge: ResolverTypeWrapper<Omit<CollectionMediaEdge, 'node'> & { node: ResolversTypes['Media'] }>;
+  CollectionSortDirection: CollectionSortDirection;
+  CollectionType: CollectionType;
   Color: ResolverTypeWrapper<Scalars['Color']['output']>;
   Connection: ResolverTypeWrapper<ResolversInterfaceTypes<ResolversTypes>['Connection']>;
   CountryCode: CountryCode;
@@ -1951,6 +2033,9 @@ export type ResolversParentTypes = ResolversObject<{
   CategoryEdge: Omit<CategoryEdge, 'node'> & { node: ResolversParentTypes['Category'] };
   CategoryMediaConnection: Omit<CategoryMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['CategoryMediaEdge']>, nodes: Array<ResolversParentTypes['Media']> };
   CategoryMediaEdge: Omit<CategoryMediaEdge, 'node'> & { node: ResolversParentTypes['Media'] };
+  Collection: Omit<Collection, 'description' | 'excerpt' | 'featuredMedia' | 'media' | 'seo'> & { description?: Maybe<ResolversParentTypes['RichText']>, excerpt?: Maybe<ResolversParentTypes['RichText']>, featuredMedia?: Maybe<ResolversParentTypes['Media']>, media: ResolversParentTypes['CollectionMediaConnection'], seo: ResolversParentTypes['SEO'] };
+  CollectionMediaConnection: Omit<CollectionMediaConnection, 'edges' | 'nodes'> & { edges: Array<ResolversParentTypes['CollectionMediaEdge']>, nodes: Array<ResolversParentTypes['Media']> };
+  CollectionMediaEdge: Omit<CollectionMediaEdge, 'node'> & { node: ResolversParentTypes['Media'] };
   Color: Scalars['Color']['output'];
   Connection: ResolversInterfaceTypes<ResolversParentTypes>['Connection'];
   Cursor: Scalars['Cursor']['output'];
@@ -2064,12 +2149,48 @@ export type CategoryMediaEdgeResolvers<ContextType = ServiceContext, ParentType 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
+  __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
+  activeFrom?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  activeTo?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
+  createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  defaultSort?: Resolver<ResolversTypes['CollectionDefaultSort'], ParentType, ContextType>;
+  defaultSortDirection?: Resolver<ResolversTypes['CollectionSortDirection'], ParentType, ContextType>;
+  description?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  excerpt?: Resolver<Maybe<ResolversTypes['RichText']>, ParentType, ContextType>;
+  featuredMedia?: Resolver<Maybe<ResolversTypes['Media']>, ParentType, ContextType>;
+  handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  listingRevision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  media?: Resolver<ResolversTypes['CollectionMediaConnection'], ParentType, ContextType, Partial<CollectionMediaArgs>>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  publishedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  seo?: Resolver<ResolversTypes['SEO'], ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['CollectionType'], ParentType, ContextType>;
+  updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionMediaConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionMediaConnection'] = ResolversParentTypes['CollectionMediaConnection']> = ResolversObject<{
+  edges?: Resolver<Array<ResolversTypes['CollectionMediaEdge']>, ParentType, ContextType>;
+  nodes?: Resolver<Array<ResolversTypes['Media']>, ParentType, ContextType>;
+  pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type CollectionMediaEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CollectionMediaEdge'] = ResolversParentTypes['CollectionMediaEdge']> = ResolversObject<{
+  cursor?: Resolver<ResolversTypes['Cursor'], ParentType, ContextType>;
+  node?: Resolver<ResolversTypes['Media'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export interface ColorScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Color'], any> {
   name: 'Color';
 }
 
 export type ConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Connection'] = ResolversParentTypes['Connection']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'CategoryConnection' | 'CategoryMediaConnection' | 'ProductComparisonColumnConnection' | 'ProductMediaConnection' | 'ProductVariantConnection' | 'ProductVariantMediaConnection', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'CategoryConnection' | 'CategoryMediaConnection' | 'CollectionMediaConnection' | 'ProductComparisonColumnConnection' | 'ProductMediaConnection' | 'ProductVariantConnection' | 'ProductVariantMediaConnection', ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
 }>;
@@ -2179,7 +2300,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Category' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureGroup' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionCategory' | 'ProductOptionValue' | 'ProductVariant' | 'Tag' | 'Vendor', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Category' | 'Collection' | 'InventoryItem' | 'Product' | 'ProductFeature' | 'ProductFeatureGroup' | 'ProductFeatureValue' | 'ProductOption' | 'ProductOptionCategory' | 'ProductOptionValue' | 'ProductVariant' | 'Tag' | 'Vendor', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -2472,6 +2593,8 @@ export type QueryResolvers<ContextType = ServiceContext, ParentType extends Reso
   categories?: Resolver<ResolversTypes['CategoryConnection'], ParentType, ContextType, Partial<QueryCategoriesArgs>>;
   category?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<QueryCategoryArgs, 'id'>>;
   categoryByHandle?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType, RequireFields<QueryCategoryByHandleArgs, 'handle'>>;
+  collection?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<QueryCollectionArgs, 'id'>>;
+  collectionByHandle?: Resolver<Maybe<ResolversTypes['Collection']>, ParentType, ContextType, RequireFields<QueryCollectionByHandleArgs, 'handle'>>;
   node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<QueryNodeArgs, 'id'>>;
   nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<QueryNodesArgs, 'ids'>>;
   product?: Resolver<Maybe<ResolversTypes['Product']>, ParentType, ContextType, RequireFields<QueryProductArgs, 'id'>>;
@@ -2548,6 +2671,9 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   CategoryEdge?: CategoryEdgeResolvers<ContextType>;
   CategoryMediaConnection?: CategoryMediaConnectionResolvers<ContextType>;
   CategoryMediaEdge?: CategoryMediaEdgeResolvers<ContextType>;
+  Collection?: CollectionResolvers<ContextType>;
+  CollectionMediaConnection?: CollectionMediaConnectionResolvers<ContextType>;
+  CollectionMediaEdge?: CollectionMediaEdgeResolvers<ContextType>;
   Color?: GraphQLScalarType;
   Connection?: ConnectionResolvers<ContextType>;
   Cursor?: GraphQLScalarType;

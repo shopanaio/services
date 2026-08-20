@@ -5,11 +5,27 @@ extend type Product implements Node & Listing @key(fields: "id", resolvable: fal
   id: ID! @external
 }
 
+extend type Collection @key(fields: "id") {
+  id: ID! @external
+  listingRevision: Int! @external @inaccessible
+
+  products(
+    first: Int
+    after: String
+    query: String
+    locale: LocaleCode
+    currency: CurrencyCode
+    facets: [ListingProductFilter!]
+    orderBy: ListingOrderByInput
+  ): ListingConnection! @requires(fields: "listingRevision")
+}
+
 # ---- Listing Inputs ----
 
 enum ListingScopeKind {
   GLOBAL
   CATEGORY
+  COLLECTION
 }
 
 input ListingScopeInput {
@@ -18,9 +34,15 @@ input ListingScopeInput {
 
   """Category global ID. Required for CATEGORY and forbidden for GLOBAL."""
   categoryId: ID
+
+  """Collection global ID. Required for COLLECTION."""
+  collectionId: ID
 }
 
 input ListingProductFilter {
+  """Filter by indexed product status."""
+  statuses: [ListingProductStatus!]
+
   """Filter on if the listing item is available."""
   available: Boolean
 
@@ -41,6 +63,11 @@ input ListingProductFilter {
 
   """Filter by variant-level listing facet value."""
   variantFacet: ListingFacetValueFilter
+}
+
+enum ListingProductStatus {
+  DRAFT
+  PUBLISHED
 }
 
 input ListingPriceRangeFilter {

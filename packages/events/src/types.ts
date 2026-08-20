@@ -253,7 +253,8 @@ export type ProductUpdatedReason =
   | "variant"
   | "pricing"
   | "inventory"
-  | "physical";
+  | "physical"
+  | "collection";
 
 /**
  * Payload for productUpdated event.
@@ -267,6 +268,35 @@ export interface ProductUpdatedPayload {
 
 export interface ProductUpdatedEvent
   extends DomainEvent<"productUpdated", ProductUpdatedPayload> {}
+
+export type CollectionUpdatedReason =
+  | "metadata"
+  | "rules"
+  | "publication"
+  | "schedule"
+  | "sort"
+  | "items"
+  | "rank";
+
+export interface CollectionChangedPayload {
+  storeId: string;
+  collectionId: string;
+  revision: number;
+  listingRevision: number;
+  reasons: CollectionUpdatedReason[];
+}
+
+export interface CollectionCreatedEvent
+  extends DomainEvent<"collectionCreated", CollectionChangedPayload> {}
+
+export interface CollectionUpdatedEvent
+  extends DomainEvent<"collectionUpdated", CollectionChangedPayload> {}
+
+export interface CollectionDeletedEvent
+  extends DomainEvent<
+    "collectionDeleted",
+    CollectionChangedPayload & { deletedAt: string }
+  > {}
 
 export interface CustomerCreatedEvent
   extends DomainEvent<
@@ -938,6 +968,9 @@ export type ShopanaEvent =
   | ProductCreatedEvent
   | ProductDeletedEvent
   | ProductUpdatedEvent
+  | CollectionCreatedEvent
+  | CollectionUpdatedEvent
+  | CollectionDeletedEvent
   | ApplicationUserCreatedEvent
   | ApplicationUserUpdatedEvent
   | ApplicationUserStatusChangedEvent

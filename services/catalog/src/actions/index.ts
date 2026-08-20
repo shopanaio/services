@@ -10,9 +10,20 @@ import {
 import {
   CatalogCheckoutActionNames,
   CatalogComparisonActionNames,
+  CatalogCollectionActionNames,
   CatalogLoyaltyActionNames,
+  COLLECTION_LISTING_CONTRACT_VERSION,
+  hashCanonicalCollectionRulesV1,
+  hashCollectionListingPayloadV1,
+  normalizeCanonicalCollectionRulesV1,
 } from "@shopana/broker-types";
-import type { Catalog } from "@shopana/broker-types";
+import type {
+  Catalog,
+  CatalogCollectionListingSnapshot,
+  CatalogCollectionListingTombstone,
+  GetCollectionListingSnapshotParams,
+  GetCollectionListingSnapshotResult,
+} from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import type { QueryArgs } from "@shopana/type-resolver";
 import { Kernel } from "../kernel/Kernel.js";
@@ -318,4 +329,143 @@ export class CatalogBrokerActions extends BrokerActions {
       params
     );
   }
+
+  @Action(CatalogCollectionActionNames.getListingSnapshot, { readOnly: true })
+  async getCollectionListingSnapshot(
+    params: GetCollectionListingSnapshotParams,
+    callContext: BrokerCallContext,
+  ): Promise<GetCollectionListingSnapshotResult> {
+    if (
+      callContext.caller.kind !== "action" ||
+      callContext.caller.service !== "listing"
+    ) {
+      return {
+        ok: false,
+        code: "NOT_FOUND",
+        message: "Collection was not found",
+        retryable: false,
+      };
+    }
+    if (params.contractVersion !== COLLECTION_LISTING_CONTRACT_VERSION) {
+      return {
+        ok: false,
+        code: "UNSUPPORTED_COLLECTION_SNAPSHOT_VERSION",
+        message: "Collection snapshot version is not supported",
+        retryable: false,
+      };
+    }
+
+    try {
+      const store = await this.getStoreContext(params.storeId);
+      if (!store) {
+        return {
+          ok: false,
+          code: "NOT_FOUND",
+          message: "Collection was not found",
+          retryable: false,
+        };
+      }
+      return await runWithContext(this.createServiceContext(store), async () => {
+        const collection =
+          await this.kernel.repository.collection.findByIdIncludingDeleted(
+            params.collectionId,
+          );
+        if (!collection || collection.storeId !== params.storeId) {
+          return {
+            ok: false as const,
+            code: "NOT_FOUND" as const,
+            message: "Collection was not found",
+            retryable: false,
+          };
+        }
+        if (collection.deletedAt) {
+          const withoutHash: Omit<
+            CatalogCollectionListingTombstone,
+            "payloadHash"
+          > = {
+            snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
+            state: "deleted",
+            id: collection.id,
+            storeId: collection.storeId,
+            listingRevision: collection.listingRevision,
+            deletedAt: new Date(collection.deletedAt).toISOString(),
+          };
+          return {
+            ok: true as const,
+            snapshot: {
+              ...withoutHash,
+              payloadHash: hashCollectionListingPayloadV1(withoutHash),
+            },
+          };
+        }
+        const ruleRows =
+          await this.kernel.repository.collectionRule.findByCollectionId(
+            collection.id,
+          );
+        const rules =
+          collection.type === "rule"
+            ? normalizeCanonicalCollectionRulesV1(
+                ruleRows.map((row) => ({
+                  field: row.field,
+                  operator: row.operator,
+                  value: row.value,
+                })),
+              )
+            : [];
+        const rulesHash = hashCanonicalCollectionRulesV1(rules);
+        const withoutHash: Omit<
+          CatalogCollectionListingSnapshot,
+          "payloadHash"
+        > = {
+          snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
+          state: "live",
+          id: collection.id,
+          storeId: collection.storeId,
+          listingRevision: collection.listingRevision,
+          type: collection.type as "manual" | "rule",
+          defaultSort: collection.defaultSort as
+            | "manual"
+            | "price"
+            | "newest"
+            | "name",
+          defaultSortDirection: collection.defaultSortDirection as
+            | "asc"
+            | "desc",
+          publishedAt: toCanonicalInstant(collection.publishedAt),
+          effectiveFrom: toCanonicalInstant(collection.effectiveFrom),
+          effectiveTo: toCanonicalInstant(collection.effectiveTo),
+          rules,
+          rulesHash,
+          listingUpdatedAt: new Date(
+            collection.listingUpdatedAt,
+          ).toISOString(),
+        };
+        return {
+          ok: true as const,
+          snapshot: {
+            ...withoutHash,
+            payloadHash: hashCollectionListingPayloadV1(withoutHash),
+          },
+        };
+      });
+    } catch (error) {
+      const invalid =
+        error instanceof Error &&
+        error.name === "CollectionContractValidationError";
+      return {
+        ok: false,
+        code: invalid
+          ? "COLLECTION_SNAPSHOT_INVALID"
+          : "COLLECTION_SNAPSHOT_UNAVAILABLE",
+        message: invalid
+          ? error.message
+          : "Collection snapshot is temporarily unavailable",
+        retryable: !invalid,
+      };
+    }
+  }
+}
+
+function toCanonicalInstant(value: string | null): string | null {
+  return value === null ? null : new Date(value).toISOString();
 }

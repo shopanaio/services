@@ -9,6 +9,7 @@ import {
   primaryKey,
   uniqueIndex,
   check,
+  foreignKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { catalogSchema, localeCodeEnum } from "./schema";
@@ -24,7 +25,7 @@ export const collection = catalogSchema.table(
     defaultSort: varchar("default_sort", { length: 32 }).notNull().default("newest"),
     defaultSortDirection: varchar("default_sort_direction", { length: 4 })
       .notNull()
-      .default("asc"),
+      .default("desc"),
     effectiveFrom: timestamp("effective_from", {
       withTimezone: true,
       mode: "string",
@@ -34,6 +35,14 @@ export const collection = catalogSchema.table(
       mode: "string",
     }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
+    revision: integer("revision").notNull().default(0),
+    listingRevision: integer("listing_revision").notNull().default(0),
+    listingUpdatedAt: timestamp("listing_updated_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -56,6 +65,12 @@ export const collection = catalogSchema.table(
       sql`default_sort_direction IN ('asc', 'desc')`
     ),
     check(
+      "collection_default_sort_direction_pair_check",
+      sql`(default_sort = 'manual' AND default_sort_direction = 'asc')
+        OR (default_sort = 'newest' AND default_sort_direction = 'desc')
+        OR (default_sort IN ('price', 'name') AND default_sort_direction IN ('asc', 'desc'))`
+    ),
+    check(
       "collection_rule_manual_sort_check",
       sql`type != 'rule' OR default_sort != 'manual'`
     ),
@@ -63,6 +78,15 @@ export const collection = catalogSchema.table(
       "collection_effective_range_check",
       sql`effective_to IS NULL OR effective_from IS NULL OR effective_to > effective_from`
     ),
+    check(
+      "collection_revision_check",
+      sql`revision BETWEEN 0 AND 2147483646`
+    ),
+    check(
+      "collection_listing_revision_check",
+      sql`listing_revision BETWEEN 0 AND 2147483646`
+    ),
+    uniqueIndex("collection_store_id_id_uniq").on(table.storeId, table.id),
     index("idx_collection_scheduling").on(
       table.storeId,
       table.effectiveFrom,
@@ -175,7 +199,122 @@ export const collectionRule = catalogSchema.table(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index("idx_collection_rule_collection").on(table.collectionId)]
+  (table) => [
+    index("idx_collection_rule_collection").on(
+      table.storeId,
+      table.collectionId,
+      table.sortIndex
+    ),
+    uniqueIndex("collection_rule_store_collection_sort_uniq").on(
+      table.storeId,
+      table.collectionId,
+      table.sortIndex
+    ),
+    check(
+      "collection_rule_field_check",
+      sql`field IN ('category', 'tag', 'vendor', 'feature', 'option', 'price', 'in_stock', 'created_at')`
+    ),
+    check(
+      "collection_rule_operator_check",
+      sql`operator IN ('in', 'all', 'eq', 'gt', 'gte', 'lt', 'lte', 'between')`
+    ),
+    check("collection_rule_sort_index_check", sql`sort_index >= 0`),
+  ]
+);
+
+export const collectionMutationReceipt = catalogSchema.table(
+  "collection_mutation_receipt",
+  {
+    storeId: uuid("store_id").notNull(),
+    workflowId: text("workflow_id").notNull(),
+    requestHash: text("request_hash").notNull(),
+    mutationKind: varchar("mutation_kind", { length: 32 }).notNull(),
+    resultJson: jsonb("result_json").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.storeId, table.workflowId] }),
+    check(
+      "collection_mutation_receipt_hash_check",
+      sql`request_hash ~ '^sha256:v1:[0-9a-f]{64}$'`
+    ),
+    index("idx_collection_mutation_receipt_cleanup").on(table.completedAt),
+  ]
+);
+
+export const collectionProductSyncOperation = catalogSchema.table(
+  "collection_product_sync_operation",
+  {
+    storeId: uuid("store_id").notNull(),
+    operationId: uuid("operation_id").notNull(),
+    workflowId: text("workflow_id").notNull(),
+    collectionId: uuid("collection_id").notNull(),
+    collectionRevision: integer("collection_revision").notNull(),
+    reason: varchar("reason", { length: 16 }).notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("pending"),
+    affectedCount: integer("affected_count").notNull(),
+    emittedCount: integer("emitted_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp("completed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.storeId, table.operationId] }),
+    foreignKey({
+      name: "collection_product_sync_operation_collection_fk",
+      columns: [table.storeId, table.collectionId],
+      foreignColumns: [collection.storeId, collection.id],
+    }).onDelete("cascade"),
+    uniqueIndex("collection_product_sync_operation_workflow_uniq").on(
+      table.storeId,
+      table.workflowId
+    ),
+    check(
+      "collection_product_sync_operation_status_check",
+      sql`status IN ('pending', 'completed')`
+    ),
+    check(
+      "collection_product_sync_operation_reason_check",
+      sql`reason IN ('add', 'remove', 'move', 'rebalance', 'clear')`
+    ),
+    check(
+      "collection_product_sync_operation_counts_check",
+      sql`affected_count >= 0 AND emitted_count >= 0 AND emitted_count <= affected_count`
+    ),
+    index("idx_collection_product_sync_operation_cleanup")
+      .on(table.status, table.completedAt)
+      .where(sql`status = 'completed'`),
+  ]
+);
+
+export const collectionProductSyncItem = catalogSchema.table(
+  "collection_product_sync_item",
+  {
+    storeId: uuid("store_id").notNull(),
+    operationId: uuid("operation_id").notNull(),
+    productId: uuid("product_id").notNull(),
+    emittedAt: timestamp("emitted_at", { withTimezone: true, mode: "string" }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.storeId, table.operationId, table.productId],
+    }),
+    index("idx_collection_product_sync_item_pending")
+      .on(table.storeId, table.operationId, table.productId)
+      .where(sql`emitted_at IS NULL`),
+  ]
 );
 
 export type Collection = typeof collection.$inferSelect;
@@ -190,3 +329,9 @@ export type CollectionItem = typeof collectionItem.$inferSelect;
 export type NewCollectionItem = typeof collectionItem.$inferInsert;
 export type CollectionRule = typeof collectionRule.$inferSelect;
 export type NewCollectionRule = typeof collectionRule.$inferInsert;
+export type CollectionMutationReceipt =
+  typeof collectionMutationReceipt.$inferSelect;
+export type CollectionProductSyncOperation =
+  typeof collectionProductSyncOperation.$inferSelect;
+export type CollectionProductSyncItem =
+  typeof collectionProductSyncItem.$inferSelect;

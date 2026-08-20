@@ -68,6 +68,11 @@ export class ResolverRegistry {
     return new ListingConnectionResolver(input, this.ctx);
   }
 
+  async collection(input: { id: string; listingRevision: number }) {
+    const { CollectionResolver } = await import("./CollectionResolver.js");
+    return new CollectionResolver(input, this.ctx);
+  }
+
   async facet(id: string) {
     const { FacetResolver } = await import("./FacetResolver.js");
     return new FacetResolver(id, this.ctx);

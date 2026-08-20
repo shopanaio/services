@@ -18,5 +18,6 @@
  */
 
 export * from "./shared.js";
+export * from "./collections.js";
 export * from "./actions/index.js";
 export * from "./events/index.js";

@@ -24,10 +24,12 @@ Listing contexts where a facet is available.
 
 SEARCH applies to listing requests without a category context.
 CATEGORY applies to every category-scoped listing request.
+COLLECTION applies to every collection-scoped listing request.
 """
 enum FacetScopeType {
   SEARCH
   CATEGORY
+  COLLECTION
 }
 
 enum FacetValueKind {
@@ -153,7 +155,7 @@ input FacetCreateInput {
   label: String!
   sources: [FacetCreateSourceInput!]
   valueCandidates: [FacetCreateValueCandidateInput!]
-  """Defaults to both SEARCH and CATEGORY when omitted."""
+  """Defaults to SEARCH, CATEGORY, and COLLECTION when omitted."""
   scopes: [FacetScopeType!]
 }
 

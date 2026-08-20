@@ -1,4 +1,23 @@
 import { z } from "zod";
+import {
+  CollectionContractValidationError,
+  normalizeCollectionRuleHandleV1,
+} from "@shopana/broker-types";
+
+const CanonicalHandleSchema = z.string().transform((value, context) => {
+  try {
+    return normalizeCollectionRuleHandleV1(value);
+  } catch (error) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        error instanceof CollectionContractValidationError
+          ? error.message
+          : "Invalid handle",
+    });
+    return z.NEVER;
+  }
+});
 
 const OptionSwatchInputSchema = z
   .object({
@@ -14,7 +33,7 @@ const OptionSwatchInputSchema = z
 const OptionValueSyncInputSchema = z.object({
   id: z.string().uuid().optional(),
   sortIndex: z.number().int().min(0),
-  slug: z.string().min(1, "Value slug is required").max(255),
+  slug: CanonicalHandleSchema,
   name: z.string().min(1, "Value name is required").max(255),
   swatch: OptionSwatchInputSchema,
 });
@@ -22,7 +41,7 @@ const OptionValueSyncInputSchema = z.object({
 const OptionSyncItemSchema = z.object({
   id: z.string().uuid().optional(),
   sortIndex: z.number().int().min(0),
-  slug: z.string().min(1, "Option slug is required").max(255),
+  slug: CanonicalHandleSchema,
   name: z.string().min(1, "Option name is required").max(255),
   categoryId: z.string().uuid(),
   values: z.array(OptionValueSyncInputSchema).min(1, "Option must have at least one value"),

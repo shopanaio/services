@@ -68,8 +68,10 @@ export function compileProductBaseBitmapSql(
     options?.excludeProductFacetId
   );
   const vendorBitmap = compileVendorBitmapSql(request);
+  const statusBitmap = compileProductStatusBitmapSql(request);
   if (productFacetBitmap) parts.push(productFacetBitmap);
   if (vendorBitmap) parts.push(vendorBitmap);
+  if (statusBitmap) parts.push(statusBitmap);
   return andBitmapSql(parts);
 }
 
@@ -133,7 +135,15 @@ export function compileVariantCandidatesBitmapSql(
   }
 ): SQL {
   const terms = compileVariantTermGroupsBitmapSql(request, options);
-  const parts: SQL[] = [terms ?? compileIndexableUniverseBitmapSql(request)];
+  const collectionVariant =
+    request.input.scope.kind === "collection" &&
+    request.input.scope.variantBitmap
+      ? sql`${request.input.scope.variantBitmap}::roaringbitmap`
+      : null;
+  const parts: SQL[] = [
+    collectionVariant ?? compileIndexableUniverseBitmapSql(request),
+  ];
+  if (terms) parts.push(terms);
   if (request.request.filterPlan.priceRange && !options?.excludePrice) {
     parts.push(
       options?.priceBitmapSql ?? compilePriceVariantBitmapSql(request)
@@ -204,6 +214,8 @@ export function compileProjectedVariantProductsBitmapSql(
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {
   const plan = request.request.filterPlan;
   return (
+    (request.input.scope.kind === "collection" &&
+      !!request.input.scope.variantBitmap) ||
     plan.variantTermGroups.length > 0 ||
     !!plan.priceRange ||
     shouldHideOutOfStock(request)
@@ -327,6 +339,19 @@ function compileVendorBitmapSql(request: ListingSqlRequest): SQL | null {
   )`);
 }
 
+function compileProductStatusBitmapSql(
+  request: ListingSqlRequest,
+): SQL | null {
+  const statuses = request.request.filterPlan.productStatuses;
+  if (statuses.length === 0) return null;
+  return coalesceBitmapSql(sql`(
+    SELECT rb_build_agg(p.product_doc_id)
+    FROM listing.product_listing_index p
+    WHERE p.store_id = ${request.storeId}::uuid
+      AND p.status IN (${joinTextValues(statuses)})
+  )`);
+}
+
 function compileSearchCandidateRowsCte(request: ListingSqlRequest): SQL {
   const contract = request.searchCandidates;
   if (!contract?.rankedCandidateRelationSql) {
@@ -384,6 +409,12 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
           AND p.value_key = ${request.scopeId}
       )`)}
     )`;
+  } else if (request.scopeKind === "collection") {
+    const scope = request.input.scope;
+    if (scope.kind !== "collection" || !scope.productBitmap.trim()) {
+      return emptyRoaringBitmapSql();
+    }
+    scopeBitmap = sql`${scope.productBitmap}::roaringbitmap`;
   } else if (request.scopeKind === "global") {
     scopeBitmap = compilePublishedProductBitmapSql(request);
   } else {

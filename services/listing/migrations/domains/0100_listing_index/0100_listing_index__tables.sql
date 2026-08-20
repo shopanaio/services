@@ -65,6 +65,9 @@ CREATE INDEX idx_product_listing_vendor
   ON listing.product_listing_index (store_id, vendor_id)
   WHERE vendor_id IS NOT NULL;
 
+CREATE INDEX idx_product_listing_created_at
+  ON listing.product_listing_index (store_id, product_created_at, product_doc_id);
+
 CREATE TABLE listing.product_listing_price_index (
   store_id             uuid NOT NULL,
   product_id             uuid NOT NULL,
@@ -295,13 +298,11 @@ CREATE TABLE listing.listing_posting_bitmap (
   PRIMARY KEY (store_id, entity_type, field, value_key),
   CONSTRAINT chk_listing_posting_bitmap_entity_type
     CHECK (entity_type IN ('product', 'variant')),
-  CONSTRAINT chk_listing_posting_bitmap_no_collection_field
-    CHECK (field <> 'collection'),
   CONSTRAINT chk_listing_posting_bitmap_entity_field
     CHECK (
-      (entity_type = 'product' AND field IN ('category', 'vendor', 'facet'))
+      (entity_type = 'product' AND field IN ('category', 'vendor', 'facet', 'collection', 'rule_term'))
       OR
-      (entity_type = 'variant' AND field IN ('term', 'variant_product'))
+      (entity_type = 'variant' AND field IN ('term', 'variant_product', 'rule_term'))
     )
 );
 

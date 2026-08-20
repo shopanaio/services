@@ -35,6 +35,8 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
         return this.productVariant({ id: args.id });
       case GlobalIdEntity.Category:
         return this.category({ id: args.id });
+      case GlobalIdEntity.Collection:
+        return this.collection({ id: args.id });
       case GlobalIdEntity.Option:
         return (await this.$ctx.loaders.productOption.load(decoded.id))
           ? this.resolvers.productOption(decoded.id)
@@ -133,5 +135,29 @@ export class QueryResolver extends CatalogType<Record<string, never>> {
 
   categories(args: QueryCategoriesArgs) {
     return this.resolvers.categoryConnection(args);
+  }
+
+  async collection(args: { id: string }) {
+    let id: string;
+    try {
+      id = this.decodeId(args.id, GlobalIdEntity.Collection);
+    } catch {
+      return null;
+    }
+    const collection =
+      await this.$ctx.kernel.repository.collection.findVisibleById(id);
+    return collection
+      ? this.resolvers.collection(id)
+      : null;
+  }
+
+  async collectionByHandle(args: { handle: string }) {
+    const collection =
+      await this.$ctx.kernel.repository.collection.findVisibleByHandle(
+        args.handle,
+      );
+    return collection
+      ? this.resolvers.collection(collection.id)
+      : null;
   }
 }

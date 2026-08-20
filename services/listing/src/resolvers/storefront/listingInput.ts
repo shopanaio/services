@@ -43,7 +43,7 @@ export function normalizeListingRequest(
   defaults: { locale: string; currency: string }
 ): NormalizedListingRequest {
   const query = normalizeQuery(input.query, input.entryPoint === "search");
-  const availableSorts = resolveAvailableSorts(input.entryPoint, !!query);
+  const availableSorts = resolveAvailableSorts(input, !!query);
   const sort = resolveSort(input, query, availableSorts);
   const scope =
     input.entryPoint === "category"
@@ -51,7 +51,35 @@ export function normalizeListingRequest(
           kind: "category" as const,
           categoryId: requiredCategoryId(input.categoryId),
         }
-      : { kind: "global" as const };
+      : input.entryPoint === "collection"
+        ? {
+            kind: "collection" as const,
+            collectionId: requiredCollectionValue(
+              input.collectionId,
+              "collectionId"
+            ),
+            listingRevision: requiredCollectionRevision(
+              input.collectionListingRevision
+            ),
+            rulesHash: requiredCollectionValue(
+              input.collectionRulesHash,
+              "collectionRulesHash"
+            ),
+            membershipBitmap: requiredCollectionValue(
+              input.collectionMembershipBitmap,
+              "collectionMembershipBitmap"
+            ),
+            productBitmap: requiredCollectionValue(
+              input.collectionProductBitmap,
+              "collectionProductBitmap"
+            ),
+            variantBitmap: input.collectionVariantBitmap,
+            manualSortScopeId:
+              input.collectionType === "manual"
+                ? requiredCollectionValue(input.collectionId, "collectionId")
+                : undefined,
+          }
+        : { kind: "global" as const };
   const locale = defaults.locale.trim();
   const currency = defaults.currency.trim().toUpperCase();
   if (!locale) {
@@ -232,6 +260,10 @@ function resolveSort(
       ? query
         ? ListingSort.Relevance
         : ListingSort.Manual
+      : input.entryPoint === "collection"
+        ? query
+          ? ListingSort.Relevance
+          : input.collectionDefaultSort ?? ListingSort.Newest
       : input.entryPoint === "search"
         ? ListingSort.Relevance
         : ListingSort.Newest;
@@ -246,11 +278,14 @@ function resolveSort(
 }
 
 function resolveAvailableSorts(
-  entryPoint: ProductConnectionInput["entryPoint"],
+  input: ProductConnectionInput,
   hasQuery: boolean
 ): ListingSort[] {
   return [
-    ...(entryPoint === "category" ? [ListingSort.Manual] : []),
+    ...(input.entryPoint === "category" ||
+    (input.entryPoint === "collection" && input.collectionType === "manual")
+      ? [ListingSort.Manual]
+      : []),
     ...(hasQuery ? [ListingSort.Relevance] : []),
     ListingSort.Newest,
     ListingSort.CreatedAt,
@@ -321,6 +356,29 @@ function requiredCategoryId(categoryId: string | undefined): string {
     throw new ListingResolverInputError("Category scope requires categoryId");
   }
   return categoryId;
+}
+
+function requiredCollectionValue(
+  value: string | undefined,
+  field: string,
+): string {
+  if (!value?.trim()) {
+    throw new ListingResolverInputError(
+      `Collection scope requires ${field}`,
+      [field],
+    );
+  }
+  return value;
+}
+
+function requiredCollectionRevision(value: number | undefined): number {
+  if (!Number.isSafeInteger(value) || value! < 0) {
+    throw new ListingResolverInputError(
+      "Collection scope requires a non-negative listing revision",
+      ["collectionListingRevision"],
+    );
+  }
+  return value!;
 }
 
 function decodeVendorId(value: string, field: readonly string[]): string {
