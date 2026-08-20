@@ -73,6 +73,44 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
     expect((await kit.read(pending.checkoutId))?.status).toBe('ABANDONED');
   });
 
+  test('reconciles a due pending provider payment and persists the settled outcome', async () => {
+    const pending = await pendingPlacement(kit, { testReconcileOutcome: 'SUCCEED' });
+    await kit.sql`
+      update payments.payment_session
+      set payload = jsonb_set(
+            payload,
+            '{nextReconcileAt}',
+            to_jsonb(${new Date(Date.now() - 1_000).toISOString()}::text)
+          ),
+          updated_at = now()
+      where id = ${kit.rawId(pending.paymentSessionId)}
+    `;
+
+    await kit.withActionOverrides(
+      [
+        { action: 'payments.executeOperation', mode: 'PASS' },
+        { action: 'inventory.confirmCheckoutInventory', mode: 'PASS' },
+        { action: 'order.publishLoyaltyRewardEligible', mode: 'PASS' },
+      ],
+      async () => {
+        const result = await runMonitor(kit, pending.placementId);
+        expect(result).toMatchObject({ status: 'PAID', placementState: 'PAYMENT_CREATED' });
+        expect(await kit.actionCalls('payments.executeOperation')).toBe(1);
+        expect(await kit.actionCalls('inventory.confirmCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('order.publishLoyaltyRewardEligible')).toBe(1);
+      },
+    );
+
+    expect(await publicPlacement(kit, pending.placementId)).toMatchObject({
+      status: 'PAID',
+      paymentSessionId: pending.paymentSessionId,
+    });
+    const [session] = await kit.sql<{ state: string }[]>`
+      select state from payments.payment_session where id = ${kit.rawId(pending.paymentSessionId)}
+    `;
+    expect(session?.state).toBe('CAPTURED');
+  });
+
   test('expires at the earliest pending-payment deadline and releases inventory once', async () => {
     const pending = await pendingPlacement(kit);
     const [before] = await kit.sql<{ payload: Record<string, unknown> }[]>`
@@ -90,11 +128,13 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
               updated_at = now()
           where id = ${kit.rawId(pending.paymentSessionId)}
         `;
-        const result = await runMonitor(kit, pending.placementId);
-        expect(result).toMatchObject({
+        const first = await runMonitor(kit, pending.placementId);
+        const replay = await runMonitor(kit, pending.placementId);
+        expect(first).toMatchObject({
           status: 'PAYMENT_FAILED',
           paymentFailure: { category: 'TIMEOUT', code: 'PAYMENT_PROVIDER_OPERATION_EXPIRED' },
         });
+        expect(replay).toEqual(first);
         expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
       },
     );
@@ -107,7 +147,10 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
   });
 });
 
-async function pendingPlacement(kit: CheckoutStorefrontTestKit): Promise<Pending> {
+async function pendingPlacement(
+  kit: CheckoutStorefrontTestKit,
+  customerInput?: Record<string, unknown>,
+): Promise<Pending> {
   await kit.configurePaymentProvider(['bank-transfer']);
   const checkout = await kit.created({
     items: [{ purchasableId: await kit.variant({ price: 1_000 }), quantity: 1 }],
@@ -116,6 +159,7 @@ async function pendingPlacement(kit: CheckoutStorefrontTestKit): Promise<Pending
     await kit.mutation('checkoutPaymentMethodUpdate', 'CheckoutPaymentMethodUpdateInput', {
       checkoutId: checkout.id,
       methodHandle: checkout.payment.methods[0]!.handle,
+      customerInput,
     }),
   );
   const response = await kit.graphql<{ placeOrder: Pending & { userErrors: unknown[] } }>(

@@ -1,5 +1,14 @@
-query CollectionRulesPreviewCount($rules: [CollectionRuleInput!]!) {
-  catalogQuery {
-    collectionRulesPreviewCount(rules: $rules)
+mutation CollectionRulesPreviewCount($input: CollectionRulesPreviewCountInput!) {
+  catalogMutation {
+    collectionRulesPreviewCount(input: $input) {
+      count
+      rulesHash
+      indexObservedAt
+      userErrors {
+        message
+        code
+        field
+      }
+    }
   }
 }

@@ -117,9 +117,17 @@ test.describe('Storefront checkout maintenance and retention', () => {
       expect.objectContaining({ operation: 'releaseInventory' }),
     ]);
 
-    const result = await maintain(kit);
+    await kit.withActionOverrides(
+      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      async () => {
+        const result = await maintain(kit);
+        expect(result.compensationsResolved).toBeGreaterThanOrEqual(1);
+        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
 
-    expect(result.compensationsResolved).toBeGreaterThanOrEqual(1);
+        await maintain(kit);
+        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+      },
+    );
     const [recovered] = await kit.sql<{ compensationFailures: unknown[] }[]>`
       select compensation_failures as "compensationFailures"
       from checkout.checkout_placements where checkout_id = ${kit.rawId(checkout.id)}

@@ -25,11 +25,21 @@ query CollectionFindOne($id: ID!) {
       createdAt
       updatedAt
       rules {
+        __typename
         id
         field
-        operator
-        value
         sortIndex
+        referenceStatus
+        ... on CollectionCategoryRule { operator categoryIds }
+        ... on CollectionTagRule { operator tagIds }
+        ... on CollectionVendorRule { vendorIds }
+        ... on CollectionFeatureRule { operator values { sourceHandle valueHandle } }
+        ... on CollectionOptionRule { operator values { sourceHandle valueHandle } }
+        ... on CollectionPriceComparisonRule { operator currencyCode amountMinor }
+        ... on CollectionPriceRangeRule { currencyCode minAmountMinor maxAmountMinor }
+        ... on CollectionInStockRule { value }
+        ... on CollectionCreatedAtComparisonRule { operator instant }
+        ... on CollectionCreatedAtRangeRule { from to }
       }
     }
   }

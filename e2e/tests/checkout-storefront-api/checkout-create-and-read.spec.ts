@@ -115,6 +115,8 @@ test.describe('Storefront checkout creation and reads', () => {
       },
     );
     expect(response.data ?? null).toBeNull();
+    expect(response.errors).toHaveLength(1);
+    expect(response.errors?.[0]?.extensions?.code).toBe('GRAPHQL_VALIDATION_FAILED');
     expect(response.errors?.[0]?.message).toMatch(/sellingPlanId|not defined/iu);
   });
 
@@ -153,21 +155,60 @@ test.describe('Storefront checkout creation and reads', () => {
     );
     expect(malformed.data?.checkout ?? null).toBeNull();
     expect(wrongType.data?.checkout ?? null).toBeNull();
+    expect(malformed.errors).toHaveLength(1);
+    expect(wrongType.errors).toHaveLength(1);
+    expect(malformed.errors?.[0]?.extensions?.code).toBeDefined();
     expect(malformed.errors?.[0]?.extensions?.code).toBe(wrongType.errors?.[0]?.extensions?.code);
+    kit.expectSafe({ malformed: malformed.errors, wrongType: wrongType.errors });
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
-  test('returns ordered issues, notifications, lines, groups, and methods from the committed snapshot', async () => {
-    const first = await kit.variant({ title: 'First line' });
-    const second = await kit.variant({ title: 'Second line' });
-    const checkout = await kit.created({
+  test('returns populated collections in stable committed order across reads', async () => {
+    await kit.configureDelivery({ methodTypes: ['SHIPPING', 'PICK_UP'] });
+    await kit.configurePaymentProvider(['card-3ds', 'bank-transfer', 'card']);
+    const first = await kit.variant({ title: 'First line', requiresShipping: true, stock: 2 });
+    const second = await kit.variant({ title: 'Second line', requiresShipping: true });
+    const created = await kit.created({
       items: [
-        { purchasableId: first, quantity: 1 },
+        { purchasableId: first, quantity: 3 },
         { purchasableId: second, quantity: 1 },
       ],
     });
+    const checkout = kit.expectSuccess(
+      await kit.mutation(
+        'checkoutDeliveryAddressesAdd',
+        'CheckoutDeliveryAddressesAddInput',
+        {
+          checkoutId: created.id,
+          addresses: created.lines.map((line, index) => ({
+            checkoutLineIds: [line.id],
+            address: {
+              firstName: index === 0 ? 'Ada' : 'Grace',
+              lastName: 'Tester',
+              address1: `${index + 1} Test Street`,
+              city: 'Kyiv',
+              countryCode: 'UA',
+              provinceCode: '30',
+              zip: '01001',
+              phone: '+380501234567',
+            },
+          })),
+        },
+      ),
+    );
     const read = await kit.read(checkout.id);
     expect(read).not.toBeNull();
+    expect(checkout.lines.map(({ purchasableId }) => purchasableId)).toEqual([first, second]);
+    expect(checkout.lines.map(({ quantity }) => quantity)).toEqual([2, 1]);
+    expect(checkout.notifications.map(({ code }) => code)).toContain('NOT_ENOUGH_STOCK');
+    expect(
+      checkout.deliveryGroups.map(({ checkoutLines }) => checkoutLines.map(({ id }) => id)),
+    ).toEqual(checkout.lines.map(({ id }) => [id]));
+    expect(checkout.payment.methods.map(({ code }) => code)).toEqual([
+      'test-stripe-bank-transfer',
+      'test-stripe-card',
+      'test-stripe-card-3ds',
+    ]);
     expect(read!.lines.map(({ id }) => id)).toEqual(checkout.lines.map(({ id }) => id));
     expect(read!.issues).toEqual(checkout.issues);
     expect(read!.notifications).toEqual(checkout.notifications);

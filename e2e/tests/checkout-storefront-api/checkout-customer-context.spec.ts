@@ -1,6 +1,10 @@
 import { test } from '@fixtures/base.extend';
 import { expect } from '@playwright/test';
-import { CheckoutStorefrontTestKit, expectRevisionAdvanced } from './checkout-storefront-test-kit';
+import {
+  type Checkout,
+  CheckoutStorefrontTestKit,
+  expectRevisionAdvanced,
+} from './checkout-storefront-test-kit';
 
 test.describe('Storefront checkout customer and context', () => {
   let kit: CheckoutStorefrontTestKit;
@@ -106,7 +110,15 @@ test.describe('Storefront checkout customer and context', () => {
   });
 
   test('updates currency, money projections, and result revision', async () => {
-    const before = await kit.created();
+    const variant = await kit.variant({ price: 1_000 });
+    const { data } = await kit.api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: { input: { variantId: variant, currency: 'EUR', amountMinor: '900' } },
+    });
+    expect(data.catalogMutation.variantUpdatePricing.userErrors).toEqual([]);
+    const before = await kit.created({
+      items: [{ purchasableId: variant, quantity: 2 }],
+    });
+    expect(before.cost.subtotalAmount).toEqual({ amount: 2_000, currencyCode: 'USD' });
     const after = kit.expectSuccess(
       await kit.mutation('checkoutCurrencyCodeUpdate', 'CheckoutCurrencyCodeUpdateInput', {
         checkoutId: before.id,
@@ -114,6 +126,11 @@ test.describe('Storefront checkout customer and context', () => {
       }),
     );
     expect(after.currencyCode).toBe('EUR');
+    expect(after.lines[0]!.cost).toMatchObject({
+      unitPrice: { amount: 900, currencyCode: 'EUR' },
+      subtotalAmount: { amount: 1_800, currencyCode: 'EUR' },
+    });
+    expect(after.cost.subtotalAmount).toEqual({ amount: 1_800, currencyCode: 'EUR' });
     kit.expectCanonicalMoney(after, 'EUR');
     expectRevisionAdvanced(before, after);
   });
@@ -130,7 +147,9 @@ test.describe('Storefront checkout customer and context', () => {
   });
 
   test('preserves billing address independently from delivery destinations', async () => {
-    const checkout = await kit.created();
+    await kit.configureDelivery();
+    const checkout = await checkoutWithDeliveryAddress(kit);
+    const deliveryBefore = checkout.deliveryGroups[0]!.deliveryAddress;
     const updated = kit.expectSuccess(
       await billing(kit, checkout.id, {
         firstName: 'Ada',
@@ -140,9 +159,9 @@ test.describe('Storefront checkout customer and context', () => {
       }),
     );
     expect(updated.billingAddress).toMatchObject({ firstName: 'Ada', city: 'Kyiv' });
-    expect(updated.deliveryGroups.every(({ deliveryAddress }) => deliveryAddress === null)).toBe(
-      true,
-    );
+    expect(updated.deliveryGroups).toHaveLength(1);
+    expect(updated.deliveryGroups[0]!.deliveryAddress).toEqual(deliveryBefore);
+    expect(updated.deliveryGroups[0]!.deliveryAddress).not.toEqual(updated.billingAddress);
   });
 
   test('updates and clears the billing address', async () => {
@@ -159,7 +178,11 @@ test.describe('Storefront checkout customer and context', () => {
   });
 
   test('does not leak customer PII through storefront issues or provider projections', async () => {
-    const checkout = await kit.created();
+    await kit.configurePaymentProvider(['card']);
+    const checkout = await kit.created({
+      items: [{ purchasableId: await kit.variant({ price: 1_000 }), quantity: 1 }],
+    });
+    expect(checkout.payment.methods).toHaveLength(1);
     const secret = `private-${crypto.randomUUID()}@example.test`;
     const updated = kit.expectSuccess(await identity(kit, checkout.id, { email: secret }));
     expect(
@@ -169,6 +192,7 @@ test.describe('Storefront checkout customer and context', () => {
         payment: updated.payment,
       }),
     ).not.toContain(secret);
+    expect(updated.payment.methods).toHaveLength(1);
     kit.expectSafe({ issues: updated.issues, payment: updated.payment });
   });
 
@@ -219,4 +243,36 @@ function billing(
     checkoutId,
     billingAddress,
   });
+}
+
+async function checkoutWithDeliveryAddress(kit: CheckoutStorefrontTestKit): Promise<Checkout> {
+  const checkout = await kit.created({
+    items: [
+      { purchasableId: await kit.variant({ requiresShipping: true }), quantity: 1 },
+    ],
+  });
+  return kit.expectSuccess(
+    await kit.mutation(
+      'checkoutDeliveryAddressesAdd',
+      'CheckoutDeliveryAddressesAddInput',
+      {
+        checkoutId: checkout.id,
+        addresses: [
+          {
+            checkoutLineIds: [checkout.lines[0]!.id],
+            address: {
+              firstName: 'Grace',
+              lastName: 'Hopper',
+              address1: '1 Delivery Street',
+              city: 'Lviv',
+              countryCode: 'UA',
+              provinceCode: '46',
+              zip: '79000',
+              phone: '+380501111111',
+            },
+          },
+        ],
+      },
+    ),
+  );
 }

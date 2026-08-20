@@ -11,7 +11,7 @@ test.describe('Storefront checkout loyalty', () => {
   });
   test.afterEach(async () => kit.close());
 
-  test('shows no loyalty redemption for an anonymous or ineligible customer', async () => {
+  test('shows no loyalty redemption for an anonymous customer', async () => {
     const checkout = await payable(kit);
     expect(checkout.customerIdentity.customer).toBeNull();
     expect(checkout.loyaltyRedemption).toBeNull();
@@ -62,6 +62,11 @@ test.describe('Storefront checkout loyalty', () => {
       }),
     );
     expect(after.loyaltyRewardEntitlementId).toBe(reward.id);
+    const [reservation] = await kit.sql<{ status: string; checkoutId: string | null }[]>`
+      select status, reserved_for_checkout_id as "checkoutId"
+      from loyalty.reward_entitlement where id = ${reward.rawId}
+    `;
+    expect(reservation).toEqual({ status: 'RESERVED', checkoutId: kit.rawId(after.id) });
   });
 
   test('combines a reward entitlement with point redemption when allowed', async () => {
@@ -78,6 +83,19 @@ test.describe('Storefront checkout loyalty', () => {
     );
     expect(after.loyaltyRewardEntitlementId).toBe(reward.id);
     expect(after.loyaltyRedemption?.redeemablePoints).toBe('100');
+    expect(after.loyaltyRedemption?.discount).toEqual({ amount: 100, currencyCode: 'USD' });
+    expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
+      availablePoints: '900',
+      reservedPoints: '100',
+    });
+    const [rewardReservation] = await kit.sql<{ status: string; checkoutId: string | null }[]>`
+      select status, reserved_for_checkout_id as "checkoutId"
+      from loyalty.reward_entitlement where id = ${reward.rawId}
+    `;
+    expect(rewardReservation).toEqual({
+      status: 'RESERVED',
+      checkoutId: kit.rawId(after.id),
+    });
   });
 
   test('rejects expired and unknown reward entitlements', async () => {
@@ -93,11 +111,20 @@ test.describe('Storefront checkout loyalty', () => {
     );
     const checkout = await payable(kit);
     for (const rewardEntitlementId of [expired.id, kit.id('LoyaltyAvailableReward')]) {
-      kit.expectUserError(
+      const rejected = kit.expectSuccess(
         await redeem(kit, checkout.id, { redeemPoints: false, rewardEntitlementId }),
-        /LOYALTY|REWARD|ENTITLEMENT/,
       );
-      expect(await kit.read(checkout.id)).toEqual(checkout);
+      expect(rejected).toMatchObject({ valid: false, status: 'OPEN' });
+      expect(rejected.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'ENTITLEMENT_NOT_AVAILABLE',
+          severity: 'ERROR',
+          effect: 'STOP',
+          retryable: false,
+        }),
+      );
+      expect(rejected.loyaltyRewardEntitlementId).toBeNull();
+      expect(await kit.read(checkout.id)).toEqual(rejected);
     }
   });
 
@@ -136,6 +163,25 @@ test.describe('Storefront checkout loyalty', () => {
     );
     expect(updated.loyaltyRedemption!.revision).not.toBe(selected.loyaltyRedemption!.revision);
     expect(updated.loyaltyRedemption!.payableAfterLoyalty.amount).toBe(1_500);
+
+    const eligibilityUpdated = await kit.withActionOverrides(
+      [{ action: 'customers.resolveCheckoutBuyerEligibility', mode: 'PASS' }],
+      async () => {
+        const result = kit.expectSuccess(
+          await kit.mutation(
+            'checkoutCustomerIdentityUpdate',
+            'CheckoutCustomerIdentityUpdateInput',
+            { checkoutId: checkout.id, countryCode: 'UA' },
+          ),
+        );
+        expect(await kit.actionCalls('customers.resolveCheckoutBuyerEligibility')).toBe(1);
+        return result;
+      },
+    );
+    expect(eligibilityUpdated.loyaltyRedemption!.revision).not.toBe(
+      updated.loyaltyRedemption!.revision,
+    );
+    expect(eligibilityUpdated.loyaltyRedemption!.payableAfterLoyalty.amount).toBe(1_500);
   });
 
   test('expires a loyalty reservation before order placement when its deadline passes', async () => {
@@ -230,15 +276,20 @@ test.describe('Storefront checkout loyalty', () => {
 
   test('rejects zero, negative, disabled, and non-numeric redemption input without committing', async () => {
     const checkout = await payable(kit);
-    for (const input of [
-      { redeemPoints: true, requestedPoints: '0' },
-      { redeemPoints: true, requestedPoints: '-1' },
-      { redeemPoints: false },
-      { redeemPoints: true, requestedPoints: 'not-a-number' },
-    ]) {
+    for (const [input, expectedCode] of [
+      [{ redeemPoints: true, requestedPoints: '0' }, 'LOYALTY_POINTS_INVALID'],
+      [{ redeemPoints: true, requestedPoints: '-1' }, 'LOYALTY_POINTS_INVALID'],
+      [{ redeemPoints: false }, 'LOYALTY_SELECTION_REQUIRED'],
+      [{ redeemPoints: true, requestedPoints: 'not-a-number' }, 'LOYALTY_POINTS_INVALID'],
+    ] as const) {
       const response = await redeemRaw(kit, checkout.id, input);
       expect(response.data ?? null).toBeNull();
-      expect(response.errors).toBeTruthy();
+      expect(response.errors).toEqual([
+        expect.objectContaining({
+          extensions: expect.objectContaining({ code: expectedCode, retryable: false }),
+        }),
+      ]);
+      kit.expectSafe(response.errors);
       expect(await kit.read(checkout.id)).toEqual(checkout);
     }
   });

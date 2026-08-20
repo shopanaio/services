@@ -335,7 +335,13 @@ test.describe('Storefront checkout delivery', () => {
         },
       },
     );
-    expect(response.errors).toBeTruthy();
+    expect(response.data ?? null).toBeNull();
+    expect(response.errors).toEqual([
+      expect.objectContaining({
+        extensions: expect.objectContaining({ code: 'BAD_USER_INPUT' }),
+      }),
+    ]);
+    kit.expectSafe(response.errors);
     expect(await kit.read(selected.id)).toEqual(selected);
   });
 

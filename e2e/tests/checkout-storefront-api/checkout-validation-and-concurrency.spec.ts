@@ -259,7 +259,12 @@ test.describe('Storefront checkout validation and concurrency', () => {
       { input: { checkoutId: checkout.id, lines: [{ lineId: 'bad-id', quantity: 2 }] } },
     );
     expect(response.data ?? null).toBeNull();
-    expect(response.errors).toBeTruthy();
+    expect(response.errors).toEqual([
+      expect.objectContaining({
+        extensions: expect.objectContaining({ code: 'BAD_USER_INPUT' }),
+      }),
+    ]);
+    kit.expectSafe(response.errors);
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
