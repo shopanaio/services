@@ -1,40 +1,115 @@
-# ---- Types of a parent subgraph ----
+"""
+An object addressable by a Relay global ID.
 
+Every ID exposed by Orders encodes both the entity kind and its UUID. Consumers
+must treat the encoded value as opaque.
+"""
 interface Node {
+  """Relay global ID of the object."""
   id: ID!
 }
 
-scalar DateTime
+"""
+Shared pagination contract implemented by Orders connection types.
 
-extend type ApiKey @key(fields: "id") {
-  id: ID! @external
+Admin subgraphs currently use String as the opaque cursor representation.
+"""
+interface Connection {
+  """Metadata required to continue forward or backward pagination."""
+  pageInfo: PageInfo!
+
+  """Total resources matching the filter before pagination."""
+  totalCount: Int!
 }
 
-extend type User @key(fields: "id") {
-  id: ID! @external
+"""Expected mutation error that can be displayed to an authorized Admin user."""
+interface DisplayableError {
+  """Path to the invalid input field, or null for an aggregate-level error."""
+  field: [String!]
+
+  """Human-readable error explanation."""
+  message: String!
 }
 
-extend type Customer @key(fields: "id") {
-  id: ID! @external
+"""Relay pagination metadata shared with the other Admin subgraphs."""
+type PageInfo @shareable {
+  """Whether another page exists after endCursor."""
+  hasNextPage: Boolean!
+
+  """Whether another page exists before startCursor."""
+  hasPreviousPage: Boolean!
+
+  """Opaque cursor of the first edge, or null for an empty page."""
+  startCursor: String
+
+  """Opaque cursor of the last edge, or null for an empty page."""
+  endCursor: String
 }
 
-extend type Label @key(fields: "id") {
-  id: ID! @external
+"""
+Exact monetary value.
+
+amount is an arbitrary-precision decimal string at the GraphQL boundary; Orders
+stores validated amounts in integer minor units.
+"""
+type Money @shareable {
+  """Exact decimal amount serialized as a string."""
+  amount: Decimal!
+
+  """ISO 4217 currency code."""
+  currencyCode: CurrencyCode!
 }
 
-extend type Tag @key(fields: "id") {
-  id: ID! @external
-}
+"""Physical weight expressed in a supported measurement unit."""
+type Weight @shareable {
+  """Numeric weight in unit."""
+  value: Float!
 
-type Weight {
-  weight: Float!
+  """Unit used by value."""
   unit: WeightUnit!
 }
 
-type CollectionMeta {
-  page: Int! @shareable
-  pageSize: Int! @shareable
-  count: Int! @shareable
-  total: Int! @shareable
-  pageCount: Int! @shareable
+"""Physical package dimensions expressed in one length unit."""
+type Dimensions @shareable {
+  """Package width in unit."""
+  width: Float!
+
+  """Package height in unit."""
+  height: Float!
+
+  """Package length in unit."""
+  length: Float!
+
+  """Unit shared by width, height, and length."""
+  unit: DimensionUnit!
 }
+
+# Federated API credential reference for an activity actor.
+# The Admin supergraph currently exposes this entity through Orders.
+extend type ApiKey @key(fields: "id") {
+  """Federated ApiKey ID."""
+  id: ID! @external
+}
+
+# Federated IAM user reference used for staff activity actors.
+extend type User @key(fields: "id", resolvable: false) {
+  """Federated User ID."""
+  id: ID! @external
+}
+
+# Federated Customers reference attached to the current order projection.
+extend type Customer @key(fields: "id", resolvable: false) {
+  """Federated Customer ID."""
+  id: ID! @external
+}
+
+# Federated Checkout reference for placement provenance.
+# Checkout has no Admin read surface yet, so Orders exposes only the entity
+# reference and its immutable placement projection.
+extend type Checkout @key(fields: "id") {
+  """Federated Checkout ID."""
+  id: ID! @external
+}
+
+"""An ISO 8601 date-time string."""
+scalar DateTime

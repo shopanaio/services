@@ -1,99 +1,3631 @@
+extend type Query {
+  """Entry point for all store-scoped Orders Admin reads."""
+  ordersQuery: OrdersQuery!
+}
+
+extend type Mutation {
+  """Entry point for all store-scoped Orders Admin commands."""
+  ordersMutation: OrdersMutation!
+}
+
+"""Read namespace for the Orders Admin API."""
+type OrdersQuery {
+  """
+  Find an order by Relay global ID in the current store; inaccessible resources resolve to null.
+  """
+  order(
+    """Relay global ID of this resource."""
+    id: ID!
+  ): Order
+  """Find an order by its store-local number."""
+  orderByNumber(
+    """Store-local order number serialized without precision loss."""
+    number: BigInt!
+  ): Order
+  """
+  List current-store orders with Relay pagination, composable filters, and deterministic sorting.
+  """
+  orders(
+    """Validated input value for first."""
+    first: Int = 20
+    """Validated input value for after."""
+    after: String
+    """Validated input value for last."""
+    last: Int
+    """Validated input value for before."""
+    before: String
+    """Validated input value for where."""
+    where: OrderWhereInput
+    """Validated input value for order by."""
+    orderBy: [OrderOrderByInput!]
+  ): OrderConnection!
+  """Find a staged order edit by Relay global ID."""
+  orderEditSession(
+    """Relay global ID of this resource."""
+    id: ID!
+  ): OrderEditSession
+  """Find a durable operation for workflow polling."""
+  orderOperation(
+    """Relay global ID of this resource."""
+    id: ID!
+  ): OrderOperation
+}
+
+"""Command namespace. Every command is store-scoped from trusted context."""
+type OrdersMutation {
+  """Create an idempotent DRAFT order and calculate all totals server-side."""
+  orderCreate(
+    """Validated input value for input."""
+    input: OrderCreateInput!
+  ): OrderPayload!
+  """
+  Update editable order details without directly overwriting derived aggregate statuses.
+  """
+  orderUpdate(
+    """Validated input value for input."""
+    input: OrderUpdateInput!
+  ): OrderPayload!
+  """
+  Permanently delete a DRAFT order; placed orders are never physically deleted.
+  """
+  orderDelete(
+    """Validated input value for input."""
+    input: OrderDeleteInput!
+  ): OrderDeletePayload!
+  """Validate and transition a DRAFT order to OPEN."""
+  orderCompleteDraft(
+    """Validated input value for input."""
+    input: OrderCompleteDraftInput!
+  ): OrderPayload!
+  """
+  Start durable cancellation across fulfillment, payment, inventory, and notifications.
+  """
+  orderCancel(
+    """Validated input value for input."""
+    input: OrderCancelInput!
+  ): OrderOperationPayload!
+  """Close an eligible OPEN order."""
+  orderClose(
+    """Validated input value for input."""
+    input: OrderCloseInput!
+  ): OrderPayload!
+  """Reopen an eligible CLOSED order."""
+  orderReopen(
+    """Validated input value for input."""
+    input: OrderReopenInput!
+  ): OrderPayload!
+  """Archive an order without changing lifecycle status."""
+  orderArchive(
+    """Validated input value for input."""
+    input: OrderArchiveInput!
+  ): OrderPayload!
+  """Remove the archive marker without changing lifecycle status."""
+  orderUnarchive(
+    """Validated input value for input."""
+    input: OrderUnarchiveInput!
+  ): OrderPayload!
+  """
+  Attach or detach the federated customer reference while preserving historical contact snapshots.
+  """
+  orderCustomerSet(
+    """Validated input value for input."""
+    input: OrderCustomerSetInput!
+  ): OrderPayload!
+  """Replace normalized tags and append an immutable audit event."""
+  orderTagsUpdate(
+    """Validated input value for input."""
+    input: OrderTagsUpdateInput!
+  ): OrderPayload!
+  """
+  Update the current staff-only note and append an immutable audit event.
+  """
+  orderAdminNoteUpdate(
+    """Validated input value for input."""
+    input: OrderAdminNoteUpdateInput!
+  ): OrderPayload!
+  """
+  Append a staff or customer-visible comment to the immutable activity timeline.
+  """
+  orderCommentAdd(
+    """Validated input value for input."""
+    input: OrderCommentAddInput!
+  ): OrderActivityPayload!
+  """
+  Replace validated merchant custom fields without storing core business facts in JSON.
+  """
+  orderCustomFieldsUpdate(
+    """Validated input value for input."""
+    input: OrderCustomFieldsUpdateInput!
+  ): OrderPayload!
+  """Add a line directly to a DRAFT order and recalculate totals."""
+  orderLineAdd(
+    """Validated input value for input."""
+    input: OrderLineAddInput!
+  ): OrderLinePayload!
+  """Update an editable DRAFT line and recalculate totals."""
+  orderLineUpdate(
+    """Validated input value for input."""
+    input: OrderLineUpdateInput!
+  ): OrderLinePayload!
+  """Delete a line directly from a DRAFT order."""
+  orderLineDelete(
+    """Validated input value for input."""
+    input: OrderLineDeleteInput!
+  ): OrderDeletePayload!
+  """Begin an isolated staged edit of an OPEN order."""
+  orderEditBegin(
+    """Validated input value for input."""
+    input: OrderEditBeginInput!
+  ): OrderEditPayload!
+  """
+  Add a proposed line to a staged edit and refresh its calculated preview.
+  """
+  orderEditLineAdd(
+    """Validated input value for input."""
+    input: OrderEditLineAddInput!
+  ): OrderEditPayload!
+  """
+  Update a proposed line in a staged edit and refresh its calculated preview.
+  """
+  orderEditLineUpdate(
+    """Validated input value for input."""
+    input: OrderEditLineUpdateInput!
+  ): OrderEditPayload!
+  """Remove a proposed line without mutating the committed order."""
+  orderEditLineRemove(
+    """Validated input value for input."""
+    input: OrderEditLineRemoveInput!
+  ): OrderEditPayload!
+  """Update proposed delivery details in a staged edit."""
+  orderEditShippingUpdate(
+    """Validated input value for input."""
+    input: OrderEditShippingUpdateInput!
+  ): OrderEditPayload!
+  """Add a reasoned manual discount to a staged edit."""
+  orderEditDiscountAdd(
+    """Validated input value for input."""
+    input: OrderEditDiscountAddInput!
+  ): OrderEditPayload!
+  """Remove a proposed discount from a staged edit."""
+  orderEditDiscountRemove(
+    """Validated input value for input."""
+    input: OrderEditDiscountRemoveInput!
+  ): OrderEditPayload!
+  """Durably commit a staged edit after verifying edit and order revisions."""
+  orderEditCommit(
+    """Validated input value for input."""
+    input: OrderEditCommitInput!
+  ): OrderOperationPayload!
+  """Abandon an uncommitted staged edit."""
+  orderEditAbandon(
+    """Validated input value for input."""
+    input: OrderEditAbandonInput!
+  ): OrderEditPayload!
+  """Record an audited offline or imported payment fact."""
+  orderManualPaymentRecord(
+    """Validated input value for input."""
+    input: OrderManualPaymentRecordInput!
+  ): OrderOperationPayload!
+  """Start durable capture of an eligible authorization."""
+  orderPaymentCapture(
+    """Validated input value for input."""
+    input: OrderPaymentCaptureInput!
+  ): OrderOperationPayload!
+  """Start durable voiding of an eligible authorization or transaction."""
+  orderPaymentVoid(
+    """Validated input value for input."""
+    input: OrderPaymentVoidInput!
+  ): OrderOperationPayload!
+  """Start a new payment attempt without rewriting previous attempts."""
+  orderPaymentRetry(
+    """Validated input value for input."""
+    input: OrderPaymentRetryInput!
+  ): OrderOperationPayload!
+  """Start a durable refund with optional line and transaction allocations."""
+  orderRefundCreate(
+    """Validated input value for input."""
+    input: OrderRefundCreateInput!
+  ): OrderOperationPayload!
+  """
+  Apply an elevated override only to offline or imported facts with a mandatory reason.
+  """
+  orderPaymentStatusOverride(
+    """Validated input value for input."""
+    input: OrderPaymentStatusOverrideInput!
+  ): OrderPayload!
+  """Split selected remaining quantities into a new fulfillment work unit."""
+  fulfillmentOrderSplit(
+    """Validated input value for input."""
+    input: FulfillmentOrderSplitInput!
+  ): FulfillmentOrderPayload!
+  """
+  Move fulfillment work to another location or pinned fulfillment-service route.
+  """
+  fulfillmentOrderMove(
+    """Validated input value for input."""
+    input: FulfillmentOrderMoveInput!
+  ): FulfillmentOrderPayload!
+  """Place a reasoned hold on fulfillment work."""
+  fulfillmentOrderHold(
+    """Validated input value for input."""
+    input: FulfillmentOrderHoldInput!
+  ): FulfillmentOrderPayload!
+  """Release one fulfillment hold after optimistic concurrency validation."""
+  fulfillmentOrderReleaseHold(
+    """Validated input value for input."""
+    input: FulfillmentOrderReleaseHoldInput!
+  ): FulfillmentOrderPayload!
+  """Submit fulfillment work through its pinned fulfillment service."""
+  fulfillmentOrderSubmit(
+    """Validated input value for input."""
+    input: FulfillmentOrderSubmitInput!
+  ): OrderOperationPayload!
+  """Request cancellation from the pinned fulfillment service."""
+  fulfillmentOrderCancelRequest(
+    """Validated input value for input."""
+    input: FulfillmentOrderCancelRequestInput!
+  ): OrderOperationPayload!
+  """Create merchant-managed fulfillment facts for allocated quantities."""
+  fulfillmentCreate(
+    """Validated input value for input."""
+    input: FulfillmentCreateInput!
+  ): FulfillmentPayload!
+  """Start durable fulfillment cancellation and optional restocking."""
+  fulfillmentCancel(
+    """Validated input value for input."""
+    input: FulfillmentCancelInput!
+  ): OrderOperationPayload!
+  """Start merchant-managed or provider-managed physical shipment creation."""
+  shipmentCreate(
+    """Validated input value for input."""
+    input: ShipmentCreateInput!
+  ): OrderOperationPayload!
+  """Replace merchant-managed tracking details."""
+  shipmentTrackingUpdate(
+    """Validated input value for input."""
+    input: ShipmentTrackingUpdateInput!
+  ): ShipmentPayload!
+  """Record physical handoff of a shipment."""
+  shipmentMarkShipped(
+    """Validated input value for input."""
+    input: ShipmentMarkShippedInput!
+  ): ShipmentPayload!
+  """Record confirmed physical delivery."""
+  shipmentMarkDelivered(
+    """Validated input value for input."""
+    input: ShipmentMarkDeliveredInput!
+  ): ShipmentPayload!
+  """Start durable cancellation of an eligible shipment."""
+  shipmentCancel(
+    """Validated input value for input."""
+    input: ShipmentCancelInput!
+  ): OrderOperationPayload!
+  """Reconcile shipment state through its pinned provider route."""
+  shipmentReconcile(
+    """Validated input value for input."""
+    input: ShipmentReconcileInput!
+  ): OrderOperationPayload!
+  """Create a return request for currently returnable quantities."""
+  orderReturnCreate(
+    """Validated input value for input."""
+    input: OrderReturnCreateInput!
+  ): OrderReturnPayload!
+  """Approve a return and optionally request a return shipment."""
+  orderReturnApprove(
+    """Validated input value for input."""
+    input: OrderReturnApproveInput!
+  ): OrderReturnPayload!
+  """Reject a return with a stable reason code."""
+  orderReturnReject(
+    """Validated input value for input."""
+    input: OrderReturnRejectInput!
+  ): OrderReturnPayload!
+  """Cancel an eligible return request."""
+  orderReturnCancel(
+    """Validated input value for input."""
+    input: OrderReturnCancelInput!
+  ): OrderReturnPayload!
+  """
+  Start durable receipt, disposition, restocking, and optional refund processing.
+  """
+  orderReturnReceive(
+    """Validated input value for input."""
+    input: OrderReturnReceiveInput!
+  ): OrderOperationPayload!
+  """
+  Create an exchange from eligible inbound quantities and replacement lines.
+  """
+  orderExchangeCreate(
+    """Validated input value for input."""
+    input: OrderExchangeCreateInput!
+  ): OrderExchangePayload!
+  """Cancel an eligible exchange."""
+  orderExchangeCancel(
+    """Validated input value for input."""
+    input: OrderExchangeCancelInput!
+  ): OrderExchangePayload!
+  """
+  Request asynchronous synchronization through a pinned integration link.
+  """
+  orderIntegrationSyncRequest(
+    """Validated input value for input."""
+    input: OrderIntegrationSyncRequestInput!
+  ): OrderOperationPayload!
+  """
+  Retry a failed integration operation without changing its pinned route.
+  """
+  orderIntegrationSyncRetry(
+    """Validated input value for input."""
+    input: OrderIntegrationSyncRetryInput!
+  ): OrderOperationPayload!
+  """
+  Detach an integration link while preserving synchronization and audit history.
+  """
+  orderIntegrationLinkDetach(
+    """Validated input value for input."""
+    input: OrderIntegrationLinkDetachInput!
+  ): OrderPayload!
+  """
+  Start a durable bulk action over an explicit or filtered order selection.
+  """
+  ordersBulkAction(
+    """Validated input value for input."""
+    input: OrdersBulkActionInput!
+  ): OrderOperationPayload!
+}
+
+"""Closed set of order status values used by Orders Admin API."""
 enum OrderStatus {
+  """Draft value of order status."""
   DRAFT
-  ACTIVE
+  """Open value of order status."""
+  OPEN
+  """Closed value of order status."""
   CLOSED
+  """Cancelled value of order status."""
   CANCELLED
 }
 
-union OrderActor = User | ApiKey
-
-type OrderCustomerIdentity {
-  customer: Customer
-  email: Email
-  phone: String
-  countryCode: CountryCode
-  data: JSON
+"""Closed set of order payment status values used by Orders Admin API."""
+enum OrderPaymentStatus {
+  """Not required value of order payment status."""
+  NOT_REQUIRED
+  """Pending value of order payment status."""
+  PENDING
+  """Authorized value of order payment status."""
+  AUTHORIZED
+  """Partially paid value of order payment status."""
+  PARTIALLY_PAID
+  """Paid value of order payment status."""
+  PAID
+  """Partially refunded value of order payment status."""
+  PARTIALLY_REFUNDED
+  """Refunded value of order payment status."""
+  REFUNDED
+  """Voided value of order payment status."""
+  VOIDED
+  """Expired value of order payment status."""
+  EXPIRED
+  """Failed value of order payment status."""
+  FAILED
 }
 
-type Order {
+"""
+Closed set of order fulfillment status values used by Orders Admin API.
+"""
+enum OrderFulfillmentStatus {
+  """Unfulfilled value of order fulfillment status."""
+  UNFULFILLED
+  """Scheduled value of order fulfillment status."""
+  SCHEDULED
+  """On hold value of order fulfillment status."""
+  ON_HOLD
+  """Partially fulfilled value of order fulfillment status."""
+  PARTIALLY_FULFILLED
+  """Fulfilled value of order fulfillment status."""
+  FULFILLED
+  """Cancelled value of order fulfillment status."""
+  CANCELLED
+}
+
+"""Closed set of order delivery status values used by Orders Admin API."""
+enum OrderDeliveryStatus {
+  """Not shipped value of order delivery status."""
+  NOT_SHIPPED
+  """Partially shipped value of order delivery status."""
+  PARTIALLY_SHIPPED
+  """Shipped value of order delivery status."""
+  SHIPPED
+  """In transit value of order delivery status."""
+  IN_TRANSIT
+  """Out for delivery value of order delivery status."""
+  OUT_FOR_DELIVERY
+  """Delivered value of order delivery status."""
+  DELIVERED
+  """Delivery attempted value of order delivery status."""
+  DELIVERY_ATTEMPTED
+  """Delayed value of order delivery status."""
+  DELAYED
+  """Exception value of order delivery status."""
+  EXCEPTION
+  """Returned to sender value of order delivery status."""
+  RETURNED_TO_SENDER
+  """Cancelled value of order delivery status."""
+  CANCELLED
+}
+
+"""Closed set of order return status values used by Orders Admin API."""
+enum OrderReturnStatus {
+  """None value of order return status."""
+  NONE
+  """Requested value of order return status."""
+  REQUESTED
+  """Partially returned value of order return status."""
+  PARTIALLY_RETURNED
+  """Returned value of order return status."""
+  RETURNED
+}
+
+"""Closed set of order risk level values used by Orders Admin API."""
+enum OrderRiskLevel {
+  """None value of order risk level."""
+  NONE
+  """Low value of order risk level."""
+  LOW
+  """Medium value of order risk level."""
+  MEDIUM
+  """High value of order risk level."""
+  HIGH
+}
+
+"""Closed set of order origin values used by Orders Admin API."""
+enum OrderOrigin {
+  """Checkout value of order origin."""
+  CHECKOUT
+  """Admin value of order origin."""
+  ADMIN
+  """Api value of order origin."""
+  API
+  """Import value of order origin."""
+  IMPORT
+  """Marketplace value of order origin."""
+  MARKETPLACE
+  """Crm value of order origin."""
+  CRM
+}
+
+"""Closed set of order placement status values used by Orders Admin API."""
+enum OrderPlacementStatus {
+  """Awaiting finalization value of order placement status."""
+  AWAITING_FINALIZATION
+  """Confirmed value of order placement status."""
+  CONFIRMED
+  """Failed value of order placement status."""
+  FAILED
+}
+
+"""Closed set of order actor type values used by Orders Admin API."""
+enum OrderActorType {
+  """User value of order actor type."""
+  USER
+  """Api key value of order actor type."""
+  API_KEY
+  """Customer value of order actor type."""
+  CUSTOMER
+  """App value of order actor type."""
+  APP
+  """System value of order actor type."""
+  SYSTEM
+}
+
+"""Closed set of order action values used by Orders Admin API."""
+enum OrderAction {
+  """Update details value of order action."""
+  UPDATE_DETAILS
+  """Edit lines value of order action."""
+  EDIT_LINES
+  """Complete draft value of order action."""
+  COMPLETE_DRAFT
+  """Cancel value of order action."""
+  CANCEL
+  """Close value of order action."""
+  CLOSE
+  """Reopen value of order action."""
+  REOPEN
+  """Archive value of order action."""
+  ARCHIVE
+  """Unarchive value of order action."""
+  UNARCHIVE
+  """Record manual payment value of order action."""
+  RECORD_MANUAL_PAYMENT
+  """Capture payment value of order action."""
+  CAPTURE_PAYMENT
+  """Void payment value of order action."""
+  VOID_PAYMENT
+  """Refund value of order action."""
+  REFUND
+  """Retry payment value of order action."""
+  RETRY_PAYMENT
+  """Create fulfillment value of order action."""
+  CREATE_FULFILLMENT
+  """Create return value of order action."""
+  CREATE_RETURN
+  """Create exchange value of order action."""
+  CREATE_EXCHANGE
+  """Request integration sync value of order action."""
+  REQUEST_INTEGRATION_SYNC
+}
+
+"""
+Closed set of order payment transaction kind values used by Orders Admin API.
+"""
+enum OrderPaymentTransactionKind {
+  """Authorization value of order payment transaction kind."""
+  AUTHORIZATION
+  """Capture value of order payment transaction kind."""
+  CAPTURE
+  """Sale value of order payment transaction kind."""
+  SALE
+  """Refund value of order payment transaction kind."""
+  REFUND
+  """Void value of order payment transaction kind."""
+  VOID
+  """Manual value of order payment transaction kind."""
+  MANUAL
+  """Adjustment value of order payment transaction kind."""
+  ADJUSTMENT
+}
+
+"""
+Closed set of order payment transaction status values used by Orders Admin API.
+"""
+enum OrderPaymentTransactionStatus {
+  """Pending value of order payment transaction status."""
+  PENDING
+  """Success value of order payment transaction status."""
+  SUCCESS
+  """Failure value of order payment transaction status."""
+  FAILURE
+  """Cancelled value of order payment transaction status."""
+  CANCELLED
+}
+
+"""
+Closed set of fulfillment order status values used by Orders Admin API.
+"""
+enum FulfillmentOrderStatus {
+  """Open value of fulfillment order status."""
+  OPEN
+  """Scheduled value of fulfillment order status."""
+  SCHEDULED
+  """On hold value of fulfillment order status."""
+  ON_HOLD
+  """In progress value of fulfillment order status."""
+  IN_PROGRESS
+  """Closed value of fulfillment order status."""
+  CLOSED
+  """Cancelled value of fulfillment order status."""
+  CANCELLED
+}
+
+"""
+Closed set of fulfillment request status values used by Orders Admin API.
+"""
+enum FulfillmentRequestStatus {
+  """Unsubmitted value of fulfillment request status."""
+  UNSUBMITTED
+  """Submitted value of fulfillment request status."""
+  SUBMITTED
+  """Accepted value of fulfillment request status."""
+  ACCEPTED
+  """Rejected value of fulfillment request status."""
+  REJECTED
+  """Cancellation requested value of fulfillment request status."""
+  CANCELLATION_REQUESTED
+  """Cancellation accepted value of fulfillment request status."""
+  CANCELLATION_ACCEPTED
+  """Cancellation rejected value of fulfillment request status."""
+  CANCELLATION_REJECTED
+}
+
+"""Closed set of fulfillment status values used by Orders Admin API."""
+enum FulfillmentStatus {
+  """Pending value of fulfillment status."""
+  PENDING
+  """Open value of fulfillment status."""
+  OPEN
+  """Success value of fulfillment status."""
+  SUCCESS
+  """Failure value of fulfillment status."""
+  FAILURE
+  """Cancelled value of fulfillment status."""
+  CANCELLED
+}
+
+"""Closed set of shipment status values used by Orders Admin API."""
+enum ShipmentStatus {
+  """Draft value of shipment status."""
+  DRAFT
+  """Label created value of shipment status."""
+  LABEL_CREATED
+  """Ready for pickup value of shipment status."""
+  READY_FOR_PICKUP
+  """Picked up value of shipment status."""
+  PICKED_UP
+  """In transit value of shipment status."""
+  IN_TRANSIT
+  """Out for delivery value of shipment status."""
+  OUT_FOR_DELIVERY
+  """Delivered value of shipment status."""
+  DELIVERED
+  """Delivery attempted value of shipment status."""
+  DELIVERY_ATTEMPTED
+  """Delayed value of shipment status."""
+  DELAYED
+  """Exception value of shipment status."""
+  EXCEPTION
+  """Returned to sender value of shipment status."""
+  RETURNED_TO_SENDER
+  """Cancelled value of shipment status."""
+  CANCELLED
+}
+
+"""
+Closed set of order return request status values used by Orders Admin API.
+"""
+enum OrderReturnRequestStatus {
+  """Requested value of order return request status."""
+  REQUESTED
+  """Approved value of order return request status."""
+  APPROVED
+  """Rejected value of order return request status."""
+  REJECTED
+  """Cancelled value of order return request status."""
+  CANCELLED
+  """In transit value of order return request status."""
+  IN_TRANSIT
+  """Received value of order return request status."""
+  RECEIVED
+  """Completed value of order return request status."""
+  COMPLETED
+}
+
+"""Closed set of order exchange status values used by Orders Admin API."""
+enum OrderExchangeStatus {
+  """Requested value of order exchange status."""
+  REQUESTED
+  """Open value of order exchange status."""
+  OPEN
+  """Completed value of order exchange status."""
+  COMPLETED
+  """Cancelled value of order exchange status."""
+  CANCELLED
+}
+
+"""Closed set of order refund status values used by Orders Admin API."""
+enum OrderRefundStatus {
+  """Pending value of order refund status."""
+  PENDING
+  """Succeeded value of order refund status."""
+  SUCCEEDED
+  """Failed value of order refund status."""
+  FAILED
+  """Cancelled value of order refund status."""
+  CANCELLED
+}
+
+"""Closed set of order operation kind values used by Orders Admin API."""
+enum OrderOperationKind {
+  """Order cancel value of order operation kind."""
+  ORDER_CANCEL
+  """Order edit commit value of order operation kind."""
+  ORDER_EDIT_COMMIT
+  """Payment capture value of order operation kind."""
+  PAYMENT_CAPTURE
+  """Payment void value of order operation kind."""
+  PAYMENT_VOID
+  """Payment refund value of order operation kind."""
+  PAYMENT_REFUND
+  """Payment retry value of order operation kind."""
+  PAYMENT_RETRY
+  """Fulfillment submit value of order operation kind."""
+  FULFILLMENT_SUBMIT
+  """Fulfillment cancel value of order operation kind."""
+  FULFILLMENT_CANCEL
+  """Shipment create value of order operation kind."""
+  SHIPMENT_CREATE
+  """Shipment cancel value of order operation kind."""
+  SHIPMENT_CANCEL
+  """Shipment reconcile value of order operation kind."""
+  SHIPMENT_RECONCILE
+  """Return receive value of order operation kind."""
+  RETURN_RECEIVE
+  """Integration sync value of order operation kind."""
+  INTEGRATION_SYNC
+  """Bulk action value of order operation kind."""
+  BULK_ACTION
+}
+
+"""Closed set of order operation status values used by Orders Admin API."""
+enum OrderOperationStatus {
+  """Pending value of order operation status."""
+  PENDING
+  """Running value of order operation status."""
+  RUNNING
+  """Succeeded value of order operation status."""
+  SUCCEEDED
+  """Failed value of order operation status."""
+  FAILED
+  """Cancelled value of order operation status."""
+  CANCELLED
+}
+
+"""Closed set of order integration kind values used by Orders Admin API."""
+enum OrderIntegrationKind {
+  """Crm value of order integration kind."""
+  CRM
+  """Erp value of order integration kind."""
+  ERP
+  """Marketplace value of order integration kind."""
+  MARKETPLACE
+  """Wms value of order integration kind."""
+  WMS
+  """Analytics value of order integration kind."""
+  ANALYTICS
+}
+
+"""
+Closed set of order integration sync status values used by Orders Admin API.
+"""
+enum OrderIntegrationSyncStatus {
+  """Never synced value of order integration sync status."""
+  NEVER_SYNCED
+  """Pending value of order integration sync status."""
+  PENDING
+  """Synced value of order integration sync status."""
+  SYNCED
+  """Out of sync value of order integration sync status."""
+  OUT_OF_SYNC
+  """Failed value of order integration sync status."""
+  FAILED
+  """Disabled value of order integration sync status."""
+  DISABLED
+}
+
+"""Closed set of order sync direction values used by Orders Admin API."""
+enum OrderSyncDirection {
+  """Export value of order sync direction."""
+  EXPORT
+  """Import value of order sync direction."""
+  IMPORT
+  """Bidirectional value of order sync direction."""
+  BIDIRECTIONAL
+}
+
+"""Closed set of orders bulk action kind values used by Orders Admin API."""
+enum OrdersBulkActionKind {
+  """Archive value of orders bulk action kind."""
+  ARCHIVE
+  """Unarchive value of orders bulk action kind."""
+  UNARCHIVE
+  """Add tags value of orders bulk action kind."""
+  ADD_TAGS
+  """Remove tags value of orders bulk action kind."""
+  REMOVE_TAGS
+  """Cancel value of orders bulk action kind."""
+  CANCEL
+  """Request integration sync value of orders bulk action kind."""
+  REQUEST_INTEGRATION_SYNC
+}
+
+"""Closed set of order sort field values used by Orders Admin API."""
+enum OrderSortField {
+  """Number value of order sort field."""
+  NUMBER
+  """Customer name value of order sort field."""
+  CUSTOMER_NAME
+  """Total amount value of order sort field."""
+  TOTAL_AMOUNT
+  """Status value of order sort field."""
+  STATUS
+  """Payment status value of order sort field."""
+  PAYMENT_STATUS
+  """Fulfillment status value of order sort field."""
+  FULFILLMENT_STATUS
+  """Delivery status value of order sort field."""
+  DELIVERY_STATUS
+  """Created at value of order sort field."""
+  CREATED_AT
+  """Updated at value of order sort field."""
+  UPDATED_AT
+  """Placed at value of order sort field."""
+  PLACED_AT
+}
+
+"""Closed set of sort direction values used by Orders Admin API."""
+enum OrderSortDirection {
+  """Asc value of sort direction."""
+  ASC
+  """Desc value of sort direction."""
+  DESC
+}
+
+"""
+Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts.
+"""
+type Order implements Node @key(fields: "id") {
+  """Relay global ID of this resource."""
   id: ID!
-  createdBy: OrderActor!
-  status: OrderStatus!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Store-local order number serialized without precision loss."""
   number: BigInt!
-  # Currency
-  currencyCode: String!
-  # Amounts
-  subtotal: BigInt!
-  shippingTotal: BigInt
-  discountTotal: BigInt
-  taxTotal: BigInt
-  grandTotal: BigInt!
-  # customerId: ID
-  customerIdentity: OrderCustomerIdentity!
-  customerStatistic: OrderCustomerStatistic!
-  adminNote: String
-  customerNote: String
-  # Tags
-  tags: [Tag!]!
-  labels: [Label!]!
-  # Order items
+  """Current lifecycle or derived projection status."""
+  status: OrderStatus!
+  """Current payment status."""
+  paymentStatus: OrderPaymentStatus!
+  """Current fulfillment status."""
+  fulfillmentStatus: OrderFulfillmentStatus!
+  """Current delivery status."""
+  deliveryStatus: OrderDeliveryStatus!
+  """Current return status."""
+  returnStatus: OrderReturnStatus!
+  """Projected value for risk level."""
+  riskLevel: OrderRiskLevel!
+  """Projected value for available actions."""
+  availableActions: [OrderAction!]!
+  """Projected value for origin."""
+  origin: OrderOrigin!
+  """Projected value for source."""
+  source: OrderSource
+  """Projected value for checkout."""
+  checkout: Checkout
+  """Projected value for checkout placement."""
+  checkoutPlacement: OrderCheckoutPlacement
+  """Projected value for customer."""
+  customer: Customer
+  """Projected value for customer snapshot."""
+  customerSnapshot: OrderCustomerSnapshot!
+  """Projected value for contact."""
+  contact: OrderContact!
+  """Projected value for billing address."""
+  billingAddress: OrderAddress
+  """Projected value for shipping address."""
+  shippingAddress: OrderAddress
+  """Stable locale code."""
+  localeCode: LocaleCode
+  """ISO 4217 currency code."""
+  currencyCode: CurrencyCode!
+  """Projected value for cost."""
+  cost: OrderCost!
+  """Projected total quantity."""
+  totalQuantity: Int!
+  """Projected value for lines."""
   lines: [OrderLine!]!
+  """Projected value for discounts."""
+  discounts: [OrderDiscount!]!
+  """Projected value for tax lines."""
+  taxLines: [OrderTaxLine!]!
+  """Projected value for delivery groups."""
+  deliveryGroups: [OrderDeliveryGroup!]!
+  """Projected value for payment."""
+  payment: OrderPayment!
+  """Projected value for fulfillment orders."""
+  fulfillmentOrders: [FulfillmentOrder!]!
+  """Projected value for fulfillments."""
+  fulfillments: [Fulfillment!]!
+  """Projected value for shipments."""
+  shipments: [Shipment!]!
+  """Projected value for returns."""
+  returns(
+    """Validated input value for first."""
+    first: Int = 20
+    """Validated input value for after."""
+    after: String
+  ): OrderReturnConnection!
+  """Projected value for exchanges."""
+  exchanges(
+    """Validated input value for first."""
+    first: Int = 20
+    """Validated input value for after."""
+    after: String
+  ): OrderExchangeConnection!
+  """Projected value for refunds."""
+  refunds(
+    """Validated input value for first."""
+    first: Int = 20
+    """Validated input value for after."""
+    after: String
+  ): OrderRefundConnection!
+  """Projected value for activity."""
+  activity(
+    """Validated input value for first."""
+    first: Int = 50
+    """Validated input value for after."""
+    after: String
+  ): OrderActivityConnection!
+  """Projected value for integration links."""
+  integrationLinks: [OrderIntegrationLink!]!
+  """Projected value for tags."""
+  tags: [String!]!
+  """Projected value for admin note."""
+  adminNote: String
+  """Projected value for customer note."""
+  customerNote: String
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+  """Timestamp for placed, or null when it has not occurred."""
+  placedAt: DateTime
+  """Timestamp for cancelled, or null when it has not occurred."""
+  cancelledAt: DateTime
+  """Timestamp for closed, or null when it has not occurred."""
+  closedAt: DateTime
+  """Timestamp for archived, or null when it has not occurred."""
+  archivedAt: DateTime
+  """Timestamp for expires, or null when it has not occurred."""
+  expiresAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
   createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
   updatedAt: DateTime!
-  deletedAt: DateTime
 }
 
-type OrderLine {
-  id: ID!
-  quantity: Int!
-  unitPrice: Int!
-  unitComparePrice: Int!
-  discountAmount: Int!
-  subtotalAmount: Int!
-  taxAmount: Int
-  totalAmount: Int!
-  purchasableId: ID!
-  createdAt: DateTime!
-  updatedAt: DateTime!
+"""Orders Admin representation of order source."""
+type OrderSource {
+  """Stable machine-readable code."""
+  code: String!
+  """Relay global ID identifying the external."""
+  externalId: String
+  """Projected value for external url."""
+  externalUrl: URL
 }
 
-type OrderDeliveryAddress {
-  id: ID!
-  address1: String!
-  address2: String
-  city: String!
-  countryCode: CountryCode!
-  provinceCode: String
-  postalCode: String
-  email: Email
+"""Checkout-owned placement provenance projected into Orders."""
+type OrderCheckoutPlacement {
+  """Relay global ID identifying the placement."""
+  placementId: ID!
+  """Relay global ID identifying the checkout."""
+  checkoutId: ID!
+  """Projected value for checkout version."""
+  checkoutVersion: Int!
+  """Projected value for result revision."""
+  resultRevision: String!
+  """Projected value for final quote revision."""
+  finalQuoteRevision: String!
+  """Projected value for payment methods revision."""
+  paymentMethodsRevision: String!
+  """Projected value for delivery revision."""
+  deliveryRevision: String!
+  """Projected value for contract version."""
+  contractVersion: Int!
+  """Projected value for snapshot hash."""
+  snapshotHash: String!
+  """Current lifecycle or derived projection status."""
+  status: OrderPlacementStatus!
+  """Timestamp for confirmed, or null when it has not occurred."""
+  confirmedAt: DateTime
+  """Timestamp for failed, or null when it has not occurred."""
+  failedAt: DateTime
+}
+
+"""
+Immutable customer identity captured for the commercial record independently of later profile changes.
+"""
+type OrderCustomerSnapshot {
+  """Relay global ID identifying the customer."""
+  customerId: ID
+  """Projected value for email."""
+  email: String
+  """Projected value for phone."""
+  phone: String
+  """Projected value for first name."""
   firstName: String
+  """Projected value for middle name."""
+  middleName: String
+  """Projected value for last name."""
   lastName: String
+  """Projected value for company."""
+  company: String
+  """Stable country code."""
+  countryCode: CountryCode
+}
+
+"""Order-local contact snapshot with explicit redaction state."""
+type OrderContact {
+  """Projected value for email."""
+  email: String
+  """Projected value for phone."""
+  phone: String
+  """Projected value for first name."""
+  firstName: String
+  """Projected value for middle name."""
+  middleName: String
+  """Projected value for last name."""
+  lastName: String
+  """Projected value for company."""
+  company: String
+  """Projected value for note."""
+  note: String
+  """Timestamp for redacted, or null when it has not occurred."""
+  redactedAt: DateTime
+}
+
+"""
+Order-local postal address snapshot retained for billing, delivery, and audit.
+"""
+type OrderAddress implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for first name."""
+  firstName: String
+  """Projected value for middle name."""
+  middleName: String
+  """Projected value for last name."""
+  lastName: String
+  """Projected value for company."""
+  company: String
+  """Projected value for address1."""
+  address1: String
+  """Projected value for address2."""
+  address2: String
+  """Projected value for city."""
+  city: String
+  """Stable province code."""
+  provinceCode: String
+  """Stable postal code."""
+  postalCode: String
+  """Stable country code."""
+  countryCode: CountryCode
+  """Projected value for email."""
+  email: String
+  """Projected value for phone."""
+  phone: String
+  """Structured snapshot or audit data with secrets excluded."""
+  data: JSON!
+  """Timestamp for redacted, or null when it has not occurred."""
+  redactedAt: DateTime
+}
+
+"""
+Server-calculated totals in one currency. Paid, refunded, and outstanding amounts derive from successful financial facts.
+"""
+type OrderCost {
+  """Monetary subtotal in the order currency."""
+  subtotalAmount: Money!
+  """Monetary discount in the order currency."""
+  discountAmount: Money!
+  """Monetary shipping in the order currency."""
+  shippingAmount: Money!
+  """Monetary tax in the order currency."""
+  taxAmount: Money!
+  """Monetary duty in the order currency."""
+  dutyAmount: Money!
+  """Monetary adjustment in the order currency."""
+  adjustmentAmount: Money!
+  """Monetary total in the order currency."""
+  totalAmount: Money!
+  """Monetary paid in the order currency."""
+  paidAmount: Money!
+  """Monetary refunded in the order currency."""
+  refundedAmount: Money!
+  """Monetary outstanding in the order currency."""
+  outstandingAmount: Money!
+}
+
+"""
+Commercial line snapshot with conserved ordered, cancelled, fulfillable, fulfilled, returnable, returned, and refundable quantities.
+"""
+type OrderLine implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Projected value for parent line."""
+  parentLine: OrderLine
+  """Relay global ID identifying the purchasable."""
+  purchasableId: ID
+  """Relay global ID identifying the product."""
+  productId: ID
+  """Relay global ID identifying the variant."""
+  variantId: ID
+  """Projected value for title."""
+  title: String!
+  """Projected value for sku."""
+  sku: String
+  """Projected value for image url."""
+  imageUrl: URL
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Projected cancelled quantity."""
+  cancelledQuantity: Int!
+  """Projected fulfillable quantity."""
+  fulfillableQuantity: Int!
+  """Projected fulfilled quantity."""
+  fulfilledQuantity: Int!
+  """Projected returnable quantity."""
+  returnableQuantity: Int!
+  """Projected returned quantity."""
+  returnedQuantity: Int!
+  """Projected refundable quantity."""
+  refundableQuantity: Int!
+  """Projected value for requires shipping."""
+  requiresShipping: Boolean!
+  """Projected value for taxable."""
+  taxable: Boolean!
+  """Projected value for weight."""
+  weight: Weight
+  """Projected value for unit cost."""
+  unitCost: Money
+  """Projected value for cost."""
+  cost: OrderLineCost!
+  """Projected value for purchasable snapshot."""
+  purchasableSnapshot: JSON!
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of order line cost."""
+type OrderLineCost {
+  """Projected value for unit price."""
+  unitPrice: Money!
+  """Projected value for unit compare at price."""
+  unitCompareAtPrice: Money
+  """Monetary subtotal in the order currency."""
+  subtotalAmount: Money!
+  """Monetary discount in the order currency."""
+  discountAmount: Money!
+  """Monetary tax in the order currency."""
+  taxAmount: Money!
+  """Monetary duty in the order currency."""
+  dutyAmount: Money!
+  """Monetary total in the order currency."""
+  totalAmount: Money!
+}
+
+"""Orders Admin representation of order discount."""
+type OrderDiscount implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Stable machine-readable code."""
+  code: String
+  """Projected value for title."""
+  title: String!
+  """Projected value for source."""
+  source: String!
+  """Projected value for target."""
+  target: String!
+  """Projected value for value."""
+  value: Decimal!
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Projected value for metadata."""
+  metadata: JSON!
+}
+
+"""Orders Admin representation of order tax line."""
+type OrderTaxLine implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for title."""
+  title: String!
+  """Projected value for rate."""
+  rate: Decimal!
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Projected value for included."""
+  included: Boolean!
+  """Projected value for jurisdiction."""
+  jurisdiction: String
+}
+
+"""Orders Admin representation of order delivery group."""
+type OrderDeliveryGroup implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for lines."""
+  lines: [OrderLine!]!
+  """Projected value for address."""
+  address: OrderAddress
+  """Projected value for recipient."""
+  recipient: OrderContact
+  """Projected value for selected method."""
+  selectedMethod: OrderDeliveryMethod
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of order delivery method."""
+type OrderDeliveryMethod {
+  """Stable machine-readable code."""
+  code: String!
+  """Projected value for title."""
+  title: String!
+  """Stable provider code."""
+  providerCode: String!
+  """Projected value for type."""
+  type: String!
+  """Projected value for payment model."""
+  paymentModel: String
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Projected value for customer input."""
+  customerInput: JSON!
+  """Projected value for provider snapshot."""
+  providerSnapshot: JSON!
+}
+
+"""
+Read-only financial projection derived from attempts, transactions, refunds, and disputes.
+"""
+type OrderPayment {
+  """Current lifecycle or derived projection status."""
+  status: OrderPaymentStatus!
+  """Projected value for selected method."""
+  selectedMethod: OrderPaymentMethod
+  """Monetary authorized in the order currency."""
+  authorizedAmount: Money!
+  """Monetary captured in the order currency."""
+  capturedAmount: Money!
+  """Monetary refunded in the order currency."""
+  refundedAmount: Money!
+  """Monetary voided in the order currency."""
+  voidedAmount: Money!
+  """Monetary outstanding in the order currency."""
+  outstandingAmount: Money!
+  """Projected value for attempts."""
+  attempts: [OrderPaymentAttempt!]!
+  """Projected value for transactions."""
+  transactions: [OrderPaymentTransaction!]!
+  """Projected value for disputes."""
+  disputes: [OrderPaymentDispute!]!
+}
+
+"""Orders Admin representation of order payment method."""
+type OrderPaymentMethod {
+  """Stable machine-readable code."""
+  code: String!
+  """Projected value for title."""
+  title: String!
+  """Stable provider code."""
+  providerCode: String!
+  """Projected value for flow."""
+  flow: String!
+  """Projected value for customer input."""
+  customerInput: JSON!
+  """Projected value for provider snapshot."""
+  providerSnapshot: JSON!
+}
+
+"""Orders Admin representation of order payment attempt."""
+type OrderPaymentAttempt implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current lifecycle or derived projection status."""
+  status: OrderPaymentStatus!
+  """Monetary requested in the order currency."""
+  requestedAmount: Money!
+  """Stable provider code."""
+  providerCode: String!
+  """Projected value for provider reference."""
+  providerReference: String
+  """Stable failure code."""
+  failureCode: String
+  """Projected value for failure message."""
+  failureMessage: String
+  """Projected value for customer action."""
+  customerAction: JSON
+  """Timestamp for expires, or null when it has not occurred."""
+  expiresAt: DateTime
+  """Timestamp for processed, or null when it has not occurred."""
+  processedAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""
+Immutable authorization, capture, sale, refund, void, manual payment, or adjustment fact.
+"""
+type OrderPaymentTransaction implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for kind."""
+  kind: OrderPaymentTransactionKind!
+  """Current lifecycle or derived projection status."""
+  status: OrderPaymentTransactionStatus!
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Stable provider code."""
+  providerCode: String!
+  """Projected value for provider reference."""
+  providerReference: String
+  """Projected value for parent transaction."""
+  parentTransaction: OrderPaymentTransaction
+  """Stable failure code."""
+  failureCode: String
+  """Projected value for failure message."""
+  failureMessage: String
+  """Timestamp for processed, or null when it has not occurred."""
+  processedAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+}
+
+"""Orders Admin representation of order payment dispute."""
+type OrderPaymentDispute implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Stable provider code."""
+  providerCode: String!
+  """Projected value for provider reference."""
+  providerReference: String!
+  """Current lifecycle or derived projection status."""
+  status: String!
+  """Projected value for reason."""
+  reason: String
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Timestamp for response due, or null when it has not occurred."""
+  responseDueAt: DateTime
+  """Timestamp for resolved, or null when it has not occurred."""
+  resolvedAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""
+Allocatable fulfillment work unit, separate from provider execution and physical shipment.
+"""
+type FulfillmentOrder implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Projected value for delivery group."""
+  deliveryGroup: OrderDeliveryGroup!
+  """Current lifecycle or derived projection status."""
+  status: FulfillmentOrderStatus!
+  """Current request status."""
+  requestStatus: FulfillmentRequestStatus!
+  """Projected value for lines."""
+  lines: [FulfillmentOrderLine!]!
+  """Relay global ID identifying the assigned location."""
+  assignedLocationId: ID!
+  """Projected value for assigned service."""
+  assignedService: FulfillmentServiceRoute
+  """Projected value for holds."""
+  holds: [FulfillmentHold!]!
+  """Timestamp for fulfill, or null when it has not occurred."""
+  fulfillAt: DateTime
+  """Projected value for fulfill by."""
+  fulfillBy: DateTime
+  """Projected value for supported actions."""
+  supportedActions: [String!]!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of fulfillment order line."""
+type FulfillmentOrderLine implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for order line."""
+  orderLine: OrderLine!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Projected remaining quantity."""
+  remainingQuantity: Int!
+  """Projected fulfilled quantity."""
+  fulfilledQuantity: Int!
+}
+
+"""Orders Admin representation of fulfillment service route."""
+type FulfillmentServiceRoute {
+  """Stable app code."""
+  appCode: String!
+  """Relay global ID identifying the installation."""
+  installationId: ID!
+  """Stable service code."""
+  serviceCode: String!
+  """Projected value for provider revision."""
+  providerRevision: String!
+  """Projected value for external reference."""
+  externalReference: String
+}
+
+"""Orders Admin representation of fulfillment hold."""
+type FulfillmentHold implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Projected value for note."""
+  note: String
+  """Projected value for held by."""
+  heldBy: OrderActor!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for released, or null when it has not occurred."""
+  releasedAt: DateTime
+}
+
+"""Execution fact consuming quantities allocated to a fulfillment order."""
+type Fulfillment implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Projected value for fulfillment order."""
+  fulfillmentOrder: FulfillmentOrder!
+  """Current lifecycle or derived projection status."""
+  status: FulfillmentStatus!
+  """Relay global ID identifying the location."""
+  locationId: ID!
+  """Projected value for lines."""
+  lines: [FulfillmentLine!]!
+  """Projected value for shipments."""
+  shipments: [Shipment!]!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of fulfillment line."""
+type FulfillmentLine {
+  """Projected value for order line."""
+  orderLine: OrderLine!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+}
+
+"""
+Physical shipment projection with pinned provider references, packages, tracking, and status events.
+"""
+type Shipment implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Projected value for fulfillment."""
+  fulfillment: Fulfillment!
+  """Current lifecycle or derived projection status."""
+  status: ShipmentStatus!
+  """Stable provider code."""
+  providerCode: String
+  """Projected value for provider reference."""
+  providerReference: String
+  """Stable service code."""
+  serviceCode: String
+  """Projected value for tracking."""
+  tracking: [ShipmentTracking!]!
+  """Projected value for packages."""
+  packages: [ShipmentPackage!]!
+  """Projected value for events."""
+  events: [ShipmentEvent!]!
+  """Timestamp for shipped, or null when it has not occurred."""
+  shippedAt: DateTime
+  """Timestamp for estimated delivery, or null when it has not occurred."""
+  estimatedDeliveryAt: DateTime
+  """Timestamp for delivered, or null when it has not occurred."""
+  deliveredAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of shipment tracking."""
+type ShipmentTracking {
+  """Store-local order number serialized without precision loss."""
+  number: String!
+  """Projected value for url."""
+  url: URL
+  """Projected value for company."""
+  company: String
+}
+
+"""Orders Admin representation of shipment package."""
+type ShipmentPackage implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for weight."""
+  weight: Weight
+  """Projected value for dimensions."""
+  dimensions: Dimensions
+  """Projected value for declared value."""
+  declaredValue: Money
+  """Projected value for items."""
+  items: [ShipmentPackageItem!]!
+}
+
+"""Orders Admin representation of shipment package item."""
+type ShipmentPackageItem {
+  """Projected value for order line."""
+  orderLine: OrderLine!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+}
+
+"""Orders Admin representation of shipment event."""
+type ShipmentEvent implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current lifecycle or derived projection status."""
+  status: ShipmentStatus!
+  """Human-readable explanation safe for an authorized Admin user."""
+  message: String
+  """Projected value for location."""
+  location: String
+  """Timestamp for happened, or null when it has not occurred."""
+  happenedAt: DateTime!
+  """Timestamp for recorded, or null when it has not occurred."""
+  recordedAt: DateTime!
+}
+
+"""
+Return request and its approved, transported, received, and disposition quantities.
+"""
+type OrderReturn implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Current lifecycle or derived projection status."""
+  status: OrderReturnRequestStatus!
+  """Projected value for lines."""
+  lines: [OrderReturnLine!]!
+  """Projected value for return shipment."""
+  returnShipment: Shipment
+  """Projected value for customer note."""
+  customerNote: String
+  """Projected value for staff note."""
+  staffNote: String
+  """Timestamp for requested, or null when it has not occurred."""
+  requestedAt: DateTime!
+  """Timestamp for approved, or null when it has not occurred."""
+  approvedAt: DateTime
+  """Timestamp for received, or null when it has not occurred."""
+  receivedAt: DateTime
+  """Timestamp for completed, or null when it has not occurred."""
+  completedAt: DateTime
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Orders Admin representation of order return line."""
+type OrderReturnLine {
+  """Projected value for order line."""
+  orderLine: OrderLine!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Projected received quantity."""
+  receivedQuantity: Int!
+  """Projected restockable quantity."""
+  restockableQuantity: Int!
+  """Projected damaged quantity."""
+  damagedQuantity: Int!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Projected value for note."""
+  note: String
+}
+
+"""
+Exchange linking inbound return quantities with outbound replacement lines.
+"""
+type OrderExchange implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Current lifecycle or derived projection status."""
+  status: OrderExchangeStatus!
+  """Projected value for inbound lines."""
+  inboundLines: [OrderReturnLine!]!
+  """Projected value for outbound lines."""
+  outboundLines: [OrderLine!]!
+  """Projected value for balance."""
+  balance: Money!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""Refund aggregate and its line and payment-transaction allocations."""
+type OrderRefund implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Current lifecycle or derived projection status."""
+  status: OrderRefundStatus!
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Projected value for note."""
+  note: String
+  """Projected value for lines."""
+  lines: [OrderRefundLine!]!
+  """Projected value for transactions."""
+  transactions: [OrderPaymentTransaction!]!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for processed, or null when it has not occurred."""
+  processedAt: DateTime
+}
+
+"""Orders Admin representation of order refund line."""
+type OrderRefundLine {
+  """Projected value for order line."""
+  orderLine: OrderLine
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int
+  """Exact decimal amount serialized as a string."""
+  amount: Money!
+}
+
+"""Append-only audit and activity timeline entry."""
+type OrderActivity implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for sequence."""
+  sequence: BigInt!
+  """Projected value for type."""
+  type: String!
+  """Projected value for visibility."""
+  visibility: String!
+  """Human-readable explanation safe for an authorized Admin user."""
+  message: String
+  """Projected value for actor."""
+  actor: OrderActor!
+  """Structured snapshot or audit data with secrets excluded."""
+  data: JSON!
+  """Timestamp for happened, or null when it has not occurred."""
+  happenedAt: DateTime!
+  """Timestamp for recorded, or null when it has not occurred."""
+  recordedAt: DateTime!
+}
+
+"""Orders Admin representation of order actor."""
+type OrderActor {
+  """Projected value for type."""
+  type: OrderActorType!
+  """Relay global ID of this resource."""
+  id: ID
+  """Projected value for display name."""
+  displayName: String
+  """Projected value for user."""
+  user: User
+  """Projected value for api key."""
+  apiKey: ApiKey
+}
+
+"""
+Pinned relationship and synchronization state for a CRM, ERP, marketplace, WMS, or analytics integration.
+"""
+type OrderIntegrationLink implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for kind."""
+  kind: OrderIntegrationKind!
+  """Stable app code."""
+  appCode: String!
+  """Relay global ID identifying the installation."""
+  installationId: ID!
+  """Projected value for direction."""
+  direction: OrderSyncDirection!
+  """Relay global ID identifying the external."""
+  externalId: String
+  """Projected value for external url."""
+  externalUrl: URL
+  """Current lifecycle or derived projection status."""
+  status: OrderIntegrationSyncStatus!
+  """Projected value for last exported order version."""
+  lastExportedOrderVersion: Int
+  """Projected value for last imported external version."""
+  lastImportedExternalVersion: String
+  """Timestamp for last synced, or null when it has not occurred."""
+  lastSyncedAt: DateTime
+  """Stable last error code."""
+  lastErrorCode: String
+  """Projected value for last error message."""
+  lastErrorMessage: String
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTime!
+}
+
+"""
+Durable DBOS operation handle for polling progress and terminal outcome.
+"""
+type OrderOperation implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for kind."""
+  kind: OrderOperationKind!
+  """Current lifecycle or derived projection status."""
+  status: OrderOperationStatus!
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Relay global ID identifying the resource."""
+  resourceId: ID
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Projected value for progress."""
+  progress: Int
+  """Stable failure code."""
+  failureCode: String
+  """Projected value for failure message."""
+  failureMessage: String
+  """Whether retrying after transient state changes may succeed."""
+  retryable: Boolean!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for started, or null when it has not occurred."""
+  startedAt: DateTime
+  """Timestamp for completed, or null when it has not occurred."""
+  completedAt: DateTime
+}
+
+"""Isolated and previewable staged edit for an OPEN order."""
+type OrderEditSession implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Current aggregate revision used for optimistic concurrency."""
+  version: Int!
+  """Fresh order projection returned after the command."""
+  order: Order!
+  """Projected value for base order version."""
+  baseOrderVersion: Int!
+  """Current lifecycle or derived projection status."""
+  status: String!
+  """Projected value for calculated order."""
+  calculatedOrder: CalculatedOrder!
+  """Projected value for changes."""
+  changes: [OrderEditChange!]!
+  """Projected value for created by."""
+  createdBy: OrderActor!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+  """Timestamp for expires, or null when it has not occurred."""
+  expiresAt: DateTime!
+}
+
+"""Orders Admin representation of calculated order."""
+type CalculatedOrder {
+  """Projected value for lines."""
+  lines: [OrderLine!]!
+  """Projected value for cost."""
+  cost: OrderCost!
+  """Projected value for balance delta."""
+  balanceDelta: Money!
+}
+
+"""Orders Admin representation of order edit change."""
+type OrderEditChange implements Node {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Projected value for kind."""
+  kind: String!
+  """Projected value for payload."""
+  payload: JSON!
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTime!
+}
+
+"""Relay-style paginated connection of order resources."""
+type OrderConnection implements Connection {
+  """Cursor and resource pairs in this page."""
+  edges: [OrderEdge!]!
+  """Resources in this page."""
+  nodes: [Order!]!
+  """Relay pagination metadata."""
+  pageInfo: PageInfo!
+  """Total matching resources before pagination."""
+  totalCount: Int!
+}
+
+"""Cursor and resource pair for a order connection."""
+type OrderEdge {
+  """Opaque Relay cursor for this edge."""
+  cursor: String!
+  """Projected value for node."""
+  node: Order!
+}
+
+"""Relay-style paginated connection of order return resources."""
+type OrderReturnConnection implements Connection {
+  """Cursor and resource pairs in this page."""
+  edges: [OrderReturnEdge!]!
+  """Resources in this page."""
+  nodes: [OrderReturn!]!
+  """Relay pagination metadata."""
+  pageInfo: PageInfo!
+  """Total matching resources before pagination."""
+  totalCount: Int!
+}
+
+"""Cursor and resource pair for a order return connection."""
+type OrderReturnEdge {
+  """Opaque Relay cursor for this edge."""
+  cursor: String!
+  """Projected value for node."""
+  node: OrderReturn!
+}
+
+"""Relay-style paginated connection of order exchange resources."""
+type OrderExchangeConnection implements Connection {
+  """Cursor and resource pairs in this page."""
+  edges: [OrderExchangeEdge!]!
+  """Resources in this page."""
+  nodes: [OrderExchange!]!
+  """Relay pagination metadata."""
+  pageInfo: PageInfo!
+  """Total matching resources before pagination."""
+  totalCount: Int!
+}
+
+"""Cursor and resource pair for a order exchange connection."""
+type OrderExchangeEdge {
+  """Opaque Relay cursor for this edge."""
+  cursor: String!
+  """Projected value for node."""
+  node: OrderExchange!
+}
+
+"""Relay-style paginated connection of order refund resources."""
+type OrderRefundConnection implements Connection {
+  """Cursor and resource pairs in this page."""
+  edges: [OrderRefundEdge!]!
+  """Resources in this page."""
+  nodes: [OrderRefund!]!
+  """Relay pagination metadata."""
+  pageInfo: PageInfo!
+  """Total matching resources before pagination."""
+  totalCount: Int!
+}
+
+"""Cursor and resource pair for a order refund connection."""
+type OrderRefundEdge {
+  """Opaque Relay cursor for this edge."""
+  cursor: String!
+  """Projected value for node."""
+  node: OrderRefund!
+}
+
+"""Relay-style paginated connection of order activity resources."""
+type OrderActivityConnection implements Connection {
+  """Cursor and resource pairs in this page."""
+  edges: [OrderActivityEdge!]!
+  """Resources in this page."""
+  nodes: [OrderActivity!]!
+  """Relay pagination metadata."""
+  pageInfo: PageInfo!
+  """Total matching resources before pagination."""
+  totalCount: Int!
+}
+
+"""Cursor and resource pair for a order activity connection."""
+type OrderActivityEdge {
+  """Opaque Relay cursor for this edge."""
+  cursor: String!
+  """Projected value for node."""
+  node: OrderActivity!
+}
+
+"""Composable store-scoped filter for order reads."""
+input OrderWhereInput {
+  """Validated input value for and."""
+  and: [OrderWhereInput!]
+  """Validated input value for or."""
+  or: [OrderWhereInput!]
+  """Relay global ID of this resource."""
+  id: IDFilterInput
+  """Store-local order number serialized without precision loss."""
+  number: BigIntFilterInput
+  """Current lifecycle or derived projection status."""
+  status: OrderStatusFilterInput
+  """Current payment status."""
+  paymentStatus: OrderPaymentStatusFilterInput
+  """Current fulfillment status."""
+  fulfillmentStatus: OrderFulfillmentStatusFilterInput
+  """Current delivery status."""
+  deliveryStatus: OrderDeliveryStatusFilterInput
+  """Current return status."""
+  returnStatus: OrderReturnStatusFilterInput
+  """Current placement status."""
+  placementStatus: OrderPlacementStatusFilterInput
+  """Relay global ID identifying the customer."""
+  customerId: IDFilterInput
+  """Validated input value for customer name."""
+  customerName: StringFilterInput
+  """Validated input value for customer email."""
+  customerEmail: StringFilterInput
+  """Validated input value for customer phone."""
+  customerPhone: StringFilterInput
+  """Relay global ID identifying the external."""
+  externalId: StringFilterInput
+  """Stable source code."""
+  sourceCode: StringFilterInput
+  """Monetary total in the order currency."""
+  totalAmount: DecimalFilterInput
+  """ISO 4217 currency code."""
+  currencyCode: CurrencyCodeFilterInput
+  """Validated input value for shipping country."""
+  shippingCountry: CountryCodeFilterInput
+  """Stable delivery method code."""
+  deliveryMethodCode: StringFilterInput
+  """Stable payment method code."""
+  paymentMethodCode: StringFilterInput
+  """Validated input value for tag."""
+  tag: StringFilterInput
+  """Validated input value for tracking number."""
+  trackingNumber: StringFilterInput
+  """Validated input value for has tracking."""
+  hasTracking: Boolean
+  """Validated input value for archived."""
+  archived: Boolean
+  """Timestamp for created, or null when it has not occurred."""
+  createdAt: DateTimeFilterInput
+  """Timestamp for updated, or null when it has not occurred."""
+  updatedAt: DateTimeFilterInput
+  """Timestamp for placed, or null when it has not occurred."""
+  placedAt: DateTimeFilterInput
+}
+
+"""
+Validated input for order order by. Tenant identifiers come only from trusted context.
+"""
+input OrderOrderByInput {
+  """Input path associated with the error, when applicable."""
+  field: OrderSortField!
+  """Validated input value for direction."""
+  direction: OrderSortDirection!
+}
+
+"""
+Comparison operators for id; omitted operators do not constrain results.
+"""
+input IDFilterInput {
+  """Validated input value for eq."""
+  eq: ID
+  """Validated input value for in."""
+  in: [ID!]
+  """Validated input value for not in."""
+  notIn: [ID!]
+}
+
+"""
+Comparison operators for big int; omitted operators do not constrain results.
+"""
+input BigIntFilterInput {
+  """Validated input value for eq."""
+  eq: BigInt
+  """Validated input value for gt."""
+  gt: BigInt
+  """Validated input value for gte."""
+  gte: BigInt
+  """Validated input value for lt."""
+  lt: BigInt
+  """Validated input value for lte."""
+  lte: BigInt
+}
+
+"""
+Comparison operators for decimal; omitted operators do not constrain results.
+"""
+input DecimalFilterInput {
+  """Validated input value for eq."""
+  eq: Decimal
+  """Validated input value for gt."""
+  gt: Decimal
+  """Validated input value for gte."""
+  gte: Decimal
+  """Validated input value for lt."""
+  lt: Decimal
+  """Validated input value for lte."""
+  lte: Decimal
+}
+
+"""
+Comparison operators for string; omitted operators do not constrain results.
+"""
+input StringFilterInput {
+  """Validated input value for eq."""
+  eq: String
+  """Validated input value for in."""
+  in: [String!]
+  """Validated input value for contains."""
+  contains: String
+  """Validated input value for starts with."""
+  startsWith: String
+}
+
+"""
+Comparison operators for date time; omitted operators do not constrain results.
+"""
+input DateTimeFilterInput {
+  """Validated input value for eq."""
+  eq: DateTime
+  """Validated input value for gt."""
+  gt: DateTime
+  """Validated input value for gte."""
+  gte: DateTime
+  """Validated input value for lt."""
+  lt: DateTime
+  """Validated input value for lte."""
+  lte: DateTime
+}
+
+"""
+Comparison operators for order status; omitted operators do not constrain results.
+"""
+input OrderStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderStatus
+  """Validated input value for in."""
+  in: [OrderStatus!]
+}
+
+"""
+Comparison operators for order payment status; omitted operators do not constrain results.
+"""
+input OrderPaymentStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderPaymentStatus
+  """Validated input value for in."""
+  in: [OrderPaymentStatus!]
+}
+
+"""
+Comparison operators for order fulfillment status; omitted operators do not constrain results.
+"""
+input OrderFulfillmentStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderFulfillmentStatus
+  """Validated input value for in."""
+  in: [OrderFulfillmentStatus!]
+}
+
+"""
+Comparison operators for order delivery status; omitted operators do not constrain results.
+"""
+input OrderDeliveryStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderDeliveryStatus
+  """Validated input value for in."""
+  in: [OrderDeliveryStatus!]
+}
+
+"""
+Comparison operators for order return status; omitted operators do not constrain results.
+"""
+input OrderReturnStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderReturnStatus
+  """Validated input value for in."""
+  in: [OrderReturnStatus!]
+}
+
+"""
+Comparison operators for order placement status; omitted operators do not constrain results.
+"""
+input OrderPlacementStatusFilterInput {
+  """Validated input value for eq."""
+  eq: OrderPlacementStatus
+  """Validated input value for in."""
+  in: [OrderPlacementStatus!]
+}
+
+"""
+Comparison operators for currency code; omitted operators do not constrain results.
+"""
+input CurrencyCodeFilterInput {
+  """Validated input value for eq."""
+  eq: CurrencyCode
+  """Validated input value for in."""
+  in: [CurrencyCode!]
+}
+
+"""
+Comparison operators for country code; omitted operators do not constrain results.
+"""
+input CountryCodeFilterInput {
+  """Validated input value for eq."""
+  eq: CountryCode
+  """Validated input value for in."""
+  in: [CountryCode!]
+}
+
+"""
+Validated input for money. Tenant identifiers come only from trusted context.
+"""
+input MoneyInput {
+  """Exact decimal amount serialized as a string."""
+  amount: Decimal!
+  """ISO 4217 currency code."""
+  currencyCode: CurrencyCode!
+}
+
+"""
+Validated input for weight. Tenant identifiers come only from trusted context.
+"""
+input OrderWeightInput {
+  """Validated input value for value."""
+  value: Float!
+  """Validated input value for unit."""
+  unit: WeightUnit!
+}
+
+"""
+Validated input for dimensions. Tenant identifiers come only from trusted context.
+"""
+input OrderDimensionsInput {
+  """Validated input value for width."""
+  width: Float!
+  """Validated input value for height."""
+  height: Float!
+  """Validated input value for length."""
+  length: Float!
+  """Validated input value for unit."""
+  unit: DimensionUnit!
+}
+
+"""
+Validated input for order address. Tenant identifiers come only from trusted context.
+"""
+input OrderAddressInput {
+  """Validated input value for first name."""
+  firstName: String
+  """Validated input value for middle name."""
+  middleName: String
+  """Validated input value for last name."""
+  lastName: String
+  """Validated input value for company."""
+  company: String
+  """Validated input value for address1."""
+  address1: String
+  """Validated input value for address2."""
+  address2: String
+  """Validated input value for city."""
+  city: String
+  """Stable province code."""
+  provinceCode: String
+  """Stable postal code."""
+  postalCode: String
+  """Stable country code."""
+  countryCode: CountryCode!
+  """Validated input value for email."""
+  email: String
+  """Validated input value for phone."""
+  phone: String
+  """Structured snapshot or audit data with secrets excluded."""
   data: JSON
 }
 
-type OrderCustomerStatistic {
-  totalRevenue: Int!
-  totalGuestOrders: Int!
-  totalAuthorizedOrders: Int!
+"""
+Validated input for order contact. Tenant identifiers come only from trusted context.
+"""
+input OrderContactInput {
+  """Validated input value for email."""
+  email: String
+  """Validated input value for phone."""
+  phone: String
+  """Validated input value for first name."""
+  firstName: String
+  """Validated input value for middle name."""
+  middleName: String
+  """Validated input value for last name."""
+  lastName: String
+  """Validated input value for company."""
+  company: String
+  """Validated input value for note."""
+  note: String
 }
 
-input OrdersInput {
-  where: JSON
-  order: String
-  page: Int
-  pageSize: Int
+"""
+Validated input for order line create. Tenant identifiers come only from trusted context.
+"""
+input OrderLineCreateInput {
+  """Relay global ID identifying the purchasable."""
+  purchasableId: ID
+  """Validated input value for title."""
+  title: String!
+  """Validated input value for sku."""
+  sku: String
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Validated input value for unit price."""
+  unitPrice: MoneyInput!
+  """Validated input value for unit compare at price."""
+  unitCompareAtPrice: MoneyInput
+  """Validated input value for unit cost."""
+  unitCost: MoneyInput
+  """Validated input value for weight."""
+  weight: OrderWeightInput
+  """Validated input value for requires shipping."""
+  requiresShipping: Boolean = true
+  """Validated input value for taxable."""
+  taxable: Boolean = true
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
 }
 
-type OrdersOutput {
-  data: [Order!]!
-  meta: CollectionMeta!
+"""
+Validated input for order delivery. Tenant identifiers come only from trusted context.
+"""
+input OrderDeliveryInput {
+  """Stable method code."""
+  methodCode: String
+  """Validated input value for address."""
+  address: OrderAddressInput
+  """Validated input value for recipient."""
+  recipient: OrderContactInput
 }
 
-type OrderQuery {
-  orders(input: OrdersInput): OrdersOutput!
-  order(id: ID!): Order
+"""
+Validated input for order create. Tenant identifiers come only from trusted context.
+"""
+input OrderCreateInput {
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Optional client correlation value echoed by supported payloads."""
+  clientMutationId: String
+  """Relay global ID identifying the customer."""
+  customerId: ID
+  """Validated input value for contact."""
+  contact: OrderContactInput!
+  """Validated input value for billing address."""
+  billingAddress: OrderAddressInput
+  """Validated input value for shipping."""
+  shipping: OrderDeliveryInput
+  """Stable locale code."""
+  localeCode: LocaleCode
+  """Stable source code."""
+  sourceCode: String
+  """Relay global ID identifying the external."""
+  externalId: String
+  """Validated input value for lines."""
+  lines: [OrderLineCreateInput!]!
+  """Stable payment method code."""
+  paymentMethodCode: String
+  """Validated input value for tags."""
+  tags: [String!]
+  """Validated input value for admin note."""
+  adminNote: String
+  """Validated input value for customer note."""
+  customerNote: String
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
 }
 
-extend type Query {
-  orderQuery: OrderQuery!
+"""
+Validated input for order update. Tenant identifiers come only from trusted context.
+"""
+input OrderUpdateInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for contact."""
+  contact: OrderContactInput
+  """Validated input value for billing address."""
+  billingAddress: OrderAddressInput
+  """Validated input value for shipping."""
+  shipping: OrderDeliveryInput
+  """Stable locale code."""
+  localeCode: LocaleCode
+  """Validated input value for customer note."""
+  customerNote: String
+}
+
+"""
+Validated input for order delete. Tenant identifiers come only from trusted context.
+"""
+input OrderDeleteInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order complete draft. Tenant identifiers come only from trusted context.
+"""
+input OrderCompleteDraftInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order close. Tenant identifiers come only from trusted context.
+"""
+input OrderCloseInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for reason."""
+  reason: String
+}
+
+"""
+Validated input for order reopen. Tenant identifiers come only from trusted context.
+"""
+input OrderReopenInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for reason."""
+  reason: String!
+}
+
+"""
+Validated input for order archive. Tenant identifiers come only from trusted context.
+"""
+input OrderArchiveInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order unarchive. Tenant identifiers come only from trusted context.
+"""
+input OrderUnarchiveInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderCancelInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for staff note."""
+  staffNote: String
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+  """Validated input value for restock."""
+  restock: Boolean = true
+  """Validated input value for refund mode."""
+  refundMode: String = "ORIGINAL_PAYMENT_METHODS"
+}
+
+"""
+Validated input for order customer set. Tenant identifiers come only from trusted context.
+"""
+input OrderCustomerSetInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the customer."""
+  customerId: ID
+}
+
+"""
+Validated input for order tags update. Tenant identifiers come only from trusted context.
+"""
+input OrderTagsUpdateInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for tags."""
+  tags: [String!]!
+}
+
+"""
+Validated input for order admin note update. Tenant identifiers come only from trusted context.
+"""
+input OrderAdminNoteUpdateInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for admin note."""
+  adminNote: String
+}
+
+"""
+Validated input for order comment add. Tenant identifiers come only from trusted context.
+"""
+input OrderCommentAddInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for comment."""
+  comment: String!
+  """Validated input value for visibility."""
+  visibility: String = "STAFF"
+}
+
+"""
+Validated input for order custom fields update. Tenant identifiers come only from trusted context.
+"""
+input OrderCustomFieldsUpdateInput {
+  """Relay global ID of this resource."""
+  id: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+}
+
+"""
+Validated input for order line add. Tenant identifiers come only from trusted context.
+"""
+input OrderLineAddInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for line."""
+  line: OrderLineCreateInput!
+}
+
+"""
+Validated input for order line update. Tenant identifiers come only from trusted context.
+"""
+input OrderLineUpdateInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Relay global ID identifying the line."""
+  lineId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int
+  """Validated input value for unit cost."""
+  unitCost: MoneyInput
+  """Validated input value for weight."""
+  weight: OrderWeightInput
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
+}
+
+"""
+Validated input for order line delete. Tenant identifiers come only from trusted context.
+"""
+input OrderLineDeleteInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Relay global ID identifying the line."""
+  lineId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit begin. Tenant identifiers come only from trusted context.
+"""
+input OrderEditBeginInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit line add. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineAddInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for line."""
+  line: OrderLineCreateInput!
+}
+
+"""
+Validated input for order edit line update. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineUpdateInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Relay global ID identifying the line."""
+  lineId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int
+  """Validated input value for unit price."""
+  unitPrice: MoneyInput
+}
+
+"""
+Validated input for order edit line remove. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineRemoveInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Relay global ID identifying the line."""
+  lineId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit shipping update. Tenant identifiers come only from trusted context.
+"""
+input OrderEditShippingUpdateInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for shipping."""
+  shipping: OrderDeliveryInput!
+}
+
+"""
+Validated input for order edit discount add. Tenant identifiers come only from trusted context.
+"""
+input OrderEditDiscountAddInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for title."""
+  title: String!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+  """Stable audited reason code."""
+  reasonCode: String!
+}
+
+"""
+Validated input for order edit discount remove. Tenant identifiers come only from trusted context.
+"""
+input OrderEditDiscountRemoveInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Relay global ID identifying the discount."""
+  discountId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit commit. Tenant identifiers come only from trusted context.
+"""
+input OrderEditCommitInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """Committed order revision required to apply a staged edit."""
+  expectedOrderVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+  """Validated input value for staff note."""
+  staffNote: String
+}
+
+"""
+Validated input for order edit abandon. Tenant identifiers come only from trusted context.
+"""
+input OrderEditAbandonInput {
+  """Relay global ID identifying the edit."""
+  editId: ID!
+  """Staged edit revision observed by the client."""
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order manual payment record. Tenant identifiers come only from trusted context.
+"""
+input OrderManualPaymentRecordInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+  """Stable method code."""
+  methodCode: String!
+  """Validated input value for reference."""
+  reference: String
+  """Timestamp for paid, or null when it has not occurred."""
+  paidAt: DateTime!
+  """Validated input value for note."""
+  note: String
+}
+
+"""
+Validated input for order payment capture. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentCaptureInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the transaction."""
+  transactionId: ID!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput
+}
+
+"""
+Validated input for order payment void. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentVoidInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the transaction."""
+  transactionId: ID!
+  """Validated input value for reason."""
+  reason: String!
+}
+
+"""
+Validated input for order payment retry. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentRetryInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable payment method code."""
+  paymentMethodCode: String
+  """Validated input value for return url."""
+  returnUrl: URL
+}
+
+"""
+Validated input for order payment status override. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentStatusOverrideInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Current lifecycle or derived projection status."""
+  status: OrderPaymentStatus!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for note."""
+  note: String!
+}
+
+"""
+Validated input for order refund create. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundCreateInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for note."""
+  note: String
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+  """Validated input value for lines."""
+  lines: [OrderRefundLineInput!]
+  """Validated input value for transaction allocations."""
+  transactionAllocations: [OrderRefundTransactionAllocationInput!]
+}
+
+"""
+Validated input for order refund line. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundLineInput {
+  """Relay global ID identifying the order line."""
+  orderLineId: ID!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+}
+
+"""
+Validated input for order refund transaction allocation. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundTransactionAllocationInput {
+  """Relay global ID identifying the transaction."""
+  transactionId: ID!
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+}
+
+"""
+Validated input for fulfillment order line quantity. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderLineQuantityInput {
+  """Relay global ID identifying the fulfillment order line."""
+  fulfillmentOrderLineId: ID!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+}
+
+"""
+Validated input for fulfillment order split. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderSplitInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for lines."""
+  lines: [FulfillmentOrderLineQuantityInput!]!
+}
+
+"""
+Validated input for fulfillment order move. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderMoveInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the location."""
+  locationId: ID!
+  """Stable service code."""
+  serviceCode: String
+}
+
+"""
+Validated input for fulfillment order hold. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderHoldInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for note."""
+  note: String
+}
+
+"""
+Validated input for fulfillment order release hold. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderReleaseHoldInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Relay global ID identifying the hold."""
+  holdId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for fulfillment order submit. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderSubmitInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for fulfillment order cancel request. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderCancelRequestInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for note."""
+  note: String
+}
+
+"""
+Validated input for fulfillment create. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentCreateInput {
+  """Relay global ID identifying the fulfillment order."""
+  fulfillmentOrderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for lines."""
+  lines: [FulfillmentOrderLineQuantityInput!]!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for fulfillment cancel. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentCancelInput {
+  """Relay global ID identifying the fulfillment."""
+  fulfillmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for restock."""
+  restock: Boolean = true
+}
+
+"""
+Validated input for shipment create. Tenant identifiers come only from trusted context.
+"""
+input ShipmentCreateInput {
+  """Relay global ID identifying the fulfillment."""
+  fulfillmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable provider code."""
+  providerCode: String
+  """Stable service code."""
+  serviceCode: String
+  """Validated input value for packages."""
+  packages: [ShipmentPackageInput!]!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for shipment package. Tenant identifiers come only from trusted context.
+"""
+input ShipmentPackageInput {
+  """Validated input value for weight."""
+  weight: OrderWeightInput
+  """Validated input value for dimensions."""
+  dimensions: OrderDimensionsInput
+  """Validated input value for declared value."""
+  declaredValue: MoneyInput
+  """Validated input value for items."""
+  items: [ShipmentPackageItemInput!]!
+}
+
+"""
+Validated input for shipment package item. Tenant identifiers come only from trusted context.
+"""
+input ShipmentPackageItemInput {
+  """Relay global ID identifying the order line."""
+  orderLineId: ID!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+}
+
+"""
+Validated input for shipment tracking update. Tenant identifiers come only from trusted context.
+"""
+input ShipmentTrackingUpdateInput {
+  """Relay global ID identifying the shipment."""
+  shipmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for tracking."""
+  tracking: [ShipmentTrackingInput!]!
+}
+
+"""
+Validated input for shipment tracking. Tenant identifiers come only from trusted context.
+"""
+input ShipmentTrackingInput {
+  """Store-local order number serialized without precision loss."""
+  number: String!
+  """Validated input value for url."""
+  url: URL
+  """Validated input value for company."""
+  company: String
+}
+
+"""
+Validated input for shipment mark shipped. Tenant identifiers come only from trusted context.
+"""
+input ShipmentMarkShippedInput {
+  """Relay global ID identifying the shipment."""
+  shipmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Timestamp for shipped, or null when it has not occurred."""
+  shippedAt: DateTime!
+}
+
+"""
+Validated input for shipment mark delivered. Tenant identifiers come only from trusted context.
+"""
+input ShipmentMarkDeliveredInput {
+  """Relay global ID identifying the shipment."""
+  shipmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Timestamp for delivered, or null when it has not occurred."""
+  deliveredAt: DateTime!
+}
+
+"""
+Validated input for shipment cancel. Tenant identifiers come only from trusted context.
+"""
+input ShipmentCancelInput {
+  """Relay global ID identifying the shipment."""
+  shipmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+}
+
+"""
+Validated input for shipment reconcile. Tenant identifiers come only from trusted context.
+"""
+input ShipmentReconcileInput {
+  """Relay global ID identifying the shipment."""
+  shipmentId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order return line. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnLineInput {
+  """Relay global ID identifying the order line."""
+  orderLineId: ID!
+  """Quantity validated against domain conservation invariants."""
+  quantity: Int!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for note."""
+  note: String
+}
+
+"""
+Validated input for order return create. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnCreateInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for lines."""
+  lines: [OrderReturnLineInput!]!
+  """Validated input value for customer note."""
+  customerNote: String
+  """Validated input value for staff note."""
+  staffNote: String
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order return approve. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnApproveInput {
+  """Relay global ID identifying the return."""
+  returnId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the location."""
+  locationId: ID!
+  """Validated input value for create return shipment."""
+  createReturnShipment: Boolean = false
+  """Validated input value for staff note."""
+  staffNote: String
+}
+
+"""
+Validated input for order return reject. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnRejectInput {
+  """Relay global ID identifying the return."""
+  returnId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Validated input value for staff note."""
+  staffNote: String
+}
+
+"""
+Validated input for order return cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnCancelInput {
+  """Relay global ID identifying the return."""
+  returnId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+}
+
+"""
+Validated input for order return receive. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnReceiveInput {
+  """Relay global ID identifying the return."""
+  returnId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the location."""
+  locationId: ID!
+  """Validated input value for lines."""
+  lines: [OrderReturnReceiveLineInput!]!
+  """Validated input value for refund."""
+  refund: OrderReturnRefundInput
+}
+
+"""
+Validated input for order return receive line. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnReceiveLineInput {
+  """Relay global ID identifying the order line."""
+  orderLineId: ID!
+  """Requested received quantity."""
+  receivedQuantity: Int!
+  """Requested restockable quantity."""
+  restockableQuantity: Int!
+  """Requested damaged quantity."""
+  damagedQuantity: Int!
+}
+
+"""
+Validated input for order return refund. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnRefundInput {
+  """Exact decimal amount serialized as a string."""
+  amount: MoneyInput!
+  """Stable audited reason code."""
+  reasonCode: String!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order exchange create. Tenant identifiers come only from trusted context.
+"""
+input OrderExchangeCreateInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Validated input value for inbound lines."""
+  inboundLines: [OrderReturnLineInput!]!
+  """Validated input value for outbound lines."""
+  outboundLines: [OrderLineCreateInput!]!
+  """Whether completion should enqueue a customer notification."""
+  notifyCustomer: Boolean = false
+  """Validated input value for staff note."""
+  staffNote: String
+}
+
+"""
+Validated input for order exchange cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderExchangeCancelInput {
+  """Relay global ID identifying the exchange."""
+  exchangeId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String!
+}
+
+"""
+Validated input for order integration sync request. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationSyncRequestInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the integration link."""
+  integrationLinkId: ID!
+  """Validated input value for force."""
+  force: Boolean = false
+}
+
+"""
+Validated input for order integration sync retry. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationSyncRetryInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the operation."""
+  operationId: ID!
+}
+
+"""
+Validated input for order integration link detach. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationLinkDetachInput {
+  """Relay global ID identifying the order."""
+  orderId: ID!
+  """Revision observed by the client; the command fails when stale."""
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Relay global ID identifying the integration link."""
+  integrationLinkId: ID!
+  """Validated input value for reason."""
+  reason: String!
+}
+
+"""
+Validated input for orders bulk action. Tenant identifiers come only from trusted context.
+"""
+input OrdersBulkActionInput {
+  """Validated input value for selection."""
+  selection: OrderBulkSelectionInput!
+  """Validated input value for action."""
+  action: OrdersBulkActionKind!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """Stable audited reason code."""
+  reasonCode: String
+  """Validated input value for tags."""
+  tags: [String!]
+  """Relay global ID identifying the integration link."""
+  integrationLinkId: ID
+}
+
+"""
+Validated input for order bulk selection. Tenant identifiers come only from trusted context.
+"""
+input OrderBulkSelectionInput {
+  """Validated input value for ids."""
+  ids: [ID!]
+  """Validated input value for where."""
+  where: OrderWhereInput
+  """Validated input value for excluded ids."""
+  excludedIds: [ID!]
+}
+
+"""
+Expected validation, permission, concurrency, or business-rule error returned by a mutation.
+"""
+type OrderUserError implements DisplayableError {
+  """Input path associated with the error, when applicable."""
+  field: [String!]
+  """Human-readable explanation safe for an authorized Admin user."""
+  message: String!
+  """Stable machine-readable code."""
+  code: String!
+  """Whether retrying after transient state changes may succeed."""
+  retryable: Boolean!
+  """Current server revision returned with a version conflict."""
+  currentVersion: Int
+}
+
+"""
+Mutation result for order; expected failures are returned in userErrors.
+"""
+type OrderPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+  """Optional client correlation value echoed by supported payloads."""
+  clientMutationId: String
+}
+
+"""
+Mutation result for order delete; expected failures are returned in userErrors.
+"""
+type OrderDeletePayload {
+  """Relay global ID identifying the deleted."""
+  deletedId: ID
+  """Fresh order projection returned after the command."""
+  order: Order
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order line; expected failures are returned in userErrors.
+"""
+type OrderLinePayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for line."""
+  line: OrderLine
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order activity; expected failures are returned in userErrors.
+"""
+type OrderActivityPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for activity."""
+  activity: OrderActivity
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order edit; expected failures are returned in userErrors.
+"""
+type OrderEditPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for edit."""
+  edit: OrderEditSession
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order operation; expected failures are returned in userErrors.
+"""
+type OrderOperationPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Durable operation returned for polling asynchronous work."""
+  operation: OrderOperation
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for fulfillment order; expected failures are returned in userErrors.
+"""
+type FulfillmentOrderPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for fulfillment order."""
+  fulfillmentOrder: FulfillmentOrder
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for fulfillment; expected failures are returned in userErrors.
+"""
+type FulfillmentPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for fulfillment."""
+  fulfillment: Fulfillment
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for shipment; expected failures are returned in userErrors.
+"""
+type ShipmentPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for shipment."""
+  shipment: Shipment
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order return; expected failures are returned in userErrors.
+"""
+type OrderReturnPayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for return."""
+  return: OrderReturn
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order exchange; expected failures are returned in userErrors.
+"""
+type OrderExchangePayload {
+  """Fresh order projection returned after the command."""
+  order: Order
+  """Projected value for exchange."""
+  exchange: OrderExchange
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
 }

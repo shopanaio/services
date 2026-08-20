@@ -12,6 +12,17 @@ extend schema
     ]
   )
 
+"""A syntactically valid email address."""
 scalar Email
+
+"""An arbitrary-size integer serialized as a decimal string."""
 scalar BigInt
+
+"""An arbitrary-precision signed decimal serialized as a string."""
+scalar Decimal
+
+"""A JSON-serializable value with provider secrets excluded."""
 scalar JSON
+
+"""An absolute RFC 3986 or RFC 3987 URL string."""
+scalar URL
