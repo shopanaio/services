@@ -6,6 +6,7 @@ import type {
   ComparisonField,
   ComparisonFieldOption,
   ComparisonGroup,
+  ComparisonProfile,
 } from "../../repositories/models/comparison.js";
 import type { LocalizedComparisonProfile } from "../../repositories/comparison/comparison-types.js";
 
@@ -155,39 +156,27 @@ export class ComparisonFieldOptionResolver extends CatalogType<{
 }
 
 export class ComparisonProfileConnectionResolver extends CatalogType<Record<string, unknown>> {
+  private pagePromise?: Promise<{
+    page: ComparisonProfile[];
+    totalCount: number;
+    pageInfo: { hasNextPage: boolean; hasPreviousPage: boolean };
+  }>;
+
   private async page() {
-    let rows = await this.$ctx.kernel.repository.comparisonRead.getAllProfiles();
-    const where = this.$props.where as { handle?: string; enabled?: boolean } | undefined;
-    if (where?.handle != null) rows = rows.filter((row) => row.handle === where.handle);
-    if (where?.enabled != null) rows = rows.filter((row) => row.enabled === where.enabled);
-    const orderBy = this.$props.orderBy as Array<{ field: string; direction: string }> | undefined;
-    if (orderBy?.length)
-      rows.sort((left, right) => {
-        for (const order of orderBy) {
-          const key =
-            order.field === "CREATED_AT"
-              ? "createdAt"
-              : order.field === "UPDATED_AT"
-                ? "updatedAt"
-                : "handle";
-          const value = String(left[key]).localeCompare(String(right[key]));
-          if (value) return order.direction === "DESC" ? -value : value;
-        }
-        return left.id.localeCompare(right.id);
-      });
-    let start =
-      typeof this.$props.after === "string" ? locate(rows, decode(this.$props.after)) + 1 : 0;
-    let end =
-      typeof this.$props.before === "string"
-        ? locate(rows, decode(this.$props.before))
-        : rows.length;
-    if (typeof this.$props.first === "number")
-      end = Math.min(end, start + Math.min(Math.max(this.$props.first, 0), 100));
-    else if (typeof this.$props.last === "number")
-      start = Math.max(start, end - Math.min(Math.max(this.$props.last, 0), 100));
-    else end = Math.min(end, start + 20);
-    const page = rows.slice(start, end);
-    return { rows, page, start, end };
+    this.pagePromise ??= this.$ctx.kernel.repository.comparisonRead.getProfileConnection({
+      first: typeof this.$props.first === "number" ? this.$props.first : undefined,
+      afterId: typeof this.$props.after === "string" ? decode(this.$props.after) : undefined,
+      last: typeof this.$props.last === "number" ? this.$props.last : undefined,
+      beforeId: typeof this.$props.before === "string" ? decode(this.$props.before) : undefined,
+      where: this.$props.where as { handle?: string; enabled?: boolean } | undefined,
+      orderBy: this.$props.orderBy as
+        | Array<{
+            field: "HANDLE" | "CREATED_AT" | "UPDATED_AT";
+            direction: "ASC" | "DESC";
+          }>
+        | undefined,
+    });
+    return this.pagePromise;
   }
   async edges() {
     const { page } = await this.page();
@@ -201,13 +190,12 @@ export class ComparisonProfileConnectionResolver extends CatalogType<Record<stri
     return page.map((row) => new ComparisonProfileResolver(row.id, this.$ctx));
   }
   async totalCount() {
-    return (await this.page()).rows.length;
+    return (await this.page()).totalCount;
   }
   async pageInfo() {
-    const { rows, page, start, end } = await this.page();
+    const { page, pageInfo } = await this.page();
     return {
-      hasNextPage: end < rows.length,
-      hasPreviousPage: start > 0,
+      ...pageInfo,
       startCursor: page[0] ? encode(page[0].id) : null,
       endCursor: page.at(-1) ? encode(page.at(-1)!.id) : null,
     };
@@ -227,9 +215,4 @@ function decode(cursor: string) {
   const match = /^comparison-profile:v1:([0-9a-f-]+)$/.exec(value);
   if (!match) throw new Error("Invalid comparison profile cursor");
   return match[1]!;
-}
-function locate(rows: Array<{ id: string }>, id: string) {
-  const index = rows.findIndex((row) => row.id === id);
-  if (index < 0) throw new Error("Stale comparison profile cursor");
-  return index;
 }

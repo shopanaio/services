@@ -49,56 +49,48 @@ export class ProductComparisonMatrixBuilder {
     ]);
     const canonicalOptionOrder = new Map(options.map((row) => [row.id, row.sortIndex]));
     const formatter = new ComparisonValueFormatter(this.locale);
+    const groupTranslations = groupBy(translations.groupTranslations, (row) => row.groupId);
+    const fieldTranslations = groupBy(translations.fieldTranslations, (row) => row.fieldId);
+    const optionTranslations = groupBy(translations.optionTranslations, (row) => row.fieldOptionId);
     const optionNames = new Map(
       options.map((option) => [
         option.id,
-        localName(
-          translations.optionTranslations.filter((row) => row.fieldOptionId === option.id),
-          translations.locales,
-        ) ?? option.handle,
+        localName(optionTranslations.get(option.id) ?? [], translations.locales) ?? option.handle,
       ]),
     );
+    const indexes = createCellIndexes(config, selected);
+    const fieldsByGroup = groupBy(fields, (field) => field.groupId);
     const matrixGroups = groups.map((group) => ({
       key: stable("group", group.id),
       groupId: group.id,
-      name:
-        localName(
-          translations.groupTranslations.filter((row) => row.groupId === group.id),
-          translations.locales,
-        ) ?? group.handle,
-      rows: fields
-        .filter((field) => field.groupId === group.id)
-        .map((field) => {
-          const cells = input.columns.map((column) =>
-            this.cell(
-              column,
-              field,
-              optionNames,
-              config,
-              selected,
-              formatter,
-              profile,
-              sourceOrder,
-              canonicalOptionOrder,
-            ),
-          );
-          return {
-            key: stable("row", field.id),
-            fieldId: field.id,
-            name:
-              localName(
-                translations.fieldTranslations.filter((row) => row.fieldId === field.id),
-                translations.locales,
-              ) ?? field.handle,
-            description: localDescription(
-              translations.fieldTranslations.filter((row) => row.fieldId === field.id),
-              translations.locales,
-            ),
-            hasDifferences:
-              new Set(cells.map((cell) => `${cell.status}:${cell.canonicalKey}`)).size > 1,
-            cells,
-          };
-        }),
+      name: localName(groupTranslations.get(group.id) ?? [], translations.locales) ?? group.handle,
+      rows: (fieldsByGroup.get(group.id) ?? []).map((field) => {
+        const cells = input.columns.map((column) =>
+          this.cell(
+            column,
+            field,
+            optionNames,
+            indexes,
+            formatter,
+            profile,
+            sourceOrder,
+            canonicalOptionOrder,
+          ),
+        );
+        return {
+          key: stable("row", field.id),
+          fieldId: field.id,
+          name:
+            localName(fieldTranslations.get(field.id) ?? [], translations.locales) ?? field.handle,
+          description: localDescription(
+            fieldTranslations.get(field.id) ?? [],
+            translations.locales,
+          ),
+          hasDifferences:
+            new Set(cells.map((cell) => `${cell.status}:${cell.canonicalKey}`)).size > 1,
+          cells,
+        };
+      }),
     }));
     return {
       key: stable("matrix", `${input.profileId}:${input.categoryId}`),
@@ -110,58 +102,53 @@ export class ProductComparisonMatrixBuilder {
     };
   }
   private async loadLayout(profileId: string): Promise<StaticLayout> {
-    const [groups, fields, translations] = await Promise.all([
+    const [groups, fields] = await Promise.all([
       this.repository.comparisonRead.getGroupsByProfileIds([profileId]),
       this.repository.comparisonRead.getFieldsByProfileIds([profileId]),
-      this.repository.comparisonRead.getTranslations([profileId]),
     ]);
     const options = await this.repository.comparisonRead.getOptionsByFieldIds(
       fields.map((field) => field.id),
     );
+    const translations = await this.repository.comparisonRead.getTranslationsByIds({
+      groupIds: groups.map((group) => group.id),
+      fieldIds: fields.map((field) => field.id),
+      optionIds: options.map((option) => option.id),
+    });
     return { groups, fields, translations, options };
   }
   private cell(
     column: ComparisonMatrixColumn,
     field: ComparisonField,
     optionNames: Map<string, string>,
-    config: any,
-    selected: any[],
+    indexes: CellIndexes,
     formatter: ComparisonValueFormatter,
     profile: any,
     sourceOrder: Map<string, number>,
     canonicalOptionOrder: Map<string, number>,
   ): ComparisonMatrixCell {
-    const na = config.notApplicable.find(
-      (row: any) => row.productId === column.productId && row.fieldId === field.id,
-    );
-    if (na)
+    if (indexes.notApplicable.has(pair(column.productId, field.id)))
       return {
         status: "NOT_APPLICABLE",
         displayValue: formatter.status("NOT_APPLICABLE", profile),
         canonicalKey: "not-applicable",
       };
-    const feature = config.featureBindings.find(
-      (row: any) => row.productId === column.productId && row.fieldId === field.id,
-    );
+    const feature = indexes.featureBindingByProductField.get(pair(column.productId, field.id));
     let values: any[] = [];
     if (feature)
-      values = config.featureValues.filter(
-        (row: any) => row.featureId === feature.featureId && row.fieldId === field.id,
-      );
-    const option = config.optionBindings.find(
-      (row: any) => row.productId === column.productId && row.fieldId === field.id,
-    );
+      values = [
+        ...(indexes.featureValuesByFeatureField.get(pair(feature.featureId, field.id)) ?? []),
+      ];
+    const option = indexes.optionBindingByProductField.get(pair(column.productId, field.id));
     if (option) {
-      const selectedValue = selected.find(
-        (row: any) => row.variantId === column.variantId && row.optionId === option.optionId,
-      )?.optionValueId;
+      const selectedValue = indexes.selectedValueByVariantOption.get(
+        pair(column.variantId, option.optionId),
+      );
       values = selectedValue
-        ? config.optionValues.filter(
-            (row: any) =>
-              row.optionId === option.optionId &&
-              row.optionValueId === selectedValue &&
-              row.fieldId === field.id,
-          )
+        ? [
+            ...(indexes.optionValuesBySource.get(
+              triple(option.optionId, selectedValue, field.id),
+            ) ?? []),
+          ]
         : [];
     }
     if (!values.length)
@@ -202,6 +189,52 @@ interface StaticLayout {
   fields: Awaited<ReturnType<Repository["comparisonRead"]["getFieldsByProfileIds"]>>;
   translations: Awaited<ReturnType<Repository["comparisonRead"]["getTranslations"]>>;
   options: Awaited<ReturnType<Repository["comparisonRead"]["getOptionsByFieldIds"]>>;
+}
+interface CellIndexes {
+  notApplicable: Set<string>;
+  featureBindingByProductField: Map<string, any>;
+  optionBindingByProductField: Map<string, any>;
+  featureValuesByFeatureField: Map<string, any[]>;
+  optionValuesBySource: Map<string, any[]>;
+  selectedValueByVariantOption: Map<string, string>;
+}
+function createCellIndexes(config: any, selected: any[]): CellIndexes {
+  return {
+    notApplicable: new Set(
+      config.notApplicable.map((row: any) => pair(row.productId, row.fieldId)),
+    ),
+    featureBindingByProductField: new Map(
+      config.featureBindings.map((row: any) => [pair(row.productId, row.fieldId), row]),
+    ),
+    optionBindingByProductField: new Map(
+      config.optionBindings.map((row: any) => [pair(row.productId, row.fieldId), row]),
+    ),
+    featureValuesByFeatureField: groupBy(config.featureValues, (row: any) =>
+      pair(row.featureId, row.fieldId),
+    ),
+    optionValuesBySource: groupBy(config.optionValues, (row: any) =>
+      triple(row.optionId, row.optionValueId, row.fieldId),
+    ),
+    selectedValueByVariantOption: new Map(
+      selected.map((row: any) => [pair(row.variantId, row.optionId), row.optionValueId]),
+    ),
+  };
+}
+function groupBy<T>(rows: readonly T[], key: (row: T) => string): Map<string, T[]> {
+  const grouped = new Map<string, T[]>();
+  for (const row of rows) {
+    const value = key(row);
+    const existing = grouped.get(value);
+    if (existing) existing.push(row);
+    else grouped.set(value, [row]);
+  }
+  return grouped;
+}
+function pair(left: string, right: string) {
+  return `${left}:${right}`;
+}
+function triple(first: string, second: string, third: string) {
+  return `${first}:${second}:${third}`;
 }
 function canonical(value: any, type: string) {
   if (type === "BOOLEAN") return `b:${value.booleanValue}`;

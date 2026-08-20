@@ -1,4 +1,18 @@
-import { and, asc, eq, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { category, productCategory } from "../models/categories.js";
 import {
@@ -26,13 +40,75 @@ import type {
   LocalizedComparisonProfile,
 } from "./comparison-types.js";
 
+export interface ComparisonProfileConnectionInput {
+  first?: number;
+  afterId?: string;
+  last?: number;
+  beforeId?: string;
+  where?: { handle?: string; enabled?: boolean };
+  orderBy?: Array<{
+    field: "HANDLE" | "CREATED_AT" | "UPDATED_AT";
+    direction: "ASC" | "DESC";
+  }>;
+}
+
 export class ComparisonReadRepository extends BaseRepository {
-  async getAllProfiles() {
-    return this.connection
+  async getProfileConnection(input: ComparisonProfileConnectionInput) {
+    const filters = [eq(comparisonProfile.storeId, this.storeId)];
+    if (input.where?.handle != null) filters.push(eq(comparisonProfile.handle, input.where.handle));
+    if (input.where?.enabled != null)
+      filters.push(eq(comparisonProfile.enabled, input.where.enabled));
+
+    const order = profileOrder(input.orderBy);
+    const [after, before] = await Promise.all([
+      input.afterId ? this.getProfileAnchor(input.afterId, filters) : null,
+      input.beforeId ? this.getProfileAnchor(input.beforeId, filters) : null,
+    ]);
+    const rangeFilters = [...filters];
+    if (after) rangeFilters.push(profileCursorCondition(order, after, "after"));
+    if (before) rangeFilters.push(profileCursorCondition(order, before, "before"));
+
+    const backward = input.first == null && input.last != null;
+    const requested = input.first ?? input.last ?? 20;
+    const limit = Math.min(Math.max(requested, 0), 100);
+    const queryOrder = order.map((item) =>
+      (backward ? item.direction === "ASC" : item.direction === "DESC")
+        ? desc(item.column)
+        : asc(item.column),
+    );
+    const [countRows, queried] = await Promise.all([
+      this.connection
+        .select({ value: count() })
+        .from(comparisonProfile)
+        .where(and(...filters)),
+      this.connection
+        .select()
+        .from(comparisonProfile)
+        .where(and(...rangeFilters))
+        .orderBy(...queryOrder)
+        .limit(limit + 1),
+    ]);
+    const hasExtra = queried.length > limit;
+    const page = queried.slice(0, limit);
+    if (backward) page.reverse();
+    return {
+      page,
+      totalCount: countRows[0]?.value ?? 0,
+      pageInfo: {
+        hasNextPage: backward ? Boolean(before) : hasExtra || Boolean(before),
+        hasPreviousPage: backward ? hasExtra || Boolean(after) : Boolean(after),
+      },
+    };
+  }
+
+  private async getProfileAnchor(id: string, filters: Array<ReturnType<typeof eq>>) {
+    const rows = await this.connection
       .select()
       .from(comparisonProfile)
-      .where(eq(comparisonProfile.storeId, this.storeId))
-      .orderBy(asc(comparisonProfile.handle), asc(comparisonProfile.id));
+      .where(and(...filters, eq(comparisonProfile.id, id)))
+      .limit(1);
+    if (!rows[0]) throw new Error("Stale comparison profile cursor");
+    return rows[0];
   }
   async getByIds(ids: readonly string[]) {
     if (ids.length === 0) return [];
@@ -179,11 +255,23 @@ export class ComparisonReadRepository extends BaseRepository {
     const fields = await this.getFieldsByProfileIds(profileIds);
     const groups = await this.getGroupsByProfileIds(profileIds);
     const options = await this.getOptionsByFieldIds(fields.map((row) => row.id));
+    return this.getTranslationsByIds({
+      groupIds: groups.map((row) => row.id),
+      fieldIds: fields.map((row) => row.id),
+      optionIds: options.map((row) => row.id),
+    });
+  }
+
+  async getTranslationsByIds(input: {
+    groupIds: readonly string[];
+    fieldIds: readonly string[];
+    optionIds: readonly string[];
+  }) {
     const locales = [
       ...new Set([this.ctx.locale ?? this.ctx.store.defaultLocale, this.ctx.store.defaultLocale]),
     ];
     const [groupTranslations, fieldTranslations, optionTranslations] = await Promise.all([
-      groups.length === 0
+      input.groupIds.length === 0
         ? []
         : this.connection
             .select()
@@ -191,14 +279,11 @@ export class ComparisonReadRepository extends BaseRepository {
             .where(
               and(
                 eq(comparisonGroupTranslation.storeId, this.storeId),
-                inArray(
-                  comparisonGroupTranslation.groupId,
-                  groups.map((row) => row.id),
-                ),
+                inArray(comparisonGroupTranslation.groupId, [...new Set(input.groupIds)]),
                 inArray(comparisonGroupTranslation.locale, locales as never[]),
               ),
             ),
-      fields.length === 0
+      input.fieldIds.length === 0
         ? []
         : this.connection
             .select()
@@ -206,14 +291,11 @@ export class ComparisonReadRepository extends BaseRepository {
             .where(
               and(
                 eq(comparisonFieldTranslation.storeId, this.storeId),
-                inArray(
-                  comparisonFieldTranslation.fieldId,
-                  fields.map((row) => row.id),
-                ),
+                inArray(comparisonFieldTranslation.fieldId, [...new Set(input.fieldIds)]),
                 inArray(comparisonFieldTranslation.locale, locales as never[]),
               ),
             ),
-      options.length === 0
+      input.optionIds.length === 0
         ? []
         : this.connection
             .select()
@@ -221,10 +303,9 @@ export class ComparisonReadRepository extends BaseRepository {
             .where(
               and(
                 eq(comparisonFieldOptionTranslation.storeId, this.storeId),
-                inArray(
-                  comparisonFieldOptionTranslation.fieldOptionId,
-                  options.map((row) => row.id),
-                ),
+                inArray(comparisonFieldOptionTranslation.fieldOptionId, [
+                  ...new Set(input.optionIds),
+                ]),
                 inArray(comparisonFieldOptionTranslation.locale, locales as never[]),
               ),
             ),
@@ -396,7 +477,11 @@ export class ComparisonReadRepository extends BaseRepository {
       );
   }
 
-  async getVisibleCandidates(categoryId: string): Promise<ComparisonCandidate[]> {
+  async getVisibleCandidates(
+    categoryId: string,
+    currentProductId: string,
+    limit: number,
+  ): Promise<ComparisonCandidate[]> {
     const now = new Date().toISOString();
     return this.connection
       .select({
@@ -432,12 +517,14 @@ export class ComparisonReadRepository extends BaseRepository {
         ),
       )
       .orderBy(
+        sql`CASE WHEN ${product.id} = ${currentProductId} THEN 0 ELSE 1 END`,
         asc(productCategory.lexoRank),
         asc(product.id),
         sql`${variant.isDefault} DESC`,
         asc(variant.createdAt),
         asc(variant.id),
-      );
+      )
+      .limit(limit);
   }
 
   async productConfigurationProfileIds(productId: string): Promise<string[]> {
@@ -478,4 +565,47 @@ export class ComparisonReadRepository extends BaseRepository {
     `);
     return rows[0]?.conflict ?? false;
   }
+}
+
+type ProfileOrderKey = "handle" | "createdAt" | "updatedAt" | "id";
+type ProfileOrderItem = {
+  key: ProfileOrderKey;
+  column:
+    | typeof comparisonProfile.handle
+    | typeof comparisonProfile.createdAt
+    | typeof comparisonProfile.updatedAt
+    | typeof comparisonProfile.id;
+  direction: "ASC" | "DESC";
+};
+function profileOrder(input: ComparisonProfileConnectionInput["orderBy"]): ProfileOrderItem[] {
+  const seen = new Set<ProfileOrderKey>();
+  const order: ProfileOrderItem[] = [];
+  for (const item of input?.length ? input : [{ field: "HANDLE", direction: "ASC" } as const]) {
+    const key: ProfileOrderKey =
+      item.field === "CREATED_AT"
+        ? "createdAt"
+        : item.field === "UPDATED_AT"
+          ? "updatedAt"
+          : "handle";
+    if (seen.has(key)) continue;
+    seen.add(key);
+    order.push({ key, column: comparisonProfile[key], direction: item.direction });
+  }
+  order.push({ key: "id", column: comparisonProfile.id, direction: "ASC" });
+  return order;
+}
+function profileCursorCondition(
+  order: ProfileOrderItem[],
+  anchor: Record<ProfileOrderKey, string>,
+  side: "after" | "before",
+) {
+  const branches = order.map((item, index) => {
+    const equals = order
+      .slice(0, index)
+      .map((previous) => eq(previous.column, anchor[previous.key]));
+    const greater = side === "after" ? item.direction === "ASC" : item.direction === "DESC";
+    const compare = greater ? gt(item.column, anchor[item.key]) : lt(item.column, anchor[item.key]);
+    return and(...equals, compare)!;
+  });
+  return or(...branches)!;
 }

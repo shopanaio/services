@@ -12,36 +12,19 @@ export class ProductComparisonService {
     if (!effective?.profileId || !effective.enabled) return null;
     const candidates = await this.ctx.kernel.repository.comparisonRead.getVisibleCandidates(
       primary.categoryId,
+      productId,
+      comparisonPolicy.productPageDefaultColumns,
     );
     if (!candidates.some((candidate) => candidate.productId === productId)) return null;
-    const products = [...new Set(candidates.map((row) => row.productId))];
-    const profiles =
-      await this.ctx.kernel.repository.comparisonRead.getEffectiveProfilesByProductIds(products);
-    const compatible = new Set(
-      profiles
-        .filter((row) => row.profileId === effective.profileId && row.enabled)
-        .map((row) => row.ownerId),
-    );
     const saved = this.ctx.customer
       ? await this.savedVariantIds(this.ctx.customer.id)
       : new Set<string>();
-    const ordered = candidates
-      .filter((row) => compatible.has(row.productId))
-      .sort((left, right) =>
-        left.productId === productId && right.productId !== productId
-          ? -1
-          : right.productId === productId && left.productId !== productId
-            ? 1
-            : 0,
-      );
-    const columns = ordered
-      .slice(0, comparisonPolicy.productPageDefaultColumns)
-      .map((row, position) => ({
-        productId: row.productId,
-        variantId: row.variantId,
-        position,
-        savedForComparison: saved.has(row.variantId),
-      }));
+    const columns = candidates.map((row, position) => ({
+      productId: row.productId,
+      variantId: row.variantId,
+      position,
+      savedForComparison: saved.has(row.variantId),
+    }));
     return new ProductComparisonMatrixBuilder(
       this.ctx.kernel.repository,
       this.ctx.locale ?? this.ctx.store.defaultLocale,
