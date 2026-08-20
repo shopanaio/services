@@ -202,13 +202,12 @@ export class CatalogBrokerActions extends BrokerActions {
             retryable: false,
           };
         }
-        const candidates =
-          await this.kernel.repository.variant.getStorefrontVisibleComparisonVariants(
-            params.variantIds,
-          );
-        const variants = params.categoryId
-          ? candidates.filter((candidate) => candidate.primaryCategoryId === params.categoryId)
-          : candidates;
+        const variants =
+          params.scope === "CURRENT_CATALOG"
+            ? await this.kernel.repository.variant.getCurrentComparisonVariants(params.variantIds)
+            : await this.kernel.repository.variant.getStorefrontVisibleComparisonVariants(
+                params.variantIds,
+              );
         return { ok: true as const, variants };
       });
     } catch {

@@ -29,13 +29,27 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
       storeId: this.context.store.id,
       categoryId: params.categoryId,
       variantIds: selection.items.map((item) => item.variantId),
+      scope: "CURRENT_CATALOG",
     });
     if (!catalog.ok) return failed(catalog.userError);
+
+    const currentByVariantId = new Map(
+      catalog.variants.map((variant) => [variant.variantId, variant]),
+    );
+    const removableVariantIds = selection.items.flatMap((item) => {
+      const current = currentByVariantId.get(item.variantId);
+      return !current ||
+        current.productId !== item.productId ||
+        current.primaryCategoryId === null ||
+        current.primaryCategoryId === params.categoryId
+        ? [item.variantId]
+        : [];
+    });
 
     const result = await this.repository.comparison.clearVariants({
       customerId: params.customerId,
       expectedRevision: params.expectedRevision,
-      variantIds: catalog.variants.map((variant) => variant.variantId),
+      variantIds: removableVariantIds,
     });
     switch (result.status) {
       case "applied":

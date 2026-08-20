@@ -161,6 +161,27 @@ test.describe('Customers Storefront API — comparisons', () => {
       await kit.sql`select count(*)::int as count from customers.customer_comparison_item item join customers.customer_comparison comparison on comparison.id = item.comparison_id where comparison.customer_id = ${kit.customer.rawId}`;
     expect(row!.count).toBe(0);
   });
+  test('category clear also removes stale unpublished comparison variants', async () => {
+    const current = await product();
+    const category = await createCategory();
+    await kit.api.admin.mutation('category-api/CategoryAddProduct', {
+      variables: {
+        productId: current.id,
+        categoryId: category.id,
+        expectedRevision: current.revision,
+      },
+    });
+    const variant = current.variants.edges[0]!.node;
+    await add(variant.id);
+    await kit.sql`update catalog.product set published_at = null where id = ${kit.headless.rawId(current.id)}`;
+
+    const response = await clear(category.id);
+
+    expect(response.data?.payload.userErrors).toEqual([]);
+    const [row] =
+      await kit.sql`select count(*)::int as count from customers.customer_comparison_item where variant_id = ${kit.headless.rawId(variant.id)}`;
+    expect(row!.count).toBe(0);
+  });
   test('clearing an empty valid category has deterministic no-op semantics', async () => {
     const category = await createCategory();
     const before = await revision();

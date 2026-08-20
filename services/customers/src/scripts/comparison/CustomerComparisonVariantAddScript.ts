@@ -27,6 +27,7 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
     const catalog = await resolveCatalogComparisonVariants(this.services, {
       storeId: this.context.store.id,
       variantIds: [params.variantId],
+      scope: "STOREFRONT_VISIBLE",
     });
     if (!catalog.ok) return failed(catalog.userError);
     const variant = catalog.variants.find((candidate) => candidate.variantId === params.variantId);

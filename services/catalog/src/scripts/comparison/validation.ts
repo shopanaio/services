@@ -118,6 +118,45 @@ export function validateProfileInput(input: ComparisonProfileNestedInput): UserE
   }
   return errors;
 }
+
+export function validateComparisonProfileCreateIds(
+  input: ComparisonProfileNestedInput,
+): UserError[] {
+  const errors: UserError[] = [];
+  for (const [groupIndex, group] of input.groups.entries()) {
+    if (group.id)
+      errors.push({
+        message: "Comparison group IDs are not accepted on create",
+        field: ["groups", String(groupIndex), "id"],
+        code: "INVALID_ID",
+      });
+    for (const [fieldIndex, field] of group.fields.entries()) {
+      if (field.id)
+        errors.push({
+          message: "Comparison field IDs are not accepted on create",
+          field: ["groups", String(groupIndex), "fields", String(fieldIndex), "id"],
+          code: "INVALID_ID",
+        });
+      for (const [optionIndex, option] of field.options.entries()) {
+        if (option.id)
+          errors.push({
+            message: "Comparison field option IDs are not accepted on create",
+            field: [
+              "groups",
+              String(groupIndex),
+              "fields",
+              String(fieldIndex),
+              "options",
+              String(optionIndex),
+              "id",
+            ],
+            code: "INVALID_ID",
+          });
+      }
+    }
+  }
+  return errors;
+}
 function duplicates(
   values: Array<string | number>,
   prefix: string[],

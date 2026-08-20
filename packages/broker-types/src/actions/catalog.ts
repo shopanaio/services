@@ -69,7 +69,8 @@ export type ValidateLoyaltyCatalogReferencesResult =
 export interface ResolveCustomerComparisonVariantsParams {
   storeId: string;
   variantIds: readonly string[];
-  /** When present, return only variants whose current primary category matches. */
+  scope: "STOREFRONT_VISIBLE" | "CURRENT_CATALOG";
+  /** When present, validate that the category exists in the current store. */
   categoryId?: string;
 }
 

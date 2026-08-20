@@ -116,6 +116,7 @@ export class CustomerComparisonItemResolver extends CustomersType<string, Custom
         >(CatalogComparisonActions.resolveVariants, {
           storeId: this.$ctx.store.id,
           variantIds: [variantId],
+          scope: "STOREFRONT_VISIBLE",
         });
       if (!result.ok) return null;
       return result.variants.find((variant) => variant.variantId === variantId) ?? null;

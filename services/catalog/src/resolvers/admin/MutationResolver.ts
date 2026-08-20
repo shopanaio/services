@@ -3625,10 +3625,11 @@ function decodeComparisonProfileInput(
 ): { input?: any; userErrors: UserError[] } {
   const userErrors: UserError[] = [];
   const groups = input.groups.map((group, gi) => {
-    const groupId = group.id
-      ? safeDecodeGlobalId(group.id, GlobalIdEntity.ComparisonGroup)
+    const encodedGroupId = "id" in group ? group.id : undefined;
+    const groupId = encodedGroupId
+      ? safeDecodeGlobalId(encodedGroupId, GlobalIdEntity.ComparisonGroup)
       : undefined;
-    if (group.id && !groupId)
+    if (encodedGroupId && !groupId)
       userErrors.push({
         message: "Invalid comparison group ID",
         field: ["groups", String(gi), "id"],
@@ -3638,10 +3639,11 @@ function decodeComparisonProfileInput(
       ...group,
       id: groupId,
       fields: group.fields.map((field, fi) => {
-        const fieldId = field.id
-          ? safeDecodeGlobalId(field.id, GlobalIdEntity.ComparisonField)
+        const encodedFieldId = "id" in field ? field.id : undefined;
+        const fieldId = encodedFieldId
+          ? safeDecodeGlobalId(encodedFieldId, GlobalIdEntity.ComparisonField)
           : undefined;
-        if (field.id && !fieldId)
+        if (encodedFieldId && !fieldId)
           userErrors.push({
             message: "Invalid comparison field ID",
             field: ["groups", String(gi), "fields", String(fi), "id"],
@@ -3653,10 +3655,11 @@ function decodeComparisonProfileInput(
           description: field.description ?? null,
           canonicalUnit: field.canonicalUnit ?? null,
           options: field.options.map((option, oi) => {
-            const optionId = option.id
-              ? safeDecodeGlobalId(option.id, GlobalIdEntity.ComparisonFieldOption)
+            const encodedOptionId = "id" in option ? option.id : undefined;
+            const optionId = encodedOptionId
+              ? safeDecodeGlobalId(encodedOptionId, GlobalIdEntity.ComparisonFieldOption)
               : undefined;
-            if (option.id && !optionId)
+            if (encodedOptionId && !optionId)
               userErrors.push({
                 message: "Invalid comparison field option ID",
                 field: ["groups", String(gi), "fields", String(fi), "options", String(oi), "id"],

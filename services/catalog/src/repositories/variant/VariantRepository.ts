@@ -12,6 +12,7 @@ import { BaseRepository } from "../BaseRepository.js";
 import {
   itemPricing,
   product,
+  category,
   productCategory,
   productOption,
   productOptionVariantLink,
@@ -408,6 +409,51 @@ export class VariantRepository extends BaseRepository {
       .select({
         variantId: variant.id,
         productId: variant.productId,
+        primaryCategoryId: category.id,
+      })
+      .from(variant)
+      .innerJoin(
+        product,
+        and(eq(product.storeId, variant.storeId), eq(product.id, variant.productId)),
+      )
+      .leftJoin(
+        productCategory,
+        and(
+          eq(productCategory.storeId, variant.storeId),
+          eq(productCategory.productId, variant.productId),
+          eq(productCategory.isPrimary, true),
+        ),
+      )
+      .leftJoin(
+        category,
+        and(
+          eq(category.storeId, variant.storeId),
+          eq(category.id, productCategory.categoryId),
+          isNull(category.deletedAt),
+          isNotNull(category.publishedAt),
+          lte(category.publishedAt, now),
+        ),
+      )
+      .where(
+        and(
+          eq(variant.storeId, this.storeId),
+          inArray(variant.id, [...new Set(variantIds)]),
+          isNull(variant.deletedAt),
+          isNull(product.deletedAt),
+          isNotNull(product.publishedAt),
+          lte(product.publishedAt, now),
+        ),
+      );
+  }
+
+  async getCurrentComparisonVariants(
+    variantIds: readonly string[],
+  ): Promise<PublishedComparisonVariant[]> {
+    if (variantIds.length === 0) return [];
+    return this.connection
+      .select({
+        variantId: variant.id,
+        productId: variant.productId,
         primaryCategoryId: productCategory.categoryId,
       })
       .from(variant)
@@ -423,16 +469,7 @@ export class VariantRepository extends BaseRepository {
           eq(productCategory.isPrimary, true),
         ),
       )
-      .where(
-        and(
-          eq(variant.storeId, this.storeId),
-          inArray(variant.id, [...new Set(variantIds)]),
-          isNull(variant.deletedAt),
-          isNull(product.deletedAt),
-          isNotNull(product.publishedAt),
-          lte(product.publishedAt, now),
-        ),
-      );
+      .where(and(eq(variant.storeId, this.storeId), inArray(variant.id, [...new Set(variantIds)])));
   }
 
   /** @deprecated Use the shared storefront visibility read. */

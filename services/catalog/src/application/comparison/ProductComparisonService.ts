@@ -13,6 +13,7 @@ export class ProductComparisonService {
     const candidates = await this.ctx.kernel.repository.comparisonRead.getVisibleCandidates(
       primary.categoryId,
     );
+    if (!candidates.some((candidate) => candidate.productId === productId)) return null;
     const products = [...new Set(candidates.map((row) => row.productId))];
     const profiles =
       await this.ctx.kernel.repository.comparisonRead.getEffectiveProfilesByProductIds(products);

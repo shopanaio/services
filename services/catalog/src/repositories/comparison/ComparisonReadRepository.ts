@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import { productCategory } from "../models/categories.js";
+import { category, productCategory } from "../models/categories.js";
 import {
   categoryComparisonProfile,
   comparisonFeatureBinding,
@@ -409,6 +409,10 @@ export class ComparisonReadRepository extends BaseRepository {
       })
       .from(productCategory)
       .innerJoin(
+        category,
+        and(eq(category.storeId, this.storeId), eq(category.id, productCategory.categoryId)),
+      )
+      .innerJoin(
         product,
         and(eq(product.storeId, this.storeId), eq(product.id, productCategory.productId)),
       )
@@ -418,6 +422,9 @@ export class ComparisonReadRepository extends BaseRepository {
           eq(productCategory.storeId, this.storeId),
           eq(productCategory.categoryId, categoryId),
           eq(productCategory.isPrimary, true),
+          isNull(category.deletedAt),
+          isNotNull(category.publishedAt),
+          lte(category.publishedAt, now),
           isNull(product.deletedAt),
           isNotNull(product.publishedAt),
           lte(product.publishedAt, now),

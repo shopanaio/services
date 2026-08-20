@@ -1547,6 +1547,18 @@ export type ComparisonField = Node & {
   valueType: ComparisonValueType;
 };
 
+export type ComparisonFieldCreateInput = {
+  canonicalUnit?: InputMaybe<Scalars['String']['input']>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars['String']['input']>;
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  options: Array<ComparisonFieldOptionCreateInput>;
+  sortIndex: Scalars['Int']['input'];
+  valueType: ComparisonValueType;
+};
+
 export type ComparisonFieldInput = {
   canonicalUnit?: InputMaybe<Scalars['String']['input']>;
   cardinality: ComparisonCardinality;
@@ -1568,6 +1580,12 @@ export type ComparisonFieldOption = Node & {
   sortIndex: Scalars['Int']['output'];
 };
 
+export type ComparisonFieldOptionCreateInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
 export type ComparisonFieldOptionInput = {
   handle: Scalars['String']['input'];
   id?: InputMaybe<Scalars['ID']['input']>;
@@ -1582,6 +1600,13 @@ export type ComparisonGroup = Node & {
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   sortIndex: Scalars['Int']['output'];
+};
+
+export type ComparisonGroupCreateInput = {
+  fields: Array<ComparisonFieldCreateInput>;
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
 };
 
 export type ComparisonGroupInput = {
@@ -1617,7 +1642,7 @@ export type ComparisonProfileConnection = {
 
 export type ComparisonProfileCreateInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  groups: Array<ComparisonGroupInput>;
+  groups: Array<ComparisonGroupCreateInput>;
   handle: Scalars['String']['input'];
   missingLabel: Scalars['String']['input'];
   name: Scalars['String']['input'];
@@ -6017,10 +6042,13 @@ export type ResolversTypes = ResolversObject<{
   CollectionVendorRuleInput: CollectionVendorRuleInput;
   ComparisonCardinality: ComparisonCardinality;
   ComparisonField: ResolverTypeWrapper<ComparisonField>;
+  ComparisonFieldCreateInput: ComparisonFieldCreateInput;
   ComparisonFieldInput: ComparisonFieldInput;
   ComparisonFieldOption: ResolverTypeWrapper<ComparisonFieldOption>;
+  ComparisonFieldOptionCreateInput: ComparisonFieldOptionCreateInput;
   ComparisonFieldOptionInput: ComparisonFieldOptionInput;
   ComparisonGroup: ResolverTypeWrapper<ComparisonGroup>;
+  ComparisonGroupCreateInput: ComparisonGroupCreateInput;
   ComparisonGroupInput: ComparisonGroupInput;
   ComparisonProfile: ResolverTypeWrapper<ComparisonProfile>;
   ComparisonProfileConnection: ResolverTypeWrapper<ComparisonProfileConnection>;
@@ -6415,10 +6443,13 @@ export type ResolversParentTypes = ResolversObject<{
   CollectionVendorRule: CollectionVendorRule;
   CollectionVendorRuleInput: CollectionVendorRuleInput;
   ComparisonField: ComparisonField;
+  ComparisonFieldCreateInput: ComparisonFieldCreateInput;
   ComparisonFieldInput: ComparisonFieldInput;
   ComparisonFieldOption: ComparisonFieldOption;
+  ComparisonFieldOptionCreateInput: ComparisonFieldOptionCreateInput;
   ComparisonFieldOptionInput: ComparisonFieldOptionInput;
   ComparisonGroup: ComparisonGroup;
+  ComparisonGroupCreateInput: ComparisonGroupCreateInput;
   ComparisonGroupInput: ComparisonGroupInput;
   ComparisonProfile: ComparisonProfile;
   ComparisonProfileConnection: ComparisonProfileConnection;

@@ -1,7 +1,11 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ComparisonProfileAggregateInput } from "../../repositories/comparison/comparison-types.js";
 import type { ComparisonProfileNestedInput, ComparisonProfileMutationResult } from "./dto.js";
-import { mapComparisonDatabaseError, validateProfileInput } from "./validation.js";
+import {
+  mapComparisonDatabaseError,
+  validateComparisonProfileCreateIds,
+  validateProfileInput,
+} from "./validation.js";
 
 abstract class ProfileScript<TParams, TResult> extends BaseScript<TParams, TResult> {
   protected async aggregate(
@@ -50,7 +54,10 @@ export class ComparisonProfileCreateScript extends ProfileScript<
   ComparisonProfileMutationResult
 > {
   @Transactional() protected async execute({ input }: { input: ComparisonProfileNestedInput }) {
-    const userErrors = validateProfileInput(input);
+    const userErrors = [
+      ...validateComparisonProfileCreateIds(input),
+      ...validateProfileInput(input),
+    ];
     if (userErrors.length) return { userErrors };
     if (await this.repository.comparisonRead.findByHandle(input.handle.trim()))
       return {

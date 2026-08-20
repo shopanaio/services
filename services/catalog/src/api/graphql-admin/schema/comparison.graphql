@@ -156,7 +156,7 @@ input ComparisonProfileCreateInput {
   missingLabel: String!
   notApplicableLabel: String!
   unavailableLabel: String!
-  groups: [ComparisonGroupInput!]!
+  groups: [ComparisonGroupCreateInput!]!
 }
 input ComparisonProfileUpdateInput {
   id: ID!
@@ -175,6 +175,28 @@ input ComparisonGroupInput {
   name: String!
   sortIndex: Int!
   fields: [ComparisonFieldInput!]!
+}
+input ComparisonGroupCreateInput {
+  handle: String!
+  name: String!
+  sortIndex: Int!
+  fields: [ComparisonFieldCreateInput!]!
+}
+input ComparisonFieldCreateInput {
+  handle: String!
+  name: String!
+  description: String
+  valueType: ComparisonValueType!
+  cardinality: ComparisonCardinality!
+  canonicalUnit: String
+  sortIndex: Int!
+  featured: Boolean = false
+  options: [ComparisonFieldOptionCreateInput!]!
+}
+input ComparisonFieldOptionCreateInput {
+  handle: String!
+  name: String!
+  sortIndex: Int!
 }
 input ComparisonFieldInput {
   id: ID
