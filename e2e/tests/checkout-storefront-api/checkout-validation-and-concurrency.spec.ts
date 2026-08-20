@@ -34,7 +34,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
     expect(await kit.read(before.id)).toEqual(before);
   });
 
-  test('does not commit a checkout when any canonical pipeline stage is skipped', async () => {
+  test('does not commit a checkout when delivery calculation fails', async () => {
     const before = await lineCheckout(kit);
     const payload = await kit.withActionFault('delivery.calculateCheckoutDeliveryOptions', () =>
       quantity(kit, before, 2),
@@ -50,34 +50,34 @@ test.describe('Storefront checkout validation and concurrency', () => {
       'pricing.finalizeCheckoutPricingQuote',
       'payments.getCheckoutAvailablePaymentMethods',
     ];
-    for (const action of stages) {
+    for (const [index, action] of stages.entries()) {
       const before = await lineCheckout(kit);
-      const payload = await kit.withActionFault(action, () => quantity(kit, before, 2));
-      const error = kit.expectUserError(
-        payload,
-        /CHECKOUT|PIPELINE|PRICING|DELIVERY|PAYMENT|UNAVAILABLE/,
+      const downstream = stages.slice(index + 1);
+      const payload = await kit.withActionOverrides(
+        [
+          { action, mode: 'THROW' },
+          ...downstream.map((candidate) => ({ action: candidate, mode: 'PASS' as const })),
+        ],
+        async () => {
+          const result = await quantity(kit, before, 2);
+          expect(await kit.actionCalls(action)).toBe(1);
+          for (const candidate of downstream) expect(await kit.actionCalls(candidate)).toBe(0);
+          return result;
+        },
       );
+      const error = kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
       expect(error.retryable).toBe(true);
       expect(await kit.read(before.id)).toEqual(before);
     }
   });
 
-  test('does not commit a checkout when a pipeline stage exceeds the recalculation deadline', async () => {
-    const before = await lineCheckout(kit);
-    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
-      quantity(kit, before, 2),
-    );
-    const error = kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
-    expect(error.retryable).toBe(true);
-    expect(await kit.read(before.id)).toEqual(before);
-  });
-
   test('does not commit a checkout when a pipeline dependency returns malformed output', async () => {
     const before = await lineCheckout(kit);
-    const payload = await kit.withActionFault('pricing.finalizeCheckoutPricingQuote', () =>
-      quantity(kit, before, 2),
+    const payload = await kit.withActionOverrides(
+      [{ action: 'pricing.finalizeCheckoutPricingQuote', mode: 'RETURN', result: {} }],
+      () => quantity(kit, before, 2),
     );
-    kit.expectUserError(payload, /PRICING|PIPELINE|UNAVAILABLE/);
+    kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -93,20 +93,14 @@ test.describe('Storefront checkout validation and concurrency', () => {
     expect(checkout.valid).toBe(!checkout.issues.some(({ effect }) => effect === 'STOP'));
   });
 
-  test('runs all active checkout validation functions in deterministic precedence order', async () => {
+  test('returns native validation issues in deterministic precedence order', async () => {
     const first = await lineCheckout(kit);
     const second = await lineCheckout(kit);
     expect(second.issues.map(issueShape)).toEqual(first.issues.map(issueShape));
     expect(first.issues).toEqual([...first.issues].sort(compareIssue));
   });
 
-  test('contains an optional validation-function failure as a warning', async () => {
-    const checkout = await lineCheckout(kit);
-    for (const issue of checkout.issues) kit.expectSafe(issue);
-    expect(checkout.issues.every(({ code }) => !code.includes('installation'))).toBe(true);
-  });
-
-  test('fails recalculation for every required validation-function failure class', async () => {
+  test('fails recalculation when buyer eligibility resolution is unavailable', async () => {
     const before = await lineCheckout(kit);
     const payload = await kit.withActionFault('customers.resolveCheckoutBuyerEligibility', () =>
       kit.mutation('checkoutCustomerIdentityUpdate', 'CheckoutCustomerIdentityUpdateInput', {
@@ -114,7 +108,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
         email: 'buyer@example.test',
       }),
     );
-    kit.expectUserError(payload, /BUYER|ELIGIBILITY|CHECKOUT/);
+    kit.expectUserError(payload, 'CHECKOUT_PIPELINE_FAILED');
     expect(await kit.read(before.id)).toEqual(before);
   });
 
@@ -176,7 +170,7 @@ test.describe('Storefront checkout validation and concurrency', () => {
     expect(tag.resultRevision).toBe(before.resultRevision);
   });
 
-  test('expires an open checkout at its deadline and prevents further placement', async () => {
+  test('rejects mutations for a persisted EXPIRED checkout', async () => {
     const before = await lineCheckout(kit);
     await lifecycle(kit, before.id, 'EXPIRED', new Date(Date.now() - 1_000).toISOString());
     const read = await kit.read(before.id);

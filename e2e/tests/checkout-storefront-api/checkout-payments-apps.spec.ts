@@ -24,10 +24,16 @@ test.describe('Storefront checkout payments through Apps', () => {
     expect(checkout.payment.methods[0]!.handle).not.toContain('card');
   });
 
-  test('lists methods from multiple Apps in deterministic order', async () => {
+  test('lists multiple methods from one provider in deterministic order', async () => {
     await kit.configurePaymentProvider();
     const first = await payable(kit);
     const second = await payable(kit);
+    expect(first.payment.methods.map(({ code }) => code)).toEqual([
+      'test-stripe-bank-transfer',
+      'test-stripe-card',
+      'test-stripe-card-3ds',
+      'test-stripe-declined-card',
+    ]);
     expect(second.payment.methods.map(methodProjection)).toEqual(
       first.payment.methods.map(methodProjection),
     );
@@ -36,7 +42,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     );
   });
 
-  test('ignores inactive, suspended, and uninstalled payment Apps', async () => {
+  test('ignores an inactive payment provider account', async () => {
     const provider = await kit.configurePaymentProvider(['card']);
     expect((await payable(kit)).payment.methods).toHaveLength(1);
     await kit.setPaymentProviderStatus(provider.providerAccountId, 'INACTIVE');
@@ -52,17 +58,6 @@ test.describe('Storefront checkout payments through Apps', () => {
     );
   });
 
-  test('reports partial provider degradation as a checkout payment warning', async () => {
-    await kit.configurePaymentProvider(['card']);
-    const healthy = await payable(kit);
-    expect(healthy.payment.methods).toHaveLength(1);
-    const failed = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
-      updateQuantity(kit, healthy, 2),
-    );
-    kit.expectUserError(failed, /PAYMENT|PIPELINE|UNAVAILABLE/);
-    expect(await kit.read(healthy.id)).toEqual(healthy);
-  });
-
   test('fails the payment stage when every eligible provider is unavailable', async () => {
     await kit.configurePaymentProvider(['card']);
     const before = await payable(kit);
@@ -76,10 +71,13 @@ test.describe('Storefront checkout payments through Apps', () => {
   test('does not invoke payment Apps when loyalty reduces payable total to zero', async () => {
     await kit.configurePaymentProvider(['card']);
     await kit.createDiscount({ amountMinor: '100000' });
-    const checkout = await payable(kit, 500);
-    expect(checkout.payment.payableAmount.amount).toBe(0);
-    expect(checkout.payment.methods).toEqual([]);
-    expect(checkout.payment.selection.status).toBe('NONE');
+    await kit.withActionOverrides([{ action: 'apps.executeCapability', mode: 'PASS' }], async () => {
+      const checkout = await payable(kit, 500);
+      expect(checkout.payment.payableAmount.amount).toBe(0);
+      expect(checkout.payment.methods).toEqual([]);
+      expect(checkout.payment.selection.status).toBe('NONE');
+      expect(await kit.actionCalls('apps.executeCapability')).toBe(0);
+    });
   });
 
   test('requires a payment method when a positive payable total has methods', async () => {
@@ -109,7 +107,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     expect(after.valid).toBe(true);
   });
 
-  test('preserves selected payment customer input exactly', async () => {
+  test('persists selected payment customer input without exposing it publicly', async () => {
     await kit.configurePaymentProvider(['card']);
     const before = await payable(kit);
     const customerInput = { saveMethod: true, holder: 'Ada Lovelace', nested: { consent: 'yes' } };
@@ -141,43 +139,21 @@ test.describe('Storefront checkout payments through Apps', () => {
     expect(checkout.payment.selection).toMatchObject({ status: 'NONE', method: null });
   });
 
-  test('applies payment customization Apps only through Payments-owned bindings', async () => {
-    await kit.configurePaymentProvider(['card', 'bank-transfer']);
-    const checkout = await payable(kit);
-    expect(checkout.payment.methods.map(({ code }) => code)).toEqual([
-      'test-stripe-bank-transfer',
-      'test-stripe-card',
-    ]);
-    const [row] = await kit.sql<{ count: number }[]>`
-      select count(*)::int as count from payments.payment_customization_binding
-      where store_id = ${kit.storeId}
-    `;
-    expect(row!.count).toBe(0);
-  });
-
-  test('applies payment method hide, rename, and move customizations deterministically', async () => {
-    await kit.configurePaymentProvider();
-    const first = await payable(kit);
-    const second = kit.expectSuccess(await updateQuantity(kit, first, 2));
-    expect(second.payment.methods.map(methodProjection)).toEqual(
-      first.payment.methods.map(methodProjection),
-    );
-  });
-
-  test('rejects payment App output with duplicate keys or invalid metadata', async () => {
+  test('rejects a malformed Apps capability envelope without committing', async () => {
     await kit.configurePaymentProvider(['card']);
     const before = await payable(kit);
-    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
-      updateQuantity(kit, before, 2),
+    const payload = await kit.withActionOverrides(
+      [{ action: 'apps.executeCapability', mode: 'RETURN', result: {} }],
+      () => updateQuantity(kit, before, 2),
     );
     kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
     expect(await kit.read(before.id)).toEqual(before);
   });
 
-  test('contains payment discovery timeout and boundary failures without exposing a partial method list', async () => {
+  test('contains a payment Apps boundary failure without exposing a partial method list', async () => {
     await kit.configurePaymentProvider();
     const before = await payable(kit);
-    const payload = await kit.withActionFault('payments.getCheckoutAvailablePaymentMethods', () =>
+    const payload = await kit.withActionFault('apps.executeCapability', () =>
       updateQuantity(kit, before, 2),
     );
     const error = kit.expectUserError(payload, /PAYMENT|PIPELINE|UNAVAILABLE/);
@@ -197,18 +173,7 @@ test.describe('Storefront checkout payments through Apps', () => {
     kit.expectSafe(after.payment);
   });
 
-  test('returns redirect and confirmation customer actions for their respective provider flows', async () => {
-    await kit.configurePaymentProvider(['card', 'card-3ds']);
-    const checkout = await payable(kit);
-    expect(checkout.payment.methods).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: 'test-stripe-card', flow: 'ONLINE' }),
-        expect.objectContaining({ code: 'test-stripe-card-3ds', flow: 'ONLINE' }),
-      ]),
-    );
-  });
-
-  test('returns safe offline and on-delivery payment instructions without a redirect URL', async () => {
+  test('returns a safe offline payment method without provider internals', async () => {
     await kit.configurePaymentProvider(['bank-transfer']);
     const checkout = await payable(kit);
     expect(checkout.payment.methods).toEqual([

@@ -33,6 +33,12 @@ export type CheckoutUserError = {
   retryable: boolean;
 };
 
+export type ActionOverride = {
+  action: string;
+  mode: 'PASS' | 'THROW' | 'RETURN' | 'THROW_AFTER';
+  result?: unknown;
+};
+
 export type Money = { amount: number; currencyCode: string };
 
 export type Checkout = {
@@ -468,20 +474,57 @@ export class CheckoutStorefrontTestKit {
     return body.result;
   }
 
-  async withActionFault<T>(action: string, run: () => Promise<T>): Promise<T> {
-    const payload = { action, storeId: this.storeId };
-    const enabled = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/fault`, {
-      data: payload,
+  async runWorkflow<T>(
+    workflow: string,
+    params: Record<string, unknown>,
+    idempotencyKey = crypto.randomUUID(),
+    workflowId?: string,
+  ): Promise<T> {
+    const response = await this.request.post(`${ACTION_PROXY_URL}/__test/workflows/run`, {
+      data: { workflow, params, idempotencyKey, ...(workflowId ? { workflowId } : {}) },
     });
-    expect(enabled.ok(), await enabled.text()).toBe(true);
+    expect(response.ok(), await response.text()).toBe(true);
+    const body = (await response.json()) as
+      | { ok: true; result: T }
+      | { ok: false; error: { code: string; message: string } };
+    expect(body.ok).toBe(true);
+    if (!body.ok) throw new Error(`${body.error.code}: ${body.error.message}`);
+    return body.result;
+  }
+
+  async withActionFault<T>(action: string, run: () => Promise<T>): Promise<T> {
+    return this.withActionOverrides([{ action, mode: 'THROW' }], run);
+  }
+
+  async withActionOverrides<T>(overrides: ActionOverride[], run: () => Promise<T>): Promise<T> {
+    for (const override of overrides) await this.enableActionOverride(override);
     try {
       return await run();
     } finally {
-      const restored = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/restore`, {
-        data: payload,
-      });
-      expect(restored.ok(), await restored.text()).toBe(true);
+      for (const override of [...overrides].reverse()) {
+        const restored = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/restore`, {
+          data: { action: override.action, storeId: this.storeId },
+        });
+        expect(restored.ok(), await restored.text()).toBe(true);
+      }
     }
+  }
+
+  async actionCalls(action: string): Promise<number> {
+    const response = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/stats`, {
+      data: { action, storeId: this.storeId },
+    });
+    expect(response.ok(), await response.text()).toBe(true);
+    const body = (await response.json()) as { ok: true; calls: number };
+    expect(body.ok).toBe(true);
+    return body.calls;
+  }
+
+  private async enableActionOverride(override: ActionOverride): Promise<void> {
+    const response = await this.request.post(`${ACTION_PROXY_URL}/__test/actions/fault`, {
+      data: { ...override, storeId: this.storeId },
+    });
+    expect(response.ok(), await response.text()).toBe(true);
   }
 
   async installApp(appCode: 'test-stripe' | 'test-fedex'): Promise<string> {
@@ -754,6 +797,7 @@ export class CheckoutStorefrontTestKit {
       title?: string;
       status?: 'DRAFT' | 'PUBLISHED';
       requiresShipping?: boolean;
+      stock?: number;
     } = {},
   ): Promise<string> {
     const product = await this.api.admin.product.createWithOptions({
@@ -765,14 +809,34 @@ export class CheckoutStorefrontTestKit {
     });
     const variant = product.variants.edges[0]?.node;
     expect(variant).toBeTruthy();
-    if (options.requiresShipping) {
+    if (options.requiresShipping || options.stock !== undefined) {
       expect(variant!.inventoryItem?.id).toBeTruthy();
+      let stock: { warehouseId: string; onHand: number } | undefined;
+      if (options.stock !== undefined) {
+        const { data: warehouseData } = await this.api.admin.mutation(
+          'inventory-api/WarehouseCreate',
+          {
+            variables: {
+              input: {
+                code: `stock-${crypto.randomUUID().slice(0, 8)}`,
+                name: 'Checkout stock location',
+                isDefault: true,
+              },
+            },
+          },
+        );
+        const warehouse = warehouseData.inventoryMutation.warehouseCreate;
+        expect(warehouse.userErrors).toEqual([]);
+        expect(warehouse.warehouse).not.toBeNull();
+        stock = { warehouseId: warehouse.warehouse!.id, onHand: options.stock };
+      }
       const { data } = await this.api.admin.mutation('inventory-api/VariantSetStock', {
         variables: {
           input: {
             id: variant!.inventoryItem!.id,
-            requiresShipping: true,
-            trackInventory: false,
+            requiresShipping: options.requiresShipping ?? false,
+            trackInventory: options.stock !== undefined,
+            ...(stock ? { stock } : {}),
           },
         },
       });

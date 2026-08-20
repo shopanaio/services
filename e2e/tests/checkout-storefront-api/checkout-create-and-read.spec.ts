@@ -38,9 +38,22 @@ test.describe('Storefront checkout creation and reads', () => {
 
   test('creates a checkout with initial lines in one pipeline execution', async () => {
     const purchasableId = await kit.variant({ price: 1_250 });
-    const checkout = await kit.created({
-      items: [{ purchasableId, quantity: 2, purchase: { type: 'ONE_TIME' } }],
-    });
+    const stages = [
+      'pricing.calculateCheckoutPreliminaryQuote',
+      'delivery.calculateCheckoutDeliveryOptions',
+      'pricing.finalizeCheckoutPricingQuote',
+      'payments.getCheckoutAvailablePaymentMethods',
+    ];
+    const checkout = await kit.withActionOverrides(
+      stages.map((action) => ({ action, mode: 'PASS' as const })),
+      async () => {
+        const result = await kit.created({
+          items: [{ purchasableId, quantity: 2, purchase: { type: 'ONE_TIME' } }],
+        });
+        for (const action of stages) expect(await kit.actionCalls(action)).toBe(1);
+        return result;
+      },
+    );
     expect(checkout.lines).toHaveLength(1);
     expect(checkout.lines[0]).toMatchObject({ purchasableId, quantity: 2 });
     expect(checkout.totalQuantity).toBe(2);

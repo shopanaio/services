@@ -12,14 +12,21 @@ test.describe('Storefront checkout customer and context', () => {
 
   test('updates customer identity and refreshes buyer eligibility', async () => {
     const before = await kit.created();
-    const after = kit.expectSuccess(
-      await identity(kit, before.id, {
-        email: 'buyer@example.test',
-        phone: '+380501234567',
-        countryCode: 'UA',
-        firstName: 'Ada',
-        lastName: 'Lovelace',
-      }),
+    const after = await kit.withActionOverrides(
+      [{ action: 'customers.resolveCheckoutBuyerEligibility', mode: 'PASS' }],
+      async () => {
+        const result = kit.expectSuccess(
+          await identity(kit, before.id, {
+            email: 'buyer@example.test',
+            phone: '+380501234567',
+            countryCode: 'UA',
+            firstName: 'Ada',
+            lastName: 'Lovelace',
+          }),
+        );
+        expect(await kit.actionCalls('customers.resolveCheckoutBuyerEligibility')).toBe(1);
+        return result;
+      },
     );
     expect(after.customerIdentity).toMatchObject({
       email: 'buyer@example.test',
@@ -86,7 +93,7 @@ test.describe('Storefront checkout customer and context', () => {
     );
   });
 
-  test('updates locale and reruns the complete checkout pipeline', async () => {
+  test('updates locale and advances the result revision', async () => {
     const before = await kit.created();
     const after = kit.expectSuccess(
       await kit.mutation('checkoutLanguageCodeUpdate', 'CheckoutLanguageCodeUpdateInput', {
@@ -98,7 +105,7 @@ test.describe('Storefront checkout customer and context', () => {
     expectRevisionAdvanced(before, after);
   });
 
-  test('updates currency and reruns the complete checkout pipeline', async () => {
+  test('updates currency, money projections, and result revision', async () => {
     const before = await kit.created();
     const after = kit.expectSuccess(
       await kit.mutation('checkoutCurrencyCodeUpdate', 'CheckoutCurrencyCodeUpdateInput', {
@@ -151,7 +158,7 @@ test.describe('Storefront checkout customer and context', () => {
     expect(kit.expectSuccess(await billing(kit, checkout.id, null)).billingAddress).toBeNull();
   });
 
-  test('does not leak customer PII through issues, provider data, or logs', async () => {
+  test('does not leak customer PII through storefront issues or provider projections', async () => {
     const checkout = await kit.created();
     const secret = `private-${crypto.randomUUID()}@example.test`;
     const updated = kit.expectSuccess(await identity(kit, checkout.id, { email: secret }));
@@ -165,14 +172,14 @@ test.describe('Storefront checkout customer and context', () => {
     kit.expectSafe({ issues: updated.issues, payment: updated.payment });
   });
 
-  test('does not change authenticated checkout ownership when caller identity fields change', async () => {
+  test('does not change visitor ownership when caller identity fields change', async () => {
     const checkout = await kit.created();
     const owner = (await kit.persisted(checkout.id)).owner_visitor_id;
     kit.expectSuccess(await identity(kit, checkout.id, { email: 'another@example.test' }));
     expect((await kit.persisted(checkout.id)).owner_visitor_id).toBe(owner);
   });
 
-  test('recalculates customer eligibility after sign-in, sign-out, or a customer switch', async () => {
+  test('recalculates checkout after identity email is set and cleared', async () => {
     const before = await kit.created();
     const signedIn = kit.expectSuccess(
       await identity(kit, before.id, { email: 'signed-in@example.test' }),

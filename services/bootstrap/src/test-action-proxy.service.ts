@@ -25,15 +25,32 @@ type CallActionRequest = {
   params?: unknown;
 };
 
-type ScopedFaultRequest = {
-  action?: unknown;
-  storeId?: unknown;
+type RunWorkflowRequest = {
+  workflow?: unknown;
+  params?: unknown;
+  idempotencyKey?: unknown;
+  workflowId?: unknown;
 };
 
-type ScopedFault = {
+type ScopedActionOverrideRequest = {
+  action?: unknown;
+  storeId?: unknown;
+  mode?: unknown;
+  result?: unknown;
+};
+
+type ScopedActionOverrideMode = "PASS" | "THROW" | "RETURN" | "THROW_AFTER";
+
+type ScopedActionOverride = {
+  mode: ScopedActionOverrideMode;
+  result?: unknown;
+  calls: number;
+};
+
+type ScopedAction = {
   original: ActionHandler;
   metadata?: ActionMetadata;
-  storeIds: Set<string>;
+  overrides: Map<string, ScopedActionOverride>;
 };
 
 const DEFAULT_HOST = "127.0.0.1";
@@ -43,7 +60,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
 export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TestActionProxyService.name);
   private server: Server | null = null;
-  private readonly scopedFaults = new Map<string, ScopedFault>();
+  private readonly scopedActions = new Map<string, ScopedAction>();
 
   constructor(
     @InjectBroker("test") private readonly broker: ServiceBroker,
@@ -72,11 +89,11 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
-    for (const [action, fault] of this.scopedFaults) {
+    for (const [action, scoped] of this.scopedActions) {
       this.actionRegistry.deregister(action);
-      this.actionRegistry.register(action, fault.original, fault.metadata);
+      this.actionRegistry.register(action, scoped.original, scoped.metadata);
     }
-    this.scopedFaults.clear();
+    this.scopedActions.clear();
     if (!this.server) return;
 
     await new Promise<void>((resolve, reject) => {
@@ -135,14 +152,50 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      if (request.method === "POST" && request.url === "/__test/workflows/run") {
+        const body = await readJsonBody<RunWorkflowRequest>(request);
+        const { workflow, idempotencyKey, workflowId } = requireRunWorkflowRequest(body);
+        const result = await this.broker.runWorkflow(
+          workflow,
+          body.params,
+          {
+            source: "content",
+            resourceId: "e2e-test-action-proxy",
+            operation: idempotencyKey,
+            content: { workflow, idempotencyKey, params: body.params },
+          },
+          workflowId ? { workflowId } : undefined,
+        );
+        this.sendJson(response, 200, { ok: true, result });
+        return;
+      }
+
       if (
         request.method === "POST" &&
         request.url === "/__test/actions/fault"
       ) {
-        const body = await readJsonBody<ScopedFaultRequest>(request);
-        const { action, storeId } = requireScopedFaultRequest(body);
-        this.enableScopedFault(action, storeId);
+        const body = await readJsonBody<ScopedActionOverrideRequest>(request);
+        const override = requireScopedActionOverrideRequest(body);
+        this.enableScopedAction(
+          override.action,
+          override.storeId,
+          override.mode,
+          override.result,
+        );
         this.sendJson(response, 200, { ok: true });
+        return;
+      }
+
+      if (
+        request.method === "POST" &&
+        request.url === "/__test/actions/stats"
+      ) {
+        const body = await readJsonBody<ScopedActionOverrideRequest>(request);
+        const { action, storeId } = requireScopedActionIdentity(body);
+        this.sendJson(response, 200, {
+          ok: true,
+          calls: this.scopedActions.get(action)?.overrides.get(storeId)?.calls ?? 0,
+        });
         return;
       }
 
@@ -150,9 +203,9 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
         request.method === "POST" &&
         request.url === "/__test/actions/restore"
       ) {
-        const body = await readJsonBody<ScopedFaultRequest>(request);
-        const { action, storeId } = requireScopedFaultRequest(body);
-        this.restoreScopedFault(action, storeId);
+        const body = await readJsonBody<ScopedActionOverrideRequest>(request);
+        const { action, storeId } = requireScopedActionIdentity(body);
+        this.restoreScopedAction(action, storeId);
         this.sendJson(response, 200, { ok: true });
         return;
       }
@@ -169,41 +222,52 @@ export class TestActionProxyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private enableScopedFault(action: string, storeId: string): void {
-    const active = this.scopedFaults.get(action);
-    if (active) {
-      active.storeIds.add(storeId);
-      return;
+  private enableScopedAction(
+    action: string,
+    storeId: string,
+    mode: ScopedActionOverrideMode,
+    result?: unknown,
+  ): void {
+    let scoped = this.scopedActions.get(action);
+    if (!scoped) {
+      scoped = {
+        original: this.actionRegistry.resolve(action),
+        metadata: this.actionRegistry.getMetadata(action),
+        overrides: new Map(),
+      };
+      this.actionRegistry.deregister(action);
+      this.actionRegistry.register(
+        action,
+        async (params, context) => {
+          const override = findScopedOverride(params, scoped!.overrides);
+          if (!override) return scoped!.original(params, context);
+          override.calls += 1;
+          if (override.mode === "THROW") {
+            throw new Error(`Scoped e2e fault for ${action}`);
+          }
+          if (override.mode === "RETURN") return override.result;
+          const output = await scoped!.original(params, context);
+          if (override.mode === "THROW_AFTER") {
+            throw new Error(`Scoped e2e post-commit fault for ${action}`);
+          }
+          return output;
+        },
+        scoped.metadata,
+      );
+      this.scopedActions.set(action, scoped);
     }
-
-    const fault: ScopedFault = {
-      original: this.actionRegistry.resolve(action),
-      metadata: this.actionRegistry.getMetadata(action),
-      storeIds: new Set([storeId]),
-    };
-    this.actionRegistry.deregister(action);
-    this.actionRegistry.register(
-      action,
-      (params, context) => {
-        if (hasStoreId(params, fault.storeIds)) {
-          throw new Error(`Scoped e2e fault for ${action}`);
-        }
-        return fault.original(params, context);
-      },
-      fault.metadata,
-    );
-    this.scopedFaults.set(action, fault);
+    scoped.overrides.set(storeId, { mode, result, calls: 0 });
   }
 
-  private restoreScopedFault(action: string, storeId: string): void {
-    const fault = this.scopedFaults.get(action);
-    if (!fault) return;
-    fault.storeIds.delete(storeId);
-    if (fault.storeIds.size > 0) return;
+  private restoreScopedAction(action: string, storeId: string): void {
+    const scoped = this.scopedActions.get(action);
+    if (!scoped) return;
+    scoped.overrides.delete(storeId);
+    if (scoped.overrides.size > 0) return;
 
     this.actionRegistry.deregister(action);
-    this.actionRegistry.register(action, fault.original, fault.metadata);
-    this.scopedFaults.delete(action);
+    this.actionRegistry.register(action, scoped.original, scoped.metadata);
+    this.scopedActions.delete(action);
   }
 
   private sendJson(
@@ -236,7 +300,7 @@ async function readJsonBody<T>(request: IncomingMessage): Promise<T> {
   return JSON.parse(rawBody) as T;
 }
 
-function requireScopedFaultRequest(body: ScopedFaultRequest): {
+function requireScopedActionIdentity(body: ScopedActionOverrideRequest): {
   action: string;
   storeId: string;
 } {
@@ -253,10 +317,80 @@ function requireScopedFaultRequest(body: ScopedFaultRequest): {
   return { action: body.action, storeId: body.storeId };
 }
 
-function hasStoreId(params: unknown, storeIds: ReadonlySet<string>): boolean {
-  if (!params || typeof params !== "object" || !("storeId" in params))
-    return false;
-  return storeIds.has(String(params.storeId));
+function requireScopedActionOverrideRequest(body: ScopedActionOverrideRequest): {
+  action: string;
+  storeId: string;
+  mode: ScopedActionOverrideMode;
+  result?: unknown;
+} {
+  const identity = requireScopedActionIdentity(body);
+  const mode = body.mode ?? "THROW";
+  if (!isScopedActionOverrideMode(mode)) {
+    throw new Error(
+      'Fault request "mode" must be PASS, THROW, RETURN, or THROW_AFTER',
+    );
+  }
+  if (mode === "RETURN" && !("result" in body)) {
+    throw new Error('Fault request with mode RETURN must include "result"');
+  }
+  return { ...identity, mode, result: body.result };
+}
+
+function requireRunWorkflowRequest(body: RunWorkflowRequest): {
+  workflow: string;
+  idempotencyKey: string;
+  workflowId?: string;
+} {
+  if (typeof body.workflow !== "string" || body.workflow.trim() === "") {
+    throw new Error('Workflow request must include non-empty string field "workflow"');
+  }
+  if (typeof body.idempotencyKey !== "string" || body.idempotencyKey.trim() === "") {
+    throw new Error(
+      'Workflow request must include non-empty string field "idempotencyKey"',
+    );
+  }
+  if (
+    body.workflowId !== undefined &&
+    (typeof body.workflowId !== "string" || body.workflowId.trim() === "")
+  ) {
+    throw new Error('Workflow request field "workflowId" must be a non-empty string');
+  }
+  return {
+    workflow: body.workflow,
+    idempotencyKey: body.idempotencyKey,
+    ...(typeof body.workflowId === "string" ? { workflowId: body.workflowId } : {}),
+  };
+}
+
+function isScopedActionOverrideMode(value: unknown): value is ScopedActionOverrideMode {
+  return (
+    value === "PASS" ||
+    value === "THROW" ||
+    value === "RETURN" ||
+    value === "THROW_AFTER"
+  );
+}
+
+function findScopedOverride(
+  params: unknown,
+  overrides: ReadonlyMap<string, ScopedActionOverride>,
+): ScopedActionOverride | undefined {
+  const storeId = scopedStoreId(params);
+  return storeId ? overrides.get(storeId) : undefined;
+}
+
+function scopedStoreId(params: unknown): string | null {
+  if (!params || typeof params !== "object") return null;
+  if ("storeId" in params && typeof params.storeId === "string") {
+    return params.storeId;
+  }
+  for (const key of ["context", "params", "input"] as const) {
+    if (key in params) {
+      const nested = scopedStoreId(params[key]);
+      if (nested) return nested;
+    }
+  }
+  return null;
 }
 
 function parsePort(value: string | undefined): number | null {

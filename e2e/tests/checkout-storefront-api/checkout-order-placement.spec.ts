@@ -74,6 +74,25 @@ test.describe('Storefront checkout order placement and payment', () => {
       lines: checkout.lines,
       customerIdentity: checkout.customerIdentity,
     });
+    const [order] = await kit.sql<
+      { checkoutId: string; currencyCode: string; checkoutSnapshot: Record<string, unknown> }[]
+    >`
+      select checkout_id as "checkoutId", currency_code as "currencyCode",
+             checkout_snapshot as "checkoutSnapshot"
+      from orders.orders where id = ${kit.rawId(result.orderId!)}
+    `;
+    expect(order).toMatchObject({
+      checkoutId: kit.rawId(checkout.id),
+      currencyCode: checkout.currencyCode,
+      checkoutSnapshot: {
+        checkoutId: kit.rawId(checkout.id),
+        storeId: kit.storeId,
+        currencyCode: checkout.currencyCode,
+        lines: checkout.lines.map((line) =>
+          expect.objectContaining({ quantity: line.quantity, unit: { title: line.title } }),
+        ),
+      },
+    });
   });
 
   test('rejects placement for an invalid or incomplete checkout', async () => {
@@ -127,7 +146,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect(await placement(kit, placed.placementId!)).toEqual(placed);
   });
 
-  test('creates and confirms an immediate-capture provider payment through its App', async () => {
+  test('creates a provider payment that requires explicit confirmation', async () => {
     const checkout = await readyWithMethod(kit, 'test-stripe-card');
     const result = await place(kit, checkout, { returnUrl: 'https://shop.example.test/return' });
     expect(result).toMatchObject({
@@ -139,12 +158,29 @@ test.describe('Storefront checkout order placement and payment', () => {
     });
   });
 
-  test('creates an authorization payment and captures it according to provider capabilities', async () => {
+  test('persists the exact payment identifiers returned for a confirmation flow', async () => {
     const checkout = await readyWithMethod(kit, 'test-stripe-card');
     const result = await place(kit, checkout, { returnUrl: 'https://shop.example.test/return' });
     expect(result.paymentCollectionId).toEqual(expect.any(String));
     expect(result.paymentSessionId).toEqual(expect.any(String));
-    expect(['REQUIRES_CONFIRMATION', 'AUTHORIZED', 'PAID']).toContain(result.status);
+    expect(result).toMatchObject({
+      status: 'REQUIRES_CONFIRMATION',
+      placementState: 'PAYMENT_CREATED',
+      paymentOperationId: expect.any(String),
+    });
+    const [row] = await kit.sql<
+      { paymentCollectionId: string; paymentSessionId: string; paymentOperationId: string }[]
+    >`
+      select payment_collection_id as "paymentCollectionId",
+             payment_session_id as "paymentSessionId",
+             payment_operation_id as "paymentOperationId"
+      from checkout.checkout_placements where id = ${kit.rawId(result.placementId!)}
+    `;
+    expect(row).toEqual({
+      paymentCollectionId: kit.rawId(result.paymentCollectionId!),
+      paymentSessionId: kit.rawId(result.paymentSessionId!),
+      paymentOperationId: kit.rawId(result.paymentOperationId!),
+    });
   });
 
   test('returns pending placement state for asynchronous payment confirmation', async () => {
@@ -166,7 +202,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect(await placement(kit, result.placementId!)).toEqual(result);
   });
 
-  test('does not create duplicate orders or payments on workflow retry', async () => {
+  test('coalesces concurrent placement requests with the same idempotency key', async () => {
     const checkout = await readyWithoutPayment(kit);
     const idempotencyKey = crypto.randomUUID();
     const [first, second] = await Promise.all([
@@ -174,13 +210,17 @@ test.describe('Storefront checkout order placement and payment', () => {
       place(kit, checkout, { idempotencyKey }),
     ]);
     expect(second).toEqual(first);
-    const [row] = await kit.sql<{ count: number }[]>`
-      select count(*)::int as count from checkout.checkout_placements where checkout_id = ${kit.rawId(checkout.id)}
+    const [row] = await kit.sql<{ placements: number; orders: number }[]>`
+      select
+        (select count(*)::int from checkout.checkout_placements
+          where checkout_id = ${kit.rawId(checkout.id)}) as placements,
+        (select count(*)::int from orders.orders
+          where checkout_snapshot ->> 'checkoutId' = ${kit.rawId(checkout.id)}) as orders
     `;
-    expect(row!.count).toBe(1);
+    expect(row).toEqual({ placements: 1, orders: 1 });
   });
 
-  test('releases inventory, discounts, and loyalty reservations when placement cannot complete', async () => {
+  test('leaves the checkout READY when inventory reservation fails', async () => {
     const checkout = await readyWithoutPayment(kit);
     const failed = await kit.withActionFault('inventory.reserveCheckoutInventory', () =>
       place(kit, checkout),
@@ -189,29 +229,50 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect((await kit.read(checkout.id))?.status).toBe('READY');
   });
 
-  test('compensates only resources already acquired when every placement boundary fails', async () => {
+  test('releases inventory acquired before order creation fails', async () => {
     const checkout = await readyWithoutPayment(kit);
-    const failed = await kit.withActionFault('order.createOrderFromCheckoutPlacement', () =>
-      place(kit, checkout),
+    const failed = await kit.withActionOverrides(
+      [
+        { action: 'order.createOrderFromCheckoutPlacement', mode: 'THROW' },
+        { action: 'inventory.releaseCheckoutInventory', mode: 'PASS' },
+      ],
+      async () => {
+        const result = await place(kit, checkout);
+        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        return result;
+      },
     );
     expect(failed.placementState).toBe('FAILED');
     const [row] = await kit.sql<{ status: string; compensationFailures: unknown }[]>`
       select status, compensation_failures as "compensationFailures"
       from checkout.checkout_placements where checkout_id = ${kit.rawId(checkout.id)}
     `;
-    expect(row?.status).toBe('FAILED');
+    expect(row).toMatchObject({ status: 'FAILED', compensationFailures: [] });
   });
 
   test('records failed compensations durably for maintenance recovery', async () => {
     const checkout = await readyWithoutPayment(kit);
-    await kit.withActionFault('order.createOrderFromCheckoutPlacement', () => place(kit, checkout));
-    const [row] = await kit.sql<{ failure: unknown; status: string }[]>`
-      select failure, status from checkout.checkout_placements where checkout_id = ${kit.rawId(checkout.id)}
+    await kit.withActionOverrides(
+      [
+        { action: 'order.createOrderFromCheckoutPlacement', mode: 'THROW' },
+        { action: 'inventory.releaseCheckoutInventory', mode: 'THROW' },
+      ],
+      () => place(kit, checkout),
+    );
+    const [row] = await kit.sql<
+      { failure: unknown; status: string; compensationFailures: Array<{ operation: string }> }[]
+    >`
+      select failure, status, compensation_failures as "compensationFailures"
+      from checkout.checkout_placements where checkout_id = ${kit.rawId(checkout.id)}
     `;
-    expect(row).toMatchObject({ status: 'FAILED', failure: expect.anything() });
+    expect(row).toMatchObject({
+      status: 'FAILED',
+      failure: expect.anything(),
+      compensationFailures: [expect.objectContaining({ operation: 'releaseInventory' })],
+    });
   });
 
-  test('places a zero-payable checkout without creating a payment and still confirms inventory and loyalty', async () => {
+  test('places a zero-payable checkout without creating payment records', async () => {
     const checkout = await readyWithoutPayment(kit);
     const result = await place(kit, checkout);
     expect(result).toMatchObject({ status: 'PAYMENT_NOT_REQUIRED', placementState: 'PLACED' });
@@ -262,7 +323,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect(row!.count).toBe(0);
   });
 
-  test('rejects placement when quote, delivery, payment, or loyalty reservation deadlines are stale', async () => {
+  test('rejects placement after the checkout expiry deadline', async () => {
     const checkout = await readyWithoutPayment(kit);
     await kit.sql.begin(async (sql) => {
       await sql`update checkout.checkouts set expires_at = now() - interval '1 second' where id = ${kit.rawId(checkout.id)}`;
@@ -313,7 +374,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     expect(await placement(kit, placed.placementId!, { visitorId })).toBeNull();
   });
 
-  test('blocks checkout mutations once placement is claimed and orders the claimed immutable snapshot', async () => {
+  test('blocks checkout mutations once placement is claimed', async () => {
     const checkout = await readyWithMethod(kit, 'test-stripe-bank-transfer');
     const placed = await place(kit, checkout);
     expect(placed.placementState).toBe('PAYMENT_CREATED');
@@ -374,7 +435,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     ]);
   });
 
-  test('does not duplicate payment collection or session after a create-session timeout with durable provider state', async () => {
+  test('does not duplicate payment records when a pending placement is replayed', async () => {
     const checkout = await readyWithMethod(kit, 'test-stripe-bank-transfer');
     const idempotencyKey = crypto.randomUUID();
     const first = await place(kit, checkout, { idempotencyKey });

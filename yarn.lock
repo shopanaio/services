@@ -7329,6 +7329,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@shopana/broker-types@workspace:packages/broker-types"
   dependencies:
+    "@shopana/shared-references": "npm:*"
     typescript: "npm:^5.4.5"
   languageName: unknown
   linkType: soft
@@ -7803,6 +7804,8 @@ __metadata:
     "@shopana/shared-references": "workspace:*"
     "@shopana/shared-service-config": "workspace:*"
     "@shopana/type-resolver": "workspace:*"
+    "@types/graphql-depth-limit": "npm:^1.1.6"
+    "@types/graphql-validation-complexity": "npm:^0.4.4"
     "@types/node": "npm:^20.14.14"
     cache-manager: "npm:^7.2.7"
     dataloader: "npm:^2.2.3"
@@ -7810,7 +7813,9 @@ __metadata:
     fastify: "npm:^4.28.1"
     graphql: "npm:^16.9.0"
     graphql-codegen-typescript-validation-schema: "npm:^0.18.1"
+    graphql-depth-limit: "npm:^1.1.0"
     graphql-tag: "npm:^2.12.6"
+    graphql-validation-complexity: "npm:^0.4.2"
     node-pg-migrate: "npm:^8.0.4"
     pino: "npm:^9.3.2"
     pino-pretty: "npm:^11.2.2"

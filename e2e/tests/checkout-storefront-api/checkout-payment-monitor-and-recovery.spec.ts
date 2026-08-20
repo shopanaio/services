@@ -22,73 +22,88 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
   });
   test.afterEach(async () => kit.close());
 
-  test('confirms inventory, loyalty, and reward eligibility when a pending provider payment settles', async () => {
+  test('finalizes a pending placement after the payment session settles', async () => {
     const pending = await pendingPlacement(kit);
-    const row = await session(kit, pending.paymentSessionId);
-    expect(row).toMatchObject({ state: 'PENDING', revision: expect.any(Number) });
+
+    await kit.withActionOverrides(
+      [
+        { action: 'inventory.confirmCheckoutInventory', mode: 'PASS' },
+        { action: 'order.publishLoyaltyRewardEligible', mode: 'PASS' },
+      ],
+      async () => {
+        await forceSessionState(kit, pending.paymentSessionId, 'CAPTURED');
+        const result = await runMonitor(kit, pending.placementId);
+        expect(result).toMatchObject({ status: 'PAID', placementState: 'PAYMENT_CREATED' });
+        expect(await kit.actionCalls('inventory.confirmCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('order.publishLoyaltyRewardEligible')).toBe(1);
+      },
+    );
+
     expect(await publicPlacement(kit, pending.placementId)).toMatchObject({
-      status: 'PAYMENT_PENDING',
+      status: 'PAID',
       paymentSessionId: pending.paymentSessionId,
     });
+    expect((await kit.read(pending.checkoutId))?.status).toBe('PLACED');
   });
 
-  test('releases inventory, discount usage, and loyalty when a pending provider payment fails', async () => {
+  test('releases acquired resources after a pending payment fails', async () => {
     const pending = await pendingPlacement(kit);
-    const [placement] = await kit.sql<{ status: string; paymentMonitorWorkflowId: string }[]>`
-      select status, payment_monitor_workflow_id as "paymentMonitorWorkflowId"
-      from checkout.checkout_placements where id = ${kit.rawId(pending.placementId)}
-    `;
-    expect(placement).toMatchObject({
-      status: 'PAYMENT_CREATED',
-      paymentMonitorWorkflowId: expect.any(String),
-    });
-  });
 
-  test('reconciles a pending payment when its provider reconciliation deadline is reached', async () => {
-    const pending = await pendingPlacement(kit);
-    const row = await session(kit, pending.paymentSessionId);
-    const payload = row.payload as { nextReconcileAt?: string; pendingExpiresAt?: string };
-    expect(new Date(payload.nextReconcileAt!).getTime()).toBeGreaterThan(Date.now());
-    expect(new Date(payload.pendingExpiresAt!).getTime()).toBeGreaterThan(
-      new Date(payload.nextReconcileAt!).getTime(),
+    await kit.withActionOverrides(
+      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      async () => {
+        await forceSessionState(kit, pending.paymentSessionId, 'FAILED', {
+          category: 'PROVIDER',
+          code: 'TEST_PROVIDER_FAILED',
+          message: 'Test provider reported a terminal failure.',
+          retryable: false,
+          providerCode: 'test-stripe',
+        });
+        const result = await runMonitor(kit, pending.placementId);
+        expect(result).toMatchObject({
+          status: 'PAYMENT_FAILED',
+          paymentFailure: { code: 'TEST_PROVIDER_FAILED', retryable: false },
+        });
+        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+      },
     );
+
+    const placement = await persistedPlacement(kit, pending.placementId);
+    expect(placement.result).toMatchObject({ status: 'PAYMENT_FAILED' });
+    expect((await kit.read(pending.checkoutId))?.status).toBe('ABANDONED');
   });
 
-  test('retries a processing provider session and renews inventory while waiting', async () => {
+  test('expires at the earliest pending-payment deadline and releases inventory once', async () => {
     const pending = await pendingPlacement(kit);
-    const before = await session(kit, pending.paymentSessionId);
-    const [operationCount] = await kit.sql<{ count: number }[]>`
-      select count(*)::int as count from payments.payment_operation
-      where payment_session_id = ${kit.rawId(pending.paymentSessionId)}
+    const [before] = await kit.sql<{ payload: Record<string, unknown> }[]>`
+      select payload from payments.payment_session where id = ${kit.rawId(pending.paymentSessionId)}
     `;
-    expect(before.state).toBe('PENDING');
-    expect(operationCount!.count).toBeGreaterThanOrEqual(1);
-  });
+    await kit.withActionOverrides(
+      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      async () => {
+        await kit.sql`
+          update payments.payment_session
+          set payload = jsonb_set(
+                jsonb_set(payload, '{pendingExpiresAt}', to_jsonb(${new Date(Date.now() - 1_000).toISOString()}::text)),
+                '{expiresAt}', to_jsonb(${new Date(Date.now() + 60_000).toISOString()}::text)
+              ),
+              updated_at = now()
+          where id = ${kit.rawId(pending.paymentSessionId)}
+        `;
+        const result = await runMonitor(kit, pending.placementId);
+        expect(result).toMatchObject({
+          status: 'PAYMENT_FAILED',
+          paymentFailure: { category: 'TIMEOUT', code: 'PAYMENT_PROVIDER_OPERATION_EXPIRED' },
+        });
+        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+      },
+    );
 
-  test('expires an unresolved payment session at the earliest payment deadline', async () => {
-    const pending = await pendingPlacement(kit);
-    const row = await session(kit, pending.paymentSessionId);
-    const payload = row.payload as Record<string, unknown>;
-    const deadlines = ['pendingExpiresAt', 'confirmationExpiresAt']
-      .map((key) => payload[key])
-      .filter((value): value is string => typeof value === 'string')
-      .map(Date.parse);
-    expect(deadlines.length).toBeGreaterThan(0);
-    expect(Math.min(...deadlines)).toBeGreaterThan(Date.now());
-  });
-
-  test('handles a payment-session revision conflict without overwriting a newer provider outcome', async () => {
-    const pending = await pendingPlacement(kit);
-    const before = await session(kit, pending.paymentSessionId);
-    const rows = await kit.sql`
-      update payments.payment_session set revision = revision + 1, updated_at = now()
-      where id = ${kit.rawId(pending.paymentSessionId)} and revision = ${before.revision}
-      returning revision
+    expect(Date.parse(String(before!.payload.pendingExpiresAt))).toBeGreaterThan(Date.now() - 60_000);
+    const [after] = await kit.sql<{ state: string; payload: Record<string, unknown> }[]>`
+      select state, payload from payments.payment_session where id = ${kit.rawId(pending.paymentSessionId)}
     `;
-    expect(rows).toHaveLength(1);
-    const after = await session(kit, pending.paymentSessionId);
-    expect(after.revision).toBe(before.revision + 1);
-    expect(after.state).toBe(before.state);
+    expect(after).toMatchObject({ state: 'EXPIRED', payload: { state: 'EXPIRED' } });
   });
 });
 
@@ -117,21 +132,59 @@ async function pendingPlacement(kit: CheckoutStorefrontTestKit): Promise<Pending
     },
   );
   expect(response.errors).toBeUndefined();
-  expect(response.data!.placeOrder.userErrors).toEqual([]);
   expect(response.data!.placeOrder).toMatchObject({
     status: 'PAYMENT_PENDING',
     placementState: 'PAYMENT_CREATED',
     placementId: expect.any(String),
     paymentSessionId: expect.any(String),
+    userErrors: [],
   });
   return response.data!.placeOrder;
 }
 
-async function session(kit: CheckoutStorefrontTestKit, id: string) {
-  const [row] = await kit.sql<{ state: string; revision: number; payload: unknown }[]>`
-    select state, revision, payload from payments.payment_session where id = ${kit.rawId(id)}
+async function runMonitor(kit: CheckoutStorefrontTestKit, placementId: string) {
+  const placement = await persistedPlacement(kit, placementId);
+  expect(placement.paymentMonitorInput).not.toBeNull();
+  return kit.runWorkflow<Record<string, unknown>>(
+    'checkout.monitorPlacedPayment',
+    placement.paymentMonitorInput!,
+    `checkout-payment-monitor-e2e:${crypto.randomUUID()}`,
+    placement.paymentMonitorWorkflowId!,
+  );
+}
+
+async function forceSessionState(
+  kit: CheckoutStorefrontTestKit,
+  paymentSessionId: string,
+  state: 'CAPTURED' | 'FAILED',
+  failure: Record<string, unknown> | null = null,
+) {
+  await kit.sql`
+    update payments.payment_session
+    set state = ${state}, revision = revision + 1,
+        payload = jsonb_set(
+          jsonb_set(payload, '{state}', ${kit.sql.json(state)}::jsonb),
+          '{lastFailure}', ${kit.sql.json(failure)}::jsonb
+        ),
+        updated_at = now()
+    where id = ${kit.rawId(paymentSessionId)}
+  `;
+}
+
+async function persistedPlacement(kit: CheckoutStorefrontTestKit, placementId: string) {
+  const [row] = await kit.sql<
+    {
+      paymentMonitorInput: Record<string, unknown> | null;
+      paymentMonitorWorkflowId: string | null;
+      result: Record<string, unknown>;
+    }[]
+  >`
+    select payment_monitor_input as "paymentMonitorInput",
+           payment_monitor_workflow_id as "paymentMonitorWorkflowId", result
+    from checkout.checkout_placements where id = ${kit.rawId(placementId)}
   `;
   expect(row).toBeTruthy();
+  expect(row!.paymentMonitorWorkflowId).not.toBeNull();
   return row!;
 }
 
@@ -139,6 +192,7 @@ async function publicPlacement(kit: CheckoutStorefrontTestKit, id: string) {
   const response = await kit.graphql<{ checkoutPlacement: Record<string, unknown> | null }>(
     `query PendingPlacement($id: ID!) { checkoutPlacement(id: $id) {
       placementId placementState checkoutId orderId status paymentCollectionId paymentSessionId paymentOperationId
+      paymentFailure { category code message retryable providerCode }
     } }`,
     { id },
   );

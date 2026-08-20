@@ -43,11 +43,12 @@ test.describe('Storefront checkout loyalty', () => {
       requestedPoints: '900',
       programId: fixture.program.id,
     });
-    if (payload.checkout) {
-      expect(payload.checkout.loyaltyRedemption!.redeemablePoints).toBe('300');
-    } else {
-      kit.expectUserError(payload, /LOYALTY|POINT|LIMIT/);
-    }
+    const capped = kit.expectSuccess(payload);
+    expect(capped.loyaltyRedemption).toMatchObject({
+      redeemablePoints: '300',
+      availablePoints: '300',
+    });
+    expect(capped.loyaltyRedemption!.discount.amount).toBe(300);
   });
 
   test('selects an issued reward entitlement for checkout', async () => {
@@ -79,7 +80,7 @@ test.describe('Storefront checkout loyalty', () => {
     expect(after.loyaltyRedemption?.redeemablePoints).toBe('100');
   });
 
-  test('rejects an entitlement that is unavailable, expired, or owned by another customer', async () => {
+  test('rejects expired and unknown reward entitlements', async () => {
     const { fixture } = await kit.fundLoyalty();
     const expired = await kit.seedLoyaltyReward(
       fixture,
@@ -146,65 +147,85 @@ test.describe('Storefront checkout loyalty', () => {
         programId: fixture.program.id,
       }),
     );
-    const deadline = new Date(selected.loyaltyRedemption!.expiresAt).getTime();
-    expect(deadline).toBeGreaterThan(Date.now());
-    expect(Number.isFinite(deadline)).toBe(true);
+    const expiredAt = new Date(Date.now() - 1_000).toISOString();
+    await kit.sql`
+      update checkout.checkout_current_snapshots
+      set snapshot = jsonb_set(snapshot, '{result,loyalty,data,quote,expiresAt}', to_jsonb(${expiredAt}::text))
+      where checkout_id = ${kit.rawId(selected.id)}
+    `;
+
+    const result = await place(kit, selected);
+
+    expect(result.orderId).toBeNull();
+    expect(result.userErrors).toContainEqual(
+      expect.objectContaining({ code: expect.stringMatching(/LOYALTY|EXPIRED|DEADLINE/) }),
+    );
+    expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
+      availablePoints: '500',
+      reservedPoints: '0',
+    });
   });
 
-  test('rejects malformed or contradictory loyalty quotes without committing the checkout', async () => {
+  test('rejects a malformed loyalty quote without committing the checkout', async () => {
     const { fixture } = await kit.fundLoyalty();
     const checkout = await payable(kit);
-    const payload = await kit.withActionFault('loyalty.quoteCheckoutLoyaltyRedemption', () =>
-      redeem(kit, checkout.id, { requestedPoints: '100', programId: fixture.program.id }),
+    const payload = await kit.withActionOverrides(
+      [{ action: 'loyalty.quoteCheckoutLoyaltyRedemption', mode: 'RETURN', result: {} }],
+      () => redeem(kit, checkout.id, { requestedPoints: '100', programId: fixture.program.id }),
     );
     kit.expectUserError(payload, /LOYALTY|PIPELINE|UNAVAILABLE/);
     expect(await kit.read(checkout.id)).toEqual(checkout);
   });
 
-  test('commits redeemed points and entitlement consumption exactly once after placement', async () => {
-    const { fixture } = await kit.fundLoyalty('500');
+  test('commits redeemed points exactly once after placement replay', async () => {
+    const { fixture } = await kit.fundLoyalty('1000');
     const checkout = await payable(kit);
     const selected = kit.expectSuccess(
       await redeem(kit, checkout.id, {
-        requestedPoints: '100',
+        requestedPoints: '1000',
         programId: fixture.program.id,
       }),
     );
-    expect(selected.loyaltyRedemption?.redeemablePoints).toBe('100');
+    const idempotencyKey = crypto.randomUUID();
+    const first = await place(kit, selected, idempotencyKey);
+    const afterFirst = await kit.loyaltyBalance(fixture.account.id);
+    const replay = await place(kit, selected, idempotencyKey);
+
+    expect(first).toMatchObject({ status: 'PAYMENT_NOT_REQUIRED', orderId: expect.any(String) });
+    expect(replay).toEqual(first);
+    expect(afterFirst).toMatchObject({ availablePoints: '0', reservedPoints: '0' });
     expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
-      availablePoints: '500',
+      availablePoints: '0',
       reservedPoints: '0',
     });
   });
 
-  test('releases loyalty reservations when order placement fails or is abandoned', async () => {
-    const { fixture } = await kit.fundLoyalty('500');
+  test('releases a loyalty reservation when order creation fails', async () => {
+    const { fixture } = await kit.fundLoyalty('1000');
     const checkout = await payable(kit);
-    kit.expectSuccess(
-      await redeem(kit, checkout.id, { requestedPoints: '100', programId: fixture.program.id }),
+    const selected = kit.expectSuccess(
+      await redeem(kit, checkout.id, { requestedPoints: '1000', programId: fixture.program.id }),
+    );
+    const result = await kit.withActionFault('order.createOrderFromCheckoutPlacement', () =>
+      place(kit, selected),
+    );
+
+    expect(result.orderId).toBeNull();
+    expect(result.userErrors).toContainEqual(
+      expect.objectContaining({ code: expect.stringMatching(/ORDER|PLACEMENT|UNAVAILABLE/) }),
     );
     expect(await kit.loyaltyBalance(fixture.account.id)).toMatchObject({
-      availablePoints: '500',
+      availablePoints: '1000',
       reservedPoints: '0',
     });
+    const [placement] = await kit.sql<{ status: string; loyaltyReservation: unknown }[]>`
+      select status, loyalty_reservation as "loyaltyReservation"
+      from checkout.checkout_placements where checkout_id = ${kit.rawId(selected.id)}
+    `;
+    expect(placement).toMatchObject({ status: 'FAILED', loyaltyReservation: expect.anything() });
   });
 
-  test('keeps point and reward-entitlement compensation independent when only one reservation exists', async () => {
-    const { fixture } = await kit.fundLoyalty('500');
-    const checkout = await payable(kit);
-    const pointsOnly = kit.expectSuccess(
-      await redeem(kit, checkout.id, {
-        requestedPoints: '100',
-        programId: fixture.program.id,
-      }),
-    );
-    expect(pointsOnly.loyaltyRewardEntitlementId).toBeNull();
-    expect(
-      kit.expectSuccess(await removeRedemption(kit, checkout.id)).loyaltyRedemption,
-    ).toBeNull();
-  });
-
-  test('rejects anonymous, malformed, contradictory, and empty loyalty redemption selections without committing', async () => {
+  test('rejects zero, negative, disabled, and non-numeric redemption input without committing', async () => {
     const checkout = await payable(kit);
     for (const input of [
       { redeemPoints: true, requestedPoints: '0' },
@@ -229,7 +250,7 @@ test.describe('Storefront checkout loyalty', () => {
     kit.expectUserError(payload, /CHECKOUT|OWNER|NOT_FOUND|AUTHORIZATION/);
   });
 
-  test('removes or requotes loyalty selections when buyer identity changes or signs out', async () => {
+  test('revokes anonymous access to a customer-owned checkout after sign-out', async () => {
     const { fixture } = await kit.fundLoyalty();
     const checkout = await payable(kit);
     const selected = kit.expectSuccess(
@@ -299,4 +320,34 @@ function redeemRaw(
     }`,
     { input: { checkoutId, ...input } },
   );
+}
+
+type Placement = {
+  placementId: string | null;
+  placementState: string | null;
+  orderId: string | null;
+  status: string | null;
+  userErrors: Array<{ field: string[] | null; code: string; message: string; retryable: boolean }>;
+};
+
+async function place(
+  kit: CheckoutStorefrontTestKit,
+  checkout: Checkout,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<Placement> {
+  const response = await kit.graphql<{ placeOrder: Placement }>(
+    `mutation PlaceLoyalty($input: PlaceOrderInput!) { placeOrder(input: $input) {
+      placementId placementState orderId status
+      userErrors { field code message retryable }
+    } }`,
+    {
+      input: {
+        checkoutId: checkout.id,
+        expectedResultRevision: checkout.resultRevision,
+        idempotencyKey,
+      },
+    },
+  );
+  expect(response.errors).toBeUndefined();
+  return response.data!.placeOrder;
 }

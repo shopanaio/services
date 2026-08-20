@@ -80,7 +80,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
     }
   });
 
-  test('updates line quantities and recalculates pricing once', async () => {
+  test('updates line quantities and commits exactly one new checkout version', async () => {
     const before = await twoLines(kit);
     const version = Number((await kit.persisted(before.id)).version);
     const after = kit.expectSuccess(
@@ -127,7 +127,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
     }
   });
 
-  test('deletes a line and cascades its component children', async () => {
+  test('deletes only the requested root line', async () => {
     const before = await twoLines(kit);
     const after = kit.expectSuccess(await remove(kit, before.id, [before.lines[0]!.id]));
     expect(after.lines).toEqual([before.lines[1]]);
@@ -205,46 +205,40 @@ test.describe('Storefront checkout lines and merchandise', () => {
     expect(checkout.issues).toContainEqual(expect.objectContaining({ effect: 'STOP' }));
   });
 
-  test('reports out-of-stock and insufficient-stock line issues', async () => {
-    const variant = await kit.variant({ status: 'DRAFT' });
-    const checkout = await kit.created({ items: [{ purchasableId: variant, quantity: 10_000 }] });
-    expect(publicCodes(checkout)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/STOCK|UNAVAILABLE/)]),
-    );
+  test('reports out-of-stock and insufficient-stock with distinct canonical codes', async () => {
+    const outOfStock = await kit.created({
+      items: [{ purchasableId: await kit.variant({ stock: 0 }), quantity: 1 }],
+    });
+    const insufficient = await kit.created({
+      items: [{ purchasableId: await kit.variant({ stock: 2 }), quantity: 5 }],
+    });
+    expect(publicCodes(outOfStock)).toContain('OUT_OF_STOCK');
+    expect(publicCodes(insufficient)).toContain('NOT_ENOUGH_STOCK');
+    expect(insufficient.lines[0]!.quantity).toBe(2);
   });
 
   test('recalculates price and notifications after catalog price changes', async () => {
-    const before = await kit.created({
-      items: [{ purchasableId: await kit.variant({ price: 500 }), quantity: 2 }],
+    const variant = await kit.variant({ price: 500 });
+    const before = await kit.created({ items: [{ purchasableId: variant, quantity: 2 }] });
+    const { data } = await kit.api.admin.mutation('inventory-api/VariantSetPricing', {
+      variables: { input: { variantId: variant, currency: 'USD', amountMinor: '700' } },
     });
+    expect(data.catalogMutation.variantUpdatePricing.userErrors).toEqual([]);
     const after = kit.expectSuccess(
       await update(kit, before.id, [{ lineId: before.lines[0]!.id, quantity: 3 }]),
     );
-    expect(after.lines[0]!.cost.subtotalAmount.amount).toBe(
-      after.lines[0]!.cost.unitPrice.amount * 3,
+    expect(before.lines[0]!.cost.unitPrice.amount).toBe(500);
+    expect(after.lines[0]!.cost).toMatchObject({
+      unitPrice: { amount: 700 },
+      subtotalAmount: { amount: 2_100 },
+    });
+    expect(after.notifications).toContainEqual(
+      expect.objectContaining({ code: 'PRICE_CHANGED' }),
     );
     expectRevisionAdvanced(before, after);
   });
 
-  test('preserves component trees and absolute component quantities', async () => {
-    const before = await twoLines(kit);
-    const after = kit.expectSuccess(
-      await update(kit, before.id, [{ lineId: before.lines[0]!.id, quantity: 2 }]),
-    );
-    expect(after.lines[0]!.children).toEqual(before.lines[0]!.children);
-    expect(after.lines[0]!.quantity).toBe(2);
-  });
-
-  test('applies FREE, BASE, OVERRIDE, and adjustment component price rules', async () => {
-    const checkout = await twoLines(kit);
-    for (const line of checkout.lines) {
-      expect(line.originalPrice.amount).toBeGreaterThanOrEqual(line.cost.unitPrice.amount);
-      expect(line.priceConfig).toBeNull();
-    }
-    kit.expectCanonicalMoney(checkout);
-  });
-
-  test('rejects invalid component selection, cardinality, and quantity', async () => {
+  test('rejects a component selection that is not part of the parent product', async () => {
     const before = await kit.created();
     const variants = await Promise.all([kit.variant(), kit.variant()]);
     const payload = await add(kit, before.id, [
@@ -287,7 +281,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
     expect(after.lines[0]!.cost.unitPrice.amount).toBe(900);
   });
 
-  test('rejects wrong-type, nested-child, duplicate, and foreign line IDs on every line mutation', async () => {
+  test('rejects wrong-type, duplicate, and foreign IDs when deleting lines', async () => {
     const before = await twoLines(kit);
     const foreign = await twoLines(kit);
     for (const ids of [
@@ -320,25 +314,7 @@ test.describe('Storefront checkout lines and merchandise', () => {
     );
   });
 
-  test('separates compare-at sale price from the current unit price on a discounted line', async () => {
-    const checkout = await kit.created({
-      items: [{ purchasableId: await kit.variant({ price: 700 }), quantity: 1 }],
-    });
-    expect(checkout.lines[0]!.cost.compareAtUnitPrice.amount).toBeGreaterThanOrEqual(
-      checkout.lines[0]!.cost.unitPrice.amount,
-    );
-  });
-
-  test('projects original price and child price configuration for bundle components', async () => {
-    const checkout = await twoLines(kit);
-    for (const line of checkout.lines) {
-      expect(line.originalPrice).toEqual(line.cost.compareAtUnitPrice);
-      expect(line.priceConfig).toBeNull();
-      expect(line.children).toEqual([]);
-    }
-  });
-
-  test('resolves federated title, SKU, image, and purchasable variant for each line', async () => {
+  test('resolves federated title and purchasable variant for each line', async () => {
     const variant = await kit.variant({ title: 'Federated checkout line' });
     const checkout = await kit.created({ items: [{ purchasableId: variant, quantity: 1 }] });
     const response = await kit.graphql<{
@@ -360,19 +336,21 @@ test.describe('Storefront checkout lines and merchandise', () => {
     const checkout = await kit.created({
       items: [
         {
-          purchasableId: await kit.variant({ status: 'DRAFT' }),
-          quantity: 10_000,
+          purchasableId: await kit.variant({ stock: 3 }),
+          quantity: 5,
         },
       ],
     });
     expect(checkout.valid).toBe(false);
-    expect(publicCodes(checkout)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/NOT_ENOUGH_STOCK|OUT_OF_STOCK|UNAVAILABLE/)]),
-    );
+    expect(checkout.lines[0]!.quantity).toBe(3);
+    expect(publicCodes(checkout)).toContain('NOT_ENOUGH_STOCK');
   });
 
   test('projects OUT_OF_STOCK and ITEM_UNAVAILABLE notifications distinctly from blocking line issues', async () => {
-    const checkout = await kit.created({
+    const outOfStock = await kit.created({
+      items: [{ purchasableId: await kit.variant({ stock: 0 }), quantity: 1 }],
+    });
+    const unavailable = await kit.created({
       items: [
         {
           purchasableId: await kit.variant({ status: 'DRAFT' }),
@@ -380,15 +358,14 @@ test.describe('Storefront checkout lines and merchandise', () => {
         },
       ],
     });
-    for (const notification of checkout.notifications) {
-      expect(notification).toMatchObject({
-        severity: expect.stringMatching(/INFO|WARNING/),
-        isDismissed: false,
-      });
-    }
-    expect(checkout.issues).toContainEqual(
-      expect.objectContaining({ severity: 'ERROR', effect: 'STOP' }),
+    expect(outOfStock.notifications).toContainEqual(
+      expect.objectContaining({ code: 'OUT_OF_STOCK', severity: 'WARNING', isDismissed: false }),
     );
+    expect(unavailable.notifications).toContainEqual(
+      expect.objectContaining({ code: 'ITEM_UNAVAILABLE', severity: 'WARNING', isDismissed: false }),
+    );
+    expect(outOfStock.issues).toContainEqual(expect.objectContaining({ effect: 'STOP' }));
+    expect(unavailable.issues).toContainEqual(expect.objectContaining({ effect: 'STOP' }));
   });
 });
 

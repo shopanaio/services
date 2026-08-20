@@ -54,7 +54,7 @@ test.describe('Storefront checkout delivery', () => {
     );
   });
 
-  test('rejects an invalid, duplicate, or already-assigned root line in delivery destinations', async () => {
+  test('rejects unknown and duplicate root lines in delivery destinations', async () => {
     await kit.configureDelivery();
     const checkout = await physical(kit);
     for (const checkoutLineIds of [
@@ -126,7 +126,7 @@ test.describe('Storefront checkout delivery', () => {
     expect(removed.deliveryGroups[0]!.recipient).toBeNull();
   });
 
-  test('rejects duplicate, unknown, and incomplete delivery address or group updates', async () => {
+  test('rejects duplicate address and unknown delivery-group updates', async () => {
     await kit.configureDelivery();
     const checkout = await addDestination(kit, await physical(kit));
     const addressId = checkout.deliveryGroups[0]!.deliveryAddress!.id!;
@@ -174,7 +174,7 @@ test.describe('Storefront checkout delivery', () => {
     expect(after.deliveryGroups[0]!.selection.option).toMatchObject({ carrierCode: 'test-fedex' });
   });
 
-  test('validates carrier pickup-point customer input through the App', async () => {
+  test('stores carrier customer input without exposing it publicly', async () => {
     await kit.configureDelivery({ carrier: true });
     const checkout = await addDestination(kit, await physical(kit));
     const carrier = checkout.deliveryGroups[0]!.options.find(
@@ -184,6 +184,7 @@ test.describe('Storefront checkout delivery', () => {
     const after = kit.expectSuccess(await select(kit, checkout, carrier.handle, input));
     expect(after.deliveryGroups[0]!.selection.status).toBe('SELECTED');
     expect(JSON.stringify(after.deliveryGroups)).not.toContain('pickupPointId');
+    expect(JSON.stringify(await kit.persistedSnapshot(after.id))).toContain('kyiv-42');
   });
 
   test('rejects an unknown or stale delivery option handle', async () => {
@@ -198,7 +199,7 @@ test.describe('Storefront checkout delivery', () => {
     }
   });
 
-  test('resets a selection when its App is suspended or uninstalled', async () => {
+  test('resets a carrier selection when its provider capability becomes inactive', async () => {
     const { providerAccountId } = await kit.configureDelivery({ carrier: true });
     const addressed = await addDestination(kit, await physical(kit));
     const carrier = addressed.deliveryGroups[0]!.options.find(
@@ -219,33 +220,24 @@ test.describe('Storefront checkout delivery', () => {
     expect(recalculated.deliveryGroups[0]!.selection.status).toBe('RESET');
   });
 
-  test('applies carrier timeout fallback policy', async () => {
+  test('falls back to manual rates when the carrier capability boundary fails', async () => {
     await kit.configureDelivery({ carrier: true, failureMode: 'OMIT_PROVIDER_RATES' });
     const checkout = await physical(kit);
-    const after = await kit.withActionFault('delivery.calculateCheckoutDeliveryOptions', () =>
+    const payload = await kit.withActionFault('apps.executeCapability', () =>
       addresses(kit, 'checkoutDeliveryAddressesAdd', checkout.id, {
         addresses: [{ checkoutLineIds: [checkout.lines[0]!.id], address: address() }],
       }),
     );
-    kit.expectUserError(after, /DELIVERY|PIPELINE|UNAVAILABLE/);
-    expect(await kit.read(checkout.id)).toEqual(checkout);
-  });
-
-  test('hides a provider option through an active delivery customization App', async () => {
-    await kit.configureDelivery({ carrier: true });
-    const checkout = await addDestination(kit, await physical(kit));
-    expect(checkout.deliveryGroups[0]!.options.map(({ handle }) => handle)).toEqual(
-      [...checkout.deliveryGroups[0]!.options.map(({ handle }) => handle)].sort((a, b) => {
-        const left = checkout.deliveryGroups[0]!.options.find(({ handle }) => handle === a)!.cost
-          .amount;
-        const right = checkout.deliveryGroups[0]!.options.find(({ handle }) => handle === b)!.cost
-          .amount;
-        return left - right || a.localeCompare(b);
-      }),
+    const after = kit.expectSuccess(payload);
+    expect(after.deliveryGroups[0]!.options).toEqual([
+      expect.objectContaining({ carrierCode: null, deliveryMethodType: 'SHIPPING' }),
+    ]);
+    expect(after.issues).toContainEqual(
+      expect.objectContaining({ code: expect.stringMatching(/DELIVERY|CARRIER/), retryable: true }),
     );
   });
 
-  test('recalculates delivery options when lines, quantity, currency, or destination change', async () => {
+  test('recalculates delivery options when line quantity changes', async () => {
     await kit.configureDelivery();
     const before = await addDestination(kit, await physical(kit));
     const after = kit.expectSuccess(

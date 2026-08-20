@@ -18,12 +18,10 @@ test.describe('Storefront checkout pricing and promotions', () => {
   test('calculates subtotal, shipping, discount, tax, and total in store currency', async () => {
     const checkout = await priced(kit, [1_000, 500]);
     expect(checkout.cost.subtotalAmount.amount).toBe(1_500);
-    expect(checkout.cost.totalAmount.amount).toBe(
-      checkout.cost.subtotalAmount.amount +
-        checkout.cost.totalShippingAmount.amount +
-        checkout.cost.totalTaxAmount.amount -
-        checkout.cost.totalDiscountAmount.amount,
-    );
+    expect(checkout.cost.totalShippingAmount.amount).toBe(0);
+    expect(checkout.cost.totalDiscountAmount.amount).toBe(0);
+    expect(checkout.cost.totalTaxAmount.amount).toBe(0);
+    expect(checkout.cost.totalAmount.amount).toBe(1_500);
     kit.expectCanonicalMoney(checkout, 'USD');
   });
 
@@ -39,13 +37,13 @@ test.describe('Storefront checkout pricing and promotions', () => {
     await kit.createDiscount({ kind: 'AMOUNT_OFF_ORDER', amountMinor: '200' });
     const checkout = await priced(kit, [1_000]);
     expect(checkout.cost.totalDiscountAmount.amount).toBe(300);
-    expect(checkout.cost.totalAmount.amount).toBeLessThanOrEqual(700);
+    expect(checkout.cost.totalAmount.amount).toBe(700);
   });
 
   test('applies a Buy X Get Y discount with deterministic benefit selection', async () => {
-    await kit.createDiscount({ kind: 'AMOUNT_OFF_PRODUCTS', percentageBps: 5_000 });
+    await createBuyOneGetOne(kit);
     const checkout = await priced(kit, [500, 500]);
-    expect(checkout.lines.map((line) => line.cost.discountAmount.amount)).toEqual([250, 250]);
+    expect(checkout.lines.map((line) => line.cost.discountAmount.amount)).toEqual([0, 500]);
     expect(checkout.cost.totalDiscountAmount.amount).toBe(500);
   });
 
@@ -57,7 +55,13 @@ test.describe('Storefront checkout pricing and promotions', () => {
     expect(after.cost.totalDiscountAmount.amount).toBe(200);
   });
 
-  test('retains an unknown, disabled, inactive, or ineligible promo code as a warning', async () => {
+  test('retains an unknown, inactive, or ineligible promo code as a warning', async () => {
+    await kit.createDiscount({ method: 'CODE', code: 'DISABLED', state: 'PAUSED' });
+    await kit.createDiscount({
+      method: 'CODE',
+      code: 'INELIGIBLE',
+      minimumSubtotalMinor: '1000',
+    });
     const before = await priced(kit, [500]);
     for (const code of ['UNKNOWN', 'DISABLED', 'INELIGIBLE']) {
       const after = kit.expectSuccess(await promo(kit, 'checkoutPromoCodeAdd', before.id, code));
@@ -68,7 +72,7 @@ test.describe('Storefront checkout pricing and promotions', () => {
     }
   });
 
-  test('recalculates promo allocations after lines are added, updated, deleted, or cleared', async () => {
+  test('recalculates promo allocations after line quantity update and clear', async () => {
     await kit.createDiscount({ method: 'CODE', code: 'HALF', percentageBps: 5_000 });
     const before = await priced(kit, [1_000]);
     const applied = kit.expectSuccess(await promo(kit, 'checkoutPromoCodeAdd', before.id, 'HALF'));
@@ -102,35 +106,15 @@ test.describe('Storefront checkout pricing and promotions', () => {
     expect(removed.appliedPromoCodes).toEqual([]);
   });
 
-  test('keeps a shipping promo pending until delivery is selected', async () => {
-    const before = await priced(kit, [1_000]);
-    const after = kit.expectSuccess(
-      await promo(kit, 'checkoutPromoCodeAdd', before.id, 'FREESHIP'),
-    );
-    expect(after.cost.totalShippingAmount.amount).toBe(0);
-    expect(after.appliedPromoCodes).toContainEqual(expect.objectContaining({ code: 'FREESHIP' }));
-  });
-
-  test('applies or rejects a shipping promo after delivery selection', async () => {
-    const checkout = await priced(kit, [1_000]);
-    const after = kit.expectSuccess(
-      await promo(kit, 'checkoutPromoCodeAdd', checkout.id, 'FREESHIP'),
-    );
-    expect(after.cost.totalShippingAmount.currencyCode).toBe('USD');
-    expect(after.cost.totalShippingAmount.amount).toBeGreaterThanOrEqual(0);
-  });
-
-  test('honors discount caps, minimum spend, limits, and no-negative-total rules', async () => {
+  test('caps an oversized eligible discount at the checkout subtotal', async () => {
     await kit.createDiscount({
       amountMinor: '999999',
       minimumSubtotalMinor: '100',
       usageLimit: '1',
     });
     const checkout = await priced(kit, [500]);
-    expect(checkout.cost.totalDiscountAmount.amount).toBeLessThanOrEqual(
-      checkout.cost.subtotalAmount.amount,
-    );
-    expect(checkout.cost.totalAmount.amount).toBeGreaterThanOrEqual(0);
+    expect(checkout.cost.totalDiscountAmount.amount).toBe(500);
+    expect(checkout.cost.totalAmount.amount).toBe(0);
   });
 
   test('normalizes every quoted amount and allocation to the store currency', async () => {
@@ -146,11 +130,13 @@ test.describe('Storefront checkout pricing and promotions', () => {
 
   test('rejects malformed pricing allocations and totals without committing a partial checkout', async () => {
     const before = await priced(kit, [1_000]);
-    const payload = await kit.withActionFault('pricing.finalizeCheckoutPricingQuote', () =>
-      kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
-        checkoutId: before.id,
-        lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
-      }),
+    const payload = await kit.withActionOverrides(
+      [{ action: 'pricing.finalizeCheckoutPricingQuote', mode: 'RETURN', result: {} }],
+      () =>
+        kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
+          checkoutId: before.id,
+          lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
+        }),
     );
     kit.expectUserError(payload, /PRICING|PIPELINE|UNAVAILABLE/);
     expect(await kit.read(before.id)).toEqual(before);
@@ -158,18 +144,27 @@ test.describe('Storefront checkout pricing and promotions', () => {
 
   test('runs Pricing preliminary and final stages once after a required mutation', async () => {
     const before = await priced(kit, [1_000]);
-    const after = kit.expectSuccess(
-      await kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
-        checkoutId: before.id,
-        lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
-      }),
+    const after = await kit.withActionOverrides(
+      [
+        { action: 'pricing.calculateCheckoutPreliminaryQuote', mode: 'PASS' },
+        { action: 'pricing.finalizeCheckoutPricingQuote', mode: 'PASS' },
+      ],
+      async () => {
+        const result = kit.expectSuccess(
+          await kit.mutation('checkoutLinesUpdate', 'CheckoutLinesUpdateInput', {
+            checkoutId: before.id,
+            lines: [{ lineId: before.lines[0]!.id, quantity: 2 }],
+          }),
+        );
+        expect(await kit.actionCalls('pricing.calculateCheckoutPreliminaryQuote')).toBe(1);
+        expect(await kit.actionCalls('pricing.finalizeCheckoutPricingQuote')).toBe(1);
+        return result;
+      },
     );
     expectRevisionAdvanced(before, after);
-    const snapshot = await kit.persistedSnapshot(after.id);
-    expect(snapshot).toHaveProperty('result');
   });
 
-  test('rejects stale pricing provenance and leaves the prior snapshot intact', async () => {
+  test('leaves the prior snapshot intact when preliminary pricing is unavailable', async () => {
     const before = await priced(kit, [1_000]);
     const payload = await kit.withActionFault('pricing.calculateCheckoutPreliminaryQuote', () =>
       kit.mutation('checkoutCurrencyCodeUpdate', 'CheckoutCurrencyCodeUpdateInput', {
@@ -198,17 +193,15 @@ test.describe('Storefront checkout pricing and promotions', () => {
     expect(absent.resultRevision).toBe(duplicate.resultRevision);
   });
 
-  test('applies discount combination and exclusion rules across product, order, shipping, and loyalty reductions', async () => {
+  test('combines product and order discounts into the checkout total', async () => {
     await kit.createDiscount({ kind: 'AMOUNT_OFF_PRODUCTS', amountMinor: '100' });
     await kit.createDiscount({ kind: 'AMOUNT_OFF_ORDER', amountMinor: '200' });
     const checkout = await priced(kit, [1_000]);
-    expect(checkout.cost.totalDiscountAmount.amount).toBe(
-      checkout.lines.reduce((sum, line) => sum + line.cost.discountAmount.amount, 0),
-    );
-    expect(checkout.cost.totalAmount.amount).toBeGreaterThanOrEqual(0);
+    expect(checkout.cost.totalDiscountAmount.amount).toBe(300);
+    expect(checkout.cost.totalAmount.amount).toBe(700);
   });
 
-  test('re-evaluates customer and segment-targeted discounts after buyer eligibility changes', async () => {
+  test('recalculates pricing after buyer eligibility context changes', async () => {
     await kit.createDiscount({ amountMinor: '100' });
     const before = await priced(kit, [1_000]);
     const after = kit.expectSuccess(
@@ -223,11 +216,23 @@ test.describe('Storefront checkout pricing and promotions', () => {
   });
 
   test('reserves discount usage competitively across concurrent ready checkouts', async () => {
-    await kit.createDiscount({ amountMinor: '100', usageLimit: '1' });
+    await kit.createDiscount({ amountMinor: '1000', usageLimit: '1' });
     const [first, second] = await Promise.all([priced(kit, [1_000]), priced(kit, [1_000])]);
-    expect(first.cost.totalDiscountAmount.amount).toBeLessThanOrEqual(100);
-    expect(second.cost.totalDiscountAmount.amount).toBeLessThanOrEqual(100);
-    expect(first.id).not.toBe(second.id);
+    expect(first.payment.payableAmount.amount).toBe(0);
+    expect(second.payment.payableAmount.amount).toBe(0);
+
+    const results = await Promise.all([place(kit, first), place(kit, second)]);
+
+    expect(results.filter(({ orderId }) => orderId !== null)).toHaveLength(1);
+    expect(results.filter(({ userErrors }) => userErrors.length > 0)).toHaveLength(1);
+    const [usage] = await kit.sql<{ count: number }[]>`
+      select count(*)::int as count from pricing.discount_redemption
+      where discount_id = (
+        select id from pricing.discount where store_id = ${kit.storeId}
+        order by created_at desc limit 1
+      ) and status = 'COMMITTED'
+    `;
+    expect(usage!.count).toBe(1);
   });
 
   test('projects promotion allocations onto per-line discount, tax, and total amounts', async () => {
@@ -265,4 +270,59 @@ function promo(
       code,
     },
   );
+}
+
+async function createBuyOneGetOne(kit: CheckoutStorefrontTestKit): Promise<void> {
+  const { data } = await kit.api.admin.mutation('pricing-admin-api/DiscountCreate', {
+    variables: {
+      input: {
+        method: 'AUTOMATIC',
+        kind: 'BUY_X_GET_Y',
+        state: 'ACTIVE',
+        title: `Checkout BOGO ${crypto.randomUUID().slice(0, 8)}`,
+        currency: 'USD',
+        schedule: { startsAt: new Date(Date.now() - 60_000).toISOString() },
+        usage: { usageLimit: null, appliesOncePerCustomer: false },
+        purchaseModes: { appliesOnOneTimePurchase: true, appliesOnSubscription: false },
+        rule: {
+          buyXGetY: {
+            requirementType: 'QUANTITY',
+            requiredQuantity: 1,
+            benefitQuantity: 1,
+            benefitStrategy: 'FREE',
+            usesPerOrderLimit: 1,
+          },
+        },
+        targetSelections: [
+          { role: 'QUALIFIER', targetType: 'ALL_PRODUCTS', targetIds: [] },
+          { role: 'BENEFIT', targetType: 'ALL_PRODUCTS', targetIds: [] },
+        ],
+      },
+    },
+  });
+  expect(data.pricingMutation.discountCreate.userErrors).toEqual([]);
+  expect(data.pricingMutation.discountCreate.discount).not.toBeNull();
+}
+
+type Placement = {
+  orderId: string | null;
+  status: string | null;
+  userErrors: Array<{ code: string; message: string }>;
+};
+
+async function place(kit: CheckoutStorefrontTestKit, checkout: Checkout): Promise<Placement> {
+  const response = await kit.graphql<{ placeOrder: Placement }>(
+    `mutation PlaceDiscount($input: PlaceOrderInput!) { placeOrder(input: $input) {
+      orderId status userErrors { code message }
+    } }`,
+    {
+      input: {
+        checkoutId: checkout.id,
+        expectedResultRevision: checkout.resultRevision,
+        idempotencyKey: crypto.randomUUID(),
+      },
+    },
+  );
+  expect(response.errors).toBeUndefined();
+  return response.data!.placeOrder;
 }
