@@ -43,7 +43,7 @@ export class CompleteOrderFulfillmentServiceOperationWorkflow extends BrokerWork
       self.repository.dbosTransactionBridge,
   })
   private apply(input: FulfillmentServiceCallbackWorkflowInput) {
-    return this.repository.adminCommand.applyFulfillmentServiceCallback(input);
+    return this.repository.admin.provider.applyFulfillmentServiceCallback(input);
   }
 }
 
@@ -70,6 +70,6 @@ export class ApplyOrderIntegrationEventWorkflow extends BrokerWorkflows<
     bridge: (self: ApplyOrderIntegrationEventWorkflow) => self.repository.dbosTransactionBridge,
   })
   private apply(input: IntegrationEventWorkflowInput) {
-    return this.repository.adminCommand.applyIntegrationEvent(input);
+    return this.repository.admin.provider.applyIntegrationEvent(input);
   }
 }

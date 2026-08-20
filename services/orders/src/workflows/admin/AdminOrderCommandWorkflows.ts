@@ -21,10 +21,13 @@ import {
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import { Repository } from "../../repositories/Repository.js";
 import type {
-  AdminOrderBulkTarget,
   AdminOrderExternalEffect,
-} from "../../repositories/admin/AdminOrderCommandRepository.js";
+} from "../../application/admin/AdminOrderCommandPorts.js";
+import type { AdminOrderBulkTarget } from "../../application/admin/AdminOrderBulkSelection.js";
 import type { EventEmitResult } from "@shopana/events";
+import { AdminOrderCommandService } from "../../application/admin/AdminOrderCommandService.js";
+import { parseAdminOrderBulkSelection } from "../../application/admin/AdminOrderBulkSelection.js";
+import { executeAdminOrderOperation } from "../../application/admin/AdminOrderOperationCoordinator.js";
 
 abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
   AdminOrderCommandInput,
@@ -33,6 +36,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
   protected constructor(
     broker: ServiceBroker,
     protected readonly repository: Repository,
+    private readonly commandService: AdminOrderCommandService,
     protected readonly command: AdminOrderCommandName,
   ) {
     super(broker);
@@ -48,38 +52,24 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
       if (this.command === "ordersBulkAction") {
         return this.executeBulk(input, result, workflowId);
       }
-      try {
-        const effects = await this.loadExternalEffects(input, result);
-        for (let index = 0; index < effects.length; index += 1) {
-          const effect = effects[index]!;
-          try {
-            const response = await this.performExternalEffect(effect);
-            await this.recordAttempt(
-              input.context.storeId,
-              result.operationId,
-              index + 1,
-              effect,
-              response,
-            );
-            await this.applyExternalEffectResult(input, result, effect, response);
-          } catch (error) {
-            await this.recordAttempt(
-              input.context.storeId,
-              result.operationId,
-              index + 1,
-              effect,
-              null,
-              error,
-            );
-            throw error;
-          }
-        }
-        await this.finishOperation(input, result, true);
-        await this.publishCommandEvent(input, result, workflowId);
-      } catch (error) {
-        await this.finishOperation(input, result, false, error);
-        throw error;
-      }
+      return executeAdminOrderOperation({
+        result,
+        loadEffects: () => this.loadExternalEffects(input, result),
+        performEffect: (effect) => this.performExternalEffect(effect),
+        recordAttempt: (index, effect, response, error) =>
+          this.recordAttempt(
+            input.context.storeId,
+            result.operationId!,
+            index,
+            effect,
+            response,
+            error,
+          ),
+        applyEffect: (effect, response) =>
+          this.applyExternalEffectResult(input, result, effect, response),
+        finish: (succeeded, error) => this.finishOperation(input, result, succeeded, error),
+        publish: (completedResult) => this.publishCommandEvent(input, completedResult, workflowId),
+      });
     } else {
       await this.publishCommandEvent(input, result, workflowId);
     }
@@ -151,7 +141,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
   })
   private loadExternalEffects(input: AdminOrderCommandInput, result: AdminOrderCommandResult) {
-    return this.repository.adminCommand.externalEffects(this.command, input, result);
+    return this.repository.admin.provider.externalEffects(this.command, input, result);
   }
 
   @TransactionalStep({
@@ -159,7 +149,8 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
   })
   private loadBulkTargets(input: AdminOrderCommandInput) {
-    return this.repository.adminCommand.bulkTargets(input);
+    const selection = parseAdminOrderBulkSelection(input.input);
+    return this.repository.admin.bulkSelection.findTargets(input.context.storeId, selection);
   }
 
   @WorkflowStep()
@@ -187,7 +178,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
   })
   private updateProgress(storeId: string, operationId: string, current: number, total: number) {
-    return this.repository.adminCommand.updateOperationProgress(
+    return this.repository.admin.operation.updateOperationProgress(
       storeId,
       operationId,
       current,
@@ -200,7 +191,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     bridge: (self: AdminOrderCommandWorkflowBase) => self.repository.dbosTransactionBridge,
   })
   private commit(input: AdminOrderCommandInput, workflowId: string) {
-    return this.repository.adminCommand.execute(this.command, input, workflowId);
+    return this.commandService.execute(this.command, input, workflowId);
   }
 
   /**
@@ -266,7 +257,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     response: unknown,
     error?: unknown,
   ) {
-    return this.repository.adminCommand.recordOperationAttempt(
+    return this.repository.admin.provider.recordOperationAttempt(
       storeId,
       operationId,
       attemptNumber,
@@ -286,7 +277,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     effect: AdminOrderExternalEffect,
     response: unknown,
   ) {
-    return this.repository.adminCommand.applyExternalEffectResult(
+    return this.repository.admin.provider.applyExternalEffectResult(
       this.command,
       input,
       result,
@@ -305,7 +296,7 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     succeeded: boolean,
     error?: unknown,
   ) {
-    return this.repository.adminCommand.completeOperation(
+    return this.repository.admin.operation.completeOperation(
       this.command,
       input,
       result,
@@ -318,13 +309,18 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
 type AdminCommandWorkflowProvider = new (
   broker: ServiceBroker,
   repository: Repository,
+  commandService: AdminOrderCommandService,
 ) => AdminOrderCommandWorkflowBase;
 
 function createAdminCommandWorkflow(command: AdminOrderCommandName): AdminCommandWorkflowProvider {
   @Injectable()
   class AdminCommandWorkflow extends AdminOrderCommandWorkflowBase {
-    constructor(@InjectBroker("order") broker: ServiceBroker, repository: Repository) {
-      super(broker, repository, command);
+    constructor(
+      @InjectBroker("order") broker: ServiceBroker,
+      repository: Repository,
+      commandService: AdminOrderCommandService,
+    ) {
+      super(broker, repository, commandService, command);
     }
 
     @Workflow(command, { idempotencyStrategy: "client" })

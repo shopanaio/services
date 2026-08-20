@@ -27,6 +27,8 @@ import {
   ApplyOrderIntegrationEventWorkflow,
   CompleteOrderFulfillmentServiceOperationWorkflow,
 } from "./workflows/integration/OrderProviderCallbackWorkflows.js";
+import { AdminOrderCommandService } from "./application/admin/AdminOrderCommandService.js";
+import { ADMIN_ORDER_COMMAND_PERSISTENCE } from "./application/admin/AdminOrderCommandPorts.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "order" })],
@@ -51,6 +53,12 @@ import {
     ApplyDeliveryShipmentUpdateWorkflow,
     CompleteOrderFulfillmentServiceOperationWorkflow,
     ApplyOrderIntegrationEventWorkflow,
+    {
+      provide: ADMIN_ORDER_COMMAND_PERSISTENCE,
+      inject: [Repository],
+      useFactory: (repository: Repository) => repository.admin,
+    },
+    AdminOrderCommandService,
     ...adminOrderCommandWorkflowProviders,
   ],
   exports: [Repository],

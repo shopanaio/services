@@ -9,8 +9,28 @@ import { OrderReadRepository } from "./order/OrderReadRepository.js";
 import { OrderRepository } from "./order/OrderRepository.js";
 import { DeliveryFulfillmentRepository } from "./fulfillment/DeliveryFulfillmentRepository.js";
 import { OrderCheckoutPlacementRepository } from "./placement/OrderCheckoutPlacementRepository.js";
-import { AdminOrderCommandRepository } from "./admin/AdminOrderCommandRepository.js";
 import { AdminOrderReadRepository } from "./admin/AdminOrderReadRepository.js";
+import { AdminOrderDraftRepository } from "./admin/AdminOrderDraftRepository.js";
+import { AdminOrderEditRepository } from "./admin/AdminOrderEditRepository.js";
+import { AdminOrderPaymentRepository } from "./admin/AdminOrderPaymentRepository.js";
+import { AdminOrderFulfillmentRepository } from "./admin/AdminOrderFulfillmentRepository.js";
+import { AdminOrderReturnRepository } from "./admin/AdminOrderReturnRepository.js";
+import { AdminOrderIntegrationRepository } from "./admin/AdminOrderIntegrationRepository.js";
+import { AdminOrderOperationRepository } from "./admin/AdminOrderOperationRepository.js";
+import { AdminOrderProviderRepository } from "./admin/AdminOrderProviderRepository.js";
+import { AdminOrderBulkSelectionRepository } from "./admin/AdminOrderBulkSelectionRepository.js";
+
+export type AdminOrderRepositories = Readonly<{
+  draft: AdminOrderDraftRepository;
+  edit: AdminOrderEditRepository;
+  payment: AdminOrderPaymentRepository;
+  fulfillment: AdminOrderFulfillmentRepository;
+  returns: AdminOrderReturnRepository;
+  integration: AdminOrderIntegrationRepository;
+  operation: AdminOrderOperationRepository;
+  provider: AdminOrderProviderRepository;
+  bulkSelection: AdminOrderBulkSelectionRepository;
+}>;
 
 export interface RepositoryConfig {
   db: Database;
@@ -28,7 +48,7 @@ export class Repository {
   readonly pii: OrdersPiiRepository;
   readonly fulfillment: DeliveryFulfillmentRepository;
   readonly checkoutPlacement: OrderCheckoutPlacementRepository;
-  readonly adminCommand: AdminOrderCommandRepository;
+  readonly admin: AdminOrderRepositories;
   readonly adminRead: AdminOrderReadRepository;
   readonly txManager: TransactionManager<Database>;
   readonly dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>;
@@ -42,7 +62,7 @@ export class Repository {
     pii: OrdersPiiRepository,
     fulfillment: DeliveryFulfillmentRepository,
     checkoutPlacement: OrderCheckoutPlacementRepository,
-    adminCommand: AdminOrderCommandRepository,
+    admin: AdminOrderRepositories,
     adminRead: AdminOrderReadRepository,
     txManager: TransactionManager<Database>,
     dbosTransactionBridge: DbosTransactionBridge<Database, PostgresTransactionOptions>,
@@ -55,7 +75,7 @@ export class Repository {
     this.pii = pii;
     this.fulfillment = fulfillment;
     this.checkoutPlacement = checkoutPlacement;
-    this.adminCommand = adminCommand;
+    this.admin = admin;
     this.adminRead = adminRead;
     this.txManager = txManager;
     this.dbosTransactionBridge = dbosTransactionBridge;
@@ -72,7 +92,18 @@ export class Repository {
     const order = new OrderRepository(db, txManager, orderNumber, pii, idempotency);
     const fulfillment = new DeliveryFulfillmentRepository(db, txManager);
     const checkoutPlacement = new OrderCheckoutPlacementRepository(db, txManager, orderNumber);
-    const adminCommand = new AdminOrderCommandRepository(db, txManager, orderNumber);
+    const adminOperation = new AdminOrderOperationRepository(db, txManager);
+    const admin = {
+      draft: new AdminOrderDraftRepository(db, txManager, orderNumber),
+      edit: new AdminOrderEditRepository(db, txManager, adminOperation),
+      payment: new AdminOrderPaymentRepository(db, txManager),
+      fulfillment: new AdminOrderFulfillmentRepository(db, txManager),
+      returns: new AdminOrderReturnRepository(db, txManager),
+      integration: new AdminOrderIntegrationRepository(db, txManager, adminOperation),
+      operation: adminOperation,
+      provider: new AdminOrderProviderRepository(db, txManager, adminOperation),
+      bulkSelection: new AdminOrderBulkSelectionRepository(db, txManager),
+    } satisfies AdminOrderRepositories;
     const adminRead = new AdminOrderReadRepository(db, txManager);
 
     return new Repository(
@@ -84,7 +115,7 @@ export class Repository {
       pii,
       fulfillment,
       checkoutPlacement,
-      adminCommand,
+      admin,
       adminRead,
       txManager,
       dbosTransactionBridge,
