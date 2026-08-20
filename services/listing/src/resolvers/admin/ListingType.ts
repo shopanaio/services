@@ -1,4 +1,9 @@
 import {
+  decodeGlobalIdByType,
+  encodeGlobalIdByType,
+  type GlobalIdType,
+} from "@shopana/shared-graphql-guid";
+import {
   BaseType,
   createAuthorizationMiddleware,
   createExecutor,
@@ -27,5 +32,13 @@ export abstract class ListingType<TValue, TData = unknown>
 
   protected getCache(): CacheStore {
     return this.$ctx.kernel.cache as CacheStore;
+  }
+
+  protected encodeId(id: string, type: GlobalIdType): string {
+    return encodeGlobalIdByType(id, type);
+  }
+
+  protected decodeId(globalId: string, expectedType: GlobalIdType): string {
+    return decodeGlobalIdByType(globalId, expectedType);
   }
 }

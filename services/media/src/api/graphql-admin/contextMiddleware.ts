@@ -1,4 +1,3 @@
-import type { FastifyRequest } from "fastify";
 import {
   buildAdminContextMiddleware as buildMiddleware,
   type AdminContextClaims,

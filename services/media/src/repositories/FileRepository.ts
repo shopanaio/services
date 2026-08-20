@@ -7,7 +7,7 @@ import {
   type InferRelayInput,
 } from "@shopana/drizzle-query";
 import type { Database } from "../infrastructure/db/database";
-import { files, assetGroups, fileDeletionStates, type File, type NewFile } from "./models";
+import { files, assetGroups, type File, type NewFile } from "./models";
 import { encodeGlobalIdByType, decodeGlobalId, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 
 const MAX_PAGE_SIZE = 100;

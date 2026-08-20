@@ -1,10 +1,7 @@
 import { Buffer } from "node:buffer";
 import type { Repository } from "../../repositories/Repository.js";
 import type { Cache } from "cache-manager";
-import type {
-  ComparisonField,
-  ComparisonFieldOption,
-} from "../../repositories/models/comparison.js";
+import type { ComparisonField } from "../../repositories/models/comparison.js";
 import { ComparisonValueFormatter } from "./ComparisonValueFormatter.js";
 import type { ComparisonMatrix, ComparisonMatrixCell, ComparisonMatrixColumn } from "./types.js";
 

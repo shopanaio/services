@@ -1,5 +1,5 @@
 import { BaseScript } from "../kernel/BaseScript.js";
-import { LISTING_UPDATE_CONTRACT_VERSION } from "@shopana/broker-types";
+import { Listing } from "@shopana/broker-types";
 import type {
   ListingIndexItemKey,
   ListingIndexPreparedDeleteAction,
@@ -65,7 +65,7 @@ function validateAction(action: ListingIndexQueuedAction): ListingIndexValidatio
   const issues: ListingIndexValidationIssue[] = [];
   const { meta, storeId } = action.params;
 
-  if (meta.contractVersion !== LISTING_UPDATE_CONTRACT_VERSION) {
+  if (meta.contractVersion !== Listing.LISTING_UPDATE_CONTRACT_VERSION) {
     issues.push({
       code: "UNSUPPORTED_CONTRACT_VERSION",
       field: ["meta", "contractVersion"],

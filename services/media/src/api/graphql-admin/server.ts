@@ -139,7 +139,7 @@ export async function startServer(serverConfig: ServerConfig) {
           (request as any).body = processed;
           // Change content-type so Apollo Server accepts the request
           request.headers["content-type"] = "application/json";
-        } catch (error) {
+        } catch {
           reply.status(400).send({ error: "Invalid multipart request" });
         }
       }

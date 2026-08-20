@@ -151,7 +151,7 @@ async function filterUnion(
   excluded: Map<string, RecommendationExcludedReason>,
 ): Promise<void> {
   const states = await eligibility([...union.keys()]);
-  for (const targetProductId of [...union.keys()]) {
+  for (const targetProductId of union.keys()) {
     if (excludedIds.has(targetProductId)) {
       union.delete(targetProductId);
       excluded.set(targetProductId, "EXCLUDED");

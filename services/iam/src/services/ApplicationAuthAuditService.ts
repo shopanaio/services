@@ -104,9 +104,7 @@ export class ApplicationAuthAuditService {
       organizationId: input.organizationId,
       applicationId: input.applicationId,
       requestId: input.requestId,
-      safeDiff: Object.freeze({
-        ...(input.provider ? { provider: input.provider } : {}),
-      }),
+      safeDiff: Object.freeze(input.provider ? { provider: input.provider } : {}),
     });
 
     if (!this.port) {

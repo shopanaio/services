@@ -3,10 +3,9 @@ import { inArray, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { FBT_RULES_V1 } from "../../recommendation/constants.js";
 import { MAX_RECOMMENDATION_SOURCE_LIMIT } from "../../recommendation/constants.js";
-import type { RecommendationPlacement } from "../models/recommendationRuntime.js";
 import type { RecommendationCandidate } from "./types.js";
 
-interface AutomatedCandidateRow {
+interface AutomatedCandidateRow extends Record<string, unknown> {
   targetProductId: string;
   runId: string;
   fbtSourceScore: string | null;

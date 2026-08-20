@@ -1,11 +1,4 @@
-import {
-  registerDecorator,
-  ValidationOptions,
-  ValidationArguments,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  Validate,
-} from "class-validator";
+import { registerDecorator, ValidationOptions, ValidationArguments } from "class-validator";
 import { version as uuidVersion, validate as uuidValidate } from "uuid";
 
 /**

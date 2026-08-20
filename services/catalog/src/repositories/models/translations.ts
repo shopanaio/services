@@ -1,4 +1,4 @@
-import { uuid, varchar, text, jsonb, primaryKey, index } from "drizzle-orm/pg-core";
+import { uuid, text, jsonb, primaryKey, index } from "drizzle-orm/pg-core";
 import { catalogSchema, localeCodeEnum } from "./schema";
 import { product, variant } from "./products";
 import { productOption, productOptionValue } from "./options";

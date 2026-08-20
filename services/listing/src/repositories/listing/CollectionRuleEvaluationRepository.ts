@@ -10,7 +10,7 @@ import {
 } from "../../collections/CollectionRuleCompiler.js";
 import { compileVariantProjectionSql } from "../storefront/sql/compileVariantProjectionSql.js";
 
-interface CollectionRuleBitmapRow {
+interface CollectionRuleBitmapRow extends Record<string, unknown> {
   bitmap: string;
   cardinality: number | string;
 }

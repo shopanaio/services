@@ -21,7 +21,6 @@ import type {
 import type { Repository } from "../../repositories/Repository.js";
 import type {
   Account,
-  PointLot,
   Program,
   ProgramVersion,
   Reservation,

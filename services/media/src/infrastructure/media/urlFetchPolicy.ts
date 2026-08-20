@@ -36,11 +36,11 @@ function isPrivateOrReservedIp(rawIp: string): boolean {
   // literal "fe80" prefix.
   const ip = normalizeIp(rawIp);
   return (
-    /^0\./.test(ip) ||
-    /^127\./.test(ip) ||
-    /^10\./.test(ip) ||
-    /^192\.168\./.test(ip) ||
-    /^169\.254\./.test(ip) ||
+    ip.startsWith("0.") ||
+    ip.startsWith("127.") ||
+    ip.startsWith("10.") ||
+    ip.startsWith("192.168.") ||
+    ip.startsWith("169.254.") ||
     /^172\.(1[6-9]|2\d|3[0-1])\./.test(ip) ||
     /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(ip) ||
     ip === "::1" ||

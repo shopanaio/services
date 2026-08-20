@@ -115,7 +115,7 @@ export class DeleteOwnedFilesScript extends BaseScript<
   protected async execute(params: DeleteOwnedFilesParams): Promise<DeleteOwnedFilesResult> {
     const acceptedIds: string[] = [];
     const errors: DeleteOwnedFilesResult["errors"] = [];
-    for (const fileId of [...new Set(params.fileIds)]) {
+    for (const fileId of new Set(params.fileIds)) {
       const file = await this.repository.file.findByOwner(
         fileId,
         params.owner.type,

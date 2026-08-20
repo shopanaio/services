@@ -1,4 +1,4 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import type { ItemPricing } from "../../repositories/models/index.js";
 import {
   type ScriptResult,

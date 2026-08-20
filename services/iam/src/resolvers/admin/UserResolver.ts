@@ -1,7 +1,7 @@
 import { PreloadNotFoundError, SubgraphReference } from "@shopana/type-resolver";
 import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { User } from "../../repositories/user/UserRepository.js";
-import { IAMType, Cache } from "./IAMType.js";
+import { IAMType } from "./IAMType.js";
 
 /**
  * User resolver - resolves admin user domain interface

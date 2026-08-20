@@ -36,7 +36,6 @@ export class ListingBrokerActions extends BrokerActions {
   }
 
   @Action(ListingCollectionActionNames.previewRules, {
-    timeoutMs: 5_000,
     readOnly: true,
   })
   async previewCollectionRules(

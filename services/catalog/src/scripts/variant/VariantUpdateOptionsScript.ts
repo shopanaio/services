@@ -1,4 +1,4 @@
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { Variant } from "../../repositories/models/index.js";
 import {
@@ -6,7 +6,6 @@ import {
   successResult,
   unchangedResult,
   singleError,
-  errorResult,
 } from "../types/ScriptResult.js";
 import type { OptionLinkChanges } from "../types/ProductChanges.js";
 import { buildVariantHandle } from "./helpers/buildVariantHandle.js";
@@ -85,7 +84,6 @@ export class VariantUpdateOptionsScript extends BaseScript<
     }
 
     // Validate all values belong to their respective options
-    const valueIds = [...new Set(links.map((l) => l.optionValueId))];
     const valuesByOption = await this.repository.option.findValuesByOptionIds(optionIds);
 
     // Build a map of valid valueId -> optionId

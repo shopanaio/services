@@ -340,7 +340,7 @@ export class RecommendationSnapshotRepository extends BaseRepository {
 }
 
 function snapshotContentHash(
-  items: readonly Array<{
+  items: ReadonlyArray<{
     targetProductId: string;
     rank: number;
     score: string;

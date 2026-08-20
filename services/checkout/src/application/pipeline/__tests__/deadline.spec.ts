@@ -178,6 +178,7 @@ describe("checkout deadline settlement guard", () => {
     const runtime = new ControlledRuntime();
     const privateError = new Error("malformed promise");
     const malformed = {
+      // oxlint-disable-next-line unicorn/no-thenable -- The malformed thenable is the test subject.
       then: () => {
         throw privateError;
       },

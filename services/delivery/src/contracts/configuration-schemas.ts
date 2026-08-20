@@ -1,7 +1,6 @@
 import type { Delivery } from "@shopana/broker-types";
 import { z } from "zod";
 import {
-  DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS,
   DeliveryProviderContactSchema,
   DeliveryProviderJsonObjectSchema,
   assertDeliveryContractPayloadSize,

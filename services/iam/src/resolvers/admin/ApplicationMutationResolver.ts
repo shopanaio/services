@@ -747,7 +747,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
     action: ApplicationProtectedAction = "write",
   ): Promise<void> {
     const organizationId = decodeOrganizationId(input.organizationId);
-    const applicationId = decodeApplicationId(input.applicationId);
     const allowed = await this.authProvider.authorize({
       subject: this.adminActor().id,
       organizationId,

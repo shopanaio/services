@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { DomainEvent, EventHandlerDelivery, EventHandlerResponse } from "@shopana/events";
-import { DBOS, InjectBroker, ServiceBroker, type BrokerCallContext } from "@shopana/shared-kernel";
+import { InjectBroker, ServiceBroker, type BrokerCallContext } from "@shopana/shared-kernel";
 import { TemplateDefinitionRegistry } from "../infrastructure/templates/TemplateDefinitionRegistry.js";
 import type { NotificationSourceEvent } from "../workflows/types.js";
 

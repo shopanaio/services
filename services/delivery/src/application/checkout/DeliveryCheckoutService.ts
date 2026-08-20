@@ -512,7 +512,7 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
           status: accepted.length > 0 ? "SUCCEEDED" : "NO_SERVICE",
           failure: null,
         });
-      } catch (error) {
+      } catch {
         const completedAt = new Date().toISOString();
         const timedOut = Date.now() >= Date.parse(params.context.deadlineAt);
         const failure = timedOut

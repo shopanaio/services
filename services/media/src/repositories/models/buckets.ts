@@ -1,4 +1,4 @@
-import { uuid, varchar, text, timestamp, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { uuid, varchar, text, timestamp, integer, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
 

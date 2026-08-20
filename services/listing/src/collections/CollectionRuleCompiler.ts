@@ -2,7 +2,6 @@ import {
   encodeCollectionRuleTerm,
   hashCanonicalCollectionRulesV1,
   type CanonicalCollectionRule,
-  type CollectionRuleTerm,
 } from "@shopana/broker-types";
 import {
   buildAvailabilityVariantTerm,
@@ -78,19 +77,34 @@ export function compileCollectionRules(input: {
       });
       continue;
     }
-    if (rule.field === "feature" || rule.field === "option") {
-      const terms = rule.value.values.map((value): CollectionRuleTerm => ({
-        entityType: rule.field === "feature" ? "product" : "variant",
-        kind: rule.field,
-        sourceHandle: value.sourceHandle,
-        valueHandle: value.valueHandle,
-      }));
-      const group: CollectionPostingGroup = {
+    if (rule.field === "feature") {
+      productPostingGroups.push({
         field: "rule_term",
         operator: rule.operator === "all" ? "and" : "or",
-        valueKeys: terms.map(encodeCollectionRuleTerm),
-      };
-      (rule.field === "feature" ? productPostingGroups : variantPostingGroups).push(group);
+        valueKeys: rule.value.values.map((value) =>
+          encodeCollectionRuleTerm({
+            entityType: "product",
+            kind: "feature",
+            sourceHandle: value.sourceHandle,
+            valueHandle: value.valueHandle,
+          }),
+        ),
+      });
+      continue;
+    }
+    if (rule.field === "option") {
+      variantPostingGroups.push({
+        field: "rule_term",
+        operator: rule.operator === "all" ? "and" : "or",
+        valueKeys: rule.value.values.map((value) =>
+          encodeCollectionRuleTerm({
+            entityType: "variant",
+            kind: "option",
+            sourceHandle: value.sourceHandle,
+            valueHandle: value.valueHandle,
+          }),
+        ),
+      });
       continue;
     }
     if (rule.field === "in_stock") {
@@ -117,6 +131,9 @@ export function compileCollectionRules(input: {
             },
       );
       continue;
+    }
+    if (rule.field !== "created_at") {
+      throw new Error("Unsupported collection rule field");
     }
     productCreatedAtPredicates.push(
       rule.operator === "between"

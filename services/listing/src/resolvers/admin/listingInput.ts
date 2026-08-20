@@ -141,6 +141,8 @@ export function filterSelectionKey(
         return `vendor:${filter.vendorIds.join(",")}`;
       case "facet":
         return `facet:${filter.facetSlug}:${filter.valueHandles.join(",")}`;
+      case "status":
+        return `status:${filter.statuses.join(",")}`;
     }
   }
 

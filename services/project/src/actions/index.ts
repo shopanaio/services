@@ -49,7 +49,6 @@ export class ProjectBrokerActions extends BrokerActions {
 
   @Action(ProjectRecommendationActionNames.listActiveStores, {
     readOnly: true,
-    timeoutMs: 5_000,
   })
   async listActiveStores(
     params: ListActiveStoresParams,

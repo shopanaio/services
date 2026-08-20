@@ -7,7 +7,6 @@ import type {
   CheckoutValidationBinding,
   CheckoutValidationBindingSource,
   CheckoutValidationFunctionInput,
-  CheckoutValidationFunctionOperation,
   CheckoutValidationFunctionOutput,
   CheckoutValidationOperation,
   ValidateCheckoutRequest,

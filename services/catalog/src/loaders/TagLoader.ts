@@ -1,5 +1,5 @@
 import DataLoader from "dataloader";
-import type { Tag, TagTranslation, ProductTag } from "../repositories/models/index.js";
+import type { Tag, TagTranslation } from "../repositories/models/index.js";
 import type { Repository } from "../repositories/Repository.js";
 
 export class TagLoader {

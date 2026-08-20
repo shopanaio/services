@@ -46,7 +46,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
           after: args.after ?? null,
         },
         ctx,
-      ),
+      ) as unknown as ResolversTypes["ProductRecommendationConnection"],
     frequentlyBoughtTogether: (
       reference: { id: string },
       args: { first?: number | null; after?: string | null },
@@ -60,7 +60,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
           after: args.after ?? null,
         },
         ctx,
-      ),
+      ) as unknown as ResolversTypes["ProductRecommendationConnection"],
   },
 
   Category: {
@@ -77,18 +77,18 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
   },
 
   Collection: {
-    __resolveReference: (
-      reference: { id: string; listingRevision: number },
+    __resolveReference: async (
+      reference: { id: string },
       ctx: ServiceContext,
       info: GraphQLResolveInfo,
     ) => {
-      if (!Number.isSafeInteger(reference.listingRevision) || reference.listingRevision < 0) {
-        return null;
-      }
+      const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection);
+      const state = await ctx.kernel.repository.collectionState.findStateWithVisibility(id);
+      if (!state) return null;
       return CollectionResolver.load(
         {
-          id: decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection),
-          listingRevision: reference.listingRevision,
+          id,
+          listingRevision: state.listingRevision,
         },
         parseGraphqlInfo(info),
         ctx,

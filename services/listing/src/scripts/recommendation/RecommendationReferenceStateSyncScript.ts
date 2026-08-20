@@ -2,7 +2,6 @@ import { Transactional } from "../../kernel/BaseScript.js";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import { RECOMMENDATION_FAN_OUT_PAGE_SIZE } from "../../recommendation/constants.js";
 import type { RecommendationLifecyclePlan } from "../ListingWriteIndexActionScript.js";
-import type { RecommendationPlacement } from "../../repositories/models/recommendationRuntime.js";
 import type { RecommendationRequestGeneration } from "../../repositories/recommendation/types.js";
 
 const PLACEMENTS = ["PRODUCT_RELATED", "FREQUENTLY_BOUGHT_TOGETHER"] as const;

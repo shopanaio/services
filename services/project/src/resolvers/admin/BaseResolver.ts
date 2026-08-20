@@ -3,7 +3,6 @@ import {
   Cache,
   createExecutor,
   createAuthorizationMiddleware,
-  type CacheStore,
   Authorizable,
 } from "@shopana/type-resolver";
 import type { ServiceContext } from "../../context/types.js";

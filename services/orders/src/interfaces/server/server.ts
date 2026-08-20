@@ -61,7 +61,7 @@ function addHealthChecks(app: FastifyInstance, serviceName: string) {
  * Create and start GraphQL servers for orders service
  * Admin API on admin_graphql port, Storefront API on storefront_graphql port
  */
-export async function startServer(broker: ServiceBroker) {
+export async function startServer(_broker: ServiceBroker) {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const schemaPath = join(currentDir, "schema");
 

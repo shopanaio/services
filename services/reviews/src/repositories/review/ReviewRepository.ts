@@ -11,7 +11,6 @@ import {
   decodeOrderGlobalId,
   decodeOrderLineGlobalId,
   decodeProductGlobalId,
-  decodeRatingCriterionGlobalId,
   decodeReviewGlobalId,
   decodeVariantGlobalId,
 } from "../global-id-where-mappers.js";

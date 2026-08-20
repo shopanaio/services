@@ -31,7 +31,7 @@ export class InventoryEventHandlers extends EventHandlers {
       };
     };
   }): Promise<EventHandlerResponse> {
-    const { variantId, warehouseId, previousLevel, newLevel, movementType } = params.event.payload;
+    const { variantId, warehouseId, previousLevel, newLevel } = params.event.payload;
 
     this.logger.debug(
       `Received stockLevelChanged event: eventId=${params.event.eventId}, variantId=${variantId}, warehouseId=${warehouseId}, ${previousLevel} -> ${newLevel}`,

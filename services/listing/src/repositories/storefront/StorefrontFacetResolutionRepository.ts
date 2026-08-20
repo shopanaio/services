@@ -540,11 +540,11 @@ export class StorefrontFacetResolutionRepository extends BaseRepository {
     return next;
   }
 
-  private mergeUnique(current: readonly string[], next: readonly string[]): string[] {
+  private mergeUnique<T extends string>(current: readonly T[], next: readonly T[]): T[] {
     return [
       ...new Set([
-        ...current.map((value) => value.trim()).filter(Boolean),
-        ...next.map((value) => value.trim()).filter(Boolean),
+        ...current.map((value) => value.trim() as T).filter(Boolean),
+        ...next.map((value) => value.trim() as T).filter(Boolean),
       ]),
     ];
   }

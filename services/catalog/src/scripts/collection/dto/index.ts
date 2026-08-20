@@ -1,12 +1,7 @@
 import type { UserError } from "../../../kernel/BaseScript.js";
 import type { Collection } from "../../../repositories/models/index.js";
 import type { CanonicalCollectionRule } from "@shopana/broker-types";
-import type {
-  ProductSortBy,
-  ProductSortInput,
-  SeoInput,
-  SortDirection,
-} from "../../category/dto/index.js";
+import type { ProductSortBy, ProductSortInput, SeoInput } from "../../category/dto/index.js";
 import type { RichTextInput } from "../../shared/richText.js";
 
 export type {

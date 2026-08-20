@@ -571,6 +571,7 @@ export class CollectionStateRepository extends BaseRepository {
       } catch (error) {
         issues.push({
           code: "INVALID_RULE_TERM",
+          collectionId: undefined,
           entityType: row.entityType,
           valueKey: row.valueKey,
           message: error instanceof Error ? error.message : "Rule term is invalid",

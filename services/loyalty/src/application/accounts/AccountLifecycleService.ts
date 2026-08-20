@@ -117,7 +117,7 @@ export class AccountLifecycleService {
           activationAt,
           expiresAt,
           operationKind: "ADJUST_CREDIT",
-          metadata: { adjustment: true, ...(input.metadata ?? {}) },
+          metadata: { adjustment: true, ...input.metadata },
         });
       }
       return this.points.moveWithLotAllocation({
@@ -138,7 +138,7 @@ export class AccountLifecycleService {
         debitBucket: "AVAILABLE",
         points: input.points,
         allocationType: "REDEEM",
-        metadata: { adjustment: true, ...(input.metadata ?? {}) },
+        metadata: { adjustment: true, ...input.metadata },
       });
     });
   }

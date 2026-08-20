@@ -496,10 +496,7 @@ function createResult(
     status: "SUCCEEDED",
     providerShipmentReference: record.providerShipmentReference,
     shipmentState: record.state,
-    parcels: snapshotParcels(record) as readonly [
-      Delivery.DeliveryProviderParcelObservation,
-      ...Delivery.DeliveryProviderParcelObservation[],
-    ],
+    parcels: snapshotParcels(record),
     events: snapshotEvents(record),
     processedAt: record.updatedAt,
     metadata: { simulator: true },
@@ -533,13 +530,21 @@ function reconcileResult(record: ShipmentRecord): Delivery.DeliveryProviderRecon
   };
 }
 
-function snapshotParcels(record: ShipmentRecord): Delivery.DeliveryProviderParcelObservation[] {
-  return record.parcels.map((parcel) => ({
+function snapshotParcels(
+  record: ShipmentRecord,
+): readonly [
+  Delivery.DeliveryProviderParcelObservation,
+  ...Delivery.DeliveryProviderParcelObservation[],
+] {
+  const parcels = record.parcels.map((parcel) => ({
     ...parcel,
     packageIds: [...parcel.packageIds] as [string, ...string[]],
     tracking: parcel.tracking.map((tracking) => ({ ...tracking })),
     labels: parcel.labels.map((label) => ({ ...label })),
   }));
+  const [first, ...rest] = parcels;
+  if (!first) throw new Error("Shipment record must contain at least one parcel");
+  return [first, ...rest];
 }
 
 function snapshotEvents(record: ShipmentRecord): Delivery.DeliveryProviderTrackingEvent[] {

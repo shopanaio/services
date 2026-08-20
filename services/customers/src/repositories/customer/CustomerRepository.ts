@@ -44,14 +44,6 @@ import {
   normalizeUnicodeSearchValue,
 } from "../../segments/normalization.js";
 
-const customerQuery = createQuery(customer)
-  .mapWhereFields({
-    id: decodeCustomerGlobalId,
-    mergedIntoCustomerId: decodeCustomerGlobalId,
-  })
-  .maxLimit(100)
-  .defaultLimit(20);
-
 export const customerRelayQuery = createRelayQuery(
   createQuery(customerListView)
     .include(["id"])

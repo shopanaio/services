@@ -13,7 +13,6 @@ import {
   type DimensionUnit,
   type CurrencyCode,
   type LocaleCode,
-  type IamIntegrationConfig,
   type UnitSystem,
 } from "../models/index.js";
 

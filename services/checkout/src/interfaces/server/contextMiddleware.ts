@@ -1,4 +1,4 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { type CoreCustomer, type CoreStore, type GrpcConfigPort } from "@shopana/platform-api";
 import {
   STOREFRONT_CONTEXT_HEADER,
@@ -16,28 +16,6 @@ declare module "fastify" {
     storefrontAccess: ContextStorefrontAccess;
     storefrontVisitorId: string;
   }
-}
-
-function headerIsTrue(value: unknown): boolean {
-  if (typeof value === "string") return value.toLowerCase() === "true";
-  if (typeof value === "boolean") return value === true;
-  return false;
-}
-
-/**
- * Checks if request is a GraphQL introspection query
- */
-function isGraphqlIntrospectionRequest(request: FastifyRequest): boolean {
-  const isGraphqlPath = typeof request.url === "string" && request.url.startsWith("/graphql");
-  if (!isGraphqlPath) return false;
-
-  if (request.headers["user-agent"]?.includes("rover")) {
-    return true;
-  }
-
-  const interpolationHeader =
-    request.headers["x-interpolation"] ?? request.headers["X-Interpolation"];
-  return headerIsTrue(interpolationHeader);
 }
 
 /**

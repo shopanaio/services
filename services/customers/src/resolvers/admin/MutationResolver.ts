@@ -40,7 +40,6 @@ import type {
   CustomerTagDeleteWorkflowResult,
   CustomerTagUpdateWorkflowInput,
   CustomerTagUpdateWorkflowResult,
-  CustomerUpdateOperation,
   CustomerUpdateOperationType,
   CustomerUpdateWorkflowInput,
   CustomerUpdateWorkflowResult,
@@ -973,23 +972,6 @@ function invalidUpdatePayload(
     operationResults: [
       {
         type: toGraphqlOperationType(type),
-        applied: false,
-        errors,
-      },
-    ],
-    userErrors: errors,
-  };
-}
-
-function invalidConsentUpdatePayload(
-  errors: Array<{ message: string; code: string; field?: string[] }>,
-) {
-  return {
-    consent: null,
-    event: null,
-    operationResults: [
-      {
-        type: toGraphqlOperationType("consentUpdate"),
         applied: false,
         errors,
       },

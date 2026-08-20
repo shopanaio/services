@@ -11,7 +11,12 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import type { CanonicalCollectionRule } from "@shopana/broker-types";
+import type {
+  CanonicalCollectionRule,
+  CollectionDefaultSort,
+  CollectionDefaultSortDirection,
+  CollectionType,
+} from "@shopana/broker-types";
 import { listingSchema } from "./schema.js";
 
 export const collectionState = listingSchema.table(
@@ -20,11 +25,13 @@ export const collectionState = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     collectionId: uuid("collection_id").notNull(),
     listingRevision: integer("listing_revision").notNull(),
-    collectionType: varchar("collection_type", { length: 16 }).notNull(),
-    defaultSort: varchar("default_sort", { length: 32 }).notNull(),
+    collectionType: varchar("collection_type", { length: 16 }).$type<CollectionType>().notNull(),
+    defaultSort: varchar("default_sort", { length: 32 }).$type<CollectionDefaultSort>().notNull(),
     defaultSortDirection: varchar("default_sort_direction", {
       length: 4,
-    }).notNull(),
+    })
+      .$type<CollectionDefaultSortDirection>()
+      .notNull(),
     publishedAt: timestamp("published_at", {
       withTimezone: true,
       mode: "string",

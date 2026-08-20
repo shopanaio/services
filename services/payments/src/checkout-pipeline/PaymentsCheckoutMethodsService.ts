@@ -614,7 +614,7 @@ async function mapConcurrent<T, R>(
   limit: number,
   map: (item: T) => Promise<R>,
 ): Promise<R[]> {
-  const result = new Array<R>(items.length);
+  const result = Array.from({ length: items.length }, () => undefined as R);
   let next = 0;
   await Promise.all(
     Array.from({ length: Math.min(limit, items.length) }, async () => {

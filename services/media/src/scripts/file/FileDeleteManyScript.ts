@@ -38,7 +38,7 @@ export class FileDeleteManyScript extends BaseScript<FileDeleteManyParams, FileD
 
     // Get IDs that need soft delete (ACTIVE state)
     const activeIds = [...filesMap.entries()]
-      .filter(([_, { state }]) => !state || state.deletionState === "ACTIVE")
+      .filter(([, { state }]) => !state || state.deletionState === "ACTIVE")
       .map(([id]) => id);
 
     // Soft delete: set deletedAt on files and state on deletion states
@@ -51,7 +51,7 @@ export class FileDeleteManyScript extends BaseScript<FileDeleteManyParams, FileD
 
     // Already soft-deleted are also accepted (idempotent)
     const alreadySoftDeleted = [...filesMap.entries()]
-      .filter(([_, { state }]) => state?.deletionState === "SOFT_DELETED")
+      .filter(([, { state }]) => state?.deletionState === "SOFT_DELETED")
       .map(([id]) => id);
     acceptedIds.push(...alreadySoftDeleted);
 

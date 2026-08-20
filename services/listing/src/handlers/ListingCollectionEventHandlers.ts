@@ -85,7 +85,7 @@ export class ListingCollectionEventHandlers extends EventHandlers {
         },
         timeoutMS: 120_000,
       });
-      this.logger.info(
+      this.logger.debug(
         {
           operation: "accepted",
           listingRevision: event.payload.listingRevision,

@@ -233,9 +233,9 @@ async function assertWebhookUrl(value: string): Promise<void> {
     hostname === "localhost" ||
     hostname.endsWith(".localhost") ||
     hostname === "metadata.google.internal" ||
-    /^127\./.test(hostname) ||
-    /^10\./.test(hostname) ||
-    /^192\.168\./.test(hostname) ||
+    hostname.startsWith("127.") ||
+    hostname.startsWith("10.") ||
+    hostname.startsWith("192.168.") ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
   ) {
     throw new Error("Webhook URL uses a forbidden host");
@@ -264,14 +264,14 @@ function isPrivateAddress(address: string): boolean {
     normalized.startsWith("fc") ||
     normalized.startsWith("fd") ||
     normalized.startsWith("fe80:") ||
-    /^0\./.test(normalized) ||
-    /^10\./.test(normalized) ||
-    /^127\./.test(normalized) ||
-    /^169\.254\./.test(normalized) ||
-    /^192\.0\.0\./.test(normalized) ||
-    /^192\.168\./.test(normalized) ||
+    normalized.startsWith("0.") ||
+    normalized.startsWith("10.") ||
+    normalized.startsWith("127.") ||
+    normalized.startsWith("169.254.") ||
+    normalized.startsWith("192.0.0.") ||
+    normalized.startsWith("192.168.") ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(normalized) ||
-    /^224\./.test(normalized) ||
-    /^240\./.test(normalized)
+    normalized.startsWith("224.") ||
+    normalized.startsWith("240.")
   );
 }

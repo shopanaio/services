@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
-import { category, productCategory } from "../models/categories.js";
+import { productCategory } from "../models/categories.js";
 import {
   categoryComparisonProfile,
   comparisonFeatureBinding,

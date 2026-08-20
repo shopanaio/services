@@ -3,7 +3,6 @@ import type { Database } from "../../../infrastructure/db/database.js";
 import {
   productOptionVariantLink,
   productOptionValue,
-  productOption,
 } from "../../../repositories/models/index.js";
 
 /**

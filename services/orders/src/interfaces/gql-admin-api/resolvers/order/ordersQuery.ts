@@ -1,4 +1,3 @@
-import { App } from "@src/ioc/container";
 import type { ApiOrderQueryOrdersArgs, ApiOrderQuery } from "@src/interfaces/gql-admin-api/types";
 import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
 
@@ -7,15 +6,9 @@ import { mapOrderReadToApi } from "@src/interfaces/gql-admin-api/mapper/order";
  */
 export const orders = async (_parent: ApiOrderQuery, args: ApiOrderQueryOrdersArgs) => {
   // TODO: Implement proper pagination and filtering
-  const app = App.getInstance();
-  const orderReadRepository = app.orderReadRepository;
-
   const input = args.input || {};
   const page = (input as any).page || 1;
   const pageSize = (input as any).pageSize || 20;
-  const where = (input as any).where || {};
-  const order = (input as any).order || undefined;
-
   // For now, return empty result - implementation should be added when repository methods are available
   const data: any[] = [];
   const total = 0;

@@ -17,7 +17,6 @@ import {
   addDays,
   addSeconds,
   calculateRatio,
-  canonicalHash,
   evaluateCondition,
   multiplyBasisPoints,
   parsePoints,

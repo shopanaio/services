@@ -1,6 +1,5 @@
 import type {
   NotificationAudience,
-  NotificationChannel,
   NotificationDefinitionKey,
   NotificationDefinitionMetadata,
 } from "@shopana/broker-types";

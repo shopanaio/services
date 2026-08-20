@@ -42,7 +42,6 @@ import {
   toDomainChannel,
   toDomainWebhookFormat,
   toDomainWebhookStatus,
-  toGraphQLChannel,
 } from "./mappers.js";
 import { NotificationsType } from "./NotificationsType.js";
 

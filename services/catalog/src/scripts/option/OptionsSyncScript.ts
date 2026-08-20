@@ -1,10 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import type {
-  OptionSyncParams,
-  OptionSyncResult,
-  OptionValueSyncInput,
-  OptionSwatchInput,
-} from "./dto/index.js";
+import type { OptionSyncParams, OptionSyncResult, OptionSwatchInput } from "./dto/index.js";
 import { type ValidatedOptionInput, validateOptionSyncParams } from "./validation/index.js";
 
 interface ResolvedOption {

@@ -624,16 +624,15 @@ export class StorefrontListingQueryRepository extends BaseRepository {
       facetValueHandlesBySlug.set(filter.facetSlug, valueHandles);
     }
 
-    const normalized: StorefrontListingFilterInput[] = [
-      ...[...facetValueHandlesBySlug.entries()].map(
-        ([facetSlug, valueHandles]) =>
-          ({
-            kind: "facet",
-            facetSlug,
-            valueHandles,
-          }) satisfies StorefrontListingFilterInput,
-      ),
-    ];
+    const normalized: StorefrontListingFilterInput[] = Array.from(
+      facetValueHandlesBySlug,
+      ([facetSlug, valueHandles]) =>
+        ({
+          kind: "facet",
+          facetSlug,
+          valueHandles,
+        }) satisfies StorefrontListingFilterInput,
+    );
 
     if (filters.vendorIds.length > 0) {
       normalized.push({ kind: "vendor", vendorIds: [...filters.vendorIds] });
@@ -799,11 +798,11 @@ function mergeFacetFilters(
   });
 }
 
-function mergeUnique(current: readonly string[], next: readonly string[]): string[] {
+function mergeUnique<T extends string>(current: readonly T[], next: readonly T[]): T[] {
   return [
     ...new Set([
-      ...current.map((value) => value.trim()).filter(Boolean),
-      ...next.map((value) => value.trim()).filter(Boolean),
+      ...current.map((value) => value.trim() as T).filter(Boolean),
+      ...next.map((value) => value.trim() as T).filter(Boolean),
     ]),
   ];
 }

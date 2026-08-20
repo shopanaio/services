@@ -8,7 +8,7 @@ const ORDER_PAGE_SIZE = 25;
 const PAIR_EXPANSION_LIMIT = 50_000;
 const MATERIALIZATION_PAGE_SIZE = 500;
 
-interface EffectiveOrderRow {
+interface EffectiveOrderRow extends Record<string, unknown> {
   orderId: string;
   orderFactId: string | null;
   state: "COMMITTED" | "REVERSED" | null;

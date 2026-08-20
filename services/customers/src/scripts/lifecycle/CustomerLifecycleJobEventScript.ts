@@ -88,7 +88,7 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
     if (resolution.jobId !== params.jobId) throw jobMismatch(params);
     const updated = await this.repository.lifecycle.updateMergeStatus(params.aggregateId, {
       status,
-      resolution: { ...(params.resolution ?? {}), jobId: params.jobId },
+      resolution: { ...params.resolution, jobId: params.jobId },
       errorCode: params.errorCode ?? null,
       errorMessage: params.errorMessage ?? null,
       transitionedAt: params.occurredAt,

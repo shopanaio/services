@@ -1,7 +1,5 @@
 import { uuid, varchar, timestamp, index, uniqueIndex } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { mediaSchema } from "./schema";
-import { files } from "./files";
 
 /**
  * Asset owner types - defines which entity owns the asset group

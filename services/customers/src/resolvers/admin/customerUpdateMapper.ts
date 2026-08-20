@@ -17,7 +17,6 @@ import type {
 } from "./generated/types.js";
 import type {
   CustomerAddressCreateParams,
-  CustomerAddressPatchParams,
   CustomerConsentAdminState,
   CustomerConsentChannel,
   CustomerConsentOptInLevel,

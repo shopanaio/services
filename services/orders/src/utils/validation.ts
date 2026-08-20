@@ -39,8 +39,8 @@ export function createValidated<T>(
   plain: unknown,
   options?: ValidationFactoryOptions,
 ): T {
-  const transformOptions = { ...defaultTransformOptions, ...(options?.transform ?? {}) };
-  const validateOptions = { ...defaultValidateOptions, ...(options?.validate ?? {}) };
+  const transformOptions = { ...defaultTransformOptions, ...options?.transform };
+  const validateOptions = { ...defaultValidateOptions, ...options?.validate };
 
   const instance = plainToInstance(cls, plain, transformOptions);
   const errors = validateSync(instance as object, validateOptions);
@@ -59,8 +59,8 @@ export function createValidatedArray<T>(
   if (!Array.isArray(plainArray)) {
     throw new Error("Validation failed: expected an array input");
   }
-  const transformOptions = { ...defaultTransformOptions, ...(options?.transform ?? {}) };
-  const validateOptions = { ...defaultValidateOptions, ...(options?.validate ?? {}) };
+  const transformOptions = { ...defaultTransformOptions, ...options?.transform };
+  const validateOptions = { ...defaultValidateOptions, ...options?.validate };
 
   const instances = plainToInstance(cls, plainArray, transformOptions) as T[];
   const allErrors: string[] = [];

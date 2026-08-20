@@ -23,7 +23,7 @@ export class BatchAuthorizeScript extends BaseScript<BatchAuthorizeParams, Batch
       return [{ index, request, domain }];
     });
 
-    const results = new Array<boolean>(requests.length).fill(false);
+    const results = Array.from({ length: requests.length }, () => false);
     if (validRequests.length === 0) return { results };
 
     const [adminUserIds, owner, casbinResults] = await Promise.all([

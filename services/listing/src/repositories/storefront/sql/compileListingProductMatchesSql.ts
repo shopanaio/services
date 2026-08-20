@@ -121,8 +121,8 @@ export function compileVariantCandidatesBitmapSql(
 ): SQL {
   const terms = compileVariantTermGroupsBitmapSql(request, options);
   const collectionVariant =
-    request.input.scope.kind === "collection" && request.input.scope.variantBitmap
-      ? sql`${request.input.scope.variantBitmap}::roaringbitmap`
+    request.scope.kind === "collection" && request.scope.variantBitmap
+      ? sql`${request.scope.variantBitmap}::roaringbitmap`
       : null;
   const parts: SQL[] = [collectionVariant ?? compileIndexableUniverseBitmapSql(request)];
   if (terms) parts.push(terms);
@@ -194,7 +194,7 @@ export function compileProjectedVariantProductsBitmapSql(
 export function hasVariantPredicate(request: ListingSqlRequest): boolean {
   const plan = request.request.filterPlan;
   return (
-    (request.input.scope.kind === "collection" && !!request.input.scope.variantBitmap) ||
+    (request.scope.kind === "collection" && !!request.scope.variantBitmap) ||
     plan.variantTermGroups.length > 0 ||
     !!plan.priceRange ||
     shouldHideOutOfStock(request)
@@ -386,7 +386,7 @@ function compileScopeProductBitmapSql(request: ListingSqlRequest): SQL {
       )`)}
     )`;
   } else if (request.scopeKind === "collection") {
-    const scope = request.input.scope;
+    const scope = request.scope;
     if (scope.kind !== "collection" || !scope.productBitmap.trim()) {
       return emptyRoaringBitmapSql();
     }

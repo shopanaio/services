@@ -4,12 +4,7 @@ import type {
   NotificationsQueryChannelSettingsArgs,
   NotificationsQueryTemplateArgs,
 } from "./generated/types.js";
-import {
-  toDefinitionKey,
-  toDomainChannel,
-  toGraphQLChannel,
-  toGraphQLWebhookStability,
-} from "./mappers.js";
+import { toDefinitionKey, toDomainChannel, toGraphQLWebhookStability } from "./mappers.js";
 import { NotificationsType } from "./NotificationsType.js";
 
 @ApolloQuery

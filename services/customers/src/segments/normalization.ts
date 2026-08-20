@@ -27,6 +27,7 @@ export const SEGMENT_NORMALIZATION_DATA = Object.freeze({
 });
 
 const UNICODE_WHITESPACE =
+  // oxlint-disable-next-line eslint/no-control-regex -- Unicode whitespace includes control code points.
   /[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+/gu;
 
 export function normalizeUnicodeSearchValue(value: string): string {
@@ -191,6 +192,7 @@ function collapseUnicodeWhitespace(value: string): string {
 
 function trimUnicodeWhitespace(value: string): string {
   return value.replace(
+    // oxlint-disable-next-line eslint/no-control-regex -- Unicode whitespace includes control code points.
     /^[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+|[\u0009-\u000D\u0020\u0085\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]+$/gu,
     "",
   );

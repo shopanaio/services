@@ -31,9 +31,10 @@ export class CommerceFunctionOutputError extends Error {
     readonly code: "FUNCTION_OUTPUT_JSON_VALUE_REQUIRED" | "FUNCTION_OUTPUT_SIZE_LIMIT",
     cause?: unknown,
   ) {
-    super("Commerce Function output failed platform validation", {
-      ...(cause === undefined ? {} : { cause }),
-    });
+    super(
+      "Commerce Function output failed platform validation",
+      cause === undefined ? {} : { cause },
+    );
     this.name = "CommerceFunctionOutputError";
   }
 }
@@ -60,9 +61,7 @@ export class CapabilityInvocationError extends Error {
     route?: CapabilityInvocationRouteMetadata,
     descriptor = capabilityErrorDescriptor(cause),
   ) {
-    super("App capability invocation failed", {
-      ...(cause === undefined ? {} : { cause }),
-    });
+    super("App capability invocation failed", cause === undefined ? {} : { cause });
     this.name = "CapabilityInvocationError";
     if (route) {
       this.capabilityRouteId = route.capabilityRouteId;

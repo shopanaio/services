@@ -1,5 +1,3 @@
-import { vo } from "@src/domain/shared/valueObjects";
-
 export type CreateOrderValidationInput = {
   storeId: string;
   currencyCode: string;

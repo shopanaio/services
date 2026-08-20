@@ -66,7 +66,7 @@ const JSONScalar = new GraphQLScalarType({
 
       // Otherwise return the parsed value as-is
       return parsed;
-    } catch (error) {
+    } catch {
       // If parsing fails, return the original string
       return value;
     }

@@ -259,7 +259,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     }
 
     const duplicateHandles = [...handleCounts.entries()].filter(
-      ([_, variantIds]) => variantIds.length > 1,
+      ([, variantIds]) => variantIds.length > 1,
     );
 
     if (duplicateHandles.length > 0) {

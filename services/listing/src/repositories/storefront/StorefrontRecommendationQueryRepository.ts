@@ -23,7 +23,7 @@ interface BatchInputRow {
   after_rank: number;
 }
 
-interface BatchResultRow {
+interface BatchResultRow extends Record<string, unknown> {
   ordinal: number;
   anchorProductId: string;
   placement: RecommendationPlacement;

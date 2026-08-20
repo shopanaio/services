@@ -73,10 +73,12 @@ export const storeOrderProcessingUpdateSchema = contextSchema.extend({
   orderNumberPrefix: z
     .string()
     .max(16)
+    // oxlint-disable-next-line eslint/no-control-regex -- Control characters are intentionally rejected.
     .regex(/^[^\u0000-\u001F\u007F]*$/),
   orderNumberSuffix: z
     .string()
     .max(16)
+    // oxlint-disable-next-line eslint/no-control-regex -- Control characters are intentionally rejected.
     .regex(/^[^\u0000-\u001F\u007F]*$/)
     .nullable(),
   requireCheckoutConfirmation: z.boolean(),

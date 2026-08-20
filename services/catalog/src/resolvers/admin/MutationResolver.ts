@@ -29,30 +29,6 @@ function safeDecodeGlobalId(globalId: string, expectedType: GlobalIdType): strin
   }
 }
 
-function safeDecodeGlobalIds(
-  globalIds: readonly string[],
-  expectedType: GlobalIdType,
-  field: string[],
-): { ids: string[]; userErrors: UserError[] } {
-  const ids: string[] = [];
-  const userErrors: UserError[] = [];
-
-  for (const [index, globalId] of globalIds.entries()) {
-    const id = safeDecodeGlobalId(globalId, expectedType);
-    if (!id) {
-      userErrors.push({
-        message: "Invalid ID",
-        field: [...field, String(index)],
-        code: "INVALID_ID",
-      });
-      continue;
-    }
-    ids.push(id);
-  }
-
-  return { ids, userErrors };
-}
-
 interface WarehouseStockMutationItemInput {
   variantId: string;
   warehouseId: string;

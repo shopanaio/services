@@ -285,20 +285,18 @@ export class ComparisonRepository extends BaseRepository {
   }
 
   async getProfileDependencyCounts(profileId: string) {
-    const [rows] = await Promise.all([
-      this.connection.execute<{
-        categories: number;
-        features: number;
-        options: number;
-        notApplicable: number;
-      }>(sql`
+    const rows = await this.connection.execute<{
+      categories: number;
+      features: number;
+      options: number;
+      notApplicable: number;
+    }>(sql`
       SELECT
         (SELECT count(*)::int FROM catalog.category_comparison_profile WHERE store_id = ${this.storeId} AND profile_id = ${profileId}) AS categories,
         (SELECT count(*)::int FROM catalog.comparison_feature_binding WHERE store_id = ${this.storeId} AND profile_id = ${profileId}) AS features,
         (SELECT count(*)::int FROM catalog.comparison_option_binding WHERE store_id = ${this.storeId} AND profile_id = ${profileId}) AS options,
         (SELECT count(*)::int FROM catalog.comparison_field_not_applicable WHERE store_id = ${this.storeId} AND profile_id = ${profileId}) AS "notApplicable"
-    `),
-    ]);
+    `);
     return rows[0] ?? { categories: 0, features: 0, options: 0, notApplicable: 0 };
   }
 

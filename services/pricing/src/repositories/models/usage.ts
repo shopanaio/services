@@ -11,7 +11,6 @@ import {
   unique,
   uniqueIndex,
   uuid,
-  varchar,
 } from "drizzle-orm/pg-core";
 import { discount, discountCode } from "./discounts.js";
 import {

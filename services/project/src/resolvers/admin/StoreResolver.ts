@@ -1,4 +1,4 @@
-import { Cache, TypePolicy } from "@shopana/type-resolver";
+import { TypePolicy } from "@shopana/type-resolver";
 import { encodeGlobalIdByType, GlobalIdEntity } from "@shopana/shared-graphql-guid";
 import type { Store } from "../../repositories/store/StoreRepository.js";
 import type { StoreSettingsSnapshot } from "../../repositories/storeSettings/StoreSettingsRepository.js";
