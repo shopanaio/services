@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+declare const asyncContextTokenValue: unique symbol;
+
 /**
  * Token used to reference a value inside the async context store.
  */
@@ -8,6 +10,8 @@ export interface AsyncContextToken<TValue> {
   readonly name: string;
   /** Unique symbol preventing collisions between different tokens. */
   readonly symbol: symbol;
+  /** Type-only marker preserving the value associated with this token. */
+  readonly [asyncContextTokenValue]?: TValue;
 }
 
 /**

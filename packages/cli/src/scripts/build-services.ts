@@ -97,7 +97,7 @@ async function copyAssets(servicePath: string, assets?: AssetConfig[], quiet?: b
 
     mkdirSync(outDir, { recursive: true });
 
-    const firstGlobIndex = asset.include.search(/[\*?\[\]{}]/);
+    const firstGlobIndex = asset.include.search(/[*?[\]{}]/);
     const includeBase =
       firstGlobIndex === -1
         ? dirname(asset.include)

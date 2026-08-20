@@ -1,6 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle, PgliteDatabase } from "drizzle-orm/pglite";
-import { beforeAll, afterAll, beforeEach } from "vitest";
+import { beforeAll, afterAll } from "vitest";
 import { sql } from "drizzle-orm";
 import {
   pgTable,

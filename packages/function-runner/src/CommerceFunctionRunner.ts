@@ -143,7 +143,7 @@ async function executeWithConcurrency<T>(
   shouldStop: (result: T) => boolean,
 ): Promise<Array<T | undefined>> {
   if (count === 0) return [];
-  const results = new Array<T | undefined>(count).fill(undefined);
+  const results = Array.from({ length: count }, () => undefined as T | undefined);
   let nextIndex = 0;
   let stopped = false;
   const worker = async (): Promise<void> => {

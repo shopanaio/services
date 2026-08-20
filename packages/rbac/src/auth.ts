@@ -2,7 +2,6 @@
  * Authorization interfaces and types for RBAC.
  * Used by @Policy and @TypePolicy decorators.
  */
-import type { Domain } from "./types.js";
 import type { ResourceName } from "./validators.js";
 import { Resources } from "./definitions.js";
 

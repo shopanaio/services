@@ -4,7 +4,7 @@ import * as protoLoader from "@grpc/proto-loader";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import type { CoreContext } from "./types";
-import type { GrpcConfigPort, ForwardHeaders } from "./port";
+import type { GrpcConfigPort } from "./port";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -166,7 +166,7 @@ export function createCoreContextClient(args: { config: GrpcConfigPort }) {
       }
     });
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       client.GetContext({}, metadata, (error: any, response: any) => {
         if (error) {
           console.error("gRPC GetContext error:", error);

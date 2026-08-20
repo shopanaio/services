@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { HookScriptLoader } from "../hook-loader";
-import type { Hook, HookContext, HookStage } from "../interface";
+import type { Hook, HookStage } from "../interface";
 
 describe("HookScriptLoader", () => {
   it("should have default hooks directory", () => {
@@ -47,8 +47,6 @@ describe("HookScriptLoader", () => {
   });
 
   it("should find hook files recursively", async () => {
-    const loader = new HookScriptLoader();
-
     // Test pattern matching
     const isHookFile = (name: string) => name.endsWith(".hook.js") || name.endsWith(".hook.ts");
 

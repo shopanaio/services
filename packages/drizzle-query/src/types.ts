@@ -403,7 +403,7 @@ export type NestedWhereInput<T extends FieldsDef> = {
  * }
  * ```
  */
-export type NestedSchemaInput<T extends Table, Fields extends FieldsDef> = {
+export type NestedSchemaInput<_T extends Table, Fields extends FieldsDef> = {
   /** Offset for pagination */
   offset?: number;
   /** Limit for pagination */

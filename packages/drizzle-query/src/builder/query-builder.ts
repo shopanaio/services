@@ -8,7 +8,6 @@ import type {
   OrderByItem,
   DrizzleExecutor,
   QueryBuilderConfig,
-  ResolvePathType,
   InferSelectResultFlat,
 } from "../types.js";
 import { JoinCollector } from "./join-collector.js";

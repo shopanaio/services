@@ -4,7 +4,6 @@ import {
   PgDialect,
   pgTable,
   pgView,
-  pgMaterializedView,
   pgSchema,
   text,
   integer,
@@ -208,26 +207,6 @@ const userActivityView = analyticsSchema.view("user_activity_view").as((qb) =>
 // QUERIES - Basic Table Queries for Joins
 // =============================================================================
 
-const usersQuery = createQuery(users, {
-  id: field(users.id),
-  email: field(users.email),
-  name: field(users.name),
-  role: field(users.role),
-  isActive: field(users.isActive),
-  createdAt: field(users.createdAt),
-});
-
-const productsQuery = createQuery(products, {
-  id: field(products.id),
-  sku: field(products.sku),
-  categoryId: field(products.categoryId),
-  price: field(products.price),
-  stock: field(products.stock),
-  isPublished: field(products.isPublished),
-  deletedAt: field(products.deletedAt),
-  createdAt: field(products.createdAt),
-});
-
 const categoriesQuery = createQuery(categories, {
   id: field(categories.id),
   slug: field(categories.slug),
@@ -372,21 +351,6 @@ const publishedWithCategoryTranslationsQuery = createQuery(publishedProductsView
 });
 
 // Active users with order summary (View) and products stats (View)
-const ordersWithProductStatsQuery = createQuery(orders, {
-  id: field(orders.id),
-  userId: field(orders.userId),
-  status: field(orders.status),
-  totalAmount: field(orders.totalAmount),
-});
-
-// Users with orders that have product stats
-const usersDeepQuery = createQuery(users, {
-  id: field(users.id),
-  email: field(users.email),
-  name: field(users.name),
-  summary: field(users.id).leftJoin(userOrderSummaryViewQuery, userOrderSummaryView.userId),
-});
-
 // =============================================================================
 // TESTS
 // =============================================================================

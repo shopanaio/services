@@ -53,7 +53,7 @@ export class CasdoorHttpClient {
     this.client = axios.create({
       baseURL: this.casdoorBaseUrl,
       timeout: 60_000,
-      ...(config.axios ?? {}),
+      ...config.axios,
     });
   }
 
@@ -62,7 +62,7 @@ export class CasdoorHttpClient {
     path: string,
     config?: AxiosRequestConfig,
   ): Promise<CasdoorHttpResult<T>> {
-    return this.request<T>(ctx, { ...(config ?? {}), method: "GET", url: path });
+    return this.request<T>(ctx, { ...config, method: "GET", url: path });
   }
 
   async post<T>(
@@ -71,7 +71,7 @@ export class CasdoorHttpClient {
     data?: unknown,
     config?: AxiosRequestConfig,
   ): Promise<CasdoorHttpResult<T>> {
-    return this.request<T>(ctx, { ...(config ?? {}), method: "POST", url: path, data });
+    return this.request<T>(ctx, { ...config, method: "POST", url: path, data });
   }
 
   async request<T>(ctx: RequestContext, req: AxiosRequestConfig): Promise<CasdoorHttpResult<T>> {

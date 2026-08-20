@@ -113,7 +113,7 @@ describe("Express Router", () => {
       const mockRequest = { repo: "test/repo" };
       mockConfigService.generate.mockResolvedValue([]);
 
-      const response = await request(app)
+      await request(app)
         .post("/")
         .send(mockRequest)
         .set("Content-Type", "application/json")

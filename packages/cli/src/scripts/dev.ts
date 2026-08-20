@@ -8,7 +8,6 @@
 import { spawn, ChildProcess } from "child_process";
 import { existsSync, watch } from "fs";
 import { join } from "path";
-import { findRootDir } from "../utils.js";
 import {
   buildProjectUnit,
   buildService,
@@ -18,7 +17,6 @@ import {
 } from "./build-services.js";
 import { discoverProjectUnits, findProjectUnit, type ProjectUnit } from "../project-units.js";
 
-const rootDir = findRootDir();
 const servicesDir = getServicesDir();
 const appUnits = discoverProjectUnits().filter((unit) => unit.kind === "app");
 

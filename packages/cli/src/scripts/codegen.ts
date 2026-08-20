@@ -8,10 +8,7 @@
 import { execSync } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
-import { findRootDir } from "../utils.js";
 import { discoverProjectUnits, findProjectUnit } from "../project-units.js";
-
-const rootDir = findRootDir();
 
 function findServicesWithCodegen(): string[] {
   return discoverProjectUnits()

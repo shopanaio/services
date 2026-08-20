@@ -40,7 +40,7 @@ async function lint(paths: string[], rootDir: string): Promise<boolean> {
   const spinner = ora(`Linting ${paths.length} project path(s)...`).start();
 
   try {
-    await execa("yarn", ["oxlint", ...paths], {
+    await execa("yarn", ["oxlint", "--quiet", ...paths], {
       cwd: rootDir,
       stdio: "pipe",
     });

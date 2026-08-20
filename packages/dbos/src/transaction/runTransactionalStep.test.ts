@@ -18,14 +18,14 @@ function createRuntime() {
   let receivedOptions: (PostgresTransactionOptions & { name: string }) | undefined;
 
   const txManager: TransactionManagerLike<ScopedDatabase> = {
-    async runWithExistingTransaction<TResult>(tx, callback) {
+    async runWithExistingTransaction(tx, callback) {
       expect(tx).toBe(database);
       callbackOrder.push("manager");
       return callback();
     },
   };
   const bridge: DbosTransactionBridge<ScopedDatabase, PostgresTransactionOptions> = {
-    async runTransaction<TResult>(options, callback) {
+    async runTransaction(options, callback) {
       receivedOptions = options;
       callbackOrder.push("bridge");
       return callback(database);

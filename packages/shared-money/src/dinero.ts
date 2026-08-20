@@ -1,7 +1,7 @@
 import * as Core from "@dinero.js/core";
 import type { Currency as CurrencyType } from "@dinero.js/currencies";
 import * as Currencies from "@dinero.js/currencies";
-import BigintCalc from "@dinero.js/calculator-bigint";
+import * as BigintCalc from "@dinero.js/calculator-bigint";
 import { BigintDinero, MoneyCurrency, MoneySnapshot } from "types";
 
 const { calculator: rawBigintCalculator } = BigintCalc;

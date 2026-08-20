@@ -28,7 +28,7 @@ export function createSignatureMiddleware(cfg: SignatureMiddlewareConfig): Reque
       }
 
       res.status(401).json({ error: "missing or invalid signature" });
-    } catch (error) {
+    } catch {
       res.status(401).json({ error: "signature validation failed" });
     }
   };
@@ -78,7 +78,7 @@ const verifyHttpMessageSignature = async (
     );
 
     return verified === true;
-  } catch (error) {
+  } catch {
     // Signature verification failed - this is expected for invalid signatures
     return false;
   }

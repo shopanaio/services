@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { readFileSync, existsSync, readdirSync, statSync, rmSync, mkdirSync } from "fs";
+import { readFileSync, existsSync, readdirSync, statSync, rmSync } from "fs";
 import { join, dirname, basename, relative } from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
@@ -12,7 +12,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // Check if script is called from a specific package or from packages root
 const callerDir = process.cwd();
 const isCalledFromPackage = basename(dirname(callerDir)) === "packages";
-const packagesRoot = isCalledFromPackage ? dirname(callerDir) : __dirname;
 
 /**
  * Get all package directories
@@ -249,7 +248,7 @@ async function generateDeclarations(packageDir, entryPoints) {
           if (existsSync(mapFile)) {
             rmSync(mapFile);
           }
-        } catch (error) {
+        } catch {
           // Ignore errors during cleanup
         }
       }
@@ -261,7 +260,7 @@ async function generateDeclarations(packageDir, entryPoints) {
       if (existsSync(mapFile)) {
         try {
           rmSync(mapFile);
-        } catch (error) {
+        } catch {
           // Ignore errors during cleanup
         }
       }

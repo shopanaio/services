@@ -1,5 +1,5 @@
 import type { OrderDirection } from "../types.js";
-import type { CursorParams, SeekValue } from "./types.js";
+import type { CursorParams } from "./types.js";
 import { base64UrlEncode, base64UrlDecode } from "./helpers.js";
 
 // Re-export types for backwards compatibility

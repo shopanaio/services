@@ -5,11 +5,7 @@ import {
   type CommerceFunctionJsonValue,
 } from "@shopana/broker-types";
 import { AuthorizationError, type ServiceBroker } from "@shopana/shared-kernel";
-import type {
-  AppExecutionPlanItem,
-  FunctionErrorClass,
-  FunctionImplementationTrace,
-} from "./contracts.js";
+import type { FunctionErrorClass, FunctionImplementationTrace } from "./contracts.js";
 import type {
   FunctionExecutionContext,
   FunctionExecutionOutcome,
@@ -129,7 +125,7 @@ export class BrokerFunctionExecutor implements FunctionImplementationExecutor {
             inputMeasurement.bytes,
             inputMeasurement.digest,
           ),
-          ...(actualRoute ?? {}),
+          ...actualRoute,
           status: "SUCCEEDED",
           outputBytes: output.bytes,
           ...(context.definition.tracePolicy?.outputDigest ? { outputDigest: output.digest } : {}),
@@ -401,7 +397,7 @@ function failure<TInput>(
     errorClass,
     trace: Object.freeze({
       ...baseTrace(context, startedAt, startedMs, endedMs, inputBytes, inputDigest),
-      ...(actualRoute ?? {}),
+      ...actualRoute,
       status: errorClass === "DEADLINE_EXCEEDED" ? "TIMED_OUT" : "FAILED",
       deadlineExceeded: errorClass === "DEADLINE_EXCEEDED",
       errorClass,

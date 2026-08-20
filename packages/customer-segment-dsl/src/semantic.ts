@@ -17,7 +17,6 @@ import type {
   ParsedFunctionExpression,
   ParsedFunctionParameter,
   ParsedPredicateExpression,
-  ParsedPredicateOperator,
   ParsedValue,
   SegmentAttributeDescriptor,
   SegmentContextDependency,

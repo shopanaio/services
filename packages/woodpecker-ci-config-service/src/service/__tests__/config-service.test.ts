@@ -1,4 +1,4 @@
-import { describe, it, expect, jest } from "@jest/globals";
+import { describe, it, expect } from "@jest/globals";
 import { ConfigService } from "../config-service";
 import type { WorkflowLoader, WorkflowScript, ScriptContext, GeneratedConfig } from "../interface";
 import type { ConfigExtensionRequest } from "../../woodpecker/payload";

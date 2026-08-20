@@ -19,6 +19,12 @@ export type AliasedTable = Table & Record<string, Column>;
  */
 export type JoinType = "left" | "right" | "inner" | "full";
 
+function asObjectSchema(
+  schema: ObjectSchema<any, any, any, any>,
+): ObjectSchema<any, any, any, any> {
+  return schema;
+}
+
 /**
  * Join configuration for a field
  */
@@ -153,7 +159,7 @@ export class ObjectSchema<
     const segments = path.split(".");
     const configs: FieldConfig[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let currentSchema: ObjectSchema<any, any, any, any> = this;
+    let currentSchema = asObjectSchema(this);
 
     for (const segment of segments) {
       const field = currentSchema.getField(segment);
