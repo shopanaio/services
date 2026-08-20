@@ -1,9 +1,20 @@
 import { scalarResolvers } from "./scalars";
-import orderResolvers from "./order";
+import type {
+  ApiMutationResolvers,
+  ApiOrdersMutation,
+  ApiOrdersQuery,
+  ApiQueryResolvers,
+  ApiResolvers,
+} from "../types";
 
 export const resolvers = {
   ...scalarResolvers,
-  ...orderResolvers,
-};
+  Query: {
+    ordersQuery: () => ({}) as ApiOrdersQuery,
+  } satisfies ApiQueryResolvers,
+  Mutation: {
+    ordersMutation: () => ({}) as ApiOrdersMutation,
+  } satisfies ApiMutationResolvers,
+} satisfies Partial<ApiResolvers>;
 
 export default resolvers;

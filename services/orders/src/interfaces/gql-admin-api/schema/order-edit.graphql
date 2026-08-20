@@ -1,0 +1,319 @@
+# Staged editing contract for placed OPEN orders.
+
+"""
+Isolated and previewable staged edit for an OPEN order.
+"""
+type OrderEditSession implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Projected value for base order version.
+  """
+  baseOrderVersion: Int!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: String!
+  """
+  Projected value for calculated order.
+  """
+  calculatedOrder: CalculatedOrder!
+  """
+  Projected value for changes.
+  """
+  changes: [OrderEditChange!]!
+  """
+  Projected value for created by.
+  """
+  createdBy: OrderActor!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for expires, or null when it has not occurred.
+  """
+  expiresAt: DateTime!
+}
+
+"""
+Orders Admin representation of calculated order.
+"""
+type CalculatedOrder {
+  """
+  Projected value for lines.
+  """
+  lines: [OrderLine!]!
+  """
+  Projected value for cost.
+  """
+  cost: OrderCost!
+  """
+  Projected value for balance delta.
+  """
+  balanceDelta: Money!
+}
+
+"""
+Orders Admin representation of order edit change.
+"""
+type OrderEditChange implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for kind.
+  """
+  kind: String!
+  """
+  Projected value for payload.
+  """
+  payload: JSON!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+}
+
+"""
+Validated input for order edit begin. Tenant identifiers come only from trusted context.
+"""
+input OrderEditBeginInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit line add. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineAddInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for line.
+  """
+  line: OrderLineCreateInput!
+}
+
+"""
+Validated input for order edit line update. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineUpdateInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Relay global ID identifying the line.
+  """
+  lineId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int
+  """
+  Validated input value for unit price.
+  """
+  unitPrice: MoneyInput
+}
+
+"""
+Validated input for order edit line remove. Tenant identifiers come only from trusted context.
+"""
+input OrderEditLineRemoveInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Relay global ID identifying the line.
+  """
+  lineId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit shipping update. Tenant identifiers come only from trusted context.
+"""
+input OrderEditShippingUpdateInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for shipping.
+  """
+  shipping: OrderDeliveryInput!
+}
+
+"""
+Validated input for order edit discount add. Tenant identifiers come only from trusted context.
+"""
+input OrderEditDiscountAddInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for title.
+  """
+  title: String!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+}
+
+"""
+Validated input for order edit discount remove. Tenant identifiers come only from trusted context.
+"""
+input OrderEditDiscountRemoveInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Relay global ID identifying the discount.
+  """
+  discountId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order edit commit. Tenant identifiers come only from trusted context.
+"""
+input OrderEditCommitInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Committed order revision required to apply a staged edit.
+  """
+  expectedOrderVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+}
+
+"""
+Validated input for order edit abandon. Tenant identifiers come only from trusted context.
+"""
+input OrderEditAbandonInput {
+  """
+  Relay global ID identifying the edit.
+  """
+  editId: ID!
+  """
+  Staged edit revision observed by the client.
+  """
+  expectedEditVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Mutation result for order edit; expected failures are returned in userErrors.
+"""
+type OrderEditPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for edit.
+  """
+  edit: OrderEditSession
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}

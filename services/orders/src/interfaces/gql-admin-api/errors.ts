@@ -8,7 +8,7 @@ export async function badUserInput(message: string, details?: unknown) {
   const { GraphQLError } = await import("graphql");
   return new GraphQLError(message, {
     extensions: { code: "BAD_USER_INPUT", details },
-  } as any);
+  });
 }
 
 export async function fromValidationErrors(errors: ValidationError[]) {
@@ -22,6 +22,6 @@ export async function fromValidationErrors(errors: ValidationError[]) {
 
 export async function fromDomainError(err: unknown) {
   const message =
-    typeof err === "object" && err && "message" in err ? String((err as any).message) : String(err);
+    typeof err === "object" && err !== null && "message" in err ? String(err.message) : String(err);
   return badUserInput("Domain validation failed", { reason: message });
 }

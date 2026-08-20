@@ -1,0 +1,489 @@
+# Payment attempts, transactions, disputes, and explicit financial commands.
+
+"""
+Closed set of order payment status values used by Orders Admin API.
+"""
+enum OrderPaymentStatus {
+  """
+  Not required value of order payment status.
+  """
+  NOT_REQUIRED
+  """
+  Pending value of order payment status.
+  """
+  PENDING
+  """
+  Authorized value of order payment status.
+  """
+  AUTHORIZED
+  """
+  Partially paid value of order payment status.
+  """
+  PARTIALLY_PAID
+  """
+  Paid value of order payment status.
+  """
+  PAID
+  """
+  Partially refunded value of order payment status.
+  """
+  PARTIALLY_REFUNDED
+  """
+  Refunded value of order payment status.
+  """
+  REFUNDED
+  """
+  Voided value of order payment status.
+  """
+  VOIDED
+  """
+  Expired value of order payment status.
+  """
+  EXPIRED
+  """
+  Failed value of order payment status.
+  """
+  FAILED
+}
+
+"""
+Closed set of order payment transaction kind values used by Orders Admin API.
+"""
+enum OrderPaymentTransactionKind {
+  """
+  Authorization value of order payment transaction kind.
+  """
+  AUTHORIZATION
+  """
+  Capture value of order payment transaction kind.
+  """
+  CAPTURE
+  """
+  Sale value of order payment transaction kind.
+  """
+  SALE
+  """
+  Refund value of order payment transaction kind.
+  """
+  REFUND
+  """
+  Void value of order payment transaction kind.
+  """
+  VOID
+  """
+  Manual value of order payment transaction kind.
+  """
+  MANUAL
+  """
+  Adjustment value of order payment transaction kind.
+  """
+  ADJUSTMENT
+}
+
+"""
+Closed set of order payment transaction status values used by Orders Admin API.
+"""
+enum OrderPaymentTransactionStatus {
+  """
+  Pending value of order payment transaction status.
+  """
+  PENDING
+  """
+  Success value of order payment transaction status.
+  """
+  SUCCESS
+  """
+  Failure value of order payment transaction status.
+  """
+  FAILURE
+  """
+  Cancelled value of order payment transaction status.
+  """
+  CANCELLED
+}
+
+"""
+Read-only financial projection derived from attempts, transactions, refunds, and disputes.
+"""
+type OrderPayment {
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderPaymentStatus!
+  """
+  Projected value for selected method.
+  """
+  selectedMethod: OrderPaymentMethod
+  """
+  Monetary authorized in the order currency.
+  """
+  authorizedAmount: Money!
+  """
+  Monetary captured in the order currency.
+  """
+  capturedAmount: Money!
+  """
+  Monetary refunded in the order currency.
+  """
+  refundedAmount: Money!
+  """
+  Monetary voided in the order currency.
+  """
+  voidedAmount: Money!
+  """
+  Monetary outstanding in the order currency.
+  """
+  outstandingAmount: Money!
+  """
+  Projected value for attempts.
+  """
+  attempts: [OrderPaymentAttempt!]!
+  """
+  Projected value for transactions.
+  """
+  transactions: [OrderPaymentTransaction!]!
+  """
+  Projected value for disputes.
+  """
+  disputes: [OrderPaymentDispute!]!
+}
+
+"""
+Orders Admin representation of order payment method.
+"""
+type OrderPaymentMethod {
+  """
+  Stable machine-readable code.
+  """
+  code: String!
+  """
+  Projected value for title.
+  """
+  title: String!
+  """
+  Stable provider code.
+  """
+  providerCode: String!
+  """
+  Projected value for flow.
+  """
+  flow: String!
+  """
+  Projected value for customer input.
+  """
+  customerInput: JSON!
+  """
+  Projected value for provider snapshot.
+  """
+  providerSnapshot: JSON!
+}
+
+"""
+Orders Admin representation of order payment attempt.
+"""
+type OrderPaymentAttempt implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderPaymentStatus!
+  """
+  Monetary requested in the order currency.
+  """
+  requestedAmount: Money!
+  """
+  Stable provider code.
+  """
+  providerCode: String!
+  """
+  Projected value for provider reference.
+  """
+  providerReference: String
+  """
+  Stable failure code.
+  """
+  failureCode: String
+  """
+  Projected value for failure message.
+  """
+  failureMessage: String
+  """
+  Projected value for customer action.
+  """
+  customerAction: JSON
+  """
+  Timestamp for expires, or null when it has not occurred.
+  """
+  expiresAt: DateTime
+  """
+  Timestamp for processed, or null when it has not occurred.
+  """
+  processedAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Immutable authorization, capture, sale, refund, void, manual payment, or adjustment fact.
+"""
+type OrderPaymentTransaction implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for kind.
+  """
+  kind: OrderPaymentTransactionKind!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderPaymentTransactionStatus!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Stable provider code.
+  """
+  providerCode: String!
+  """
+  Projected value for provider reference.
+  """
+  providerReference: String
+  """
+  Projected value for parent transaction.
+  """
+  parentTransaction: OrderPaymentTransaction
+  """
+  Stable failure code.
+  """
+  failureCode: String
+  """
+  Projected value for failure message.
+  """
+  failureMessage: String
+  """
+  Timestamp for processed, or null when it has not occurred.
+  """
+  processedAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+}
+
+"""
+Orders Admin representation of order payment dispute.
+"""
+type OrderPaymentDispute implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Stable provider code.
+  """
+  providerCode: String!
+  """
+  Projected value for provider reference.
+  """
+  providerReference: String!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: String!
+  """
+  Projected value for reason.
+  """
+  reason: String
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Timestamp for response due, or null when it has not occurred.
+  """
+  responseDueAt: DateTime
+  """
+  Timestamp for resolved, or null when it has not occurred.
+  """
+  resolvedAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Comparison operators for order payment status; omitted operators do not constrain results.
+"""
+input OrderPaymentStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderPaymentStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderPaymentStatus!]
+}
+
+"""
+Validated input for order manual payment record. Tenant identifiers come only from trusted context.
+"""
+input OrderManualPaymentRecordInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+  """
+  Stable method code.
+  """
+  methodCode: String!
+  """
+  Validated input value for reference.
+  """
+  reference: String
+  """
+  Timestamp for paid, or null when it has not occurred.
+  """
+  paidAt: DateTime!
+  """
+  Validated input value for note.
+  """
+  note: String
+}
+
+"""
+Validated input for order payment capture. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentCaptureInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the transaction.
+  """
+  transactionId: ID!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput
+}
+
+"""
+Validated input for order payment void. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentVoidInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the transaction.
+  """
+  transactionId: ID!
+  """
+  Validated input value for reason.
+  """
+  reason: String!
+}
+
+"""
+Validated input for order payment retry. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentRetryInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable payment method code.
+  """
+  paymentMethodCode: String
+  """
+  Validated input value for return url.
+  """
+  returnUrl: URL
+}
+
+"""
+Validated input for order payment status override. Tenant identifiers come only from trusted context.
+"""
+input OrderPaymentStatusOverrideInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderPaymentStatus!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for note.
+  """
+  note: String!
+}

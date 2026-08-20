@@ -1,0 +1,799 @@
+# Returns, exchanges, refunds, and their quantity allocations.
+
+"""
+Closed set of order return status values used by Orders Admin API.
+"""
+enum OrderReturnStatus {
+  """
+  None value of order return status.
+  """
+  NONE
+  """
+  Requested value of order return status.
+  """
+  REQUESTED
+  """
+  Partially returned value of order return status.
+  """
+  PARTIALLY_RETURNED
+  """
+  Returned value of order return status.
+  """
+  RETURNED
+}
+
+"""
+Closed set of order return request status values used by Orders Admin API.
+"""
+enum OrderReturnRequestStatus {
+  """
+  Requested value of order return request status.
+  """
+  REQUESTED
+  """
+  Approved value of order return request status.
+  """
+  APPROVED
+  """
+  Rejected value of order return request status.
+  """
+  REJECTED
+  """
+  Cancelled value of order return request status.
+  """
+  CANCELLED
+  """
+  In transit value of order return request status.
+  """
+  IN_TRANSIT
+  """
+  Received value of order return request status.
+  """
+  RECEIVED
+  """
+  Completed value of order return request status.
+  """
+  COMPLETED
+}
+
+"""
+Closed set of order exchange status values used by Orders Admin API.
+"""
+enum OrderExchangeStatus {
+  """
+  Requested value of order exchange status.
+  """
+  REQUESTED
+  """
+  Open value of order exchange status.
+  """
+  OPEN
+  """
+  Completed value of order exchange status.
+  """
+  COMPLETED
+  """
+  Cancelled value of order exchange status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of order refund status values used by Orders Admin API.
+"""
+enum OrderRefundStatus {
+  """
+  Pending value of order refund status.
+  """
+  PENDING
+  """
+  Succeeded value of order refund status.
+  """
+  SUCCEEDED
+  """
+  Failed value of order refund status.
+  """
+  FAILED
+  """
+  Cancelled value of order refund status.
+  """
+  CANCELLED
+}
+
+"""
+Return request and its approved, transported, received, and disposition quantities.
+"""
+type OrderReturn implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderReturnRequestStatus!
+  """
+  Projected value for lines.
+  """
+  lines: [OrderReturnLine!]!
+  """
+  Projected value for return shipment.
+  """
+  returnShipment: Shipment
+  """
+  Projected value for customer note.
+  """
+  customerNote: String
+  """
+  Projected value for staff note.
+  """
+  staffNote: String
+  """
+  Timestamp for requested, or null when it has not occurred.
+  """
+  requestedAt: DateTime!
+  """
+  Timestamp for approved, or null when it has not occurred.
+  """
+  approvedAt: DateTime
+  """
+  Timestamp for received, or null when it has not occurred.
+  """
+  receivedAt: DateTime
+  """
+  Timestamp for completed, or null when it has not occurred.
+  """
+  completedAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of order return line.
+"""
+type OrderReturnLine {
+  """
+  Projected value for order line.
+  """
+  orderLine: OrderLine!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Projected received quantity.
+  """
+  receivedQuantity: Int!
+  """
+  Projected restockable quantity.
+  """
+  restockableQuantity: Int!
+  """
+  Projected damaged quantity.
+  """
+  damagedQuantity: Int!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Projected value for note.
+  """
+  note: String
+}
+
+"""
+Exchange linking inbound return quantities with outbound replacement lines.
+"""
+type OrderExchange implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderExchangeStatus!
+  """
+  Projected value for inbound lines.
+  """
+  inboundLines: [OrderReturnLine!]!
+  """
+  Projected value for outbound lines.
+  """
+  outboundLines: [OrderLine!]!
+  """
+  Projected value for balance.
+  """
+  balance: Money!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Refund aggregate and its line and payment-transaction allocations.
+"""
+type OrderRefund implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderRefundStatus!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Projected value for note.
+  """
+  note: String
+  """
+  Projected value for lines.
+  """
+  lines: [OrderRefundLine!]!
+  """
+  Projected value for transactions.
+  """
+  transactions: [OrderPaymentTransaction!]!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for processed, or null when it has not occurred.
+  """
+  processedAt: DateTime
+}
+
+"""
+Orders Admin representation of order refund line.
+"""
+type OrderRefundLine {
+  """
+  Projected value for order line.
+  """
+  orderLine: OrderLine
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+}
+
+"""
+Relay-style paginated connection of order return resources.
+"""
+type OrderReturnConnection implements Connection {
+  """
+  Cursor and resource pairs in this page.
+  """
+  edges: [OrderReturnEdge!]!
+  """
+  Resources in this page.
+  """
+  nodes: [OrderReturn!]!
+  """
+  Relay pagination metadata.
+  """
+  pageInfo: PageInfo!
+  """
+  Total matching resources before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Cursor and resource pair for a order return connection.
+"""
+type OrderReturnEdge {
+  """
+  Opaque Relay cursor for this edge.
+  """
+  cursor: String!
+  """
+  Projected value for node.
+  """
+  node: OrderReturn!
+}
+
+"""
+Relay-style paginated connection of order exchange resources.
+"""
+type OrderExchangeConnection implements Connection {
+  """
+  Cursor and resource pairs in this page.
+  """
+  edges: [OrderExchangeEdge!]!
+  """
+  Resources in this page.
+  """
+  nodes: [OrderExchange!]!
+  """
+  Relay pagination metadata.
+  """
+  pageInfo: PageInfo!
+  """
+  Total matching resources before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Cursor and resource pair for a order exchange connection.
+"""
+type OrderExchangeEdge {
+  """
+  Opaque Relay cursor for this edge.
+  """
+  cursor: String!
+  """
+  Projected value for node.
+  """
+  node: OrderExchange!
+}
+
+"""
+Relay-style paginated connection of order refund resources.
+"""
+type OrderRefundConnection implements Connection {
+  """
+  Cursor and resource pairs in this page.
+  """
+  edges: [OrderRefundEdge!]!
+  """
+  Resources in this page.
+  """
+  nodes: [OrderRefund!]!
+  """
+  Relay pagination metadata.
+  """
+  pageInfo: PageInfo!
+  """
+  Total matching resources before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Cursor and resource pair for a order refund connection.
+"""
+type OrderRefundEdge {
+  """
+  Opaque Relay cursor for this edge.
+  """
+  cursor: String!
+  """
+  Projected value for node.
+  """
+  node: OrderRefund!
+}
+
+"""
+Comparison operators for order return status; omitted operators do not constrain results.
+"""
+input OrderReturnStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderReturnStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderReturnStatus!]
+}
+
+"""
+Validated input for order refund create. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundCreateInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for note.
+  """
+  note: String
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+  """
+  Validated input value for lines.
+  """
+  lines: [OrderRefundLineInput!]
+  """
+  Validated input value for transaction allocations.
+  """
+  transactionAllocations: [OrderRefundTransactionAllocationInput!]
+}
+
+"""
+Validated input for order refund line. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundLineInput {
+  """
+  Relay global ID identifying the order line.
+  """
+  orderLineId: ID!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+}
+
+"""
+Validated input for order refund transaction allocation. Tenant identifiers come only from trusted context.
+"""
+input OrderRefundTransactionAllocationInput {
+  """
+  Relay global ID identifying the transaction.
+  """
+  transactionId: ID!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+}
+
+"""
+Validated input for order return line. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnLineInput {
+  """
+  Relay global ID identifying the order line.
+  """
+  orderLineId: ID!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for note.
+  """
+  note: String
+}
+
+"""
+Validated input for order return create. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnCreateInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for lines.
+  """
+  lines: [OrderReturnLineInput!]!
+  """
+  Validated input value for customer note.
+  """
+  customerNote: String
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order return approve. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnApproveInput {
+  """
+  Relay global ID identifying the return.
+  """
+  returnId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the location.
+  """
+  locationId: ID!
+  """
+  Validated input value for create return shipment.
+  """
+  createReturnShipment: Boolean = false
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+}
+
+"""
+Validated input for order return reject. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnRejectInput {
+  """
+  Relay global ID identifying the return.
+  """
+  returnId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+}
+
+"""
+Validated input for order return cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnCancelInput {
+  """
+  Relay global ID identifying the return.
+  """
+  returnId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+}
+
+"""
+Validated input for order return receive. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnReceiveInput {
+  """
+  Relay global ID identifying the return.
+  """
+  returnId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the location.
+  """
+  locationId: ID!
+  """
+  Validated input value for lines.
+  """
+  lines: [OrderReturnReceiveLineInput!]!
+  """
+  Validated input value for refund.
+  """
+  refund: OrderReturnRefundInput
+}
+
+"""
+Validated input for order return receive line. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnReceiveLineInput {
+  """
+  Relay global ID identifying the order line.
+  """
+  orderLineId: ID!
+  """
+  Requested received quantity.
+  """
+  receivedQuantity: Int!
+  """
+  Requested restockable quantity.
+  """
+  restockableQuantity: Int!
+  """
+  Requested damaged quantity.
+  """
+  damagedQuantity: Int!
+}
+
+"""
+Validated input for order return refund. Tenant identifiers come only from trusted context.
+"""
+input OrderReturnRefundInput {
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: MoneyInput!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order exchange create. Tenant identifiers come only from trusted context.
+"""
+input OrderExchangeCreateInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for inbound lines.
+  """
+  inboundLines: [OrderReturnLineInput!]!
+  """
+  Validated input value for outbound lines.
+  """
+  outboundLines: [OrderLineCreateInput!]!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+}
+
+"""
+Validated input for order exchange cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderExchangeCancelInput {
+  """
+  Relay global ID identifying the exchange.
+  """
+  exchangeId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+}
+
+"""
+Mutation result for order return; expected failures are returned in userErrors.
+"""
+type OrderReturnPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for return.
+  """
+  return: OrderReturn
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order exchange; expected failures are returned in userErrors.
+"""
+type OrderExchangePayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for exchange.
+  """
+  exchange: OrderExchange
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}

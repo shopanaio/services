@@ -1,3 +1,7 @@
+# Orders Admin local foundation.
+# Shared scalars, Relay primitives, money, weight, and dimensions come from
+# @shopana/admin-graphql.
+
 # TODO: Make shared schema with graphql-client
 
 enum CountryCode {

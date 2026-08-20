@@ -118,6 +118,8 @@ Use DBOS SDK for durable workflow execution.
 
 ## ADR-005: Event Sourcing for Orders
 
+**Status:** Superseded by ADR-006.
+
 ### Context
 
 Orders need complete audit trail: who changed what, when, and why. Traditional CRUD loses history.
@@ -138,6 +140,33 @@ Use Event Sourcing (Emmett + Pongo) for orders and checkout domains.
 - Event store additional to regular tables
 - Need projections for read models
 - More complex querying (can't just SELECT)
+
+## ADR-006: PostgreSQL Event Store for Orders
+
+### Context
+
+The Orders contract requires optimistic concurrency, idempotent command replay, atomic projection
+updates, transactional outbox delivery, and reconstruction from an immutable event stream. The
+existing Orders migrations already model these facts in PostgreSQL, while no maintained Emmett/Pongo
+runtime adapter is present in the service.
+
+### Decision
+
+Orders owns a PostgreSQL append-only event store implemented with the existing database stack. An
+order command appends events, updates synchronous projections, records idempotency state, and writes
+outbox messages in one database transaction.
+
+The event stream revision is the only aggregate concurrency token. DBOS owns durable orchestration
+around external systems, but it does not replace the Orders event store or split the atomic local
+commit. Emmett and Pongo are not runtime dependencies of the canonical implementation.
+
+### Consequences
+
+- Event and projection schemas remain explicit and reviewable SQL.
+- Projection rebuilds consume the same versioned event stream.
+- A command cannot publish an outbox message without its event and projection.
+- Append-only and tenant constraints are enforced in PostgreSQL.
+- Stage 2 must keep Drizzle/repository models aligned 1:1 with canonical SQL.
 
 ## See Also
 

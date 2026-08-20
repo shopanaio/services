@@ -1,185 +1,111 @@
-import { GraphQLScalarType, Kind } from "graphql";
 import { Money } from "@shopana/shared-money";
 import { parseDecimalInput } from "@src/utils/decimal";
-import superjson from "superjson";
+import { GraphQLScalarType, Kind, type ObjectValueNode, type ValueNode } from "graphql";
+import type { ApiResolvers } from "../types";
 
-const BigIntScalar = new GraphQLScalarType({
-  name: "BigInt",
-  serialize(value) {
-    if (typeof value === "bigint") return Number(value);
-    if (typeof value === "number") return Math.trunc(value);
-    if (typeof value === "string") return Number(value);
-    return null;
-  },
-  parseValue(value) {
-    if (value == null) return null;
-    return Number(value as any);
-  },
-  parseLiteral(ast) {
-    if (ast.kind === Kind.INT || ast.kind === Kind.STRING) {
-      return Number(ast.value);
-    }
-    return null;
-  },
-});
-
-/**
- * Custom JSON scalar type with advanced serialization capabilities
- * Supports serialization and deserialization of:
- * - Standard JSON types (Objects, Arrays, Strings, Numbers, Booleans, null)
- * - BigInt values
- * - Date objects
- * - Map and Set collections
- * - RegExp patterns
- * - undefined values
- * - NaN, Infinity
- * - Error objects
- * - Functions (via serialize-javascript)
- * - Any nested combinations of the above
- *
- * Uses superjson for type-safe serialization and serialize-javascript for function support
- */
-const JSONScalar = new GraphQLScalarType({
-  name: "JSON",
-  description:
-    "Advanced JSON scalar supporting BigInt, Date, Map, Set, RegExp, functions and other complex types",
-
-  serialize(value: unknown): string {
-    const { json } = superjson.serialize(value);
-    return json as string;
-  },
-
-  parseValue(value: unknown): unknown {
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    try {
-      // First try to parse as superjson format
-      const parsed = JSON.parse(value);
-
-      // Check if it has superjson metadata structure
-      if (parsed && typeof parsed === "object" && "json" in parsed && "meta" in parsed) {
-        return superjson.deserialize(parsed);
-      }
-
-      // Otherwise return the parsed value as-is
-      return parsed;
-    } catch {
-      // If parsing fails, return the original string
-      return value;
-    }
-  },
-
-  parseLiteral(ast): unknown {
-    switch (ast.kind) {
-      case Kind.STRING:
-        return JSONScalar.parseValue(ast.value);
-      case Kind.INT:
-      case Kind.FLOAT:
-        return Number(ast.value);
-      case Kind.BOOLEAN:
-        return ast.value;
-      case Kind.NULL:
-        return null;
-      case Kind.OBJECT:
-        return parseObjectLiteral(ast);
-      case Kind.LIST:
-        return ast.values.map((node) => JSONScalar.parseLiteral(node));
-      default:
-        return null;
-    }
-  },
-});
-
-/**
- * Helper function to parse GraphQL object literals
- */
-function parseObjectLiteral(ast: any): Record<string, unknown> {
-  const value: Record<string, unknown> = Object.create(null);
-  ast.fields.forEach((field: any) => {
-    value[field.name.value] = JSONScalar.parseLiteral(field.value);
-  });
-  return value;
+function serializeBigInt(value: unknown): string {
+  if (typeof value === "bigint") return value.toString();
+  if (typeof value === "number" && Number.isSafeInteger(value)) return String(value);
+  if (typeof value === "string" && /^-?\d+$/.test(value)) return value;
+  throw new TypeError("BigInt must be an integer serialized without precision loss");
 }
 
-const DecimalScalar = new GraphQLScalarType({
-  name: "Decimal",
-  description:
-    "Decimal represented as integer amount and scale internally; serialized as float number",
-  serialize(value: unknown): number | null {
-    // If we were passed Money already - use its conversion
-    if (value instanceof Money) {
-      return value.toFloat();
-    }
-    // Handle string values (e.g., from toRoundedUnit())
-    if (typeof value === "string") {
-      const num = parseFloat(value);
-      if (!isNaN(num)) {
-        return num;
-      }
-    }
-    // Handle number values
-    if (typeof value === "number") {
-      return value;
-    }
-    // Handle null/undefined
-    if (value == null) {
-      return null;
-    }
-    throw new Error("Invalid value for Decimal");
-  },
-  parseValue(value) {
-    const parsed = parseDecimalInput(value);
-    if (!parsed) return null;
-    const amount = BigInt(parsed.amount);
-    return Money.fromMinor(amount, "USD");
-  },
+const BigIntScalar = new GraphQLScalarType<string, string>({
+  name: "BigInt",
+  description: "An arbitrary-size integer serialized as a decimal string.",
+  serialize: serializeBigInt,
+  parseValue: serializeBigInt,
   parseLiteral(ast) {
-    if (ast.kind === Kind.STRING || ast.kind === Kind.INT) {
-      const parsed = parseDecimalInput(ast.value);
-      if (!parsed) return null;
-      const amount = BigInt(parsed.amount);
-      return Money.fromMinor(amount, "USD");
-    }
-    return null;
+    if (ast.kind === Kind.INT || ast.kind === Kind.STRING) return serializeBigInt(ast.value);
+    throw new TypeError("BigInt must be provided as an integer or decimal string");
   },
 });
 
-const StringLikeScalar = (name: string) =>
-  new GraphQLScalarType({
+function normalizeDecimal(value: unknown): string {
+  if (value instanceof Money) return value.toRoundedUnit();
+  const parsed = parseDecimalInput(value);
+  if (!parsed) throw new TypeError("Decimal must be a finite decimal string");
+
+  const negative = parsed.amount.startsWith("-");
+  const digits = negative ? parsed.amount.slice(1) : parsed.amount;
+  if (parsed.scale === 0) return parsed.amount;
+
+  const padded = digits.padStart(parsed.scale + 1, "0");
+  const integer = padded.slice(0, -parsed.scale);
+  const fraction = padded.slice(-parsed.scale);
+  return `${negative ? "-" : ""}${integer}.${fraction}`;
+}
+
+const DecimalScalar = new GraphQLScalarType<string, string>({
+  name: "Decimal",
+  description: "An arbitrary-precision signed decimal serialized as a string.",
+  serialize: normalizeDecimal,
+  parseValue: normalizeDecimal,
+  parseLiteral(ast) {
+    if (ast.kind === Kind.STRING || ast.kind === Kind.INT || ast.kind === Kind.FLOAT) {
+      return normalizeDecimal(ast.value);
+    }
+    throw new TypeError("Decimal must be provided as a decimal string or number");
+  },
+});
+
+function parseJsonLiteral(ast: ValueNode): unknown {
+  switch (ast.kind) {
+    case Kind.STRING:
+    case Kind.ENUM:
+      return ast.value;
+    case Kind.INT:
+    case Kind.FLOAT:
+      return Number(ast.value);
+    case Kind.BOOLEAN:
+      return ast.value;
+    case Kind.NULL:
+      return null;
+    case Kind.OBJECT:
+      return parseJsonObject(ast);
+    case Kind.LIST:
+      return ast.values.map(parseJsonLiteral);
+    case Kind.VARIABLE:
+      throw new TypeError("Variables are resolved before JSON literal parsing");
+  }
+}
+
+function parseJsonObject(ast: ObjectValueNode): Record<string, unknown> {
+  return Object.fromEntries(
+    ast.fields.map((field) => [field.name.value, parseJsonLiteral(field.value)]),
+  );
+}
+
+const JSONScalar = new GraphQLScalarType<unknown, unknown>({
+  name: "JSON",
+  description: "A JSON-serializable value with secrets excluded.",
+  serialize: (value) => value,
+  parseValue: (value) => value,
+  parseLiteral: parseJsonLiteral,
+});
+
+function stringScalar(name: "DateTime" | "Email" | "URL"): GraphQLScalarType<string, string> {
+  const parse = (value: unknown): string => {
+    if (typeof value !== "string") throw new TypeError(`${name} must be a string`);
+    return value;
+  };
+
+  return new GraphQLScalarType<string, string>({
     name,
-    serialize(value) {
-      if (value == null) return null as any;
-      return String(value);
-    },
-    parseValue(value) {
-      if (value == null) return null as any;
-      return String(value);
-    },
+    serialize: parse,
+    parseValue: parse,
     parseLiteral(ast) {
-      if (ast.kind === Kind.STRING || ast.kind === Kind.INT) {
-        return String(ast.value);
-      }
-      return null as any;
+      if (ast.kind === Kind.STRING) return ast.value;
+      throw new TypeError(`${name} must be provided as a string`);
     },
   });
-
-const DateTimeScalar = StringLikeScalar("DateTime");
-const CursorScalar = StringLikeScalar("Cursor");
-const UuidScalar = StringLikeScalar("Uuid");
-const CurrencyCodeScalar = StringLikeScalar("CurrencyCode");
-const CountryCodeScalar = StringLikeScalar("CountryCode");
-const EmailScalar = StringLikeScalar("Email");
+}
 
 export const scalarResolvers = {
   BigInt: BigIntScalar,
-  JSON: JSONScalar,
+  DateTime: stringScalar("DateTime"),
   Decimal: DecimalScalar,
-  DateTime: DateTimeScalar,
-  Cursor: CursorScalar,
-  Uuid: UuidScalar,
-  CurrencyCode: CurrencyCodeScalar,
-  CountryCode: CountryCodeScalar,
-  Email: EmailScalar,
-};
+  Email: stringScalar("Email"),
+  JSON: JSONScalar,
+  URL: stringScalar("URL"),
+} satisfies Pick<ApiResolvers, "BigInt" | "DateTime" | "Decimal" | "Email" | "JSON" | "URL">;

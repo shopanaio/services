@@ -1,0 +1,87 @@
+# Checkout placement provenance and Orders-side finalization projection.
+
+"""
+Closed set of order placement status values used by Orders Admin API.
+"""
+enum OrderPlacementStatus {
+  """
+  Awaiting finalization value of order placement status.
+  """
+  AWAITING_FINALIZATION
+  """
+  Confirmed value of order placement status.
+  """
+  CONFIRMED
+  """
+  Failed value of order placement status.
+  """
+  FAILED
+}
+
+"""
+Checkout-owned placement provenance projected into Orders.
+"""
+type OrderCheckoutPlacement {
+  """
+  Relay global ID identifying the placement.
+  """
+  placementId: ID!
+  """
+  Relay global ID identifying the checkout.
+  """
+  checkoutId: ID!
+  """
+  Projected value for checkout version.
+  """
+  checkoutVersion: Int!
+  """
+  Projected value for result revision.
+  """
+  resultRevision: String!
+  """
+  Projected value for final quote revision.
+  """
+  finalQuoteRevision: String!
+  """
+  Projected value for payment methods revision.
+  """
+  paymentMethodsRevision: String!
+  """
+  Projected value for delivery revision.
+  """
+  deliveryRevision: String!
+  """
+  Projected value for contract version.
+  """
+  contractVersion: Int!
+  """
+  Projected value for snapshot hash.
+  """
+  snapshotHash: String!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderPlacementStatus!
+  """
+  Timestamp for confirmed, or null when it has not occurred.
+  """
+  confirmedAt: DateTime
+  """
+  Timestamp for failed, or null when it has not occurred.
+  """
+  failedAt: DateTime
+}
+
+"""
+Comparison operators for order placement status; omitted operators do not constrain results.
+"""
+input OrderPlacementStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderPlacementStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderPlacementStatus!]
+}

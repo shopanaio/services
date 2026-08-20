@@ -4,7 +4,10 @@
   "graphql": {
     "admin": [
       "src/interfaces/gql-admin-api/schema/**/*.graphql",
-      "../../packages/shared-references/graphql/**/*.graphql"
+      "../../packages/admin-graphql/graphql/foundation.graphql",
+      "../../packages/shared-references/graphql/shared-currency.graphql",
+      "../../packages/shared-references/graphql/shared-locale.graphql",
+      "../../packages/shared-references/graphql/shared-units.graphql"
     ],
     "storefront": [
       "src/interfaces/gql-storefront-api/schema/**/*.graphql",
@@ -20,6 +23,10 @@
     {
       "include": "src/interfaces/gql-storefront-api/schema/**/*.graphql",
       "outDir": "dist/schema/storefront"
+    },
+    {
+      "include": "../../packages/admin-graphql/graphql/foundation.graphql",
+      "outDir": "dist/schema"
     },
     {
       "include": "../../packages/storefront-graphql/graphql/foundation.graphql",

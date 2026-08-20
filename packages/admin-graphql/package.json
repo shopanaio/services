@@ -1,0 +1,14 @@
+{
+  "name": "@shopana/admin-graphql",
+  "version": "0.0.1",
+  "description": "Shared GraphQL foundation for Shopana Admin subgraphs",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@shopana/shared-references": "workspace:*"
+  },
+  "files": [
+    "graphql",
+    "README.md"
+  ]
+}

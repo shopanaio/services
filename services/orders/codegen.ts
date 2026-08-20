@@ -4,7 +4,10 @@ const config: CodegenConfig = {
   generates: {
     "./src/interfaces/gql-admin-api/types.ts": {
       schema: [
-        "../../packages/shared-references/graphql/*.graphql",
+        "../../packages/admin-graphql/graphql/foundation.graphql",
+        "../../packages/shared-references/graphql/shared-currency.graphql",
+        "../../packages/shared-references/graphql/shared-locale.graphql",
+        "../../packages/shared-references/graphql/shared-units.graphql",
         "src/interfaces/gql-admin-api/schema/*.graphql",
       ],
       plugins: ["typescript", "typescript-resolvers"],
@@ -15,9 +18,13 @@ const config: CodegenConfig = {
         contextType: "./context.js#GraphQLContext",
         scalars: {
           Email: "string",
-          BigInt: "number",
+          DateTime: "string",
+          Decimal: "string",
+          BigInt: "string",
+          URL: "string",
           JSON: "unknown",
           CurrencyCode: "string",
+          LocaleCode: "string",
         },
         enumsAsTypes: false,
         avoidOptionals: true,

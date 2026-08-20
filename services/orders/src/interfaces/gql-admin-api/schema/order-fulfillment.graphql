@@ -1,0 +1,1077 @@
+# Fulfillment work, merchant/provider execution, shipments, and tracking.
+
+"""
+Closed set of order fulfillment status values used by Orders Admin API.
+"""
+enum OrderFulfillmentStatus {
+  """
+  Unfulfilled value of order fulfillment status.
+  """
+  UNFULFILLED
+  """
+  Scheduled value of order fulfillment status.
+  """
+  SCHEDULED
+  """
+  On hold value of order fulfillment status.
+  """
+  ON_HOLD
+  """
+  Partially fulfilled value of order fulfillment status.
+  """
+  PARTIALLY_FULFILLED
+  """
+  Fulfilled value of order fulfillment status.
+  """
+  FULFILLED
+  """
+  Cancelled value of order fulfillment status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of order delivery status values used by Orders Admin API.
+"""
+enum OrderDeliveryStatus {
+  """
+  Not shipped value of order delivery status.
+  """
+  NOT_SHIPPED
+  """
+  Partially shipped value of order delivery status.
+  """
+  PARTIALLY_SHIPPED
+  """
+  Shipped value of order delivery status.
+  """
+  SHIPPED
+  """
+  In transit value of order delivery status.
+  """
+  IN_TRANSIT
+  """
+  Out for delivery value of order delivery status.
+  """
+  OUT_FOR_DELIVERY
+  """
+  Delivered value of order delivery status.
+  """
+  DELIVERED
+  """
+  Delivery attempted value of order delivery status.
+  """
+  DELIVERY_ATTEMPTED
+  """
+  Delayed value of order delivery status.
+  """
+  DELAYED
+  """
+  Exception value of order delivery status.
+  """
+  EXCEPTION
+  """
+  Returned to sender value of order delivery status.
+  """
+  RETURNED_TO_SENDER
+  """
+  Cancelled value of order delivery status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of fulfillment order status values used by Orders Admin API.
+"""
+enum FulfillmentOrderStatus {
+  """
+  Open value of fulfillment order status.
+  """
+  OPEN
+  """
+  Scheduled value of fulfillment order status.
+  """
+  SCHEDULED
+  """
+  On hold value of fulfillment order status.
+  """
+  ON_HOLD
+  """
+  In progress value of fulfillment order status.
+  """
+  IN_PROGRESS
+  """
+  Closed value of fulfillment order status.
+  """
+  CLOSED
+  """
+  Cancelled value of fulfillment order status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of fulfillment request status values used by Orders Admin API.
+"""
+enum FulfillmentRequestStatus {
+  """
+  Unsubmitted value of fulfillment request status.
+  """
+  UNSUBMITTED
+  """
+  Submitted value of fulfillment request status.
+  """
+  SUBMITTED
+  """
+  Accepted value of fulfillment request status.
+  """
+  ACCEPTED
+  """
+  Rejected value of fulfillment request status.
+  """
+  REJECTED
+  """
+  Cancellation requested value of fulfillment request status.
+  """
+  CANCELLATION_REQUESTED
+  """
+  Cancellation accepted value of fulfillment request status.
+  """
+  CANCELLATION_ACCEPTED
+  """
+  Cancellation rejected value of fulfillment request status.
+  """
+  CANCELLATION_REJECTED
+}
+
+"""
+Closed set of fulfillment status values used by Orders Admin API.
+"""
+enum FulfillmentStatus {
+  """
+  Pending value of fulfillment status.
+  """
+  PENDING
+  """
+  Open value of fulfillment status.
+  """
+  OPEN
+  """
+  Success value of fulfillment status.
+  """
+  SUCCESS
+  """
+  Failure value of fulfillment status.
+  """
+  FAILURE
+  """
+  Cancelled value of fulfillment status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of shipment status values used by Orders Admin API.
+"""
+enum ShipmentStatus {
+  """
+  Draft value of shipment status.
+  """
+  DRAFT
+  """
+  Label created value of shipment status.
+  """
+  LABEL_CREATED
+  """
+  Ready for pickup value of shipment status.
+  """
+  READY_FOR_PICKUP
+  """
+  Picked up value of shipment status.
+  """
+  PICKED_UP
+  """
+  In transit value of shipment status.
+  """
+  IN_TRANSIT
+  """
+  Out for delivery value of shipment status.
+  """
+  OUT_FOR_DELIVERY
+  """
+  Delivered value of shipment status.
+  """
+  DELIVERED
+  """
+  Delivery attempted value of shipment status.
+  """
+  DELIVERY_ATTEMPTED
+  """
+  Delayed value of shipment status.
+  """
+  DELAYED
+  """
+  Exception value of shipment status.
+  """
+  EXCEPTION
+  """
+  Returned to sender value of shipment status.
+  """
+  RETURNED_TO_SENDER
+  """
+  Cancelled value of shipment status.
+  """
+  CANCELLED
+}
+
+"""
+Allocatable fulfillment work unit, separate from provider execution and physical shipment.
+"""
+type FulfillmentOrder implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Projected value for delivery group.
+  """
+  deliveryGroup: OrderDeliveryGroup!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: FulfillmentOrderStatus!
+  """
+  Current request status.
+  """
+  requestStatus: FulfillmentRequestStatus!
+  """
+  Projected value for lines.
+  """
+  lines: [FulfillmentOrderLine!]!
+  """
+  Relay global ID identifying the assigned location.
+  """
+  assignedLocationId: ID!
+  """
+  Projected value for assigned service.
+  """
+  assignedService: FulfillmentServiceRoute
+  """
+  Projected value for holds.
+  """
+  holds: [FulfillmentHold!]!
+  """
+  Timestamp for fulfill, or null when it has not occurred.
+  """
+  fulfillAt: DateTime
+  """
+  Projected value for fulfill by.
+  """
+  fulfillBy: DateTime
+  """
+  Projected value for supported actions.
+  """
+  supportedActions: [String!]!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of fulfillment order line.
+"""
+type FulfillmentOrderLine implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for order line.
+  """
+  orderLine: OrderLine!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Projected remaining quantity.
+  """
+  remainingQuantity: Int!
+  """
+  Projected fulfilled quantity.
+  """
+  fulfilledQuantity: Int!
+}
+
+"""
+Orders Admin representation of fulfillment service route.
+"""
+type FulfillmentServiceRoute {
+  """
+  Stable app code.
+  """
+  appCode: String!
+  """
+  Relay global ID identifying the installation.
+  """
+  installationId: ID!
+  """
+  Stable service code.
+  """
+  serviceCode: String!
+  """
+  Projected value for provider revision.
+  """
+  providerRevision: String!
+  """
+  Projected value for external reference.
+  """
+  externalReference: String
+}
+
+"""
+Orders Admin representation of fulfillment hold.
+"""
+type FulfillmentHold implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Projected value for note.
+  """
+  note: String
+  """
+  Projected value for held by.
+  """
+  heldBy: OrderActor!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for released, or null when it has not occurred.
+  """
+  releasedAt: DateTime
+}
+
+"""
+Execution fact consuming quantities allocated to a fulfillment order.
+"""
+type Fulfillment implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Projected value for fulfillment order.
+  """
+  fulfillmentOrder: FulfillmentOrder!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: FulfillmentStatus!
+  """
+  Relay global ID identifying the location.
+  """
+  locationId: ID!
+  """
+  Projected value for lines.
+  """
+  lines: [FulfillmentLine!]!
+  """
+  Projected value for shipments.
+  """
+  shipments: [Shipment!]!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of fulfillment line.
+"""
+type FulfillmentLine {
+  """
+  Projected value for order line.
+  """
+  orderLine: OrderLine!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+}
+
+"""
+Physical shipment projection with pinned provider references, packages, tracking, and status events.
+"""
+type Shipment implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order!
+  """
+  Projected value for fulfillment.
+  """
+  fulfillment: Fulfillment!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: ShipmentStatus!
+  """
+  Stable provider code.
+  """
+  providerCode: String
+  """
+  Projected value for provider reference.
+  """
+  providerReference: String
+  """
+  Stable service code.
+  """
+  serviceCode: String
+  """
+  Projected value for tracking.
+  """
+  tracking: [ShipmentTracking!]!
+  """
+  Projected value for packages.
+  """
+  packages: [ShipmentPackage!]!
+  """
+  Projected value for events.
+  """
+  events: [ShipmentEvent!]!
+  """
+  Timestamp for shipped, or null when it has not occurred.
+  """
+  shippedAt: DateTime
+  """
+  Timestamp for estimated delivery, or null when it has not occurred.
+  """
+  estimatedDeliveryAt: DateTime
+  """
+  Timestamp for delivered, or null when it has not occurred.
+  """
+  deliveredAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of shipment tracking.
+"""
+type ShipmentTracking {
+  """
+  Store-local order number serialized without precision loss.
+  """
+  number: String!
+  """
+  Projected value for url.
+  """
+  url: URL
+  """
+  Projected value for company.
+  """
+  company: String
+}
+
+"""
+Orders Admin representation of shipment package.
+"""
+type ShipmentPackage implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for weight.
+  """
+  weight: Weight
+  """
+  Projected value for dimensions.
+  """
+  dimensions: Dimensions
+  """
+  Projected value for declared value.
+  """
+  declaredValue: Money
+  """
+  Projected value for items.
+  """
+  items: [ShipmentPackageItem!]!
+}
+
+"""
+Orders Admin representation of shipment package item.
+"""
+type ShipmentPackageItem {
+  """
+  Projected value for order line.
+  """
+  orderLine: OrderLine!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+}
+
+"""
+Orders Admin representation of shipment event.
+"""
+type ShipmentEvent implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: ShipmentStatus!
+  """
+  Human-readable explanation safe for an authorized Admin user.
+  """
+  message: String
+  """
+  Projected value for location.
+  """
+  location: String
+  """
+  Timestamp for happened, or null when it has not occurred.
+  """
+  happenedAt: DateTime!
+  """
+  Timestamp for recorded, or null when it has not occurred.
+  """
+  recordedAt: DateTime!
+}
+
+"""
+Comparison operators for order fulfillment status; omitted operators do not constrain results.
+"""
+input OrderFulfillmentStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderFulfillmentStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderFulfillmentStatus!]
+}
+
+"""
+Comparison operators for order delivery status; omitted operators do not constrain results.
+"""
+input OrderDeliveryStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderDeliveryStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderDeliveryStatus!]
+}
+
+"""
+Validated input for fulfillment order line quantity. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderLineQuantityInput {
+  """
+  Relay global ID identifying the fulfillment order line.
+  """
+  fulfillmentOrderLineId: ID!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+}
+
+"""
+Validated input for fulfillment order split. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderSplitInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for lines.
+  """
+  lines: [FulfillmentOrderLineQuantityInput!]!
+}
+
+"""
+Validated input for fulfillment order move. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderMoveInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the location.
+  """
+  locationId: ID!
+  """
+  Stable service code.
+  """
+  serviceCode: String
+}
+
+"""
+Validated input for fulfillment order hold. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderHoldInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for note.
+  """
+  note: String
+}
+
+"""
+Validated input for fulfillment order release hold. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderReleaseHoldInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Relay global ID identifying the hold.
+  """
+  holdId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for fulfillment order submit. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderSubmitInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for fulfillment order cancel request. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentOrderCancelRequestInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for note.
+  """
+  note: String
+}
+
+"""
+Validated input for fulfillment create. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentCreateInput {
+  """
+  Relay global ID identifying the fulfillment order.
+  """
+  fulfillmentOrderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for lines.
+  """
+  lines: [FulfillmentOrderLineQuantityInput!]!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for fulfillment cancel. Tenant identifiers come only from trusted context.
+"""
+input FulfillmentCancelInput {
+  """
+  Relay global ID identifying the fulfillment.
+  """
+  fulfillmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for restock.
+  """
+  restock: Boolean = true
+}
+
+"""
+Validated input for shipment create. Tenant identifiers come only from trusted context.
+"""
+input ShipmentCreateInput {
+  """
+  Relay global ID identifying the fulfillment.
+  """
+  fulfillmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable provider code.
+  """
+  providerCode: String
+  """
+  Stable service code.
+  """
+  serviceCode: String
+  """
+  Validated input value for packages.
+  """
+  packages: [ShipmentPackageInput!]!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for shipment package. Tenant identifiers come only from trusted context.
+"""
+input ShipmentPackageInput {
+  """
+  Validated input value for weight.
+  """
+  weight: OrderWeightInput
+  """
+  Validated input value for dimensions.
+  """
+  dimensions: OrderDimensionsInput
+  """
+  Validated input value for declared value.
+  """
+  declaredValue: MoneyInput
+  """
+  Validated input value for items.
+  """
+  items: [ShipmentPackageItemInput!]!
+}
+
+"""
+Validated input for shipment package item. Tenant identifiers come only from trusted context.
+"""
+input ShipmentPackageItemInput {
+  """
+  Relay global ID identifying the order line.
+  """
+  orderLineId: ID!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+}
+
+"""
+Validated input for shipment tracking update. Tenant identifiers come only from trusted context.
+"""
+input ShipmentTrackingUpdateInput {
+  """
+  Relay global ID identifying the shipment.
+  """
+  shipmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for tracking.
+  """
+  tracking: [ShipmentTrackingInput!]!
+}
+
+"""
+Validated input for shipment tracking. Tenant identifiers come only from trusted context.
+"""
+input ShipmentTrackingInput {
+  """
+  Store-local order number serialized without precision loss.
+  """
+  number: String!
+  """
+  Validated input value for url.
+  """
+  url: URL
+  """
+  Validated input value for company.
+  """
+  company: String
+}
+
+"""
+Validated input for shipment mark shipped. Tenant identifiers come only from trusted context.
+"""
+input ShipmentMarkShippedInput {
+  """
+  Relay global ID identifying the shipment.
+  """
+  shipmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Timestamp for shipped, or null when it has not occurred.
+  """
+  shippedAt: DateTime!
+}
+
+"""
+Validated input for shipment mark delivered. Tenant identifiers come only from trusted context.
+"""
+input ShipmentMarkDeliveredInput {
+  """
+  Relay global ID identifying the shipment.
+  """
+  shipmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Timestamp for delivered, or null when it has not occurred.
+  """
+  deliveredAt: DateTime!
+}
+
+"""
+Validated input for shipment cancel. Tenant identifiers come only from trusted context.
+"""
+input ShipmentCancelInput {
+  """
+  Relay global ID identifying the shipment.
+  """
+  shipmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+}
+
+"""
+Validated input for shipment reconcile. Tenant identifiers come only from trusted context.
+"""
+input ShipmentReconcileInput {
+  """
+  Relay global ID identifying the shipment.
+  """
+  shipmentId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Mutation result for fulfillment order; expected failures are returned in userErrors.
+"""
+type FulfillmentOrderPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for fulfillment order.
+  """
+  fulfillmentOrder: FulfillmentOrder
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for fulfillment; expected failures are returned in userErrors.
+"""
+type FulfillmentPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for fulfillment.
+  """
+  fulfillment: Fulfillment
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for shipment; expected failures are returned in userErrors.
+"""
+type ShipmentPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for shipment.
+  """
+  shipment: Shipment
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}

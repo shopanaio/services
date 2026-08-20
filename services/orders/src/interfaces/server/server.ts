@@ -66,11 +66,16 @@ export async function startServer(_broker: ServiceBroker) {
   const schemaPath = join(currentDir, "schema");
 
   const adminSchemaFiles = [
-    "base.graphql",
-    "country.graphql",
-    "order.graphql",
-    "parent.graphql",
-    "purchasable.graphql",
+    "federation.graphql",
+    "foundation.graphql",
+    "order-core.graphql",
+    "order-checkout-placement.graphql",
+    "order-edit.graphql",
+    "order-payment.graphql",
+    "order-fulfillment.graphql",
+    "order-returns.graphql",
+    "order-integrations.graphql",
+    "order-admin-mutations.graphql",
   ];
   const storefrontSchemaFiles = ["foundation.graphql", "order.graphql", "parent.graphql"];
 
@@ -84,6 +89,10 @@ export async function startServer(_broker: ServiceBroker) {
   const adminApp = createFastifyApp("admin");
 
   const adminModules = [
+    {
+      typeDefs: gql(readFileSync(join(schemaPath, "foundation.graphql"), "utf-8")),
+      resolvers: adminResolvers,
+    },
     {
       typeDefs: gql(readFileSync(join(schemaPath, "shared-currency.graphql"), "utf-8")),
       resolvers: adminResolvers,

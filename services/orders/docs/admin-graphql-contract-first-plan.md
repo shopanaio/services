@@ -1,6 +1,6 @@
 # Orders Admin API: contract-first RFC и план реализации
 
-Статус: **proposal**  
+Статус: **accepted — Stage 1 complete**
 Область: `services/orders`, Admin GraphQL Federation subgraph, PostgreSQL, DBOS, provider Apps, CRM integrations  
 Порядок разработки: **GraphQL SDL → PostgreSQL schema → domain/business logic → resolvers/API**
 
@@ -2528,9 +2528,9 @@ Logs используют `orderId`, `storeId`, `operationId`, `workflowId`, `co
 
 ### Этап 1. GraphQL SDL
 
-1. Зафиксировать этот RFC и naming review.
-2. Вынести отсутствующие shared primitives (`Cursor`, `Money`, connections/errors) в shared schemas.
-3. Разделить фактический SDL на файлы:
+1. [x] Зафиксировать этот RFC и naming review.
+2. [x] Вынести отсутствующие shared primitives (`Cursor`, `Money`, connections/errors) в shared schemas.
+3. [x] Разделить фактический SDL на файлы:
 
 ```text
 schema/
@@ -2546,11 +2546,25 @@ schema/
   federation.graphql
 ```
 
-4. Удалить конфликтующие legacy Admin schema types.
-5. Выполнить schema codegen и Federation composition через `shopana-cli`.
-6. Добавить schema-level contract tests: no orphan types, payload/error consistency, Global ID mapping, deprecated-field policy.
+4. [x] Удалить конфликтующие legacy Admin schema types.
+5. [x] Выполнить schema codegen и Federation composition через `shopana-cli`.
+6. [x] Добавить schema-level contract tests: no orphan types, payload/error consistency, Global ID mapping, deprecated-field policy.
 
 Gate: Admin supergraph compose проходит; generated resolver types не используют handwritten `any`; все 20 UI write capabilities имеют command mapping.
+
+Stage 1 implementation record:
+
+- shared Admin primitives находятся в `@shopana/admin-graphql`;
+- Admin cursors остаются opaque `String`, потому что canonical `PageInfo`
+  существующих Admin subgraphs уже использует `String`; отдельный `Cursor`
+  требует coordinated platform migration;
+- конфликтующие глобальные имена из RFC namespaced как
+  `OrderSortDirection`, `OrderWeightInput` и `OrderDimensionsInput`;
+- Orders SDL разделён по capability-файлам из этого раздела;
+- contract tests находятся рядом со schema и проверяют reachability,
+  payload/error consistency, idempotency/concurrency inputs, Global ID registry
+  и deprecated-field policy;
+- codegen и Federation composition выполняются только через `shopana-cli`.
 
 ### Этап 2. PostgreSQL schema
 
@@ -2655,7 +2669,7 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 - Admin UI может заменить mocks без сохранения legacy `ApiOrder` как второго source of truth.
 - Старая Drizzle-модель и новые migrations больше не расходятся.
 
-## 21. Зафиксированные решения и вопросы до начала SDL implementation
+## 21. Зафиксированные решения SDL V1
 
 Зафиксировано:
 
@@ -2671,15 +2685,24 @@ Gate: UI не содержит ad-hoc API models, все операции исп
 - CRM/ERP только через App capability + outbox/DBOS;
 - no backfill/compatibility/dual-read.
 
-Нужно подтвердить до merge фактического SDL:
+Дополнительно решено для V1:
 
-1. Каноническая shared Admin definition для `Money`, `Connection`, `DisplayableError` и scalars.
-2. Конкретный Emmett/Pongo adapter для event store согласно ADR-005 либо документированная замена с новым ADR.
-3. Ownership fulfillment locations: federation entity Inventory/Location или opaque typed ID в V1.
-4. Политика order number: per-store monotonic counter, prefix/suffix только presentation.
-5. Legal retention/redaction defaults по регионам.
-6. Нужны ли invoice/credit-note documents в V1 или отдельный subsequent capability.
-7. Нужен ли inbound `crm.order-import` в V1; outbound `crm.order-sync` не зависит от этого решения.
+1. `Money`, `Connection`, `DisplayableError`, common scalars и measurement
+   value types принадлежат `@shopana/admin-graphql`.
+2. Event store — append-only PostgreSQL implementation согласно ADR-006;
+   Emmett/Pongo не являются runtime dependency.
+3. Fulfillment location в V1 передаётся как opaque typed Global ID.
+   Federation entity Location добавляется только вместе с owning Inventory API.
+4. Номер заказа выдаётся per-store monotonic counter; prefix/suffix относятся
+   только к presentation.
+5. Универсального legal retention default нет. Deployment обязан выбрать
+   региональный retention profile; development profile — `MANUAL_ONLY`.
+   Immutable commerce facts не удаляются вместе с PII, redaction фиксируется
+   отдельным audit event.
+6. Invoice и credit-note documents не входят в Orders V1 и проектируются
+   отдельным subsequent capability.
+7. V1 включает outbound `crm.order-sync`; inbound `crm.order-import`
+   отложен и не расширяет core Order columns.
 
 ## 22. Референсные модели
 

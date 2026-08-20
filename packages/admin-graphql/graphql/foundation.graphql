@@ -1,0 +1,157 @@
+# Admin API foundation for Shopana subgraphs.
+# CurrencyCode, LocaleCode, WeightUnit, and DimensionUnit are owned by
+# @shopana/shared-references.
+
+"""
+An arbitrary-size integer serialized as a decimal string.
+"""
+scalar BigInt
+
+"""
+An ISO 8601 date-time string.
+"""
+scalar DateTime
+
+"""
+An arbitrary-precision signed decimal serialized as a string.
+"""
+scalar Decimal
+
+"""
+A syntactically valid email address.
+"""
+scalar Email
+
+"""
+A JSON-serializable value with secrets excluded.
+"""
+scalar JSON
+
+"""
+An absolute RFC 3986 or RFC 3987 URL string.
+"""
+scalar URL
+
+"""
+An object addressable by a Relay global ID.
+
+Consumers must treat the encoded ID as opaque.
+"""
+interface Node {
+  """
+  Relay global ID of the object.
+  """
+  id: ID!
+}
+
+"""
+Expected mutation error displayable to an authorized Admin user.
+"""
+interface DisplayableError {
+  """
+  Path to the invalid input field, or null for an aggregate-level error.
+  """
+  field: [String!]
+
+  """
+  Human-readable error explanation.
+  """
+  message: String!
+}
+
+"""
+Shared fields exposed by every Relay-style connection.
+"""
+interface Connection {
+  """
+  Metadata required to continue forward or backward pagination.
+  """
+  pageInfo: PageInfo!
+
+  """
+  Total resources matching the filter before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Relay pagination metadata shared with existing Admin subgraphs.
+"""
+type PageInfo @shareable {
+  """
+  Whether another page exists after endCursor.
+  """
+  hasNextPage: Boolean!
+
+  """
+  Whether another page exists before startCursor.
+  """
+  hasPreviousPage: Boolean!
+
+  """
+  Opaque cursor of the first edge, or null for an empty page.
+  """
+  startCursor: String
+
+  """
+  Opaque cursor of the last edge, or null for an empty page.
+  """
+  endCursor: String
+}
+
+"""
+Exact monetary value.
+
+amount is an arbitrary-precision decimal string at the GraphQL boundary.
+"""
+type Money @shareable {
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Decimal!
+
+  """
+  ISO 4217 currency code.
+  """
+  currencyCode: CurrencyCode!
+}
+
+"""
+Physical weight expressed in a supported measurement unit.
+"""
+type Weight @shareable {
+  """
+  Numeric weight in unit.
+  """
+  value: Float!
+
+  """
+  Unit used by value.
+  """
+  unit: WeightUnit!
+}
+
+"""
+Physical dimensions expressed in one supported length unit.
+"""
+type Dimensions @shareable {
+  """
+  Width in unit.
+  """
+  width: Float!
+
+  """
+  Height in unit.
+  """
+  height: Float!
+
+  """
+  Length in unit.
+  """
+  length: Float!
+
+  """
+  Unit shared by width, height, and length.
+  """
+  unit: DimensionUnit!
+}

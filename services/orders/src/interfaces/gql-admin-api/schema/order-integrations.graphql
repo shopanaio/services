@@ -1,0 +1,215 @@
+# CRM, ERP, marketplace, WMS, and analytics synchronization projections.
+
+"""
+Closed set of order integration kind values used by Orders Admin API.
+"""
+enum OrderIntegrationKind {
+  """
+  Crm value of order integration kind.
+  """
+  CRM
+  """
+  Erp value of order integration kind.
+  """
+  ERP
+  """
+  Marketplace value of order integration kind.
+  """
+  MARKETPLACE
+  """
+  Wms value of order integration kind.
+  """
+  WMS
+  """
+  Analytics value of order integration kind.
+  """
+  ANALYTICS
+}
+
+"""
+Closed set of order integration sync status values used by Orders Admin API.
+"""
+enum OrderIntegrationSyncStatus {
+  """
+  Never synced value of order integration sync status.
+  """
+  NEVER_SYNCED
+  """
+  Pending value of order integration sync status.
+  """
+  PENDING
+  """
+  Synced value of order integration sync status.
+  """
+  SYNCED
+  """
+  Out of sync value of order integration sync status.
+  """
+  OUT_OF_SYNC
+  """
+  Failed value of order integration sync status.
+  """
+  FAILED
+  """
+  Disabled value of order integration sync status.
+  """
+  DISABLED
+}
+
+"""
+Closed set of order sync direction values used by Orders Admin API.
+"""
+enum OrderSyncDirection {
+  """
+  Export value of order sync direction.
+  """
+  EXPORT
+  """
+  Import value of order sync direction.
+  """
+  IMPORT
+  """
+  Bidirectional value of order sync direction.
+  """
+  BIDIRECTIONAL
+}
+
+"""
+Pinned relationship and synchronization state for a CRM, ERP, marketplace, WMS, or analytics integration.
+"""
+type OrderIntegrationLink implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for kind.
+  """
+  kind: OrderIntegrationKind!
+  """
+  Stable app code.
+  """
+  appCode: String!
+  """
+  Relay global ID identifying the installation.
+  """
+  installationId: ID!
+  """
+  Projected value for direction.
+  """
+  direction: OrderSyncDirection!
+  """
+  Relay global ID identifying the external.
+  """
+  externalId: String
+  """
+  Projected value for external url.
+  """
+  externalUrl: URL
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderIntegrationSyncStatus!
+  """
+  Projected value for last exported order version.
+  """
+  lastExportedOrderVersion: Int
+  """
+  Projected value for last imported external version.
+  """
+  lastImportedExternalVersion: String
+  """
+  Timestamp for last synced, or null when it has not occurred.
+  """
+  lastSyncedAt: DateTime
+  """
+  Stable last error code.
+  """
+  lastErrorCode: String
+  """
+  Projected value for last error message.
+  """
+  lastErrorMessage: String
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Validated input for order integration sync request. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationSyncRequestInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the integration link.
+  """
+  integrationLinkId: ID!
+  """
+  Validated input value for force.
+  """
+  force: Boolean = false
+}
+
+"""
+Validated input for order integration sync retry. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationSyncRetryInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the operation.
+  """
+  operationId: ID!
+}
+
+"""
+Validated input for order integration link detach. Tenant identifiers come only from trusted context.
+"""
+input OrderIntegrationLinkDetachInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the integration link.
+  """
+  integrationLinkId: ID!
+  """
+  Validated input value for reason.
+  """
+  reason: String!
+}

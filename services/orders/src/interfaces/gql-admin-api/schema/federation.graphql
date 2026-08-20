@@ -1,0 +1,47 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.7"
+    import: [
+      "@key"
+      "@requires"
+      "@provides"
+      "@external"
+      "@shareable"
+      "@override"
+      "@inaccessible"
+    ]
+  )
+
+# Federated API credential reference used by OrderActor.
+extend type ApiKey @key(fields: "id") {
+  """
+  Federated ApiKey ID.
+  """
+  id: ID! @external
+}
+
+# Federated IAM user reference used by OrderActor.
+extend type User @key(fields: "id", resolvable: false) {
+  """
+  Federated User ID.
+  """
+  id: ID! @external
+}
+
+# Federated Customers reference attached to an Order.
+extend type Customer @key(fields: "id", resolvable: false) {
+  """
+  Federated Customer ID.
+  """
+  id: ID! @external
+}
+
+# Federated Checkout reference for placement provenance. Checkout does not yet
+# expose an Admin read surface, so the current contract exposes only its ID and
+# the immutable OrderCheckoutPlacement projection.
+extend type Checkout @key(fields: "id") {
+  """
+  Federated Checkout ID.
+  """
+  id: ID! @external
+}

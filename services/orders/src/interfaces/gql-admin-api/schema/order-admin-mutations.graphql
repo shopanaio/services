@@ -1,0 +1,1149 @@
+# Orders Admin namespaces, durable operations, activity, bulk actions, and shared payloads.
+
+extend type Query {
+  """
+  Entry point for all store-scoped Orders Admin reads.
+  """
+  ordersQuery: OrdersQuery!
+}
+
+extend type Mutation {
+  """
+  Entry point for all store-scoped Orders Admin commands.
+  """
+  ordersMutation: OrdersMutation!
+}
+
+"""
+Read namespace for the Orders Admin API.
+"""
+type OrdersQuery {
+  """
+  Find an order by Relay global ID in the current store; inaccessible resources resolve to null.
+  """
+  order(
+    """
+    Relay global ID of this resource.
+    """
+    id: ID!
+  ): Order
+  """
+  Find an order by its store-local number.
+  """
+  orderByNumber(
+    """
+    Store-local order number serialized without precision loss.
+    """
+    number: BigInt!
+  ): Order
+  """
+  List current-store orders with Relay pagination, composable filters, and deterministic sorting.
+  """
+  orders(
+    """
+    Validated input value for first.
+    """
+    first: Int = 20
+    """
+    Validated input value for after.
+    """
+    after: String
+    """
+    Validated input value for last.
+    """
+    last: Int
+    """
+    Validated input value for before.
+    """
+    before: String
+    """
+    Validated input value for where.
+    """
+    where: OrderWhereInput
+    """
+    Validated input value for order by.
+    """
+    orderBy: [OrderOrderByInput!]
+  ): OrderConnection!
+  """
+  Find a staged order edit by Relay global ID.
+  """
+  orderEditSession(
+    """
+    Relay global ID of this resource.
+    """
+    id: ID!
+  ): OrderEditSession
+  """
+  Find a durable operation for workflow polling.
+  """
+  orderOperation(
+    """
+    Relay global ID of this resource.
+    """
+    id: ID!
+  ): OrderOperation
+}
+
+"""
+Command namespace. Every command is store-scoped from trusted context.
+"""
+type OrdersMutation {
+  """
+  Create an idempotent DRAFT order and calculate all totals server-side.
+  """
+  orderCreate(
+    """
+    Validated input value for input.
+    """
+    input: OrderCreateInput!
+  ): OrderPayload!
+  """
+  Update editable order details without directly overwriting derived aggregate statuses.
+  """
+  orderUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderUpdateInput!
+  ): OrderPayload!
+  """
+  Permanently delete a DRAFT order; placed orders are never physically deleted.
+  """
+  orderDelete(
+    """
+    Validated input value for input.
+    """
+    input: OrderDeleteInput!
+  ): OrderDeletePayload!
+  """
+  Validate and transition a DRAFT order to OPEN.
+  """
+  orderCompleteDraft(
+    """
+    Validated input value for input.
+    """
+    input: OrderCompleteDraftInput!
+  ): OrderPayload!
+  """
+  Start durable cancellation across fulfillment, payment, inventory, and notifications.
+  """
+  orderCancel(
+    """
+    Validated input value for input.
+    """
+    input: OrderCancelInput!
+  ): OrderOperationPayload!
+  """
+  Close an eligible OPEN order.
+  """
+  orderClose(
+    """
+    Validated input value for input.
+    """
+    input: OrderCloseInput!
+  ): OrderPayload!
+  """
+  Reopen an eligible CLOSED order.
+  """
+  orderReopen(
+    """
+    Validated input value for input.
+    """
+    input: OrderReopenInput!
+  ): OrderPayload!
+  """
+  Archive an order without changing lifecycle status.
+  """
+  orderArchive(
+    """
+    Validated input value for input.
+    """
+    input: OrderArchiveInput!
+  ): OrderPayload!
+  """
+  Remove the archive marker without changing lifecycle status.
+  """
+  orderUnarchive(
+    """
+    Validated input value for input.
+    """
+    input: OrderUnarchiveInput!
+  ): OrderPayload!
+  """
+  Attach or detach the federated customer reference while preserving historical contact snapshots.
+  """
+  orderCustomerSet(
+    """
+    Validated input value for input.
+    """
+    input: OrderCustomerSetInput!
+  ): OrderPayload!
+  """
+  Replace normalized tags and append an immutable audit event.
+  """
+  orderTagsUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderTagsUpdateInput!
+  ): OrderPayload!
+  """
+  Update the current staff-only note and append an immutable audit event.
+  """
+  orderAdminNoteUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderAdminNoteUpdateInput!
+  ): OrderPayload!
+  """
+  Append a staff or customer-visible comment to the immutable activity timeline.
+  """
+  orderCommentAdd(
+    """
+    Validated input value for input.
+    """
+    input: OrderCommentAddInput!
+  ): OrderActivityPayload!
+  """
+  Replace validated merchant custom fields without storing core business facts in JSON.
+  """
+  orderCustomFieldsUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderCustomFieldsUpdateInput!
+  ): OrderPayload!
+  """
+  Add a line directly to a DRAFT order and recalculate totals.
+  """
+  orderLineAdd(
+    """
+    Validated input value for input.
+    """
+    input: OrderLineAddInput!
+  ): OrderLinePayload!
+  """
+  Update an editable DRAFT line and recalculate totals.
+  """
+  orderLineUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderLineUpdateInput!
+  ): OrderLinePayload!
+  """
+  Delete a line directly from a DRAFT order.
+  """
+  orderLineDelete(
+    """
+    Validated input value for input.
+    """
+    input: OrderLineDeleteInput!
+  ): OrderDeletePayload!
+  """
+  Begin an isolated staged edit of an OPEN order.
+  """
+  orderEditBegin(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditBeginInput!
+  ): OrderEditPayload!
+  """
+  Add a proposed line to a staged edit and refresh its calculated preview.
+  """
+  orderEditLineAdd(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditLineAddInput!
+  ): OrderEditPayload!
+  """
+  Update a proposed line in a staged edit and refresh its calculated preview.
+  """
+  orderEditLineUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditLineUpdateInput!
+  ): OrderEditPayload!
+  """
+  Remove a proposed line without mutating the committed order.
+  """
+  orderEditLineRemove(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditLineRemoveInput!
+  ): OrderEditPayload!
+  """
+  Update proposed delivery details in a staged edit.
+  """
+  orderEditShippingUpdate(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditShippingUpdateInput!
+  ): OrderEditPayload!
+  """
+  Add a reasoned manual discount to a staged edit.
+  """
+  orderEditDiscountAdd(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditDiscountAddInput!
+  ): OrderEditPayload!
+  """
+  Remove a proposed discount from a staged edit.
+  """
+  orderEditDiscountRemove(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditDiscountRemoveInput!
+  ): OrderEditPayload!
+  """
+  Durably commit a staged edit after verifying edit and order revisions.
+  """
+  orderEditCommit(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditCommitInput!
+  ): OrderOperationPayload!
+  """
+  Abandon an uncommitted staged edit.
+  """
+  orderEditAbandon(
+    """
+    Validated input value for input.
+    """
+    input: OrderEditAbandonInput!
+  ): OrderEditPayload!
+  """
+  Record an audited offline or imported payment fact.
+  """
+  orderManualPaymentRecord(
+    """
+    Validated input value for input.
+    """
+    input: OrderManualPaymentRecordInput!
+  ): OrderOperationPayload!
+  """
+  Start durable capture of an eligible authorization.
+  """
+  orderPaymentCapture(
+    """
+    Validated input value for input.
+    """
+    input: OrderPaymentCaptureInput!
+  ): OrderOperationPayload!
+  """
+  Start durable voiding of an eligible authorization or transaction.
+  """
+  orderPaymentVoid(
+    """
+    Validated input value for input.
+    """
+    input: OrderPaymentVoidInput!
+  ): OrderOperationPayload!
+  """
+  Start a new payment attempt without rewriting previous attempts.
+  """
+  orderPaymentRetry(
+    """
+    Validated input value for input.
+    """
+    input: OrderPaymentRetryInput!
+  ): OrderOperationPayload!
+  """
+  Start a durable refund with optional line and transaction allocations.
+  """
+  orderRefundCreate(
+    """
+    Validated input value for input.
+    """
+    input: OrderRefundCreateInput!
+  ): OrderOperationPayload!
+  """
+  Apply an elevated override only to offline or imported facts with a mandatory reason.
+  """
+  orderPaymentStatusOverride(
+    """
+    Validated input value for input.
+    """
+    input: OrderPaymentStatusOverrideInput!
+  ): OrderPayload!
+  """
+  Split selected remaining quantities into a new fulfillment work unit.
+  """
+  fulfillmentOrderSplit(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderSplitInput!
+  ): FulfillmentOrderPayload!
+  """
+  Move fulfillment work to another location or pinned fulfillment-service route.
+  """
+  fulfillmentOrderMove(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderMoveInput!
+  ): FulfillmentOrderPayload!
+  """
+  Place a reasoned hold on fulfillment work.
+  """
+  fulfillmentOrderHold(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderHoldInput!
+  ): FulfillmentOrderPayload!
+  """
+  Release one fulfillment hold after optimistic concurrency validation.
+  """
+  fulfillmentOrderReleaseHold(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderReleaseHoldInput!
+  ): FulfillmentOrderPayload!
+  """
+  Submit fulfillment work through its pinned fulfillment service.
+  """
+  fulfillmentOrderSubmit(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderSubmitInput!
+  ): OrderOperationPayload!
+  """
+  Request cancellation from the pinned fulfillment service.
+  """
+  fulfillmentOrderCancelRequest(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentOrderCancelRequestInput!
+  ): OrderOperationPayload!
+  """
+  Create merchant-managed fulfillment facts for allocated quantities.
+  """
+  fulfillmentCreate(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentCreateInput!
+  ): FulfillmentPayload!
+  """
+  Start durable fulfillment cancellation and optional restocking.
+  """
+  fulfillmentCancel(
+    """
+    Validated input value for input.
+    """
+    input: FulfillmentCancelInput!
+  ): OrderOperationPayload!
+  """
+  Start merchant-managed or provider-managed physical shipment creation.
+  """
+  shipmentCreate(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentCreateInput!
+  ): OrderOperationPayload!
+  """
+  Replace merchant-managed tracking details.
+  """
+  shipmentTrackingUpdate(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentTrackingUpdateInput!
+  ): ShipmentPayload!
+  """
+  Record physical handoff of a shipment.
+  """
+  shipmentMarkShipped(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentMarkShippedInput!
+  ): ShipmentPayload!
+  """
+  Record confirmed physical delivery.
+  """
+  shipmentMarkDelivered(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentMarkDeliveredInput!
+  ): ShipmentPayload!
+  """
+  Start durable cancellation of an eligible shipment.
+  """
+  shipmentCancel(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentCancelInput!
+  ): OrderOperationPayload!
+  """
+  Reconcile shipment state through its pinned provider route.
+  """
+  shipmentReconcile(
+    """
+    Validated input value for input.
+    """
+    input: ShipmentReconcileInput!
+  ): OrderOperationPayload!
+  """
+  Create a return request for currently returnable quantities.
+  """
+  orderReturnCreate(
+    """
+    Validated input value for input.
+    """
+    input: OrderReturnCreateInput!
+  ): OrderReturnPayload!
+  """
+  Approve a return and optionally request a return shipment.
+  """
+  orderReturnApprove(
+    """
+    Validated input value for input.
+    """
+    input: OrderReturnApproveInput!
+  ): OrderReturnPayload!
+  """
+  Reject a return with a stable reason code.
+  """
+  orderReturnReject(
+    """
+    Validated input value for input.
+    """
+    input: OrderReturnRejectInput!
+  ): OrderReturnPayload!
+  """
+  Cancel an eligible return request.
+  """
+  orderReturnCancel(
+    """
+    Validated input value for input.
+    """
+    input: OrderReturnCancelInput!
+  ): OrderReturnPayload!
+  """
+  Start durable receipt, disposition, restocking, and optional refund processing.
+  """
+  orderReturnReceive(
+    """
+    Validated input value for input.
+    """
+    input: OrderReturnReceiveInput!
+  ): OrderOperationPayload!
+  """
+  Create an exchange from eligible inbound quantities and replacement lines.
+  """
+  orderExchangeCreate(
+    """
+    Validated input value for input.
+    """
+    input: OrderExchangeCreateInput!
+  ): OrderExchangePayload!
+  """
+  Cancel an eligible exchange.
+  """
+  orderExchangeCancel(
+    """
+    Validated input value for input.
+    """
+    input: OrderExchangeCancelInput!
+  ): OrderExchangePayload!
+  """
+  Request asynchronous synchronization through a pinned integration link.
+  """
+  orderIntegrationSyncRequest(
+    """
+    Validated input value for input.
+    """
+    input: OrderIntegrationSyncRequestInput!
+  ): OrderOperationPayload!
+  """
+  Retry a failed integration operation without changing its pinned route.
+  """
+  orderIntegrationSyncRetry(
+    """
+    Validated input value for input.
+    """
+    input: OrderIntegrationSyncRetryInput!
+  ): OrderOperationPayload!
+  """
+  Detach an integration link while preserving synchronization and audit history.
+  """
+  orderIntegrationLinkDetach(
+    """
+    Validated input value for input.
+    """
+    input: OrderIntegrationLinkDetachInput!
+  ): OrderPayload!
+  """
+  Start a durable bulk action over an explicit or filtered order selection.
+  """
+  ordersBulkAction(
+    """
+    Validated input value for input.
+    """
+    input: OrdersBulkActionInput!
+  ): OrderOperationPayload!
+}
+
+"""
+Closed set of order actor type values used by Orders Admin API.
+"""
+enum OrderActorType {
+  """
+  User value of order actor type.
+  """
+  USER
+  """
+  Api key value of order actor type.
+  """
+  API_KEY
+  """
+  Customer value of order actor type.
+  """
+  CUSTOMER
+  """
+  App value of order actor type.
+  """
+  APP
+  """
+  System value of order actor type.
+  """
+  SYSTEM
+}
+
+"""
+Closed set of order action values used by Orders Admin API.
+"""
+enum OrderAction {
+  """
+  Update details value of order action.
+  """
+  UPDATE_DETAILS
+  """
+  Edit lines value of order action.
+  """
+  EDIT_LINES
+  """
+  Complete draft value of order action.
+  """
+  COMPLETE_DRAFT
+  """
+  Cancel value of order action.
+  """
+  CANCEL
+  """
+  Close value of order action.
+  """
+  CLOSE
+  """
+  Reopen value of order action.
+  """
+  REOPEN
+  """
+  Archive value of order action.
+  """
+  ARCHIVE
+  """
+  Unarchive value of order action.
+  """
+  UNARCHIVE
+  """
+  Record manual payment value of order action.
+  """
+  RECORD_MANUAL_PAYMENT
+  """
+  Capture payment value of order action.
+  """
+  CAPTURE_PAYMENT
+  """
+  Void payment value of order action.
+  """
+  VOID_PAYMENT
+  """
+  Refund value of order action.
+  """
+  REFUND
+  """
+  Retry payment value of order action.
+  """
+  RETRY_PAYMENT
+  """
+  Create fulfillment value of order action.
+  """
+  CREATE_FULFILLMENT
+  """
+  Create return value of order action.
+  """
+  CREATE_RETURN
+  """
+  Create exchange value of order action.
+  """
+  CREATE_EXCHANGE
+  """
+  Request integration sync value of order action.
+  """
+  REQUEST_INTEGRATION_SYNC
+}
+
+"""
+Closed set of order operation kind values used by Orders Admin API.
+"""
+enum OrderOperationKind {
+  """
+  Order cancel value of order operation kind.
+  """
+  ORDER_CANCEL
+  """
+  Order edit commit value of order operation kind.
+  """
+  ORDER_EDIT_COMMIT
+  """
+  Payment capture value of order operation kind.
+  """
+  PAYMENT_CAPTURE
+  """
+  Payment void value of order operation kind.
+  """
+  PAYMENT_VOID
+  """
+  Payment refund value of order operation kind.
+  """
+  PAYMENT_REFUND
+  """
+  Payment retry value of order operation kind.
+  """
+  PAYMENT_RETRY
+  """
+  Fulfillment submit value of order operation kind.
+  """
+  FULFILLMENT_SUBMIT
+  """
+  Fulfillment cancel value of order operation kind.
+  """
+  FULFILLMENT_CANCEL
+  """
+  Shipment create value of order operation kind.
+  """
+  SHIPMENT_CREATE
+  """
+  Shipment cancel value of order operation kind.
+  """
+  SHIPMENT_CANCEL
+  """
+  Shipment reconcile value of order operation kind.
+  """
+  SHIPMENT_RECONCILE
+  """
+  Return receive value of order operation kind.
+  """
+  RETURN_RECEIVE
+  """
+  Integration sync value of order operation kind.
+  """
+  INTEGRATION_SYNC
+  """
+  Bulk action value of order operation kind.
+  """
+  BULK_ACTION
+}
+
+"""
+Closed set of order operation status values used by Orders Admin API.
+"""
+enum OrderOperationStatus {
+  """
+  Pending value of order operation status.
+  """
+  PENDING
+  """
+  Running value of order operation status.
+  """
+  RUNNING
+  """
+  Succeeded value of order operation status.
+  """
+  SUCCEEDED
+  """
+  Failed value of order operation status.
+  """
+  FAILED
+  """
+  Cancelled value of order operation status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of orders bulk action kind values used by Orders Admin API.
+"""
+enum OrdersBulkActionKind {
+  """
+  Archive value of orders bulk action kind.
+  """
+  ARCHIVE
+  """
+  Unarchive value of orders bulk action kind.
+  """
+  UNARCHIVE
+  """
+  Add tags value of orders bulk action kind.
+  """
+  ADD_TAGS
+  """
+  Remove tags value of orders bulk action kind.
+  """
+  REMOVE_TAGS
+  """
+  Cancel value of orders bulk action kind.
+  """
+  CANCEL
+  """
+  Request integration sync value of orders bulk action kind.
+  """
+  REQUEST_INTEGRATION_SYNC
+}
+
+"""
+Append-only audit and activity timeline entry.
+"""
+type OrderActivity implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for sequence.
+  """
+  sequence: BigInt!
+  """
+  Projected value for type.
+  """
+  type: String!
+  """
+  Projected value for visibility.
+  """
+  visibility: String!
+  """
+  Human-readable explanation safe for an authorized Admin user.
+  """
+  message: String
+  """
+  Projected value for actor.
+  """
+  actor: OrderActor!
+  """
+  Structured snapshot or audit data with secrets excluded.
+  """
+  data: JSON!
+  """
+  Timestamp for happened, or null when it has not occurred.
+  """
+  happenedAt: DateTime!
+  """
+  Timestamp for recorded, or null when it has not occurred.
+  """
+  recordedAt: DateTime!
+}
+
+"""
+Orders Admin representation of order actor.
+"""
+type OrderActor {
+  """
+  Projected value for type.
+  """
+  type: OrderActorType!
+  """
+  Relay global ID of this resource.
+  """
+  id: ID
+  """
+  Projected value for display name.
+  """
+  displayName: String
+  """
+  Projected value for user.
+  """
+  user: User
+  """
+  Projected value for api key.
+  """
+  apiKey: ApiKey
+}
+
+"""
+Durable DBOS operation handle for polling progress and terminal outcome.
+"""
+type OrderOperation implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for kind.
+  """
+  kind: OrderOperationKind!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderOperationStatus!
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Relay global ID identifying the resource.
+  """
+  resourceId: ID
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Projected value for progress.
+  """
+  progress: Int
+  """
+  Stable failure code.
+  """
+  failureCode: String
+  """
+  Projected value for failure message.
+  """
+  failureMessage: String
+  """
+  Whether retrying after transient state changes may succeed.
+  """
+  retryable: Boolean!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for started, or null when it has not occurred.
+  """
+  startedAt: DateTime
+  """
+  Timestamp for completed, or null when it has not occurred.
+  """
+  completedAt: DateTime
+}
+
+"""
+Relay-style paginated connection of order activity resources.
+"""
+type OrderActivityConnection implements Connection {
+  """
+  Cursor and resource pairs in this page.
+  """
+  edges: [OrderActivityEdge!]!
+  """
+  Resources in this page.
+  """
+  nodes: [OrderActivity!]!
+  """
+  Relay pagination metadata.
+  """
+  pageInfo: PageInfo!
+  """
+  Total matching resources before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Cursor and resource pair for a order activity connection.
+"""
+type OrderActivityEdge {
+  """
+  Opaque Relay cursor for this edge.
+  """
+  cursor: String!
+  """
+  Projected value for node.
+  """
+  node: OrderActivity!
+}
+
+"""
+Validated input for orders bulk action. Tenant identifiers come only from trusted context.
+"""
+input OrdersBulkActionInput {
+  """
+  Validated input value for selection.
+  """
+  selection: OrderBulkSelectionInput!
+  """
+  Validated input value for action.
+  """
+  action: OrdersBulkActionKind!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String
+  """
+  Validated input value for tags.
+  """
+  tags: [String!]
+  """
+  Relay global ID identifying the integration link.
+  """
+  integrationLinkId: ID
+}
+
+"""
+Validated input for order bulk selection. Tenant identifiers come only from trusted context.
+"""
+input OrderBulkSelectionInput {
+  """
+  Validated input value for ids.
+  """
+  ids: [ID!]
+  """
+  Validated input value for where.
+  """
+  where: OrderWhereInput
+  """
+  Validated input value for excluded ids.
+  """
+  excludedIds: [ID!]
+}
+
+"""
+Expected validation, permission, concurrency, or business-rule error returned by a mutation.
+"""
+type OrderUserError implements DisplayableError {
+  """
+  Input path associated with the error, when applicable.
+  """
+  field: [String!]
+  """
+  Human-readable explanation safe for an authorized Admin user.
+  """
+  message: String!
+  """
+  Stable machine-readable code.
+  """
+  code: String!
+  """
+  Whether retrying after transient state changes may succeed.
+  """
+  retryable: Boolean!
+  """
+  Current server revision returned with a version conflict.
+  """
+  currentVersion: Int
+}
+
+"""
+Mutation result for order; expected failures are returned in userErrors.
+"""
+type OrderPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+  """
+  Optional client correlation value echoed by supported payloads.
+  """
+  clientMutationId: String
+}
+
+"""
+Mutation result for order delete; expected failures are returned in userErrors.
+"""
+type OrderDeletePayload {
+  """
+  Relay global ID identifying the deleted.
+  """
+  deletedId: ID
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order line; expected failures are returned in userErrors.
+"""
+type OrderLinePayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for line.
+  """
+  line: OrderLine
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order activity; expected failures are returned in userErrors.
+"""
+type OrderActivityPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Projected value for activity.
+  """
+  activity: OrderActivity
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}
+
+"""
+Mutation result for order operation; expected failures are returned in userErrors.
+"""
+type OrderOperationPayload {
+  """
+  Fresh order projection returned after the command.
+  """
+  order: Order
+  """
+  Durable operation returned for polling asynchronous work.
+  """
+  operation: OrderOperation
+  """
+  Expected validation, permission, concurrency, and business-rule failures; empty on success.
+  """
+  userErrors: [OrderUserError!]!
+}

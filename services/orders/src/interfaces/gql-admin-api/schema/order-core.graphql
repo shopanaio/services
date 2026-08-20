@@ -1,0 +1,1847 @@
+# Core order aggregate, lifecycle, filtering, draft commands, and immutable commerce snapshots.
+
+"""
+Closed set of order status values used by Orders Admin API.
+"""
+enum OrderStatus {
+  """
+  Draft value of order status.
+  """
+  DRAFT
+  """
+  Open value of order status.
+  """
+  OPEN
+  """
+  Closed value of order status.
+  """
+  CLOSED
+  """
+  Cancelled value of order status.
+  """
+  CANCELLED
+}
+
+"""
+Closed set of order risk level values used by Orders Admin API.
+"""
+enum OrderRiskLevel {
+  """
+  None value of order risk level.
+  """
+  NONE
+  """
+  Low value of order risk level.
+  """
+  LOW
+  """
+  Medium value of order risk level.
+  """
+  MEDIUM
+  """
+  High value of order risk level.
+  """
+  HIGH
+}
+
+"""
+Closed set of order origin values used by Orders Admin API.
+"""
+enum OrderOrigin {
+  """
+  Checkout value of order origin.
+  """
+  CHECKOUT
+  """
+  Admin value of order origin.
+  """
+  ADMIN
+  """
+  Api value of order origin.
+  """
+  API
+  """
+  Import value of order origin.
+  """
+  IMPORT
+  """
+  Marketplace value of order origin.
+  """
+  MARKETPLACE
+  """
+  Crm value of order origin.
+  """
+  CRM
+}
+
+"""
+Closed set of order sort field values used by Orders Admin API.
+"""
+enum OrderSortField {
+  """
+  Number value of order sort field.
+  """
+  NUMBER
+  """
+  Customer name value of order sort field.
+  """
+  CUSTOMER_NAME
+  """
+  Total amount value of order sort field.
+  """
+  TOTAL_AMOUNT
+  """
+  Status value of order sort field.
+  """
+  STATUS
+  """
+  Payment status value of order sort field.
+  """
+  PAYMENT_STATUS
+  """
+  Fulfillment status value of order sort field.
+  """
+  FULFILLMENT_STATUS
+  """
+  Delivery status value of order sort field.
+  """
+  DELIVERY_STATUS
+  """
+  Created at value of order sort field.
+  """
+  CREATED_AT
+  """
+  Updated at value of order sort field.
+  """
+  UPDATED_AT
+  """
+  Placed at value of order sort field.
+  """
+  PLACED_AT
+}
+
+"""
+Closed set of sort direction values used by Orders Admin API.
+"""
+enum OrderSortDirection {
+  """
+  Asc value of sort direction.
+  """
+  ASC
+  """
+  Desc value of sort direction.
+  """
+  DESC
+}
+
+"""
+Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts.
+"""
+type Order implements Node @key(fields: "id") {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Store-local order number serialized without precision loss.
+  """
+  number: BigInt!
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderStatus!
+  """
+  Current payment status.
+  """
+  paymentStatus: OrderPaymentStatus!
+  """
+  Current fulfillment status.
+  """
+  fulfillmentStatus: OrderFulfillmentStatus!
+  """
+  Current delivery status.
+  """
+  deliveryStatus: OrderDeliveryStatus!
+  """
+  Current return status.
+  """
+  returnStatus: OrderReturnStatus!
+  """
+  Projected value for risk level.
+  """
+  riskLevel: OrderRiskLevel!
+  """
+  Projected value for available actions.
+  """
+  availableActions: [OrderAction!]!
+  """
+  Projected value for origin.
+  """
+  origin: OrderOrigin!
+  """
+  Projected value for source.
+  """
+  source: OrderSource
+  """
+  Projected value for checkout.
+  """
+  checkout: Checkout
+  """
+  Projected value for checkout placement.
+  """
+  checkoutPlacement: OrderCheckoutPlacement
+  """
+  Projected value for customer.
+  """
+  customer: Customer
+  """
+  Projected value for customer snapshot.
+  """
+  customerSnapshot: OrderCustomerSnapshot!
+  """
+  Projected value for contact.
+  """
+  contact: OrderContact!
+  """
+  Projected value for billing address.
+  """
+  billingAddress: OrderAddress
+  """
+  Projected value for shipping address.
+  """
+  shippingAddress: OrderAddress
+  """
+  Stable locale code.
+  """
+  localeCode: LocaleCode
+  """
+  ISO 4217 currency code.
+  """
+  currencyCode: CurrencyCode!
+  """
+  Projected value for cost.
+  """
+  cost: OrderCost!
+  """
+  Projected total quantity.
+  """
+  totalQuantity: Int!
+  """
+  Projected value for lines.
+  """
+  lines: [OrderLine!]!
+  """
+  Projected value for discounts.
+  """
+  discounts: [OrderDiscount!]!
+  """
+  Projected value for tax lines.
+  """
+  taxLines: [OrderTaxLine!]!
+  """
+  Projected value for delivery groups.
+  """
+  deliveryGroups: [OrderDeliveryGroup!]!
+  """
+  Projected value for payment.
+  """
+  payment: OrderPayment!
+  """
+  Projected value for fulfillment orders.
+  """
+  fulfillmentOrders: [FulfillmentOrder!]!
+  """
+  Projected value for fulfillments.
+  """
+  fulfillments: [Fulfillment!]!
+  """
+  Projected value for shipments.
+  """
+  shipments: [Shipment!]!
+  """
+  Projected value for returns.
+  """
+  returns(
+    """
+    Validated input value for first.
+    """
+    first: Int = 20
+    """
+    Validated input value for after.
+    """
+    after: String
+  ): OrderReturnConnection!
+  """
+  Projected value for exchanges.
+  """
+  exchanges(
+    """
+    Validated input value for first.
+    """
+    first: Int = 20
+    """
+    Validated input value for after.
+    """
+    after: String
+  ): OrderExchangeConnection!
+  """
+  Projected value for refunds.
+  """
+  refunds(
+    """
+    Validated input value for first.
+    """
+    first: Int = 20
+    """
+    Validated input value for after.
+    """
+    after: String
+  ): OrderRefundConnection!
+  """
+  Projected value for activity.
+  """
+  activity(
+    """
+    Validated input value for first.
+    """
+    first: Int = 50
+    """
+    Validated input value for after.
+    """
+    after: String
+  ): OrderActivityConnection!
+  """
+  Projected value for integration links.
+  """
+  integrationLinks: [OrderIntegrationLink!]!
+  """
+  Projected value for tags.
+  """
+  tags: [String!]!
+  """
+  Projected value for admin note.
+  """
+  adminNote: String
+  """
+  Projected value for customer note.
+  """
+  customerNote: String
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+  """
+  Timestamp for placed, or null when it has not occurred.
+  """
+  placedAt: DateTime
+  """
+  Timestamp for cancelled, or null when it has not occurred.
+  """
+  cancelledAt: DateTime
+  """
+  Timestamp for closed, or null when it has not occurred.
+  """
+  closedAt: DateTime
+  """
+  Timestamp for archived, or null when it has not occurred.
+  """
+  archivedAt: DateTime
+  """
+  Timestamp for expires, or null when it has not occurred.
+  """
+  expiresAt: DateTime
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of order source.
+"""
+type OrderSource {
+  """
+  Stable machine-readable code.
+  """
+  code: String!
+  """
+  Relay global ID identifying the external.
+  """
+  externalId: String
+  """
+  Projected value for external url.
+  """
+  externalUrl: URL
+}
+
+"""
+Immutable customer identity captured for the commercial record independently of later profile changes.
+"""
+type OrderCustomerSnapshot {
+  """
+  Relay global ID identifying the customer.
+  """
+  customerId: ID
+  """
+  Projected value for email.
+  """
+  email: String
+  """
+  Projected value for phone.
+  """
+  phone: String
+  """
+  Projected value for first name.
+  """
+  firstName: String
+  """
+  Projected value for middle name.
+  """
+  middleName: String
+  """
+  Projected value for last name.
+  """
+  lastName: String
+  """
+  Projected value for company.
+  """
+  company: String
+  """
+  Stable country code.
+  """
+  countryCode: CountryCode
+}
+
+"""
+Order-local contact snapshot with explicit redaction state.
+"""
+type OrderContact {
+  """
+  Projected value for email.
+  """
+  email: String
+  """
+  Projected value for phone.
+  """
+  phone: String
+  """
+  Projected value for first name.
+  """
+  firstName: String
+  """
+  Projected value for middle name.
+  """
+  middleName: String
+  """
+  Projected value for last name.
+  """
+  lastName: String
+  """
+  Projected value for company.
+  """
+  company: String
+  """
+  Projected value for note.
+  """
+  note: String
+  """
+  Timestamp for redacted, or null when it has not occurred.
+  """
+  redactedAt: DateTime
+}
+
+"""
+Order-local postal address snapshot retained for billing, delivery, and audit.
+"""
+type OrderAddress implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for first name.
+  """
+  firstName: String
+  """
+  Projected value for middle name.
+  """
+  middleName: String
+  """
+  Projected value for last name.
+  """
+  lastName: String
+  """
+  Projected value for company.
+  """
+  company: String
+  """
+  Projected value for address1.
+  """
+  address1: String
+  """
+  Projected value for address2.
+  """
+  address2: String
+  """
+  Projected value for city.
+  """
+  city: String
+  """
+  Stable province code.
+  """
+  provinceCode: String
+  """
+  Stable postal code.
+  """
+  postalCode: String
+  """
+  Stable country code.
+  """
+  countryCode: CountryCode
+  """
+  Projected value for email.
+  """
+  email: String
+  """
+  Projected value for phone.
+  """
+  phone: String
+  """
+  Structured snapshot or audit data with secrets excluded.
+  """
+  data: JSON!
+  """
+  Timestamp for redacted, or null when it has not occurred.
+  """
+  redactedAt: DateTime
+}
+
+"""
+Server-calculated totals in one currency. Paid, refunded, and outstanding amounts derive from successful financial facts.
+"""
+type OrderCost {
+  """
+  Monetary subtotal in the order currency.
+  """
+  subtotalAmount: Money!
+  """
+  Monetary discount in the order currency.
+  """
+  discountAmount: Money!
+  """
+  Monetary shipping in the order currency.
+  """
+  shippingAmount: Money!
+  """
+  Monetary tax in the order currency.
+  """
+  taxAmount: Money!
+  """
+  Monetary duty in the order currency.
+  """
+  dutyAmount: Money!
+  """
+  Monetary adjustment in the order currency.
+  """
+  adjustmentAmount: Money!
+  """
+  Monetary total in the order currency.
+  """
+  totalAmount: Money!
+  """
+  Monetary paid in the order currency.
+  """
+  paidAmount: Money!
+  """
+  Monetary refunded in the order currency.
+  """
+  refundedAmount: Money!
+  """
+  Monetary outstanding in the order currency.
+  """
+  outstandingAmount: Money!
+}
+
+"""
+Commercial line snapshot with conserved ordered, cancelled, fulfillable, fulfilled, returnable, returned, and refundable quantities.
+"""
+type OrderLine implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Current aggregate revision used for optimistic concurrency.
+  """
+  version: Int!
+  """
+  Projected value for parent line.
+  """
+  parentLine: OrderLine
+  """
+  Relay global ID identifying the purchasable.
+  """
+  purchasableId: ID
+  """
+  Relay global ID identifying the product.
+  """
+  productId: ID
+  """
+  Relay global ID identifying the variant.
+  """
+  variantId: ID
+  """
+  Projected value for title.
+  """
+  title: String!
+  """
+  Projected value for sku.
+  """
+  sku: String
+  """
+  Projected value for image url.
+  """
+  imageUrl: URL
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Projected cancelled quantity.
+  """
+  cancelledQuantity: Int!
+  """
+  Projected fulfillable quantity.
+  """
+  fulfillableQuantity: Int!
+  """
+  Projected fulfilled quantity.
+  """
+  fulfilledQuantity: Int!
+  """
+  Projected returnable quantity.
+  """
+  returnableQuantity: Int!
+  """
+  Projected returned quantity.
+  """
+  returnedQuantity: Int!
+  """
+  Projected refundable quantity.
+  """
+  refundableQuantity: Int!
+  """
+  Projected value for requires shipping.
+  """
+  requiresShipping: Boolean!
+  """
+  Projected value for taxable.
+  """
+  taxable: Boolean!
+  """
+  Projected value for weight.
+  """
+  weight: Weight
+  """
+  Projected value for unit cost.
+  """
+  unitCost: Money
+  """
+  Projected value for cost.
+  """
+  cost: OrderLineCost!
+  """
+  Projected value for purchasable snapshot.
+  """
+  purchasableSnapshot: JSON!
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of order line cost.
+"""
+type OrderLineCost {
+  """
+  Projected value for unit price.
+  """
+  unitPrice: Money!
+  """
+  Projected value for unit compare at price.
+  """
+  unitCompareAtPrice: Money
+  """
+  Monetary subtotal in the order currency.
+  """
+  subtotalAmount: Money!
+  """
+  Monetary discount in the order currency.
+  """
+  discountAmount: Money!
+  """
+  Monetary tax in the order currency.
+  """
+  taxAmount: Money!
+  """
+  Monetary duty in the order currency.
+  """
+  dutyAmount: Money!
+  """
+  Monetary total in the order currency.
+  """
+  totalAmount: Money!
+}
+
+"""
+Orders Admin representation of order discount.
+"""
+type OrderDiscount implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Stable machine-readable code.
+  """
+  code: String
+  """
+  Projected value for title.
+  """
+  title: String!
+  """
+  Projected value for source.
+  """
+  source: String!
+  """
+  Projected value for target.
+  """
+  target: String!
+  """
+  Projected value for value.
+  """
+  value: Decimal!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Projected value for metadata.
+  """
+  metadata: JSON!
+}
+
+"""
+Orders Admin representation of order tax line.
+"""
+type OrderTaxLine implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for title.
+  """
+  title: String!
+  """
+  Projected value for rate.
+  """
+  rate: Decimal!
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Projected value for included.
+  """
+  included: Boolean!
+  """
+  Projected value for jurisdiction.
+  """
+  jurisdiction: String
+}
+
+"""
+Orders Admin representation of order delivery group.
+"""
+type OrderDeliveryGroup implements Node {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Projected value for lines.
+  """
+  lines: [OrderLine!]!
+  """
+  Projected value for address.
+  """
+  address: OrderAddress
+  """
+  Projected value for recipient.
+  """
+  recipient: OrderContact
+  """
+  Projected value for selected method.
+  """
+  selectedMethod: OrderDeliveryMethod
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTime!
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTime!
+}
+
+"""
+Orders Admin representation of order delivery method.
+"""
+type OrderDeliveryMethod {
+  """
+  Stable machine-readable code.
+  """
+  code: String!
+  """
+  Projected value for title.
+  """
+  title: String!
+  """
+  Stable provider code.
+  """
+  providerCode: String!
+  """
+  Projected value for type.
+  """
+  type: String!
+  """
+  Projected value for payment model.
+  """
+  paymentModel: String
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Money!
+  """
+  Projected value for customer input.
+  """
+  customerInput: JSON!
+  """
+  Projected value for provider snapshot.
+  """
+  providerSnapshot: JSON!
+}
+
+"""
+Relay-style paginated connection of order resources.
+"""
+type OrderConnection implements Connection {
+  """
+  Cursor and resource pairs in this page.
+  """
+  edges: [OrderEdge!]!
+  """
+  Resources in this page.
+  """
+  nodes: [Order!]!
+  """
+  Relay pagination metadata.
+  """
+  pageInfo: PageInfo!
+  """
+  Total matching resources before pagination.
+  """
+  totalCount: Int!
+}
+
+"""
+Cursor and resource pair for a order connection.
+"""
+type OrderEdge {
+  """
+  Opaque Relay cursor for this edge.
+  """
+  cursor: String!
+  """
+  Projected value for node.
+  """
+  node: Order!
+}
+
+"""
+Composable store-scoped filter for order reads.
+"""
+input OrderWhereInput {
+  """
+  Validated input value for and.
+  """
+  and: [OrderWhereInput!]
+  """
+  Validated input value for or.
+  """
+  or: [OrderWhereInput!]
+  """
+  Relay global ID of this resource.
+  """
+  id: IDFilterInput
+  """
+  Store-local order number serialized without precision loss.
+  """
+  number: BigIntFilterInput
+  """
+  Current lifecycle or derived projection status.
+  """
+  status: OrderStatusFilterInput
+  """
+  Current payment status.
+  """
+  paymentStatus: OrderPaymentStatusFilterInput
+  """
+  Current fulfillment status.
+  """
+  fulfillmentStatus: OrderFulfillmentStatusFilterInput
+  """
+  Current delivery status.
+  """
+  deliveryStatus: OrderDeliveryStatusFilterInput
+  """
+  Current return status.
+  """
+  returnStatus: OrderReturnStatusFilterInput
+  """
+  Current placement status.
+  """
+  placementStatus: OrderPlacementStatusFilterInput
+  """
+  Relay global ID identifying the customer.
+  """
+  customerId: IDFilterInput
+  """
+  Validated input value for customer name.
+  """
+  customerName: StringFilterInput
+  """
+  Validated input value for customer email.
+  """
+  customerEmail: StringFilterInput
+  """
+  Validated input value for customer phone.
+  """
+  customerPhone: StringFilterInput
+  """
+  Relay global ID identifying the external.
+  """
+  externalId: StringFilterInput
+  """
+  Stable source code.
+  """
+  sourceCode: StringFilterInput
+  """
+  Monetary total in the order currency.
+  """
+  totalAmount: DecimalFilterInput
+  """
+  ISO 4217 currency code.
+  """
+  currencyCode: CurrencyCodeFilterInput
+  """
+  Validated input value for shipping country.
+  """
+  shippingCountry: CountryCodeFilterInput
+  """
+  Stable delivery method code.
+  """
+  deliveryMethodCode: StringFilterInput
+  """
+  Stable payment method code.
+  """
+  paymentMethodCode: StringFilterInput
+  """
+  Validated input value for tag.
+  """
+  tag: StringFilterInput
+  """
+  Validated input value for tracking number.
+  """
+  trackingNumber: StringFilterInput
+  """
+  Validated input value for has tracking.
+  """
+  hasTracking: Boolean
+  """
+  Validated input value for archived.
+  """
+  archived: Boolean
+  """
+  Timestamp for created, or null when it has not occurred.
+  """
+  createdAt: DateTimeFilterInput
+  """
+  Timestamp for updated, or null when it has not occurred.
+  """
+  updatedAt: DateTimeFilterInput
+  """
+  Timestamp for placed, or null when it has not occurred.
+  """
+  placedAt: DateTimeFilterInput
+}
+
+"""
+Validated input for order order by. Tenant identifiers come only from trusted context.
+"""
+input OrderOrderByInput {
+  """
+  Input path associated with the error, when applicable.
+  """
+  field: OrderSortField!
+  """
+  Validated input value for direction.
+  """
+  direction: OrderSortDirection!
+}
+
+"""
+Comparison operators for id; omitted operators do not constrain results.
+"""
+input IDFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: ID
+  """
+  Validated input value for in.
+  """
+  in: [ID!]
+  """
+  Validated input value for not in.
+  """
+  notIn: [ID!]
+}
+
+"""
+Comparison operators for big int; omitted operators do not constrain results.
+"""
+input BigIntFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: BigInt
+  """
+  Validated input value for gt.
+  """
+  gt: BigInt
+  """
+  Validated input value for gte.
+  """
+  gte: BigInt
+  """
+  Validated input value for lt.
+  """
+  lt: BigInt
+  """
+  Validated input value for lte.
+  """
+  lte: BigInt
+}
+
+"""
+Comparison operators for decimal; omitted operators do not constrain results.
+"""
+input DecimalFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: Decimal
+  """
+  Validated input value for gt.
+  """
+  gt: Decimal
+  """
+  Validated input value for gte.
+  """
+  gte: Decimal
+  """
+  Validated input value for lt.
+  """
+  lt: Decimal
+  """
+  Validated input value for lte.
+  """
+  lte: Decimal
+}
+
+"""
+Comparison operators for string; omitted operators do not constrain results.
+"""
+input StringFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: String
+  """
+  Validated input value for in.
+  """
+  in: [String!]
+  """
+  Validated input value for contains.
+  """
+  contains: String
+  """
+  Validated input value for starts with.
+  """
+  startsWith: String
+}
+
+"""
+Comparison operators for date time; omitted operators do not constrain results.
+"""
+input DateTimeFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: DateTime
+  """
+  Validated input value for gt.
+  """
+  gt: DateTime
+  """
+  Validated input value for gte.
+  """
+  gte: DateTime
+  """
+  Validated input value for lt.
+  """
+  lt: DateTime
+  """
+  Validated input value for lte.
+  """
+  lte: DateTime
+}
+
+"""
+Comparison operators for order status; omitted operators do not constrain results.
+"""
+input OrderStatusFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: OrderStatus
+  """
+  Validated input value for in.
+  """
+  in: [OrderStatus!]
+}
+
+"""
+Comparison operators for currency code; omitted operators do not constrain results.
+"""
+input CurrencyCodeFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: CurrencyCode
+  """
+  Validated input value for in.
+  """
+  in: [CurrencyCode!]
+}
+
+"""
+Comparison operators for country code; omitted operators do not constrain results.
+"""
+input CountryCodeFilterInput {
+  """
+  Validated input value for eq.
+  """
+  eq: CountryCode
+  """
+  Validated input value for in.
+  """
+  in: [CountryCode!]
+}
+
+"""
+Validated input for money. Tenant identifiers come only from trusted context.
+"""
+input MoneyInput {
+  """
+  Exact decimal amount serialized as a string.
+  """
+  amount: Decimal!
+  """
+  ISO 4217 currency code.
+  """
+  currencyCode: CurrencyCode!
+}
+
+"""
+Validated input for weight. Tenant identifiers come only from trusted context.
+"""
+input OrderWeightInput {
+  """
+  Validated input value for value.
+  """
+  value: Float!
+  """
+  Validated input value for unit.
+  """
+  unit: WeightUnit!
+}
+
+"""
+Validated input for dimensions. Tenant identifiers come only from trusted context.
+"""
+input OrderDimensionsInput {
+  """
+  Validated input value for width.
+  """
+  width: Float!
+  """
+  Validated input value for height.
+  """
+  height: Float!
+  """
+  Validated input value for length.
+  """
+  length: Float!
+  """
+  Validated input value for unit.
+  """
+  unit: DimensionUnit!
+}
+
+"""
+Validated input for order address. Tenant identifiers come only from trusted context.
+"""
+input OrderAddressInput {
+  """
+  Validated input value for first name.
+  """
+  firstName: String
+  """
+  Validated input value for middle name.
+  """
+  middleName: String
+  """
+  Validated input value for last name.
+  """
+  lastName: String
+  """
+  Validated input value for company.
+  """
+  company: String
+  """
+  Validated input value for address1.
+  """
+  address1: String
+  """
+  Validated input value for address2.
+  """
+  address2: String
+  """
+  Validated input value for city.
+  """
+  city: String
+  """
+  Stable province code.
+  """
+  provinceCode: String
+  """
+  Stable postal code.
+  """
+  postalCode: String
+  """
+  Stable country code.
+  """
+  countryCode: CountryCode!
+  """
+  Validated input value for email.
+  """
+  email: String
+  """
+  Validated input value for phone.
+  """
+  phone: String
+  """
+  Structured snapshot or audit data with secrets excluded.
+  """
+  data: JSON
+}
+
+"""
+Validated input for order contact. Tenant identifiers come only from trusted context.
+"""
+input OrderContactInput {
+  """
+  Validated input value for email.
+  """
+  email: String
+  """
+  Validated input value for phone.
+  """
+  phone: String
+  """
+  Validated input value for first name.
+  """
+  firstName: String
+  """
+  Validated input value for middle name.
+  """
+  middleName: String
+  """
+  Validated input value for last name.
+  """
+  lastName: String
+  """
+  Validated input value for company.
+  """
+  company: String
+  """
+  Validated input value for note.
+  """
+  note: String
+}
+
+"""
+Validated input for order line create. Tenant identifiers come only from trusted context.
+"""
+input OrderLineCreateInput {
+  """
+  Relay global ID identifying the purchasable.
+  """
+  purchasableId: ID
+  """
+  Validated input value for title.
+  """
+  title: String!
+  """
+  Validated input value for sku.
+  """
+  sku: String
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int!
+  """
+  Validated input value for unit price.
+  """
+  unitPrice: MoneyInput!
+  """
+  Validated input value for unit compare at price.
+  """
+  unitCompareAtPrice: MoneyInput
+  """
+  Validated input value for unit cost.
+  """
+  unitCost: MoneyInput
+  """
+  Validated input value for weight.
+  """
+  weight: OrderWeightInput
+  """
+  Validated input value for requires shipping.
+  """
+  requiresShipping: Boolean = true
+  """
+  Validated input value for taxable.
+  """
+  taxable: Boolean = true
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
+}
+
+"""
+Validated input for order delivery. Tenant identifiers come only from trusted context.
+"""
+input OrderDeliveryInput {
+  """
+  Stable method code.
+  """
+  methodCode: String
+  """
+  Validated input value for address.
+  """
+  address: OrderAddressInput
+  """
+  Validated input value for recipient.
+  """
+  recipient: OrderContactInput
+}
+
+"""
+Validated input for order create. Tenant identifiers come only from trusted context.
+"""
+input OrderCreateInput {
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Optional client correlation value echoed by supported payloads.
+  """
+  clientMutationId: String
+  """
+  Relay global ID identifying the customer.
+  """
+  customerId: ID
+  """
+  Validated input value for contact.
+  """
+  contact: OrderContactInput!
+  """
+  Validated input value for billing address.
+  """
+  billingAddress: OrderAddressInput
+  """
+  Validated input value for shipping.
+  """
+  shipping: OrderDeliveryInput
+  """
+  Stable locale code.
+  """
+  localeCode: LocaleCode
+  """
+  Stable source code.
+  """
+  sourceCode: String
+  """
+  Relay global ID identifying the external.
+  """
+  externalId: String
+  """
+  Validated input value for lines.
+  """
+  lines: [OrderLineCreateInput!]!
+  """
+  Stable payment method code.
+  """
+  paymentMethodCode: String
+  """
+  Validated input value for tags.
+  """
+  tags: [String!]
+  """
+  Validated input value for admin note.
+  """
+  adminNote: String
+  """
+  Validated input value for customer note.
+  """
+  customerNote: String
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
+}
+
+"""
+Validated input for order update. Tenant identifiers come only from trusted context.
+"""
+input OrderUpdateInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for contact.
+  """
+  contact: OrderContactInput
+  """
+  Validated input value for billing address.
+  """
+  billingAddress: OrderAddressInput
+  """
+  Validated input value for shipping.
+  """
+  shipping: OrderDeliveryInput
+  """
+  Stable locale code.
+  """
+  localeCode: LocaleCode
+  """
+  Validated input value for customer note.
+  """
+  customerNote: String
+}
+
+"""
+Validated input for order delete. Tenant identifiers come only from trusted context.
+"""
+input OrderDeleteInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order complete draft. Tenant identifiers come only from trusted context.
+"""
+input OrderCompleteDraftInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+}
+
+"""
+Validated input for order close. Tenant identifiers come only from trusted context.
+"""
+input OrderCloseInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for reason.
+  """
+  reason: String
+}
+
+"""
+Validated input for order reopen. Tenant identifiers come only from trusted context.
+"""
+input OrderReopenInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for reason.
+  """
+  reason: String!
+}
+
+"""
+Validated input for order archive. Tenant identifiers come only from trusted context.
+"""
+input OrderArchiveInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order unarchive. Tenant identifiers come only from trusted context.
+"""
+input OrderUnarchiveInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
+
+"""
+Validated input for order cancel. Tenant identifiers come only from trusted context.
+"""
+input OrderCancelInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Stable audited reason code.
+  """
+  reasonCode: String!
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+  """
+  Validated input value for restock.
+  """
+  restock: Boolean = true
+  """
+  Validated input value for refund mode.
+  """
+  refundMode: String = "ORIGINAL_PAYMENT_METHODS"
+}
+
+"""
+Validated input for order customer set. Tenant identifiers come only from trusted context.
+"""
+input OrderCustomerSetInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Relay global ID identifying the customer.
+  """
+  customerId: ID
+}
+
+"""
+Validated input for order tags update. Tenant identifiers come only from trusted context.
+"""
+input OrderTagsUpdateInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for tags.
+  """
+  tags: [String!]!
+}
+
+"""
+Validated input for order admin note update. Tenant identifiers come only from trusted context.
+"""
+input OrderAdminNoteUpdateInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for admin note.
+  """
+  adminNote: String
+}
+
+"""
+Validated input for order comment add. Tenant identifiers come only from trusted context.
+"""
+input OrderCommentAddInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for comment.
+  """
+  comment: String!
+  """
+  Validated input value for visibility.
+  """
+  visibility: String = "STAFF"
+}
+
+"""
+Validated input for order custom fields update. Tenant identifiers come only from trusted context.
+"""
+input OrderCustomFieldsUpdateInput {
+  """
+  Relay global ID of this resource.
+  """
+  id: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON!
+}
+
+"""
+Validated input for order line add. Tenant identifiers come only from trusted context.
+"""
+input OrderLineAddInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Validated input value for line.
+  """
+  line: OrderLineCreateInput!
+}
+
+"""
+Validated input for order line update. Tenant identifiers come only from trusted context.
+"""
+input OrderLineUpdateInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Relay global ID identifying the line.
+  """
+  lineId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Quantity validated against domain conservation invariants.
+  """
+  quantity: Int
+  """
+  Validated input value for unit cost.
+  """
+  unitCost: MoneyInput
+  """
+  Validated input value for weight.
+  """
+  weight: OrderWeightInput
+  """
+  Merchant-defined structured data; core business facts are not stored here.
+  """
+  customFields: JSON
+}
+
+"""
+Validated input for order line delete. Tenant identifiers come only from trusted context.
+"""
+input OrderLineDeleteInput {
+  """
+  Relay global ID identifying the order.
+  """
+  orderId: ID!
+  """
+  Relay global ID identifying the line.
+  """
+  lineId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+}
